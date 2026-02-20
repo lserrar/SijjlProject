@@ -1415,6 +1415,179 @@ async def admin_revoke_access(user_id: str, request: Request):
         raise HTTPException(404, "Utilisateur non trouvé")
     return {'message': 'Accès révoqué', 'user_id': user_id}
 
+# ─── Admin: Thematiques CRUD ───────────────────────────────────────────────────
+
+@api_router.get("/admin/thematiques")
+async def admin_list_thematiques(request: Request):
+    await require_admin(request)
+    thematiques = await db.thematiques.find({}, {'_id': 0}).sort('order', 1).to_list(100)
+    return thematiques
+
+@api_router.post("/admin/thematiques")
+async def admin_create_thematique(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    thematique_id = f"them_{uuid.uuid4().hex[:8]}"
+    # Get max order
+    last = await db.thematiques.find_one(sort=[('order', -1)])
+    next_order = (last.get('order', 0) + 1) if last else 1
+    
+    doc = {
+        'id': thematique_id,
+        'name': body['name'],
+        'description': body.get('description', ''),
+        'icon': body.get('icon', 'book'),
+        'order': body.get('order', next_order),
+        'is_active': True,
+        'created_at': datetime.now(timezone.utc)
+    }
+    await db.thematiques.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.put("/admin/thematiques/{thematique_id}")
+async def admin_update_thematique(thematique_id: str, request: Request):
+    await require_admin(request)
+    body = await request.json()
+    update = {k: v for k, v in body.items() if k in ['name', 'description', 'icon', 'order', 'is_active']}
+    update['updated_at'] = datetime.now(timezone.utc)
+    result = await db.thematiques.update_one({'id': thematique_id}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Thématique non trouvée")
+    return {'message': 'Thématique mise à jour', 'id': thematique_id}
+
+@api_router.delete("/admin/thematiques/{thematique_id}")
+async def admin_delete_thematique(thematique_id: str, request: Request):
+    await require_admin(request)
+    result = await db.thematiques.delete_one({'id': thematique_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Thématique non trouvée")
+    return {'message': 'Thématique supprimée'}
+
+@api_router.patch("/admin/thematiques/{thematique_id}/toggle")
+async def admin_toggle_thematique(thematique_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.thematiques.find_one({'id': thematique_id})
+    if not doc:
+        raise HTTPException(404, "Thématique non trouvée")
+    new_status = not doc.get('is_active', True)
+    await db.thematiques.update_one({'id': thematique_id}, {'$set': {'is_active': new_status}})
+    return {'id': thematique_id, 'is_active': new_status}
+
+# ─── Admin: Bibliographies CRUD ────────────────────────────────────────────────
+
+@api_router.get("/admin/bibliographies")
+async def admin_list_bibliographies(request: Request):
+    await require_admin(request)
+    biblio = await db.bibliographies.find({}, {'_id': 0}).to_list(100)
+    return biblio
+
+@api_router.post("/admin/bibliographies")
+async def admin_create_bibliography(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    biblio_id = f"biblio_{uuid.uuid4().hex[:8]}"
+    doc = {
+        'id': biblio_id,
+        'title': body['title'],
+        'thematique_id': body.get('thematique_id', ''),
+        'content_fr': body.get('content_fr', ''),
+        'content_en': body.get('content_en', ''),
+        'is_active': True,
+        'created_at': datetime.now(timezone.utc)
+    }
+    await db.bibliographies.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.put("/admin/bibliographies/{biblio_id}")
+async def admin_update_bibliography(biblio_id: str, request: Request):
+    await require_admin(request)
+    body = await request.json()
+    update = {k: v for k, v in body.items() if k in ['title', 'thematique_id', 'content_fr', 'content_en', 'is_active']}
+    update['updated_at'] = datetime.now(timezone.utc)
+    result = await db.bibliographies.update_one({'id': biblio_id}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Bibliographie non trouvée")
+    return {'message': 'Bibliographie mise à jour', 'id': biblio_id}
+
+@api_router.delete("/admin/bibliographies/{biblio_id}")
+async def admin_delete_bibliography(biblio_id: str, request: Request):
+    await require_admin(request)
+    result = await db.bibliographies.delete_one({'id': biblio_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Bibliographie non trouvée")
+    return {'message': 'Bibliographie supprimée'}
+
+# ─── Admin: Masterclasses CRUD ─────────────────────────────────────────────────
+
+@api_router.get("/admin/masterclasses")
+async def admin_list_masterclasses(request: Request):
+    await require_admin(request)
+    mcs = await db.masterclasses.find({}, {'_id': 0}).to_list(100)
+    return mcs
+
+@api_router.post("/admin/masterclasses")
+async def admin_create_masterclass(request: Request):
+    await require_admin(request)
+    body = await request.json()
+    mc_id = f"mc_{uuid.uuid4().hex[:8]}"
+    doc = {
+        'id': mc_id,
+        'title': body['title'],
+        'description': body.get('description', ''),
+        'thematique_id': body.get('thematique_id', ''),
+        'scholar_id': body.get('scholar_id', ''),
+        'scholar_name': body.get('scholar_name', ''),
+        'date': body.get('date'),
+        'duration': body.get('duration', 60),
+        'price': body.get('price', 0),
+        'price_type': 'free' if body.get('price', 0) == 0 else 'paid',
+        'max_participants': body.get('max_participants', 100),
+        'current_participants': 0,
+        'thumbnail': body.get('thumbnail', ''),
+        'video_url': body.get('video_url', ''),
+        'registered_users': [],
+        'is_active': True,
+        'created_at': datetime.now(timezone.utc)
+    }
+    await db.masterclasses.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.put("/admin/masterclasses/{mc_id}")
+async def admin_update_masterclass(mc_id: str, request: Request):
+    await require_admin(request)
+    body = await request.json()
+    allowed = ['title', 'description', 'thematique_id', 'scholar_id', 'scholar_name', 'date', 
+               'duration', 'price', 'max_participants', 'thumbnail', 'video_url', 'is_active']
+    update = {k: v for k, v in body.items() if k in allowed}
+    if 'price' in update:
+        update['price_type'] = 'free' if update['price'] == 0 else 'paid'
+    update['updated_at'] = datetime.now(timezone.utc)
+    result = await db.masterclasses.update_one({'id': mc_id}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Masterclass non trouvée")
+    return {'message': 'Masterclass mise à jour', 'id': mc_id}
+
+@api_router.delete("/admin/masterclasses/{mc_id}")
+async def admin_delete_masterclass(mc_id: str, request: Request):
+    await require_admin(request)
+    result = await db.masterclasses.delete_one({'id': mc_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Masterclass non trouvée")
+    return {'message': 'Masterclass supprimée'}
+
+@api_router.patch("/admin/masterclasses/{mc_id}/toggle")
+async def admin_toggle_masterclass(mc_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.masterclasses.find_one({'id': mc_id})
+    if not doc:
+        raise HTTPException(404, "Masterclass non trouvée")
+    new_status = not doc.get('is_active', True)
+    await db.masterclasses.update_one({'id': mc_id}, {'$set': {'is_active': new_status}})
+    return {'id': mc_id, 'is_active': new_status}
+
 # ─── Admin Panel Web Routes ────────────────────────────────────────────────────
 
 ADMIN_TEMPLATES_DIR = ROOT_DIR / 'admin_templates'
