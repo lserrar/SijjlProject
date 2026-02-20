@@ -67,7 +67,7 @@ export default function LoginScreen() {
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
 
-          <Text style={styles.tagline}>La sagesse académique, à portée de main</Text>
+          <Text style={styles.tagline}>La connaissance académique, à portée de main</Text>
 
           {/* Form */}
           <View style={styles.form}>
