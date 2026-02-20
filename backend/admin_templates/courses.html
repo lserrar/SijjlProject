@@ -145,6 +145,11 @@
                     <i class="fas fa-search"></i>
                     <input type="text" class="search-input" placeholder="Rechercher un cours..." id="searchInput" oninput="filterCourses()">
                 </div>
+                <div class="filter-box">
+                    <select class="filter-select" id="cursusFilter" onchange="filterCourses()" data-testid="cursus-filter-select">
+                        <option value="">Tous les cursus</option>
+                    </select>
+                </div>
             </div>
 
             <div class="card">
