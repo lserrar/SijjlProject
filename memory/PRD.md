@@ -1,9 +1,9 @@
 # PRD – HikmabyLM
 
-## Statut : MVP Complet - Prêt pour production
+## Statut : MVP Complet - Pret pour production
 
-## Problème original
-Application mobile e-learning académique française pour études islamiques (iOS & Android) : cours vidéo, podcasts, articles, sessions live, bibliothèque. Design type Spotify dark. Tone intellectuel et rigoureux.
+## Probleme original
+Application mobile e-learning academique francaise pour etudes islamiques (iOS & Android) : cours video, podcasts, articles, sessions live, bibliotheque. Design type Spotify dark. Tone intellectuel et rigoureux.
 
 ## Architecture
 - **Backend** : FastAPI + MongoDB (port 8001)
@@ -12,57 +12,70 @@ Application mobile e-learning académique française pour études islamiques (iO
 - **Storage audio** : Cloudflare R2 (bucket hikma-audio)
 - **Auth** : Email/password (JWT) + Google OAuth (Emergent Auth)
 
-## Ce qui est implémenté
+## Ce qui est implemente
 
 ### Backend (server.py)
 - Auth : register/login (JWT), Google OAuth
-- **Scholars** CRUD avec toggle
-- **Courses** CRUD avec sync R2
+- **Professors** CRUD avec toggle (anciennement Scholars/Savants)
+- **Courses** CRUD avec sync R2 + champ thematique_id pour liaison Cursus
 - **Audios** CRUD avec file_key R2
-- **Thematiques** API (26 thèmes)
-- **Bibliographies** API (22 entrées)
+- **Thematiques** API (26 themes) = Cursus dans l'interface
+- **Bibliographies** API (22 entrees)
 - **Masterclasses** API (22 sessions, gratuit ou payant)
-- Admin Routes CRUD complètes pour toutes les entités
+- Admin Routes CRUD completes pour toutes les entites
 - R2 Storage : folders listing, files listing, sync
 
 ### Admin Panel Web (Complet)
-- **Login** : Connexion sécurisée
-- **Dashboard** : Stats globales
-- **Savants** : CRUD complet
-- **Cours** : CRUD avec sélection savant
+- **Login** : Connexion securisee
+- **Dashboard** : Stats globales (Professeurs, Cours, Audios, Utilisateurs)
+- **Professeurs** : CRUD complet (renomme de "Savants")
+- **Cours** : CRUD avec selection professeur + selection Cursus
 - **Audios** : CRUD avec filtre type
-- **Thématiques** : CRUD (Cursus)
-- **Bibliographies** : CRUD avec liens thématiques
-- **Masterclasses** : CRUD avec prix, durée, inscrits
-- **Utilisateurs** : Gestion + accès gratuit
+- **Cursus** : CRUD (anciennement Thematiques dans le code, affiche "Cursus" dans l'interface)
+- **Bibliographies** : CRUD avec liens thematiques
+- **Masterclasses** : CRUD avec prix, duree, inscrits
+- **Utilisateurs** : Gestion + acces gratuit
 - **Stockage R2** : Navigation + sync cours
 
 ### Frontend Mobile (Expo)
 - Auth screens : login (email + Google) / register
-- Home : hero, recommendations, érudit semaine, écoute du jour
-- **Navigation 6 onglets** : Accueil, Cursus, Biblio, Live, Profil, À propos
-- **Cursus** : Liste des thématiques avec cours associés
-- **Bibliothèque** : Articles par thème
+- Home : hero, recommendations, erudit semaine, ecoute du jour
+- **Navigation 6 onglets** : Accueil, Cursus, Biblio, Live, Profil, A propos
+- **Cursus** : Liste des thematiques avec cours associes
+- **Bibliotheque** : Articles par theme
 - **Live** : Masterclasses avec inscription
 - Audio player complet avec streaming R2
 - MiniPlayer persistant
+
+## Modifications recentes (2025-12-20)
+- ✅ Renommage "Savants" → "Professeurs" dans tout le panel admin
+- ✅ Renommage "Thematiques" → "Cursus" dans la navigation sidebar
+- ✅ Ajout liaison Cours ↔ Cursus (champ thematique_id)
+- ✅ Formulaire de cours avec selection du Cursus
+- ✅ Colonne Cursus dans la liste des cours
+- ✅ Nouvelle route /api/admin-panel/professors
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
 - **URL Panel** : https://thematic-platform.preview.emergentagent.com/api/admin-panel/
 
 ## Contenu
-- 26 Thématiques
+- 26 Cursus (Thematiques)
 - 22 Bibliographies
 - 22 Masterclasses
 - 38 Cours
 - 15 Audios
-- 5-9 Savants
+- 9 Professeurs
+
+## Backlog P1 (A venir)
+- Implementation des ecrans mobiles pour Cursus, Bibliotheque, Live
+- Stabilisation du tunnel Ngrok pour l'environnement Expo
 
 ## Backlog P2 (Futur)
-- Système de monétisation (Stripe)
+- Systeme de monetisation (Stripe)
 - Push notifications
-- Analytics temps d'écoute
+- Analytics temps d'ecoute
 - Multi-langue (EN, AR, RTL)
+- Refactorisation backend (server.py monolithique)
 
-## Date implémentation : 2026-02-20
+## Date implementation : 2025-12-20
