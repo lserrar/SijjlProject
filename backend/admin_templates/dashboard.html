@@ -225,9 +225,9 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Contenu</div>
-                    <a href="/api/admin-panel/scholars" class="nav-item">
+                    <a href="/api/admin-panel/professors" class="nav-item">
                         <i class="fas fa-user-graduate"></i>
-                        <span>Savants</span>
+                        <span>Professeurs</span>
                     </a>
                     <a href="/api/admin-panel/courses" class="nav-item">
                         <i class="fas fa-book-open"></i>
@@ -239,7 +239,7 @@
                     </a>
                     <a href="/api/admin-panel/thematiques" class="nav-item">
                         <i class="fas fa-layer-group"></i>
-                        <span>Thématiques</span>
+                        <span>Cursus</span>
                     </a>
                     <a href="/api/admin-panel/bibliographies" class="nav-item">
                         <i class="fas fa-book"></i>
@@ -287,8 +287,8 @@
             <div class="grid-2">
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="card-title">Savants récents</h2>
-                        <a href="/api/admin-panel/scholars" class="card-link">Voir tout</a>
+                        <h2 class="card-title">Professeurs recents</h2>
+                        <a href="/api/admin-panel/professors" class="card-link">Voir tout</a>
                     </div>
                     <div id="recentScholars">
                         <div class="loading"><div class="spinner"></div> Chargement...</div>
@@ -360,7 +360,7 @@
                     <div class="stat-card">
                         <div class="stat-icon green"><i class="fas fa-user-graduate"></i></div>
                         <div class="stat-value">${scholars?.length || 0}</div>
-                        <div class="stat-label">Savants</div>
+                        <div class="stat-label">Professeurs</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon blue"><i class="fas fa-book-open"></i></div>
@@ -413,7 +413,7 @@
                         </table>
                     `;
                 } else {
-                    document.getElementById('recentScholars').innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Aucun savant trouvé</p>';
+                    document.getElementById('recentScholars').innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Aucun professeur trouve</p>';
                 }
 
                 // Recent courses
