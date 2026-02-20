@@ -11,8 +11,8 @@ function TabBarIcon({ name, focused }: { name: string; focused: boolean }) {
   return (
     <Ionicons
       name={name as any}
-      size={24}
-      color={focused ? colors.text.primary : colors.text.secondary}
+      size={22}
+      color={focused ? colors.brand.primary : colors.text.secondary}
     />
   );
 }
@@ -29,18 +29,18 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: 'rgba(18, 18, 18, 0.97)',
+            backgroundColor: 'rgba(18, 18, 18, 0.98)',
             borderTopColor: colors.border.subtle,
             borderTopWidth: 1,
             height: tabBarHeight,
             paddingBottom: insets.bottom,
-            paddingTop: 8,
+            paddingTop: 6,
           },
-          tabBarActiveTintColor: colors.text.primary,
+          tabBarActiveTintColor: colors.brand.primary,
           tabBarInactiveTintColor: colors.text.secondary,
           tabBarLabelStyle: {
             fontFamily: 'Inter-Medium',
-            fontSize: 10,
+            fontSize: 9,
             marginTop: 2,
           },
         }}
@@ -55,20 +55,20 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="explorer"
+          name="cursus"
           options={{
-            title: 'Explorer',
+            title: 'Cursus',
             tabBarIcon: ({ focused }) => (
-              <TabBarIcon name={focused ? 'search' : 'search-outline'} focused={focused} />
+              <TabBarIcon name={focused ? 'school' : 'school-outline'} focused={focused} />
             ),
           }}
         />
         <Tabs.Screen
           name="bibliotheque"
           options={{
-            title: 'Bibliothèque',
+            title: 'Biblio',
             tabBarIcon: ({ focused }) => (
-              <TabBarIcon name={focused ? 'library' : 'library-outline'} focused={focused} />
+              <TabBarIcon name={focused ? 'book' : 'book-outline'} focused={focused} />
             ),
           }}
         />
@@ -77,7 +77,7 @@ export default function TabLayout() {
           options={{
             title: 'Live',
             tabBarIcon: ({ focused }) => (
-              <TabBarIcon name={focused ? 'radio' : 'radio-outline'} focused={focused} />
+              <TabBarIcon name={focused ? 'videocam' : 'videocam-outline'} focused={focused} />
             ),
           }}
         />
@@ -97,6 +97,19 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => (
               <TabBarIcon name={focused ? 'information-circle' : 'information-circle-outline'} focused={focused} />
             ),
+          }}
+        />
+        {/* Hidden screens */}
+        <Tabs.Screen
+          name="explorer"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="ma-bibliotheque"
+          options={{
+            href: null, // Hide from tab bar
           }}
         />
       </Tabs>
