@@ -49,7 +49,7 @@ Application mobile e-learning académique française pour études islamiques (iO
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
-- **URL Panel** : https://hikma-manage.preview.emergentagent.com/api/admin-panel/
+- **URL Panel** : https://thematic-platform.preview.emergentagent.com/api/admin-panel/
 
 ## Contenu
 - 26 Thématiques
