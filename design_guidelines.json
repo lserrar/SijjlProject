@@ -1,0 +1,256 @@
+{
+  "brand_identity": {
+    "name": "HikmabyLM",
+    "tone": "Intellectual, Serious, Modern, Prestigious, Secular",
+    "metaphor": "MasterClass meets Spotify for Islamic Academic Studies",
+    "core_values": ["Rigor", "Refinement", "Wisdom (Hikma)", "Modernity"],
+    "language": "French"
+  },
+  "design_system": {
+    "theme": "dark",
+    "colors": {
+      "background": {
+        "primary": "#121212",
+        "secondary": "#000000",
+        "card": "#282828",
+        "overlay": "rgba(0, 0, 0, 0.7)",
+        "modal": "#1E1E1E"
+      },
+      "text": {
+        "primary": "#FFFFFF",
+        "secondary": "#B3B3B3",
+        "tertiary": "#777777",
+        "accent": "#04D182"
+      },
+      "brand": {
+        "primary": "#04D182",
+        "secondary": "#C9A8C0",
+        "tertiary": "#1B93A4",
+        "error": "#CF6679",
+        "success": "#04D182",
+        "warning": "#FFC107"
+      },
+      "border": {
+        "default": "#333333",
+        "active": "#04D182"
+      }
+    },
+    "typography": {
+      "font_family": {
+        "primary": "Inter",
+        "secondary": "DM Sans"
+      },
+      "weights": {
+        "regular": "400",
+        "medium": "500",
+        "bold": "700",
+        "heavy": "900"
+      },
+      "sizes": {
+        "xs": 12,
+        "sm": 14,
+        "md": 16,
+        "lg": 18,
+        "xl": 24,
+        "xxl": 32,
+        "xxxl": 48
+      },
+      "line_heights": {
+        "tight": 1.2,
+        "normal": 1.5,
+        "relaxed": 1.8
+      }
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32,
+      "xxl": 48,
+      "section": 64
+    },
+    "borders": {
+      "radius": {
+        "sm": 4,
+        "md": 8,
+        "lg": 12,
+        "xl": 24,
+        "full": 9999
+      },
+      "width": {
+        "thin": 1,
+        "thick": 2
+      }
+    }
+  },
+  "components": {
+    "Button": {
+      "variants": {
+        "primary": {
+          "backgroundColor": "#04D182",
+          "textColor": "#000000",
+          "borderRadius": 9999,
+          "paddingVertical": 16,
+          "paddingHorizontal": 32,
+          "fontWeight": "700"
+        },
+        "secondary": {
+          "backgroundColor": "transparent",
+          "textColor": "#FFFFFF",
+          "borderColor": "#777777",
+          "borderWidth": 1,
+          "borderRadius": 9999
+        },
+        "ghost": {
+          "backgroundColor": "transparent",
+          "textColor": "#B3B3B3"
+        }
+      }
+    },
+    "Card": {
+      "variants": {
+        "standard": {
+          "backgroundColor": "#282828",
+          "borderRadius": 8,
+          "padding": 16
+        },
+        "featured": {
+          "backgroundColor": "#1E1E1E",
+          "borderRadius": 12,
+          "padding": 0
+        }
+      }
+    },
+    "Input": {
+      "backgroundColor": "#282828",
+      "textColor": "#FFFFFF",
+      "placeholderColor": "#777777",
+      "borderRadius": 4,
+      "padding": 16,
+      "fontSize": 16
+    },
+    "MiniPlayer": {
+      "height": 64,
+      "backgroundColor": "#181818",
+      "borderTopColor": "#282828",
+      "progressBarColor": "#04D182"
+    },
+    "TabBar": {
+      "backgroundColor": "rgba(18, 18, 18, 0.95)",
+      "activeTintColor": "#FFFFFF",
+      "inactiveTintColor": "#B3B3B3",
+      "blurEffect": "dark"
+    }
+  },
+  "layout_patterns": {
+    "Home": {
+      "structure": [
+        "Hero Section (Continue Learning) - Full width or Large Card",
+        "Horizontal Scroll (Featured Scholar)",
+        "Horizontal Scroll (Daily Pick)",
+        "Vertical List (Latest Episodes)"
+      ],
+      "spacing": "gap-24"
+    },
+    "Explorer": {
+      "structure": [
+        "Search Bar (Sticky)",
+        "Tab Filter (Topics, Levels, Scholars)",
+        "Grid Layout (Categories)",
+        "Vertical List (Results)"
+      ]
+    },
+    "DetailScreen": {
+      "structure": [
+        "Hero Image (Parallax)",
+        "Title & Metadata",
+        "Action Buttons (Play, Save)",
+        "Description (Expandable)",
+        "Related Content List"
+      ]
+    }
+  },
+  "assets": {
+    "images": {
+      "hero_backgrounds": [
+        "https://images.unsplash.com/photo-1648410794337-b4394bda870f?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "https://images.unsplash.com/photo-1734967639390-147c8d1eeede?crop=entropy&cs=srgb&fm=jpg&q=85"
+      ],
+      "scholar_portraits": [
+        "https://images.unsplash.com/photo-1628070435838-19eb835ad70d?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "https://images.unsplash.com/photo-1681235853652-34a74fbfc8b2?crop=entropy&cs=srgb&fm=jpg&q=85"
+      ],
+      "geometric_patterns": [
+        "https://images.unsplash.com/photo-1648443524209-d65b2930a743?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "https://images.unsplash.com/photo-1739477274868-86a943b6cd5b?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "https://images.unsplash.com/photo-1739478469935-65b0ac94355c?crop=entropy&cs=srgb&fm=jpg&q=85"
+      ],
+      "placeholders": {
+        "course_cover": "https://images.pexels.com/photos/19893407/pexels-photo-19893407.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "podcast_cover": "https://images.pexels.com/photos/28428586/pexels-photo-28428586.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      }
+    },
+    "icons": {
+      "library": "lucide-react-native",
+      "mapping": {
+        "home": "Home",
+        "search": "Search",
+        "library": "Library",
+        "live": "Radio",
+        "profile": "User",
+        "play": "Play",
+        "pause": "Pause",
+        "next": "SkipForward",
+        "prev": "SkipBack",
+        "close": "X",
+        "chevron_right": "ChevronRight",
+        "chevron_left": "ChevronLeft",
+        "filter": "Filter",
+        "download": "Download",
+        "heart": "Heart",
+        "share": "Share"
+      }
+    }
+  },
+  "animation_guidelines": {
+    "transitions": "Use react-native-reanimated for all gestures and transitions",
+    "types": {
+      "screen_transition": "Slide from right (iOS standard) or Fade",
+      "modal_presentation": "Slide up from bottom",
+      "active_state": "Scale down (0.98) on press",
+      "skeleton_loading": "Pulse opacity 0.4 <-> 0.8"
+    }
+  },
+  "accessibility": {
+    "contrast": "Text must maintain 4.5:1 contrast against background",
+    "touch_targets": "Minimum 44x44 points for all interactive elements",
+    "text_scaling": "Support dynamic type sizes",
+    "screen_readers": "All images must have descriptive alt text via accessibilityLabel"
+  },
+  "universal_guidelines_for_main_agent": {
+    "framework": "React Native Expo (Managed Workflow)",
+    "styling": "StyleSheet.create (NO CSS, NO Tailwind/NativeWind unless configured - Assume Standard StyleSheet)",
+    "navigation": "Expo Router (File-based routing)",
+    "language": "French (Hardcoded strings for now)",
+    "safe_area": "Always use SafeAreaView from react-native-safe-area-context",
+    "platform_specific": "Handle Platform.OS === 'ios' vs 'android' for shadows and font families",
+    "code_structure": "Functional Components with Hooks",
+    "data_testid": "Add testID prop to all interactive elements",
+    "state_management": "React Context or Zustand (Simple global state)",
+    "icons": "Use @expo/vector-icons/Lucide",
+    "fonts": "Use expo-font to load Inter/DM Sans",
+    "mock_data": "Create a robust mock data file for courses, scholars, and users",
+    "image_handling": "Use Expo Image for caching and performance"
+  },
+  "instructions_to_main_agent": [
+    "1. Initialize Expo Router structure in /app directory.",
+    "2. Create a global theme context/provider to manage colors and fonts.",
+    "3. Build reusable atomic components (Button, Typography, Card, Input) first.",
+    "4. Implement the 'AppShell' (Tab Navigation + MiniPlayer Wrapper).",
+    "5. Mock data using French lorem ipsum and provided image URLs.",
+    "6. Ensure Dark Mode is hardcoded as default (no light mode toggle for MVP).",
+    "7. Use 'Inter' font for headings and 'DM Sans' for body text if available, else system sans-serif.",
+    "8. STRICTLY follow the color palette: #121212 Background, #04D182 Accent."
+  ]
+}
