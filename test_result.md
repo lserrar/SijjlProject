@@ -101,3 +101,215 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Application HikmabyLM - E-learning islamique en français.
+  Nouvelle fonctionnalité: Panel Admin avec système de rôles (admin/user).
+  L'utilisateur loubna.serrar@gmail.com doit avoir le rôle admin.
+  Ajout des professeurs Meryem Sebti et Henry Corbin.
+  Création de 2 cours basés sur les dossiers R2 (Philosophie et Henry Corbin).
+  14 épisodes audio du Cycle Henry Corbin créés et liés aux fichiers R2.
+
+backend:
+  - task: "Admin Stats API"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/admin/stats - Returns counts for audios, scholars, courses, users"
+
+  - task: "Admin Audios CRUD API"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET/POST/PUT/DELETE/PATCH /api/admin/audios - Full CRUD with toggle"
+
+  - task: "Admin Scholars CRUD API"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET/POST/PUT/DELETE /api/admin/scholars - Full CRUD"
+
+  - task: "Admin Courses CRUD API"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET/POST/PUT/DELETE/PATCH /api/admin/courses - Full CRUD with toggle"
+
+  - task: "Admin Role Protection"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "require_admin() function checks user role before allowing admin operations"
+
+  - task: "Data Migration - Meryem Sebti and Henry Corbin"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Seed data adds Prof. Meryem Sebti (sch-006) and Henry Corbin (sch-007) with photos"
+
+  - task: "Data Migration - Philosophie and Henry Corbin Courses"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Creates crs-philo-sebti and crs-henry-corbin courses linked to R2 folders"
+
+  - task: "Data Migration - Henry Corbin Audio Episodes"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Creates 14 audio episodes (aud-corbin-01 to aud-corbin-14) with R2 file keys"
+
+frontend:
+  - task: "Admin Dashboard Screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/admin/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Admin dashboard with stats and navigation to management screens"
+
+  - task: "Admin Audios Management Screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/admin/audios.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "List view with toggle, edit, delete actions"
+
+  - task: "Admin Scholars Management Screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/admin/scholars.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "List view with edit, delete actions"
+
+  - task: "Admin Courses Management Screen"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/admin/courses.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "List view with toggle, edit, delete actions"
+
+  - task: "Admin Forms (Audio, Scholar, Course)"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/admin/audio-form.tsx, scholar-form.tsx, course-form.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Create/Edit forms for all content types"
+
+  - task: "Profile Admin Button"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/profil.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Admin panel button visible only if user.role === 'admin'"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Admin Stats API"
+    - "Admin Audios CRUD API"
+    - "Admin Scholars CRUD API"
+    - "Admin Courses CRUD API"
+    - "Admin Role Protection"
+    - "Data Migration - Meryem Sebti and Henry Corbin"
+    - "Data Migration - Henry Corbin Audio Episodes"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Implémentation complète du panel admin:
+      1. Backend: APIs admin CRUD pour audios, scholars, courses avec protection par rôle
+      2. Backend: Migrations pour ajouter Meryem Sebti (sch-006), Henry Corbin (sch-007)
+      3. Backend: Création de 2 cours (Philosophie, Cycle Henry Corbin) + 14 épisodes audio
+      4. Frontend: Écrans admin (dashboard, listes, formulaires)
+      5. Frontend: Bouton admin sur profil conditionnel au rôle
+      
+      Pour tester l'admin:
+      - L'utilisateur loubna.serrar@gmail.com a le rôle admin
+      - Les endpoints admin nécessitent un token JWT avec rôle admin
+      - Les audios Henry Corbin utilisent les file_keys du bucket R2
