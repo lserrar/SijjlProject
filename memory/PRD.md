@@ -54,6 +54,8 @@ Application mobile e-learning academique francaise pour etudes islamiques (iOS &
 - ✅ Formulaire de cours avec selection du Cursus
 - ✅ Colonne Cursus dans la liste des cours
 - ✅ Nouvelle route /api/admin-panel/professors
+- ✅ **Filtre par Cursus** dans le panel admin (dropdown pour filtrer les cours)
+- ✅ **API publique /api/courses** accepte le parametre `thematique_id` pour filtrer par cursus
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
