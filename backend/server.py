@@ -52,6 +52,15 @@ if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_KEY:
 
 PRESIGNED_URL_EXPIRY = 3600  # 1 hour
 
+# ─── Stripe Config ───────────────────────────────────────────────────────────
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+
+# Default subscription plans (can be modified via admin panel)
+DEFAULT_PLANS = {
+    'monthly': {'name': 'Abonnement Mensuel', 'price': 9.99, 'duration_days': 30, 'type': 'subscription'},
+    'annual': {'name': 'Abonnement Annuel', 'price': 89.99, 'duration_days': 365, 'type': 'subscription'},
+}
+
 def get_presigned_stream_url(file_key: str) -> Optional[str]:
     """Generate a presigned URL for streaming an audio file from R2."""
     if not r2_client or not file_key:
