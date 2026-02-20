@@ -56,6 +56,11 @@ Application mobile e-learning academique francaise pour etudes islamiques (iOS &
 - ✅ Nouvelle route /api/admin-panel/professors
 - ✅ **Filtre par Cursus** dans le panel admin (dropdown pour filtrer les cours)
 - ✅ **API publique /api/courses** accepte le parametre `thematique_id` pour filtrer par cursus
+- ✅ **Integration Stripe** complete pour paiements
+- ✅ **Abonnements** Mensuel (9.99€/30j) et Annuel (89.99€/365j)
+- ✅ **Achats uniques** de cours ou cursus (6 mois d'acces)
+- ✅ **Page admin Tarification** pour gerer les plans et voir les transactions
+- ✅ **Verification d'acces utilisateur** (abonnement, achat, admin, acces gratuit)
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
