@@ -292,6 +292,9 @@ async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = No
     if scholar_id:
         query['scholar_id'] = scholar_id
     audios = await db.audios.find(query, {'_id': 0}).to_list(100)
+    # Attach resolved stream URL to each audio
+    for a in audios:
+        a['stream_url'] = resolve_audio_url(a)
     return audios
 
 @api_router.get("/audios/{audio_id}")
@@ -299,7 +302,84 @@ async def get_audio(audio_id: str):
     a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
     if not a:
         raise HTTPException(404, "Audio non trouvé")
+    a['stream_url'] = resolve_audio_url(a)
     return a
+
+@api_router.get("/audios/{audio_id}/stream-url")
+async def get_audio_stream_url(audio_id: str):
+    """Get a fresh presigned streaming URL for an audio file from R2."""
+    a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    if not a:
+        raise HTTPException(404, "Audio non trouvé")
+    stream_url = resolve_audio_url(a)
+    file_key = a.get('file_key')
+    return {
+        'audio_id': audio_id,
+        'stream_url': stream_url,
+        'file_key': file_key,
+        'source': 'r2' if (r2_client and file_key) else 'fallback',
+        'expires_in': PRESIGNED_URL_EXPIRY if (r2_client and file_key) else None,
+    }
+
+class UploadUrlRequest(BaseModel):
+    file_key: str
+    content_type: str = 'audio/mpeg'
+
+@api_router.post("/r2/upload-url")
+async def get_upload_url(body: UploadUrlRequest, request: Request):
+    """Get a presigned upload URL for putting a new audio file into R2."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    upload_url = get_presigned_upload_url(body.file_key, body.content_type)
+    if not upload_url:
+        raise HTTPException(500, "Impossible de générer l'URL d'upload")
+    return {
+        'upload_url': upload_url,
+        'file_key': body.file_key,
+        'bucket': R2_BUCKET,
+        'expires_in': 3600,
+    }
+
+@api_router.get("/r2/files")
+async def list_r2_files(prefix: Optional[str] = None):
+    """List files in the R2 bucket (optionally filtered by prefix)."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    try:
+        kwargs: dict = {'Bucket': R2_BUCKET, 'MaxKeys': 200}
+        if prefix:
+            kwargs['Prefix'] = prefix
+        response = r2_client.list_objects_v2(**kwargs)
+        files = [
+            {
+                'key': obj['Key'],
+                'size': obj['Size'],
+                'last_modified': obj['LastModified'].isoformat(),
+                'stream_url': get_presigned_stream_url(obj['Key']),
+            }
+            for obj in response.get('Contents', [])
+        ]
+        return {'files': files, 'count': len(files), 'bucket': R2_BUCKET}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.put("/audios/{audio_id}/file-key")
+async def update_audio_file_key(audio_id: str, request: Request):
+    """Update the R2 file_key for an audio document."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    body = await request.json()
+    file_key = body.get('file_key')
+    if not file_key:
+        raise HTTPException(400, "file_key requis")
+    result = await db.audios.update_one({'id': audio_id}, {'$set': {'file_key': file_key}})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Audio non trouvé")
+    return {'message': 'file_key mis à jour', 'audio_id': audio_id, 'file_key': file_key}
 
 # ─── Article Routes ─────────────────────────────────────────────────────────
 
