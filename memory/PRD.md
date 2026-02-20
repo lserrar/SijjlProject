@@ -1,6 +1,6 @@
 # PRD – HikmabyLM
 
-## Statut : MVP + R2 Storage + Admin Panel Web
+## Statut : MVP + R2 Storage + Admin Panel Web Complet
 
 ## Problème original
 Application mobile e-learning académique française pour études islamiques (iOS & Android) : cours vidéo, podcasts, articles, sessions live, bibliothèque. Design type Spotify dark. Tone intellectuel et rigoureux.
@@ -32,16 +32,19 @@ Application mobile e-learning académique française pour études islamiques (iO
   - GET/POST/PUT/DELETE /admin/audios
   - GET /admin/users + grant-access + revoke-access
   - POST /admin/courses/{id}/sync-r2
+  - GET /admin/r2/folders - Liste tous les dossiers R2
+  - GET /admin/r2/folder/{name}/files - Liste les fichiers d'un dossier
 - **Admin Panel Web** : Pages HTML servies à /api/admin-panel/*
 - Health check endpoint
 
-### Admin Panel Web (Nouveau)
+### Admin Panel Web (Complet)
 - **Login** : /api/admin-panel/login - Page de connexion sécurisée
 - **Dashboard** : /api/admin-panel/ - Vue d'ensemble (stats, listes récentes)
 - **Savants** : /api/admin-panel/scholars - CRUD complet avec toggle
 - **Cours** : /api/admin-panel/courses - CRUD avec sélection savant
 - **Audios** : /api/admin-panel/audios - CRUD avec filtre par type
 - **Utilisateurs** : /api/admin-panel/users - Liste + attribution accès gratuit
+- **Stockage R2** : /api/admin-panel/r2 - Navigation dossiers R2, visualisation fichiers, synchronisation automatique avec les cours
 
 ### Frontend Mobile (Expo)
 - Auth screens : login (email + Google) / register
@@ -64,10 +67,10 @@ Application mobile e-learning académique française pour études islamiques (iO
 ## Backlog Priorité
 
 ### P0 (terminé cette session)
-- ✅ Panel Admin Web dédié
+- ✅ Panel Admin Web dédié avec toutes les pages
 - ✅ CRUD Savants, Cours, Audios
 - ✅ Gestion utilisateurs avec accès gratuit
-- ✅ Health check endpoint
+- ✅ Page Stockage R2 avec synchronisation des cours
 
 ### P1 (prochaine session)
 - [ ] Implémenter l'onglet "Nos Cursus" (frontend mobile)
@@ -91,7 +94,8 @@ Application mobile e-learning académique française pour études islamiques (iO
 │   ├── scholars.html
 │   ├── courses.html
 │   ├── audios.html
-│   └── users.html
+│   ├── users.html
+│   └── r2.html
 └── server.py
 ```
 
