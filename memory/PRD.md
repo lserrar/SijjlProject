@@ -61,6 +61,9 @@ Application mobile e-learning academique francaise pour etudes islamiques (iOS &
 - ✅ **Achats uniques** de cours ou cursus (6 mois d'acces)
 - ✅ **Page admin Tarification** pour gerer les plans et voir les transactions
 - ✅ **Verification d'acces utilisateur** (abonnement, achat, admin, acces gratuit)
+- ✅ **Codes promo** : CRUD complet avec % ou montant fixe, max utilisations, date expiration
+- ✅ **Essais gratuits** : 7 jours mensuel, 14 jours annuel (1 essai par utilisateur)
+- ✅ **Page admin Codes Promo** pour gerer les codes promotionnels
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
