@@ -347,8 +347,25 @@
 
         function filterCourses() {
             const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = courses.filter(c => c.title.toLowerCase().includes(query) || (c.scholar_name && c.scholar_name.toLowerCase().includes(query)));
+            const cursusFilter = document.getElementById('cursusFilter').value;
+            let filtered = courses;
+            
+            if (cursusFilter) {
+                filtered = filtered.filter(c => c.thematique_id === cursusFilter);
+            }
+            if (query) {
+                filtered = filtered.filter(c => 
+                    c.title.toLowerCase().includes(query) || 
+                    (c.scholar_name && c.scholar_name.toLowerCase().includes(query))
+                );
+            }
             renderCourses(filtered);
+        }
+
+        function populateCursusFilter() {
+            const filterSelect = document.getElementById('cursusFilter');
+            filterSelect.innerHTML = '<option value="">Tous les cursus</option>' + 
+                thematiques.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         }
 
         function renderCourses(data) {
