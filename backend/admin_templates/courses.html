@@ -421,6 +421,7 @@
                 scholars = scholars || [];
                 courses = courses || [];
                 thematiques = thematiques || [];
+                populateCursusFilter();
                 renderCourses(courses);
             } catch (error) { showToast('Erreur de chargement', 'error'); }
         }
