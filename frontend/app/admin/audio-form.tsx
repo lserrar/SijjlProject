@@ -1,0 +1,329 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useAuth, apiRequest } from '../../context/AuthContext';
+import { colors, spacing, radius } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+
+interface Scholar {
+  id: string;
+  name: string;
+}
+
+export default function AudioForm() {
+  const { token } = useAuth();
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEdit = !!id;
+
+  const [loading, setLoading] = useState(isEdit);
+  const [saving, setSaving] = useState(false);
+  const [scholars, setScholars] = useState<Scholar[]>([]);
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [scholarId, setScholarId] = useState('');
+  const [scholarName, setScholarName] = useState('');
+  const [duration, setDuration] = useState('0');
+  const [fileKey, setFileKey] = useState('');
+  const [thumbnail, setThumbnail] = useState('');
+  const [topic, setTopic] = useState('');
+  const [audioType, setAudioType] = useState('podcast');
+
+  const TOPICS = ['Philosophie islamique', 'Tasawwuf', 'Fiqh', 'Histoire de l\'Islam', 'Sciences coraniques', 'Kalam'];
+  const TYPES = ['podcast', 'lecture', 'quran', 'documentary'];
+
+  useEffect(() => {
+    loadScholars();
+    if (isEdit) loadAudio();
+  }, [id]);
+
+  const loadScholars = async () => {
+    try {
+      const resp = await apiRequest('/scholars', token);
+      if (resp.ok) {
+        const data = await resp.json();
+        setScholars(data);
+      }
+    } catch (e) {
+      console.error('Failed to load scholars', e);
+    }
+  };
+
+  const loadAudio = async () => {
+    try {
+      const resp = await apiRequest(`/audios/${id}`, token);
+      if (resp.ok) {
+        const data = await resp.json();
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        setScholarId(data.scholar_id || '');
+        setScholarName(data.scholar_name || '');
+        setDuration(String(data.duration || 0));
+        setFileKey(data.file_key || '');
+        setThumbnail(data.thumbnail || '');
+        setTopic(data.topic || '');
+        setAudioType(data.type || 'podcast');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de charger l\'audio');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScholarChange = (newId: string) => {
+    setScholarId(newId);
+    const scholar = scholars.find((s) => s.id === newId);
+    if (scholar) setScholarName(scholar.name);
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !scholarId || !topic) {
+      Alert.alert('Champs requis', 'Veuillez remplir le titre, l\'érudit et le sujet.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const body = {
+        title: title.trim(),
+        description: description.trim(),
+        scholar_id: scholarId,
+        scholar_name: scholarName,
+        duration: parseInt(duration) || 0,
+        file_key: fileKey.trim(),
+        thumbnail: thumbnail.trim() || 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&q=80',
+        topic,
+        type: audioType,
+        is_active: true,
+      };
+
+      const endpoint = isEdit ? `/admin/audios/${id}` : '/admin/audios';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const resp = await apiRequest(endpoint, token, {
+        method,
+        body: JSON.stringify(body),
+      });
+
+      if (resp.ok) {
+        Alert.alert('Succès', isEdit ? 'Audio mis à jour' : 'Audio créé', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        const err = await resp.json();
+        Alert.alert('Erreur', err.detail || 'Opération échouée');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Une erreur est survenue');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.brand.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.sectionTitle}>{isEdit ? 'Modifier l\'audio' : 'Nouvel audio'}</Text>
+
+          <Text style={styles.label}>Titre *</Text>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Titre de l'audio"
+            placeholderTextColor={colors.text.tertiary}
+          />
+
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Description de l'audio"
+            placeholderTextColor={colors.text.tertiary}
+            multiline
+            numberOfLines={4}
+          />
+
+          <Text style={styles.label}>Érudit *</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={scholarId}
+              onValueChange={handleScholarChange}
+              style={styles.picker}
+              dropdownIconColor={colors.text.secondary}
+            >
+              <Picker.Item label="Sélectionnez un érudit" value="" />
+              {scholars.map((s) => (
+                <Picker.Item key={s.id} label={s.name} value={s.id} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.label}>Sujet *</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={topic}
+              onValueChange={setTopic}
+              style={styles.picker}
+              dropdownIconColor={colors.text.secondary}
+            >
+              <Picker.Item label="Sélectionnez un sujet" value="" />
+              {TOPICS.map((t) => (
+                <Picker.Item key={t} label={t} value={t} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.label}>Type</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={audioType}
+              onValueChange={setAudioType}
+              style={styles.picker}
+              dropdownIconColor={colors.text.secondary}
+            >
+              {TYPES.map((t) => (
+                <Picker.Item key={t} label={t.charAt(0).toUpperCase() + t.slice(1)} value={t} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.label}>Durée (secondes)</Text>
+          <TextInput
+            style={styles.input}
+            value={duration}
+            onChangeText={setDuration}
+            placeholder="Durée en secondes"
+            placeholderTextColor={colors.text.tertiary}
+            keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Clé du fichier R2</Text>
+          <TextInput
+            style={styles.input}
+            value={fileKey}
+            onChangeText={setFileKey}
+            placeholder="Ex: Henry Corbin/episode1.m4a"
+            placeholderTextColor={colors.text.tertiary}
+          />
+
+          <Text style={styles.label}>URL de la miniature</Text>
+          <TextInput
+            style={styles.input}
+            value={thumbnail}
+            onChangeText={setThumbnail}
+            placeholder="https://..."
+            placeholderTextColor={colors.text.tertiary}
+            autoCapitalize="none"
+          />
+
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={20} color="#000" />
+                <Text style={styles.saveBtnText}>{isEdit ? 'Mettre à jour' : 'Créer'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background.primary },
+  scroll: { flex: 1, paddingHorizontal: spacing.lg },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: colors.text.primary,
+    marginVertical: spacing.md,
+  },
+  label: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  input: {
+    backgroundColor: colors.background.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    fontFamily: 'DMSans-Regular',
+    fontSize: 15,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  pickerContainer: {
+    backgroundColor: colors.background.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    overflow: 'hidden',
+  },
+  picker: {
+    color: colors.text.primary,
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brand.primary,
+    borderRadius: radius.full,
+    padding: spacing.md,
+    marginTop: spacing.xl,
+    gap: spacing.xs,
+  },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveBtnText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: '#000',
+  },
+});
