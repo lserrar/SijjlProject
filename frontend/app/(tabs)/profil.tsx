@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function ProfilScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = () => {
     Alert.alert(
