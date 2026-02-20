@@ -7,6 +7,9 @@ from typing import List, Optional, Any
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import os, uuid, logging, hashlib, hmac, requests as http_requests
+import boto3
+from botocore.config import Config as BotoConfig
+from botocore.exceptions import ClientError
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -17,6 +20,74 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET_KEY', 'hikmabyLM_secret')
 EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+# ─── Cloudflare R2 Config ────────────────────────────────────────────────────
+R2_ACCOUNT_ID     = os.environ.get('R2_ACCOUNT_ID', '')
+R2_ACCESS_KEY_ID  = os.environ.get('R2_ACCESS_KEY_ID', '')
+R2_SECRET_KEY     = os.environ.get('R2_SECRET_ACCESS_KEY', '')
+R2_BUCKET         = os.environ.get('R2_BUCKET_NAME', 'hikma-audio')
+R2_ENDPOINT_URL   = os.environ.get('R2_ENDPOINT_URL', f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com')
+
+r2_client = None
+if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_KEY:
+    try:
+        r2_client = boto3.client(
+            's3',
+            endpoint_url=R2_ENDPOINT_URL,
+            aws_access_key_id=R2_ACCESS_KEY_ID,
+            aws_secret_access_key=R2_SECRET_KEY,
+            config=BotoConfig(
+                signature_version='s3v4',
+                retries={'max_attempts': 3, 'mode': 'standard'}
+            ),
+            region_name='auto',
+        )
+        logger_init = logging.getLogger(__name__)
+        logger_init.info(f"R2 client initialized for bucket '{R2_BUCKET}'")
+    except Exception as e:
+        r2_client = None
+        logging.getLogger(__name__).error(f"R2 init failed: {e}")
+
+PRESIGNED_URL_EXPIRY = 3600  # 1 hour
+
+def get_presigned_stream_url(file_key: str) -> Optional[str]:
+    """Generate a presigned URL for streaming an audio file from R2."""
+    if not r2_client or not file_key:
+        return None
+    try:
+        url = r2_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': R2_BUCKET, 'Key': file_key},
+            ExpiresIn=PRESIGNED_URL_EXPIRY,
+        )
+        return url
+    except ClientError as e:
+        logging.getLogger(__name__).error(f"Presigned URL error for '{file_key}': {e}")
+        return None
+
+def get_presigned_upload_url(file_key: str, content_type: str = 'audio/mpeg') -> Optional[str]:
+    """Generate a presigned URL for uploading an audio file to R2."""
+    if not r2_client or not file_key:
+        return None
+    try:
+        url = r2_client.generate_presigned_url(
+            'put_object',
+            Params={'Bucket': R2_BUCKET, 'Key': file_key, 'ContentType': content_type},
+            ExpiresIn=3600,
+        )
+        return url
+    except ClientError as e:
+        logging.getLogger(__name__).error(f"Upload URL error for '{file_key}': {e}")
+        return None
+
+def resolve_audio_url(audio_doc: dict) -> str:
+    """Return a streaming URL: R2 presigned if file_key exists, else fallback audio_url."""
+    file_key = audio_doc.get('file_key')
+    if file_key:
+        presigned = get_presigned_stream_url(file_key)
+        if presigned:
+            return presigned
+    return audio_doc.get('audio_url', '')
 
 app = FastAPI(title="HikmabyLM API")
 api_router = APIRouter(prefix="/api")
