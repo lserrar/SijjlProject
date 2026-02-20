@@ -50,16 +50,8 @@ export default function HomeScreen() {
     fetchHome();
   };
 
-  const handlePlayAudio = (audio: any) => {
-    playTrack({
-      id: audio.id,
-      title: audio.title,
-      scholar_name: audio.scholar_name,
-      thumbnail: audio.thumbnail,
-      audio_url: audio.audio_url,
-      type: audio.type,
-      duration: audio.duration,
-    });
+  const handlePlayAudio = async (audio: any) => {
+    await playAudio(audio);
   };
 
   const navigateToContent = (item: any) => {
