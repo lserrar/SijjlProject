@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codes Promo - HikmabyLM Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-card: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --brand-primary: #04D182;
+            --brand-secondary: #02b36e;
+            --border-subtle: #2a2a2a;
+            --border-hover: #3a3a3a;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 0 20px 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .sidebar-logo-text { font-size: 18px; font-weight: 700; }
+        .sidebar-logo-text span { color: var(--brand-primary); }
+        .sidebar-badge { font-size: 10px; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .sidebar-nav { padding: 0 12px; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+        .user-header { display: flex; align-items: center; gap: 12px; padding: 20px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .user-role { font-size: 12px; color: var(--brand-primary); }
+        .logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .logout-btn:hover { background: var(--bg-tertiary); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-description { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--brand-primary); color: var(--bg-primary); }
+        .btn-primary:hover { background: var(--brand-secondary); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .btn-secondary:hover { border-color: var(--border-hover); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-title { font-size: 18px; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+        th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 600; }
+        tr:hover { background: var(--bg-tertiary); }
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .status-active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-inactive { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .status-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .promo-code { font-family: monospace; font-size: 16px; font-weight: 600; background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; letter-spacing: 1px; }
+        .discount-badge { color: var(--brand-primary); font-weight: 600; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: var(--bg-card); border-radius: 16px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .form-input, .form-select { width: 100%; padding: 12px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--brand-primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .actions { display: flex; gap: 8px; }
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; }
+            .main-content { margin-left: 70px; padding: 20px; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">H</div>
+                    <div>
+                        <div class="sidebar-logo-text">Hikma<span>byLM</span></div>
+                        <div class="sidebar-badge">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="/api/admin-panel/" class="nav-item"><i class="fas fa-chart-pie"></i><span>Tableau de bord</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-graduate"></i><span>Professeurs</span></a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/thematiques" class="nav-item"><i class="fas fa-layer-group"></i><span>Cursus</span></a>
+                    <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-book"></i><span>Bibliographies</span></a>
+                    <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestion</div>
+                    <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/pricing" class="nav-item"><i class="fas fa-credit-card"></i><span>Tarification</span></a>
+                    <a href="/api/admin-panel/promos" class="nav-item active"><i class="fas fa-tags"></i><span>Codes Promo</span></a>
+                    <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
+                </div>
+            </nav>
+            <div class="user-header">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=04D182&color=000" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Admin</div>
+                    <div class="user-role">Administrateur</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Codes Promo</h1>
+                    <p class="page-description">Gerez les codes promotionnels et les reductions</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal()" data-testid="new-promo-btn">
+                    <i class="fas fa-plus"></i> Nouveau code
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Liste des codes promo</h2>
+                </div>
+                <div id="promosTable">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nouveau code promo</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="promoForm" onsubmit="savePromo(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editingCode">
+                    <div class="form-group">
+                        <label class="form-label">Code *</label>
+                        <input type="text" class="form-input" id="promoCode" required placeholder="Ex: HIKMA2024" style="text-transform: uppercase;" data-testid="promo-code-input">
+                        <div class="form-hint">Le code sera converti en majuscules</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Reduction (%)</label>
+                            <input type="number" step="1" min="0" max="100" class="form-input" id="discountPercent" placeholder="Ex: 20" data-testid="discount-percent-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Reduction fixe (EUR)</label>
+                            <input type="number" step="0.01" min="0" class="form-input" id="discountAmount" placeholder="Ex: 5.00" data-testid="discount-amount-input">
+                        </div>
+                    </div>
+                    <div class="form-hint" style="margin-top: -12px; margin-bottom: 16px;">Remplissez un seul type de reduction</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Utilisations max</label>
+                            <input type="number" min="1" class="form-input" id="maxUses" placeholder="Illimite" data-testid="max-uses-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date d'expiration</label>
+                            <input type="date" class="form-input" id="expiresAt" data-testid="expires-at-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-input" id="description" placeholder="Ex: Code de bienvenue -20%" data-testid="promo-description-input">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" data-testid="save-promo-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let promos = [];
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('adminToken');
+                window.location.href = '/api/admin-panel/login';
+                return null;
+            }
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Erreur serveur');
+            }
+            return response.json();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/api/admin-panel/login';
+        }
+
+        function openModal(promo = null) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = promo ? 'Modifier le code' : 'Nouveau code promo';
+            
+            if (promo) {
+                document.getElementById('editingCode').value = promo.code;
+                document.getElementById('promoCode').value = promo.code;
+                document.getElementById('promoCode').disabled = true;
+                document.getElementById('discountPercent').value = promo.discount_percent || '';
+                document.getElementById('discountAmount').value = promo.discount_amount || '';
+                document.getElementById('maxUses').value = promo.max_uses || '';
+                document.getElementById('expiresAt').value = promo.expires_at ? promo.expires_at.split('T')[0] : '';
+                document.getElementById('description').value = promo.description || '';
+            } else {
+                document.getElementById('promoForm').reset();
+                document.getElementById('editingCode').value = '';
+                document.getElementById('promoCode').disabled = false;
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function savePromo(event) {
+            event.preventDefault();
+            const editingCode = document.getElementById('editingCode').value;
+            
+            const discountPercent = document.getElementById('discountPercent').value;
+            const discountAmount = document.getElementById('discountAmount').value;
+            const maxUses = document.getElementById('maxUses').value;
+            const expiresAt = document.getElementById('expiresAt').value;
+            
+            const data = {
+                code: document.getElementById('promoCode').value.toUpperCase(),
+                discount_percent: discountPercent ? parseFloat(discountPercent) : null,
+                discount_amount: discountAmount ? parseFloat(discountAmount) : null,
+                max_uses: maxUses ? parseInt(maxUses) : null,
+                expires_at: expiresAt ? expiresAt + 'T23:59:59Z' : null,
+                description: document.getElementById('description').value,
+                applicable_plans: [],
+                is_active: true
+            };
+
+            try {
+                if (editingCode) {
+                    await apiRequest(`/admin/promo-codes/${editingCode}`, 'PUT', data);
+                    showToast('Code promo modifie');
+                } else {
+                    await apiRequest('/admin/promo-codes', 'POST', data);
+                    showToast('Code promo cree');
+                }
+                closeModal();
+                loadData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deletePromo(code) {
+            if (!confirm(`Supprimer le code "${code}" ?`)) return;
+            try {
+                await apiRequest(`/admin/promo-codes/${code}`, 'DELETE');
+                showToast('Code supprime');
+                loadData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function togglePromo(code, currentStatus) {
+            try {
+                await apiRequest(`/admin/promo-codes/${code}`, 'PUT', { is_active: !currentStatus });
+                loadData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function getDiscountDisplay(promo) {
+            if (promo.discount_percent) return `-${promo.discount_percent}%`;
+            if (promo.discount_amount) return `-${promo.discount_amount.toFixed(2)}€`;
+            return '-';
+        }
+
+        function getStatusClass(promo) {
+            if (!promo.is_active) return 'status-inactive';
+            if (promo.expires_at && new Date(promo.expires_at) < new Date()) return 'status-warning';
+            if (promo.max_uses && promo.uses_count >= promo.max_uses) return 'status-warning';
+            return 'status-active';
+        }
+
+        function getStatusText(promo) {
+            if (!promo.is_active) return 'Inactif';
+            if (promo.expires_at && new Date(promo.expires_at) < new Date()) return 'Expire';
+            if (promo.max_uses && promo.uses_count >= promo.max_uses) return 'Epuise';
+            return 'Actif';
+        }
+
+        function renderPromos(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('promosTable').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tags"></i>
+                        <h3>Aucun code promo</h3>
+                        <p>Creez votre premier code promotionnel</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            document.getElementById('promosTable').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Reduction</th>
+                            <th>Utilisations</th>
+                            <th>Expiration</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(p => `
+                            <tr data-testid="promo-row-${p.code}">
+                                <td>
+                                    <span class="promo-code">${p.code}</span>
+                                    ${p.description ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${p.description}</div>` : ''}
+                                </td>
+                                <td><span class="discount-badge">${getDiscountDisplay(p)}</span></td>
+                                <td>${p.uses_count || 0}${p.max_uses ? ` / ${p.max_uses}` : ''}</td>
+                                <td>${p.expires_at ? new Date(p.expires_at).toLocaleDateString('fr-FR') : 'Jamais'}</td>
+                                <td><span class="status ${getStatusClass(p)}">${getStatusText(p)}</span></td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(p)})' title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="togglePromo('${p.code}', ${p.is_active})" title="${p.is_active ? 'Desactiver' : 'Activer'}">
+                                            <i class="fas fa-toggle-${p.is_active ? 'on' : 'off'}"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="deletePromo('${p.code}')" title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadData() {
+            try {
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') {
+                    localStorage.removeItem('adminToken');
+                    window.location.href = '/api/admin-panel/login';
+                    return;
+                }
+                document.getElementById('userName').textContent = user.name || user.email;
+                if (user.picture) document.getElementById('userAvatar').src = user.picture;
+
+                promos = await apiRequest('/admin/promo-codes') || [];
+                renderPromos(promos);
+            } catch (error) {
+                showToast('Erreur de chargement', 'error');
+            }
+        }
+
+        if (!authToken) {
+            window.location.href = '/api/admin-panel/login';
+        } else {
+            loadData();
+        }
+    </script>
+</body>
+</html>
