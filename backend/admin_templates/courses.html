@@ -108,7 +108,7 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Contenu</div>
-                    <a href="/api/admin-panel/scholars" class="nav-item"><i class="fas fa-user-graduate"></i><span>Savants</span></a>
+                    <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-graduate"></i><span>Professeurs</span></a>
                     <a href="/api/admin-panel/courses" class="nav-item active"><i class="fas fa-book-open"></i><span>Cours</span></a>
                     <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
                     <a href="/api/admin-panel/articles" class="nav-item"><i class="fas fa-newspaper"></i><span>Articles</span></a>
@@ -171,27 +171,31 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Savant *</label>
-                            <select class="form-select" id="scholar_id" required></select>
+                            <label class="form-label">Professeur *</label>
+                            <select class="form-select" id="scholar_id" required data-testid="course-professor-select"></select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Niveau</label>
-                            <select class="form-select" id="level">
-                                <option value="Débutant">Débutant</option>
-                                <option value="Intermédiaire">Intermédiaire</option>
-                                <option value="Avancé">Avancé</option>
-                            </select>
+                            <label class="form-label">Cursus</label>
+                            <select class="form-select" id="thematique_id" data-testid="course-cursus-select"></select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Topic</label>
-                            <input type="text" class="form-input" id="topic" placeholder="Ex: Philosophie islamique">
+                            <label class="form-label">Niveau</label>
+                            <select class="form-select" id="level">
+                                <option value="Debutant">Debutant</option>
+                                <option value="Intermediaire">Intermediaire</option>
+                                <option value="Avance">Avance</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Durée (minutes)</label>
+                            <label class="form-label">Duree (minutes)</label>
                             <input type="number" class="form-input" id="duration" value="0">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Topic</label>
+                        <input type="text" class="form-input" id="topic" placeholder="Ex: Philosophie islamique">
                     </div>
                     <div class="form-group">
                         <label class="form-label">URL de la miniature</label>
@@ -217,6 +221,7 @@
         let authToken = localStorage.getItem('adminToken');
         let courses = [];
         let scholars = [];
+        let thematiques = [];
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
@@ -333,7 +338,7 @@
             }
             document.getElementById('coursesTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Cours</th><th>Savant</th><th>Niveau</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Cours</th><th>Professeur</th><th>Cursus</th><th>Niveau</th><th>Statut</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${data.map(c => `
                             <tr>
