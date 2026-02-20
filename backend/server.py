@@ -275,12 +275,36 @@ class PlanUpdate(BaseModel):
     duration_days: Optional[int] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    trial_days: Optional[int] = None
 
 class CheckoutRequest(BaseModel):
     plan_id: Optional[str] = None
     course_id: Optional[str] = None
     cursus_id: Optional[str] = None
+    promo_code: Optional[str] = None
     origin_url: str
+
+class PromoCodeCreate(BaseModel):
+    code: str
+    discount_percent: Optional[float] = None  # 0-100
+    discount_amount: Optional[float] = None   # Fixed amount in EUR
+    max_uses: Optional[int] = None
+    expires_at: Optional[str] = None
+    applicable_plans: List[str] = []  # Empty = all plans
+    description: str = ""
+    is_active: bool = True
+
+class PromoCodeUpdate(BaseModel):
+    discount_percent: Optional[float] = None
+    discount_amount: Optional[float] = None
+    max_uses: Optional[int] = None
+    expires_at: Optional[str] = None
+    applicable_plans: Optional[List[str]] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class StartTrialRequest(BaseModel):
+    plan_id: str
 
 # ─── Auth Routes ────────────────────────────────────────────────────────────
 
