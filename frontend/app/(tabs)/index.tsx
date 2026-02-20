@@ -24,7 +24,7 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const { user, token } = useAuth();
-  const { playTrack } = usePlayer();
+  const { play: playAudio } = useAudioPlayer();
   const router = useRouter();
   const [homeData, setHomeData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
