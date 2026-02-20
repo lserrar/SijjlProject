@@ -1295,6 +1295,133 @@ async def get_course_episodes(course_id: str, request: Request):
     
     return {'course_id': course_id, 'episodes': episodes, 'count': len(episodes)}
 
+# ─── Admin: Scholar Toggle ─────────────────────────────────────────────────────
+
+@api_router.patch("/admin/scholars/{scholar_id}/toggle")
+async def admin_toggle_scholar(scholar_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.scholars.find_one({'id': scholar_id})
+    if not doc:
+        raise HTTPException(404, "Érudit non trouvé")
+    new_status = not doc.get('is_active', True)
+    await db.scholars.update_one({'id': scholar_id}, {'$set': {'is_active': new_status}})
+    return {'id': scholar_id, 'is_active': new_status}
+
+# ─── Admin: User Management ────────────────────────────────────────────────────
+
+@api_router.get("/admin/users")
+async def admin_list_users(request: Request):
+    await require_admin(request)
+    users = await db.users.find({}, {'_id': 0, 'password_hash': 0}).to_list(500)
+    return users
+
+@api_router.get("/admin/users/{user_id}")
+async def admin_get_user(user_id: str, request: Request):
+    await require_admin(request)
+    user = await db.users.find_one({'user_id': user_id}, {'_id': 0, 'password_hash': 0})
+    if not user:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    return user
+
+@api_router.post("/admin/users/{user_id}/grant-access")
+async def admin_grant_free_access(user_id: str, request: Request):
+    """Grant free access to a user."""
+    await require_admin(request)
+    result = await db.users.update_one(
+        {'user_id': user_id},
+        {'$set': {'has_free_access': True, 'free_access_granted_at': datetime.now(timezone.utc)}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    logger.info(f"Free access granted to user {user_id}")
+    return {'message': 'Accès gratuit accordé', 'user_id': user_id}
+
+@api_router.post("/admin/users/{user_id}/revoke-access")
+async def admin_revoke_access(user_id: str, request: Request):
+    """Revoke free access from a user."""
+    await require_admin(request)
+    result = await db.users.update_one(
+        {'user_id': user_id},
+        {'$set': {'has_free_access': False}, '$unset': {'free_access_granted_at': ''}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    return {'message': 'Accès révoqué', 'user_id': user_id}
+
+# ─── Admin Panel Web Routes ────────────────────────────────────────────────────
+
+ADMIN_TEMPLATES_DIR = ROOT_DIR / 'admin_templates'
+
+@api_router.get("/admin-panel/login", response_class=HTMLResponse)
+async def admin_panel_login():
+    """Admin panel login page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'login.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template login non trouvé")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/", response_class=HTMLResponse)
+async def admin_panel_dashboard():
+    """Admin panel dashboard page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'dashboard.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template dashboard non trouvé")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/scholars", response_class=HTMLResponse)
+async def admin_panel_scholars():
+    """Admin panel scholars page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'scholars.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template scholars non trouvé")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/courses", response_class=HTMLResponse)
+async def admin_panel_courses():
+    """Admin panel courses page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'courses.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template courses non trouvé")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/users", response_class=HTMLResponse)
+async def admin_panel_users():
+    """Admin panel users page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'users.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template users non trouvé")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/audios", response_class=HTMLResponse)
+async def admin_panel_audios():
+    """Admin panel audios page - redirect to scholars for now."""
+    template_path = ADMIN_TEMPLATES_DIR / 'audios.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    # Fallback to dashboard
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/articles", response_class=HTMLResponse)
+async def admin_panel_articles():
+    """Admin panel articles page."""
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/masterclasses", response_class=HTMLResponse)
+async def admin_panel_masterclasses():
+    """Admin panel masterclasses page."""
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/r2", response_class=HTMLResponse)
+async def admin_panel_r2():
+    """Admin panel R2 storage page."""
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+# ─── Health Check ──────────────────────────────────────────────────────────────
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "HikmabyLM API"}
+
 # ─── App Setup ────────────────────────────────────────────────────────────────
 
 app.include_router(api_router)
