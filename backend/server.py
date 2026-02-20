@@ -1724,6 +1724,390 @@ async def admin_panel_r2():
         return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
+# ─── Payment & Subscription Routes ─────────────────────────────────────────────
+
+async def check_user_access(user_id: str, content_type: str = None, content_id: str = None) -> dict:
+    """Check if user has access to content (subscription or purchase)."""
+    user = await db.users.find_one({'user_id': user_id}, {'_id': 0})
+    if not user:
+        return {'has_access': False, 'reason': 'user_not_found'}
+    
+    # Admin or free_access users have full access
+    if user.get('role') == 'admin' or user.get('free_access'):
+        return {'has_access': True, 'reason': 'admin_or_free'}
+    
+    now = datetime.now(timezone.utc)
+    
+    # Check active subscription
+    subscription = user.get('subscription')
+    if subscription and subscription.get('expires_at'):
+        expires_at = subscription['expires_at']
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+        if expires_at > now:
+            return {'has_access': True, 'reason': 'active_subscription', 'expires_at': expires_at.isoformat()}
+    
+    # Check specific content purchases
+    if content_type and content_id:
+        purchases = user.get('purchases', [])
+        for purchase in purchases:
+            if purchase.get('content_type') == content_type and purchase.get('content_id') == content_id:
+                expires_at = purchase.get('expires_at')
+                if isinstance(expires_at, str):
+                    expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                if expires_at and expires_at > now:
+                    return {'has_access': True, 'reason': 'content_purchase', 'expires_at': expires_at.isoformat()}
+        
+        # For courses, also check if parent cursus is purchased
+        if content_type == 'course':
+            course = await db.courses.find_one({'id': content_id}, {'thematique_id': 1})
+            if course and course.get('thematique_id'):
+                for purchase in purchases:
+                    if purchase.get('content_type') == 'cursus' and purchase.get('content_id') == course['thematique_id']:
+                        expires_at = purchase.get('expires_at')
+                        if isinstance(expires_at, str):
+                            expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                        if expires_at and expires_at > now:
+                            return {'has_access': True, 'reason': 'cursus_purchase', 'expires_at': expires_at.isoformat()}
+    
+    return {'has_access': False, 'reason': 'no_access'}
+
+@api_router.get("/user/access")
+async def get_user_access(request: Request, content_type: Optional[str] = None, content_id: Optional[str] = None):
+    """Check user's access status."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    return await check_user_access(user['user_id'], content_type, content_id)
+
+@api_router.get("/plans")
+async def get_plans():
+    """Get all active subscription and purchase plans."""
+    plans = await db.plans.find({'is_active': True}, {'_id': 0}).to_list(100)
+    if not plans:
+        # Return default plans if none configured
+        return [
+            {'plan_id': 'monthly', 'name': 'Abonnement Mensuel', 'price': 9.99, 'duration_days': 30, 'type': 'subscription', 'description': 'Acces illimite pendant 1 mois'},
+            {'plan_id': 'annual', 'name': 'Abonnement Annuel', 'price': 89.99, 'duration_days': 365, 'type': 'subscription', 'description': 'Acces illimite pendant 1 an - Economisez 30%'},
+        ]
+    return plans
+
+@api_router.post("/checkout/create")
+async def create_checkout_session(body: CheckoutRequest, request: Request):
+    """Create a Stripe checkout session for subscription or one-time purchase."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe non configure")
+    
+    # Determine what we're purchasing
+    amount = 0.0
+    product_name = ""
+    metadata = {'user_id': user['user_id'], 'user_email': user.get('email', '')}
+    duration_days = 0
+    
+    if body.plan_id:
+        # Subscription plan
+        plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
+        if not plan:
+            # Check default plans
+            if body.plan_id == 'monthly':
+                plan = {'plan_id': 'monthly', 'name': 'Abonnement Mensuel', 'price': 9.99, 'duration_days': 30, 'type': 'subscription'}
+            elif body.plan_id == 'annual':
+                plan = {'plan_id': 'annual', 'name': 'Abonnement Annuel', 'price': 89.99, 'duration_days': 365, 'type': 'subscription'}
+            else:
+                raise HTTPException(404, "Plan non trouve")
+        amount = float(plan['price'])
+        product_name = plan['name']
+        duration_days = plan.get('duration_days', 30)
+        metadata['plan_id'] = body.plan_id
+        metadata['purchase_type'] = 'subscription'
+        metadata['duration_days'] = str(duration_days)
+    
+    elif body.course_id:
+        # Course purchase (6 months access)
+        course = await db.courses.find_one({'id': body.course_id}, {'_id': 0})
+        if not course:
+            raise HTTPException(404, "Cours non trouve")
+        # Get course price from plans or use default
+        course_plan = await db.plans.find_one({'plan_id': f'course_{body.course_id}'}, {'_id': 0})
+        if course_plan:
+            amount = float(course_plan['price'])
+        else:
+            amount = 19.99  # Default course price
+        product_name = f"Cours: {course['title']}"
+        duration_days = 180  # 6 months
+        metadata['course_id'] = body.course_id
+        metadata['purchase_type'] = 'course'
+        metadata['duration_days'] = str(duration_days)
+    
+    elif body.cursus_id:
+        # Cursus purchase (6 months access)
+        cursus = await db.thematiques.find_one({'id': body.cursus_id}, {'_id': 0})
+        if not cursus:
+            raise HTTPException(404, "Cursus non trouve")
+        # Get cursus price from plans or use default
+        cursus_plan = await db.plans.find_one({'plan_id': f'cursus_{body.cursus_id}'}, {'_id': 0})
+        if cursus_plan:
+            amount = float(cursus_plan['price'])
+        else:
+            amount = 49.99  # Default cursus price
+        product_name = f"Cursus: {cursus['name']}"
+        duration_days = 180  # 6 months
+        metadata['cursus_id'] = body.cursus_id
+        metadata['purchase_type'] = 'cursus'
+        metadata['duration_days'] = str(duration_days)
+    
+    else:
+        raise HTTPException(400, "Veuillez specifier un plan, cours ou cursus")
+    
+    # Build URLs
+    success_url = f"{body.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{body.origin_url}/payment/cancel"
+    
+    # Create Stripe checkout session
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=amount,
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata=metadata
+    )
+    
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Store transaction
+        transaction_id = f"txn_{uuid.uuid4().hex[:12]}"
+        await db.payment_transactions.insert_one({
+            'transaction_id': transaction_id,
+            'session_id': session.session_id,
+            'user_id': user['user_id'],
+            'user_email': user.get('email', ''),
+            'amount': amount,
+            'currency': 'eur',
+            'product_name': product_name,
+            'metadata': metadata,
+            'status': 'pending',
+            'payment_status': 'initiated',
+            'created_at': datetime.now(timezone.utc)
+        })
+        
+        return {'url': session.url, 'session_id': session.session_id}
+    
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {e}")
+        raise HTTPException(500, f"Erreur de paiement: {str(e)}")
+
+@api_router.get("/checkout/status/{session_id}")
+async def get_checkout_status(session_id: str, request: Request):
+    """Get checkout session status and update user access if paid."""
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe non configure")
+    
+    # Get transaction
+    transaction = await db.payment_transactions.find_one({'session_id': session_id}, {'_id': 0})
+    if not transaction:
+        raise HTTPException(404, "Transaction non trouvee")
+    
+    # If already processed, return cached status
+    if transaction.get('payment_status') == 'paid':
+        return {
+            'status': 'complete',
+            'payment_status': 'paid',
+            'amount_total': int(transaction['amount'] * 100),
+            'currency': transaction['currency'],
+            'metadata': transaction['metadata']
+        }
+    
+    # Check with Stripe
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update transaction
+        await db.payment_transactions.update_one(
+            {'session_id': session_id},
+            {'$set': {'status': status.status, 'payment_status': status.payment_status, 'updated_at': datetime.now(timezone.utc)}}
+        )
+        
+        # If paid, grant access
+        if status.payment_status == 'paid' and transaction.get('payment_status') != 'paid':
+            await grant_user_access(transaction)
+        
+        return {
+            'status': status.status,
+            'payment_status': status.payment_status,
+            'amount_total': status.amount_total,
+            'currency': status.currency,
+            'metadata': status.metadata
+        }
+    
+    except Exception as e:
+        logger.error(f"Stripe status check error: {e}")
+        raise HTTPException(500, f"Erreur: {str(e)}")
+
+async def grant_user_access(transaction: dict):
+    """Grant user access based on payment."""
+    user_id = transaction['metadata'].get('user_id')
+    if not user_id:
+        return
+    
+    now = datetime.now(timezone.utc)
+    duration_days = int(transaction['metadata'].get('duration_days', 30))
+    expires_at = now + timedelta(days=duration_days)
+    
+    purchase_type = transaction['metadata'].get('purchase_type')
+    
+    if purchase_type == 'subscription':
+        # Update subscription
+        await db.users.update_one(
+            {'user_id': user_id},
+            {'$set': {
+                'subscription': {
+                    'plan_id': transaction['metadata'].get('plan_id'),
+                    'started_at': now,
+                    'expires_at': expires_at,
+                    'transaction_id': transaction['transaction_id']
+                }
+            }}
+        )
+    
+    elif purchase_type in ('course', 'cursus'):
+        # Add to purchases
+        content_type = purchase_type
+        content_id = transaction['metadata'].get('course_id') or transaction['metadata'].get('cursus_id')
+        
+        purchase_record = {
+            'content_type': content_type,
+            'content_id': content_id,
+            'purchased_at': now,
+            'expires_at': expires_at,
+            'transaction_id': transaction['transaction_id']
+        }
+        
+        await db.users.update_one(
+            {'user_id': user_id},
+            {'$push': {'purchases': purchase_record}}
+        )
+    
+    logger.info(f"Access granted to user {user_id}: {purchase_type}")
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events."""
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe non configure")
+    
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        if webhook_response.payment_status == 'paid':
+            transaction = await db.payment_transactions.find_one({'session_id': webhook_response.session_id}, {'_id': 0})
+            if transaction and transaction.get('payment_status') != 'paid':
+                await db.payment_transactions.update_one(
+                    {'session_id': webhook_response.session_id},
+                    {'$set': {'status': 'complete', 'payment_status': 'paid', 'updated_at': datetime.now(timezone.utc)}}
+                )
+                await grant_user_access(transaction)
+        
+        return {'received': True}
+    
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {'received': True, 'error': str(e)}
+
+# ─── Admin: Plans CRUD ────────────────────────────────────────────────────────
+
+@api_router.get("/admin/plans")
+async def admin_get_plans(request: Request):
+    """Get all plans (admin)."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    plans = await db.plans.find({}, {'_id': 0}).to_list(100)
+    return plans
+
+@api_router.post("/admin/plans")
+async def admin_create_plan(plan: PlanCreate, request: Request):
+    """Create a new plan."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    
+    existing = await db.plans.find_one({'plan_id': plan.plan_id})
+    if existing:
+        raise HTTPException(400, "Ce plan existe deja")
+    
+    plan_doc = plan.model_dump()
+    plan_doc['created_at'] = datetime.now(timezone.utc)
+    await db.plans.insert_one(plan_doc)
+    return {k: v for k, v in plan_doc.items() if k != '_id'}
+
+@api_router.put("/admin/plans/{plan_id}")
+async def admin_update_plan(plan_id: str, plan: PlanUpdate, request: Request):
+    """Update a plan."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    
+    updates = {k: v for k, v in plan.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "Aucune modification")
+    
+    updates['updated_at'] = datetime.now(timezone.utc)
+    result = await db.plans.update_one({'plan_id': plan_id}, {'$set': updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Plan non trouve")
+    
+    updated = await db.plans.find_one({'plan_id': plan_id}, {'_id': 0})
+    return updated
+
+@api_router.delete("/admin/plans/{plan_id}")
+async def admin_delete_plan(plan_id: str, request: Request):
+    """Delete a plan."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    
+    result = await db.plans.delete_one({'plan_id': plan_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Plan non trouve")
+    return {'message': 'Plan supprime'}
+
+@api_router.get("/admin/transactions")
+async def admin_get_transactions(request: Request, limit: int = 50):
+    """Get recent transactions (admin)."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    transactions = await db.payment_transactions.find({}, {'_id': 0}).sort('created_at', -1).limit(limit).to_list(limit)
+    return transactions
+
+@api_router.get("/admin-panel/pricing", response_class=HTMLResponse)
+async def admin_panel_pricing():
+    """Admin panel pricing management page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'pricing.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template pricing non trouve")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
 # ─── Health Check ──────────────────────────────────────────────────────────────
 
 @api_router.get("/health")
