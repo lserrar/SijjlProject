@@ -299,12 +299,17 @@ async def google_exchange(body: GoogleSessionRequest):
     existing = await db.users.find_one({'email': email}, {'_id': 0})
     if existing:
         user_id = existing['user_id']
-        await db.users.update_one({'user_id': user_id}, {'$set': {'name': name, 'picture': picture}})
+        # Update name, picture, and ensure admin role if applicable
+        update_data = {'name': name, 'picture': picture}
+        if email in ADMIN_EMAILS:
+            update_data['role'] = 'admin'
+        await db.users.update_one({'user_id': user_id}, {'$set': update_data})
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
+        role = 'admin' if email in ADMIN_EMAILS else 'user'
         await db.users.insert_one({
             'user_id': user_id, 'email': email, 'name': name, 'picture': picture,
-            'provider': 'google', 'created_at': now, 'password_hash': None
+            'provider': 'google', 'role': role, 'created_at': now, 'password_hash': None
         })
 
     token = create_jwt({'user_id': user_id, 'exp': int((now + timedelta(days=7)).timestamp())})
