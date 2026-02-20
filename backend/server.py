@@ -348,7 +348,7 @@ async def get_scholar(scholar_id: str):
 # ─── Course Routes ──────────────────────────────────────────────────────────
 
 @api_router.get("/courses")
-async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None):
+async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None, thematique_id: Optional[str] = None):
     query: dict = {}
     if topic:
         query['topic'] = topic
@@ -356,6 +356,8 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
         query['level'] = level
     if scholar_id:
         query['scholar_id'] = scholar_id
+    if thematique_id:
+        query['thematique_id'] = thematique_id
     courses = await db.courses.find(query, {'_id': 0}).to_list(100)
     return courses
 
