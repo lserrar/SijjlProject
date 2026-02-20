@@ -793,31 +793,171 @@ async def seed_data():
     if result.modified_count > 0:
         logger.info("Admin role set for loubna.serrar@gmail.com")
 
-    # 3. Add Meryem Sebti if not present
-    if not await db.scholars.find_one({'id': 'sch-006'}):
-        await db.scholars.insert_one({
-            "id": "sch-006",
-            "name": "Prof. Meryem Sebti",
-            "university": "CNRS / EPHE (École Pratique des Hautes Études)",
-            "bio": (
-                "Directrice de recherche au CNRS et chargée de conférences invitée à l'EPHE, "
-                "Meryem Sebti a principalement travaillé sur Avicenne, notamment sur sa doctrine "
-                "de l'âme et sa prophétologie. Spécialiste de la philosophie arabe médiévale, "
-                "elle est l'auteure de nombreux ouvrages de référence dont "
-                "Avicenne – Prophétie et gouvernement du monde (Cerf, 2021), "
-                "Noétique et théorie de la connaissance dans la philosophie arabe (Vrin, 2020), "
-                "et Avicenne. L'âme humaine (PUF, 2000)."
-            ),
-            "photo": "https://customer-assets.emergentagent.com/job_hikma-academy/artifacts/o1n09onp_Cercle_Meriemv2.jpg",
-            "specializations": ["Avicenne", "Noétique", "Prophétologie", "Philosophie arabe"],
-            "content_count": 0,
-            "is_active": True,
-        })
-        logger.info("Scholar Meryem Sebti added")
+    # 3. Add/Update Meryem Sebti
+    meryem_data = {
+        "id": "sch-006",
+        "name": "Prof. Meryem Sebti",
+        "university": "CNRS / EPHE (École Pratique des Hautes Études)",
+        "bio": (
+            "Directrice de recherche au CNRS et chargée de conférences invitée à l'EPHE, "
+            "Meryem Sebti a principalement travaillé sur Avicenne, notamment sur sa doctrine "
+            "de l'âme et sa prophétologie. Spécialiste de la philosophie arabe médiévale, "
+            "elle est l'auteure de nombreux ouvrages de référence dont "
+            "Avicenne – Prophétie et gouvernement du monde (Cerf, 2021), "
+            "Noétique et théorie de la connaissance dans la philosophie arabe (Vrin, 2020), "
+            "et Avicenne. L'âme humaine (PUF, 2000)."
+        ),
+        "photo": "https://customer-assets.emergentagent.com/job_057211bf-8567-4749-b2d1-1f73d9b86661/artifacts/6hhq4gdt_Cercle_Meriemv2.jpg",
+        "specializations": ["Avicenne", "Noétique", "Prophétologie", "Philosophie arabe"],
+        "content_count": 1,
+        "is_active": True,
+    }
+    await db.scholars.update_one(
+        {'id': 'sch-006'},
+        {'$set': meryem_data},
+        upsert=True
+    )
+    logger.info("Scholar Meryem Sebti added/updated")
 
-    # 4. Reassign Philosophie islamique courses to Meryem Sebti
+    # 4. Add Henry Corbin
+    corbin_data = {
+        "id": "sch-007",
+        "name": "Henry Corbin",
+        "university": "EPHE / Université de Téhéran",
+        "bio": (
+            "Henry Corbin (1903-1978), philosophe, germaniste, iranologue, arabisant, étudiera avec acharnement "
+            "les textes des écoles philosophiques de l'Iran du 12e au 19e siècle. Tout était à faire en ce domaine : "
+            "établir les textes, les éditer, les traduire, les présenter. Il fera connaître les richesses de l'école "
+            "d'Ispahan à l'Occident et à l'Orient. Ses ouvrages restent à nos jours l'une des plus grandes expositions "
+            "du soufisme persan classique disponible pour un public occidental.\n\n"
+            "Grâce à lui, l'Occident découvrira trois grandes figures : Sohravardî, le grand platonicien de Perse "
+            "(L'Archange empourpré, 1976), Ibn 'Arabi, le grand maître (L'Imagination créatrice dans le soufisme "
+            "d'Ibn 'Arabī 1958 ; 2e éd. 1977), et Mollā Sādrā Shīrāzī (Livre des pénétrations métaphysiques, 1964). "
+            "Il laissera également deux grandes références majeures en philosophie islamique : Histoire de la "
+            "philosophie islamique, et En Islam iranien (t. I et II, 1971 ; t. III et IV, 1973).\n\n"
+            "La bibliographie complète, ainsi que de nombreuses ressources sont disponibles sur le site de "
+            "l'association des amis de Corbin : https://www.amiscorbin.com/"
+        ),
+        "photo": "https://customer-assets.emergentagent.com/job_057211bf-8567-4749-b2d1-1f73d9b86661/artifacts/hxtabq8s_1973_HCorbine04d31.jpeg",
+        "specializations": ["Philosophie iranienne", "Soufisme persan", "Sohravardî", "Ibn Arabi", "Mollā Sādrā"],
+        "content_count": 14,
+        "is_active": True,
+    }
+    await db.scholars.update_one(
+        {'id': 'sch-007'},
+        {'$set': corbin_data},
+        upsert=True
+    )
+    logger.info("Scholar Henry Corbin added/updated")
+
+    # 5. Create Course for "Philosophie" folder (Meryem Sebti)
+    philosophie_course = {
+        "id": "crs-philo-sebti",
+        "title": "Philosophie",
+        "description": (
+            "Cours de philosophie arabe et islamique par le Prof. Meryem Sebti. "
+            "Ce cycle explore les grandes traditions philosophiques du monde arabo-musulman, "
+            "avec un accent particulier sur Avicenne, la noétique et la prophétologie. "
+            "Une plongée académique rigoureuse dans la pensée islamique médiévale."
+        ),
+        "topic": "Philosophie islamique",
+        "level": "Intermédiaire",
+        "language": "Français",
+        "scholar_id": "sch-006",
+        "scholar_name": "Prof. Meryem Sebti",
+        "duration": 0,
+        "thumbnail": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&q=80",
+        "modules_count": 0,
+        "tags": ["Philosophie", "Avicenne", "Noétique", "Philosophie arabe"],
+        "type": "course",
+        "r2_folder": "Philosophie",
+        "published_at": now.isoformat(),
+        "is_active": True,
+    }
+    await db.courses.update_one(
+        {'id': 'crs-philo-sebti'},
+        {'$set': philosophie_course},
+        upsert=True
+    )
+    logger.info("Course 'Philosophie' (Meryem Sebti) created/updated")
+
+    # 6. Create Course for "Henry Corbin" folder
+    corbin_course = {
+        "id": "crs-henry-corbin",
+        "title": "Cycle Henry Corbin",
+        "description": (
+            "Cycle complet sur l'œuvre et la pensée de Henry Corbin, le grand iranologue et philosophe. "
+            "Ce cours en 14 épisodes explore les thèmes majeurs de son travail : la philosophie iranienne, "
+            "le soufisme persan, Sohravardî, Ibn 'Arabi et Mollā Sādrā. Un voyage intellectuel extraordinaire "
+            "à travers l'une des plus grandes expositions du soufisme persan classique disponible en français."
+        ),
+        "topic": "Philosophie islamique",
+        "level": "Avancé",
+        "language": "Français",
+        "scholar_id": "sch-007",
+        "scholar_name": "Henry Corbin",
+        "duration": 0,  # Will be calculated from episodes
+        "thumbnail": "https://customer-assets.emergentagent.com/job_057211bf-8567-4749-b2d1-1f73d9b86661/artifacts/hxtabq8s_1973_HCorbine04d31.jpeg",
+        "modules_count": 14,
+        "tags": ["Henry Corbin", "Philosophie iranienne", "Soufisme", "Sohravardî", "Ibn Arabi"],
+        "type": "course",
+        "r2_folder": "Henry Corbin",
+        "published_at": now.isoformat(),
+        "is_active": True,
+    }
+    await db.courses.update_one(
+        {'id': 'crs-henry-corbin'},
+        {'$set': corbin_course},
+        upsert=True
+    )
+    logger.info("Course 'Cycle Henry Corbin' created/updated")
+
+    # 7. Create Audio entries for Henry Corbin episodes
+    corbin_episodes = [
+        {"ep": 1, "title": "Introduction à la pensée de Henry Corbin", "file_key": "Henry Corbin/Cycle_HCorbin_episode1.m4a", "duration": 420},
+        {"ep": 2, "title": "Sohravardî et la philosophie de l'illumination", "file_key": "Henry Corbin/Cycle_HCorbin_episode2.m4a", "duration": 470},
+        {"ep": 3, "title": "Le monde imaginal ('alam al-mithal)", "file_key": "Henry Corbin/Cycle_HCorbin_episode3.m4a", "duration": 470},
+        {"ep": 4, "title": "Ibn 'Arabi : L'imagination créatrice", "file_key": "Henry Corbin/Cycle_HCorbin_episode4.m4a", "duration": 640},
+        {"ep": 5, "title": "Mollā Sādrā Shīrāzī et les pénétrations métaphysiques", "file_key": "Henry Corbin/Cycle_HCorbin_episode5.m4a", "duration": 750},
+        {"ep": 6, "title": "L'école d'Ispahan : contexte historique", "file_key": "Henry Corbin/Cycle_HCorbin_episode6.m4a", "duration": 1080},
+        {"ep": 7, "title": "L'Archange empourpré : mystique de la lumière", "file_key": "Henry Corbin/Cycle_HCorbin_episode7.m4a", "duration": 2100},
+        {"ep": 8, "title": "Soufisme persan et gnose islamique", "file_key": "Henry Corbin/Cycle_HCorbin_episode8.m4a", "duration": 2400},
+        {"ep": 9, "title": "En Islam iranien : le shi'isme duodécimain", "file_key": "Henry Corbin/Cycle_HCorbin_episode9.m4a", "duration": 2280},
+        {"ep": 10, "title": "La prophétologie et l'eschatologie", "file_key": "Henry Corbin/Cycle_HCorbin_episode10.m4a", "duration": 4800},
+        {"ep": 11, "title": "L'herméneutique spirituelle du Coran", "file_key": "Henry Corbin/Cycle_HCorbin_episode11.m4a", "duration": 2940},
+        {"ep": 12, "title": "Le temps cyclique et l'hiérohistoire", "file_key": "Henry Corbin/Cycle_HCorbin_episode12.m4a", "duration": 3990},
+        {"ep": 13, "title": "Corbin et la phénoménologie religieuse", "file_key": "Henry Corbin/Cycle_HCorbin_episode13.m4a", "duration": 360},
+        {"ep": 14, "title": "Conclusion : L'héritage de Henry Corbin", "file_key": "Henry Corbin/Cycle_HCorbin_episode14.m4a", "duration": 2094},
+    ]
+
+    for ep in corbin_episodes:
+        audio_doc = {
+            "id": f"aud-corbin-{ep['ep']:02d}",
+            "title": f"Épisode {ep['ep']} — {ep['title']}",
+            "description": f"Cycle Henry Corbin, épisode {ep['ep']}. {ep['title']}.",
+            "scholar_id": "sch-007",
+            "scholar_name": "Henry Corbin",
+            "duration": ep['duration'],
+            "audio_url": "",
+            "file_key": ep['file_key'],
+            "thumbnail": "https://customer-assets.emergentagent.com/job_057211bf-8567-4749-b2d1-1f73d9b86661/artifacts/hxtabq8s_1973_HCorbine04d31.jpeg",
+            "topic": "Philosophie islamique",
+            "type": "lecture",
+            "course_id": "crs-henry-corbin",
+            "episode_number": ep['ep'],
+            "published_at": now.isoformat(),
+            "is_active": True,
+        }
+        await db.audios.update_one(
+            {'id': f"aud-corbin-{ep['ep']:02d}"},
+            {'$set': audio_doc},
+            upsert=True
+        )
+    logger.info("Henry Corbin audio episodes created/updated")
+
+    # 8. Reassign existing Philosophie islamique courses to Meryem Sebti (except Corbin's)
     phil_update = await db.courses.update_many(
-        {'topic': 'Philosophie islamique'},
+        {'topic': 'Philosophie islamique', 'scholar_id': {'$nin': ['sch-006', 'sch-007']}},
         {'$set': {'scholar_id': 'sch-006', 'scholar_name': 'Prof. Meryem Sebti'}}
     )
     if phil_update.modified_count > 0:
