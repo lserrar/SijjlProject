@@ -480,6 +480,73 @@ async def get_article(article_id: str):
         raise HTTPException(404, "Article non trouvé")
     return a
 
+# ─── Thematiques Routes ──────────────────────────────────────────────────────
+
+@api_router.get("/thematiques")
+async def get_thematiques():
+    """Get all thematiques (cursus themes) ordered by position."""
+    thematiques = await db.thematiques.find({'is_active': {'$ne': False}}, {'_id': 0}).sort('order', 1).to_list(100)
+    return thematiques
+
+@api_router.get("/thematiques/{thematique_id}")
+async def get_thematique(thematique_id: str):
+    t = await db.thematiques.find_one({'id': thematique_id}, {'_id': 0})
+    if not t:
+        raise HTTPException(404, "Thématique non trouvée")
+    return t
+
+# ─── Bibliography Routes ─────────────────────────────────────────────────────
+
+@api_router.get("/bibliographies")
+async def get_bibliographies():
+    """Get all bibliographies for the library tab."""
+    biblio = await db.bibliographies.find({'is_active': {'$ne': False}}, {'_id': 0}).to_list(100)
+    return biblio
+
+@api_router.get("/bibliographies/{biblio_id}")
+async def get_bibliography(biblio_id: str):
+    b = await db.bibliographies.find_one({'id': biblio_id}, {'_id': 0})
+    if not b:
+        raise HTTPException(404, "Bibliographie non trouvée")
+    return b
+
+# ─── Masterclass Routes ──────────────────────────────────────────────────────
+
+@api_router.get("/masterclasses")
+async def get_masterclasses():
+    """Get all masterclasses for the live tab."""
+    masterclasses = await db.masterclasses.find({'is_active': {'$ne': False}}, {'_id': 0}).to_list(100)
+    return masterclasses
+
+@api_router.get("/masterclasses/{mc_id}")
+async def get_masterclass(mc_id: str):
+    mc = await db.masterclasses.find_one({'id': mc_id}, {'_id': 0})
+    if not mc:
+        raise HTTPException(404, "Masterclass non trouvée")
+    return mc
+
+@api_router.post("/masterclasses/{mc_id}/register")
+async def register_masterclass(mc_id: str, request: Request):
+    """Register current user for a masterclass."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    mc = await db.masterclasses.find_one({'id': mc_id})
+    if not mc:
+        raise HTTPException(404, "Masterclass non trouvée")
+    # Check if already registered
+    if user['user_id'] in mc.get('registered_users', []):
+        raise HTTPException(400, "Déjà inscrit à cette masterclass")
+    # Check capacity
+    if mc.get('max_participants') and mc.get('current_participants', 0) >= mc['max_participants']:
+        raise HTTPException(400, "Cette masterclass est complète")
+    
+    await db.masterclasses.update_one(
+        {'id': mc_id},
+        {'$addToSet': {'registered_users': user['user_id']}, '$inc': {'current_participants': 1}}
+    )
+    return {'message': 'Inscription confirmée', 'masterclass_id': mc_id}
+
 # ─── Live Session Routes ─────────────────────────────────────────────────────
 
 @api_router.get("/live-sessions")
