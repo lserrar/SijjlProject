@@ -254,6 +254,7 @@ async def register(body: RegisterRequest):
         raise HTTPException(400, "Email déjà utilisé")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
+    role = 'admin' if body.email in ADMIN_EMAILS else 'user'
     user_doc = {
         'user_id': user_id,
         'email': body.email,
@@ -261,6 +262,7 @@ async def register(body: RegisterRequest):
         'password_hash': hash_password(body.password),
         'picture': f"https://ui-avatars.com/api/?name={body.name.replace(' ','+')}&background=04D182&color=000&bold=true",
         'provider': 'email',
+        'role': role,
         'created_at': now,
         'progress': {},
         'favorites': []
