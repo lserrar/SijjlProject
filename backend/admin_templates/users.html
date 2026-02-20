@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utilisateurs - HikmabyLM Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-card: #1e1e1e; --text-primary: #ffffff; --text-secondary: #a0a0a0; --text-muted: #666666; --brand-primary: #04D182; --brand-secondary: #02b36e; --border-subtle: #2a2a2a; --border-hover: #3a3a3a; --danger: #ef4444; --warning: #f59e0b; --success: #10b981; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 0 20px 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .sidebar-logo-text { font-size: 18px; font-weight: 700; }
+        .sidebar-logo-text span { color: var(--brand-primary); }
+        .sidebar-badge { font-size: 10px; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .sidebar-nav { padding: 0 12px; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+        .user-header { display: flex; align-items: center; gap: 12px; padding: 20px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .user-role { font-size: 12px; color: var(--brand-primary); }
+        .logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .logout-btn:hover { background: var(--bg-tertiary); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-description { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--brand-primary); color: var(--bg-primary); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .btn-warning { background: var(--warning); color: black; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+        th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 600; }
+        tr:hover { background: var(--bg-tertiary); }
+        .table-avatar { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+        .table-cell-flex { display: flex; align-items: center; gap: 12px; }
+        .table-cell-text { font-weight: 500; }
+        .table-cell-subtext { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-admin { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+        .badge-user { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .badge-free { background: rgba(4, 209, 130, 0.15); color: var(--brand-primary); }
+        .actions { display: flex; gap: 8px; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text-secondary); }
+        .spinner { width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .search-box { position: relative; max-width: 300px; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-input { width: 100%; padding: 10px 14px 10px 40px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
+        .toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; } .main-content { margin-left: 70px; padding: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">H</div>
+                    <div>
+                        <div class="sidebar-logo-text">Hikma<span>byLM</span></div>
+                        <div class="sidebar-badge">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="/api/admin-panel/" class="nav-item"><i class="fas fa-chart-pie"></i><span>Tableau de bord</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/scholars" class="nav-item"><i class="fas fa-user-graduate"></i><span>Savants</span></a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/articles" class="nav-item"><i class="fas fa-newspaper"></i><span>Articles</span></a>
+                    <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestion</div>
+                    <a href="/api/admin-panel/users" class="nav-item active"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
+                </div>
+            </nav>
+            <div class="user-header">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=04D182&color=000" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Admin</div>
+                    <div class="user-role">Administrateur</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Utilisateurs</h1>
+                    <p class="page-description">Gérez les utilisateurs et leurs accès</p>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="search-input" placeholder="Rechercher un utilisateur..." id="searchInput" oninput="filterUsers()">
+                </div>
+            </div>
+
+            <div class="card">
+                <div id="usersTable"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let users = [];
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return null; }
+            if (!response.ok) { const error = await response.json(); throw new Error(error.detail || 'Erreur serveur'); }
+            return response.json();
+        }
+
+        function logout() { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        async function grantFreeAccess(userId, email) {
+            if (!confirm(`Accorder l'accès gratuit à ${email} ?`)) return;
+            try {
+                await apiRequest(`/admin/users/${userId}/grant-access`, 'POST');
+                showToast('Accès gratuit accordé');
+                loadUsers();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        async function revokeAccess(userId, email) {
+            if (!confirm(`Révoquer l'accès de ${email} ?`)) return;
+            try {
+                await apiRequest(`/admin/users/${userId}/revoke-access`, 'POST');
+                showToast('Accès révoqué');
+                loadUsers();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = users.filter(u => 
+                (u.email && u.email.toLowerCase().includes(query)) || 
+                (u.name && u.name.toLowerCase().includes(query))
+            );
+            renderUsers(filtered);
+        }
+
+        function renderUsers(data) {
+            if (data.length === 0) {
+                document.getElementById('usersTable').innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Aucun utilisateur trouvé</p>`;
+                return;
+            }
+            document.getElementById('usersTable').innerHTML = `
+                <table>
+                    <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Accès</th><th>Inscription</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        ${data.map(u => `
+                            <tr>
+                                <td>
+                                    <div class="table-cell-flex">
+                                        <img src="${u.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(u.name || u.email)}" class="table-avatar">
+                                        <div>
+                                            <div class="table-cell-text">${u.name || '-'}</div>
+                                            <div class="table-cell-subtext">${u.email}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role === 'admin' ? 'Admin' : 'Utilisateur'}</span></td>
+                                <td>${u.has_free_access ? '<span class="badge badge-free">Gratuit</span>' : '-'}</td>
+                                <td>${formatDate(u.created_at)}</td>
+                                <td>
+                                    <div class="actions">
+                                        ${!u.has_free_access && u.role !== 'admin' ? 
+                                            `<button class="btn btn-primary btn-sm" onclick="grantFreeAccess('${u.user_id}', '${u.email}')"><i class="fas fa-gift"></i> Accès gratuit</button>` : 
+                                            u.has_free_access ? `<button class="btn btn-secondary btn-sm" onclick="revokeAccess('${u.user_id}', '${u.email}')"><i class="fas fa-ban"></i> Révoquer</button>` : ''
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadUsers() {
+            try {
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return; }
+                document.getElementById('userName').textContent = user.name || user.email;
+                if (user.picture) document.getElementById('userAvatar').src = user.picture;
+
+                users = await apiRequest('/admin/users') || [];
+                renderUsers(users);
+            } catch (error) { showToast('Erreur de chargement', 'error'); }
+        }
+
+        if (!authToken) { window.location.href = '/api/admin-panel/login'; } else { loadUsers(); }
+    </script>
+</body>
+</html>
