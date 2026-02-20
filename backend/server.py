@@ -778,7 +778,205 @@ async def seed_data():
         await db.live_sessions.insert_many(sessions)
         logger.info("Live sessions seeded")
 
+    # ─── Migrations ──────────────────────────────────────────────────────────
+
+    # 1. Add is_active to all content docs
+    await db.audios.update_many({'is_active': {'$exists': False}}, {'$set': {'is_active': True}})
+    await db.courses.update_many({'is_active': {'$exists': False}}, {'$set': {'is_active': True}})
+    await db.scholars.update_many({'is_active': {'$exists': False}}, {'$set': {'is_active': True}})
+
+    # 2. Set admin role for admin email
+    result = await db.users.update_one(
+        {'email': 'loubna.serrar@gmail.com'},
+        {'$set': {'role': 'admin'}}
+    )
+    if result.modified_count > 0:
+        logger.info("Admin role set for loubna.serrar@gmail.com")
+
+    # 3. Add Meryem Sebti if not present
+    if not await db.scholars.find_one({'id': 'sch-006'}):
+        await db.scholars.insert_one({
+            "id": "sch-006",
+            "name": "Prof. Meryem Sebti",
+            "university": "CNRS / EPHE (École Pratique des Hautes Études)",
+            "bio": (
+                "Directrice de recherche au CNRS et chargée de conférences invitée à l'EPHE, "
+                "Meryem Sebti a principalement travaillé sur Avicenne, notamment sur sa doctrine "
+                "de l'âme et sa prophétologie. Spécialiste de la philosophie arabe médiévale, "
+                "elle est l'auteure de nombreux ouvrages de référence dont "
+                "Avicenne – Prophétie et gouvernement du monde (Cerf, 2021), "
+                "Noétique et théorie de la connaissance dans la philosophie arabe (Vrin, 2020), "
+                "et Avicenne. L'âme humaine (PUF, 2000)."
+            ),
+            "photo": "https://customer-assets.emergentagent.com/job_hikma-academy/artifacts/o1n09onp_Cercle_Meriemv2.jpg",
+            "specializations": ["Avicenne", "Noétique", "Prophétologie", "Philosophie arabe"],
+            "content_count": 0,
+            "is_active": True,
+        })
+        logger.info("Scholar Meryem Sebti added")
+
+    # 4. Reassign Philosophie islamique courses to Meryem Sebti
+    phil_update = await db.courses.update_many(
+        {'topic': 'Philosophie islamique'},
+        {'$set': {'scholar_id': 'sch-006', 'scholar_name': 'Prof. Meryem Sebti'}}
+    )
+    if phil_update.modified_count > 0:
+        logger.info(f"Reassigned {phil_update.modified_count} philosophy courses to Meryem Sebti")
+
     logger.info("Database seeding complete")
+
+# ─── Admin Routes ─────────────────────────────────────────────────────────────
+
+# Admin: Stats
+@api_router.get("/admin/stats")
+async def admin_stats(request: Request):
+    await require_admin(request)
+    audios_total = await db.audios.count_documents({})
+    audios_active = await db.audios.count_documents({'is_active': True})
+    scholars_total = await db.scholars.count_documents({})
+    courses_total = await db.courses.count_documents({})
+    courses_active = await db.courses.count_documents({'is_active': True})
+    users_total = await db.users.count_documents({})
+    return {
+        'audios': {'total': audios_total, 'active': audios_active},
+        'scholars': {'total': scholars_total},
+        'courses': {'total': courses_total, 'active': courses_active},
+        'users': {'total': users_total},
+    }
+
+# Admin: Audio CRUD
+@api_router.get("/admin/audios")
+async def admin_list_audios(request: Request):
+    await require_admin(request)
+    audios = await db.audios.find({}, {'_id': 0}).to_list(500)
+    for a in audios:
+        a['stream_url'] = resolve_audio_url(a)
+    return audios
+
+@api_router.post("/admin/audios")
+async def admin_create_audio(body: AudioCreate, request: Request):
+    await require_admin(request)
+    audio_id = f"aud-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc)
+    doc = {**body.model_dump(), 'id': audio_id, 'published_at': now.isoformat()}
+    await db.audios.insert_one(doc)
+    doc.pop('_id', None)
+    doc['stream_url'] = resolve_audio_url(doc)
+    return doc
+
+@api_router.put("/admin/audios/{audio_id}")
+async def admin_update_audio(audio_id: str, body: AudioUpdate, request: Request):
+    await require_admin(request)
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(400, "Aucune mise à jour fournie")
+    result = await db.audios.update_one({'id': audio_id}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Audio non trouvé")
+    doc = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    doc['stream_url'] = resolve_audio_url(doc)
+    return doc
+
+@api_router.delete("/admin/audios/{audio_id}")
+async def admin_delete_audio(audio_id: str, request: Request):
+    await require_admin(request)
+    result = await db.audios.delete_one({'id': audio_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Audio non trouvé")
+    return {'message': 'Audio supprimé'}
+
+@api_router.patch("/admin/audios/{audio_id}/toggle")
+async def admin_toggle_audio(audio_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.audios.find_one({'id': audio_id})
+    if not doc:
+        raise HTTPException(404, "Audio non trouvé")
+    new_status = not doc.get('is_active', True)
+    await db.audios.update_one({'id': audio_id}, {'$set': {'is_active': new_status}})
+    return {'id': audio_id, 'is_active': new_status}
+
+# Admin: Scholar CRUD
+@api_router.get("/admin/scholars")
+async def admin_list_scholars(request: Request):
+    await require_admin(request)
+    scholars = await db.scholars.find({}, {'_id': 0}).to_list(100)
+    return scholars
+
+@api_router.post("/admin/scholars")
+async def admin_create_scholar(body: ScholarCreate, request: Request):
+    await require_admin(request)
+    scholar_id = f"sch-{uuid.uuid4().hex[:6]}"
+    doc = {**body.model_dump(), 'id': scholar_id, 'content_count': 0, 'is_active': True}
+    await db.scholars.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.put("/admin/scholars/{scholar_id}")
+async def admin_update_scholar(scholar_id: str, body: ScholarUpdate, request: Request):
+    await require_admin(request)
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(400, "Aucune mise à jour fournie")
+    result = await db.scholars.update_one({'id': scholar_id}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Érudit non trouvé")
+    doc = await db.scholars.find_one({'id': scholar_id}, {'_id': 0})
+    return doc
+
+@api_router.delete("/admin/scholars/{scholar_id}")
+async def admin_delete_scholar(scholar_id: str, request: Request):
+    await require_admin(request)
+    result = await db.scholars.delete_one({'id': scholar_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Érudit non trouvé")
+    return {'message': 'Érudit supprimé'}
+
+# Admin: Course CRUD
+@api_router.get("/admin/courses")
+async def admin_list_courses(request: Request):
+    await require_admin(request)
+    courses = await db.courses.find({}, {'_id': 0}).to_list(200)
+    return courses
+
+@api_router.post("/admin/courses")
+async def admin_create_course(body: CourseCreate, request: Request):
+    await require_admin(request)
+    course_id = f"crs-{uuid.uuid4().hex[:8]}"
+    now = datetime.now(timezone.utc)
+    doc = {**body.model_dump(), 'id': course_id, 'type': 'course', 'published_at': now.isoformat(), 'is_active': True}
+    await db.courses.insert_one(doc)
+    doc.pop('_id', None)
+    return doc
+
+@api_router.put("/admin/courses/{course_id}")
+async def admin_update_course(course_id: str, body: CourseUpdate, request: Request):
+    await require_admin(request)
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(400, "Aucune mise à jour fournie")
+    result = await db.courses.update_one({'id': course_id}, {'$set': update})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Cours non trouvé")
+    doc = await db.courses.find_one({'id': course_id}, {'_id': 0})
+    return doc
+
+@api_router.delete("/admin/courses/{course_id}")
+async def admin_delete_course(course_id: str, request: Request):
+    await require_admin(request)
+    result = await db.courses.delete_one({'id': course_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Cours non trouvé")
+    return {'message': 'Cours supprimé'}
+
+@api_router.patch("/admin/courses/{course_id}/toggle")
+async def admin_toggle_course(course_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.courses.find_one({'id': course_id})
+    if not doc:
+        raise HTTPException(404, "Cours non trouvé")
+    new_status = not doc.get('is_active', True)
+    await db.courses.update_one({'id': course_id}, {'$set': {'is_active': new_status}})
+    return {'id': course_id, 'is_active': new_status}
 
 # ─── App Setup ────────────────────────────────────────────────────────────────
 
