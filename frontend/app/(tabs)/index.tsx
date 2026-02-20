@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth, apiRequest } from '../../context/AuthContext';
-import { usePlayer } from '../../context/PlayerContext';
+import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { ContentCard, ScholarCard } from '../../components/ContentCard';
 import { colors, spacing, radius, typography } from '../../constants/theme';
 import { formatDuration, formatDate } from '../../constants/mockData';
