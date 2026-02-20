@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockage R2 - HikmabyLM Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-card: #1e1e1e; --text-primary: #ffffff; --text-secondary: #a0a0a0; --text-muted: #666666; --brand-primary: #04D182; --brand-secondary: #02b36e; --border-subtle: #2a2a2a; --border-hover: #3a3a3a; --danger: #ef4444; --warning: #f59e0b; --success: #10b981; --info: #3b82f6; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 0 20px 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .sidebar-logo-text { font-size: 18px; font-weight: 700; }
+        .sidebar-logo-text span { color: var(--brand-primary); }
+        .sidebar-badge { font-size: 10px; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .sidebar-nav { padding: 0 12px; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+        .user-header { display: flex; align-items: center; gap: 12px; padding: 20px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .user-role { font-size: 12px; color: var(--brand-primary); }
+        .logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .logout-btn:hover { background: var(--bg-tertiary); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-description { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--brand-primary); color: var(--bg-primary); }
+        .btn-primary:hover { background: var(--brand-secondary); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .btn-info { background: var(--info); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-title { font-size: 18px; font-weight: 600; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+        .folder-list { max-height: 500px; overflow-y: auto; }
+        .folder-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .folder-item:hover { background: var(--bg-tertiary); }
+        .folder-item.active { background: rgba(4, 209, 130, 0.1); border-color: var(--brand-primary); }
+        .folder-item i { color: var(--warning); font-size: 20px; }
+        .folder-name { font-weight: 500; }
+        .folder-count { font-size: 12px; color: var(--text-secondary); }
+        .file-list { max-height: 400px; overflow-y: auto; }
+        .file-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
+        .file-item:last-child { border-bottom: none; }
+        .file-icon { width: 40px; height: 40px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--brand-primary); }
+        .file-info { flex: 1; }
+        .file-name { font-weight: 500; font-size: 14px; }
+        .file-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text-secondary); }
+        .spinner { width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .sync-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-subtle); }
+        .sync-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .sync-title i { color: var(--brand-primary); }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .form-select { width: 100%; padding: 12px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
+        .form-select:focus { outline: none; border-color: var(--brand-primary); }
+        .info-box { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .info-box h4 { color: var(--info); font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .info-box p { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+        .success-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .success-box h4 { color: var(--success); font-size: 14px; margin-bottom: 8px; }
+        .success-box ul { color: var(--text-secondary); font-size: 13px; padding-left: 20px; }
+        .badge { display: inline-block; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 11px; color: var(--text-secondary); }
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        @media (max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; } .main-content { margin-left: 70px; padding: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">H</div>
+                    <div>
+                        <div class="sidebar-logo-text">Hikma<span>byLM</span></div>
+                        <div class="sidebar-badge">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="/api/admin-panel/" class="nav-item"><i class="fas fa-chart-pie"></i><span>Tableau de bord</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/scholars" class="nav-item"><i class="fas fa-user-graduate"></i><span>Savants</span></a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/articles" class="nav-item"><i class="fas fa-newspaper"></i><span>Articles</span></a>
+                    <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestion</div>
+                    <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/r2" class="nav-item active"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
+                </div>
+            </nav>
+            <div class="user-header">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=04D182&color=000" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Admin</div>
+                    <div class="user-role">Administrateur</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Stockage R2</h1>
+                    <p class="page-description">Gérez vos fichiers audio Cloudflare R2 et synchronisez-les avec les cours</p>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <h4><i class="fas fa-info-circle"></i> Comment ça marche ?</h4>
+                <p>
+                    1. Sélectionnez un dossier R2 contenant vos fichiers audio<br>
+                    2. Vérifiez les fichiers détectés (format: *_episode1.m4a, *_episode2.mp3, etc.)<br>
+                    3. Choisissez un cours existant et cliquez sur "Synchroniser"<br>
+                    4. Les épisodes audio seront automatiquement créés et liés au cours
+                </p>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-folder" style="color: var(--warning); margin-right: 8px;"></i> Dossiers R2</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="loadFolders()"><i class="fas fa-sync"></i> Rafraîchir</button>
+                    </div>
+                    <div class="folder-list" id="folderList">
+                        <div class="loading"><div class="spinner"></div> Chargement...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-music" style="color: var(--brand-primary); margin-right: 8px;"></i> Fichiers audio</h2>
+                        <span class="badge" id="selectedFolder">Sélectionnez un dossier</span>
+                    </div>
+                    <div class="file-list" id="fileList">
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <h3>Aucun dossier sélectionné</h3>
+                            <p>Cliquez sur un dossier pour voir ses fichiers</p>
+                        </div>
+                    </div>
+
+                    <div class="sync-section" id="syncSection" style="display: none;">
+                        <div class="sync-title"><i class="fas fa-link"></i> Synchroniser avec un cours</div>
+                        <div class="form-group">
+                            <label class="form-label">Cours cible</label>
+                            <select class="form-select" id="courseSelect">
+                                <option value="">-- Sélectionner un cours --</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="syncBtn" onclick="syncWithCourse()" disabled>
+                            <i class="fas fa-sync"></i> Synchroniser les épisodes
+                        </button>
+                        <div id="syncResult"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let folders = [];
+        let courses = [];
+        let selectedFolder = null;
+        let currentFiles = [];
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
+            toast.innerHTML = `<i class="fas fa-${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return null; }
+            if (!response.ok) { const error = await response.json(); throw new Error(error.detail || 'Erreur serveur'); }
+            return response.json();
+        }
+
+        function logout() { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        async function loadFolders() {
+            try {
+                const data = await apiRequest('/admin/r2/folders');
+                folders = data.folders || [];
+                
+                if (folders.length === 0) {
+                    document.getElementById('folderList').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-folder"></i>
+                            <h3>Aucun dossier</h3>
+                            <p>Aucun dossier trouvé dans le bucket R2</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                document.getElementById('folderList').innerHTML = folders.map(folder => `
+                    <div class="folder-item ${selectedFolder === folder ? 'active' : ''}" onclick="selectFolder('${folder}')">
+                        <i class="fas fa-folder"></i>
+                        <div>
+                            <div class="folder-name">${folder}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+                document.getElementById('folderList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Erreur de connexion R2</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function selectFolder(folder) {
+            selectedFolder = folder;
+            document.getElementById('selectedFolder').textContent = folder;
+            document.getElementById('selectedFolder').className = 'badge badge-success';
+            
+            // Update folder list UI
+            document.querySelectorAll('.folder-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.querySelector('.folder-name').textContent === folder) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Load files
+            document.getElementById('fileList').innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+            
+            try {
+                const data = await apiRequest(`/admin/r2/folder/${encodeURIComponent(folder)}/files`);
+                currentFiles = data.files || [];
+                
+                if (currentFiles.length === 0) {
+                    document.getElementById('fileList').innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-file-audio"></i>
+                            <h3>Dossier vide</h3>
+                            <p>Aucun fichier audio trouvé</p>
+                        </div>
+                    `;
+                    document.getElementById('syncSection').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('fileList').innerHTML = currentFiles.map(file => `
+                    <div class="file-item">
+                        <div class="file-icon"><i class="fas fa-music"></i></div>
+                        <div class="file-info">
+                            <div class="file-name">${file.filename}</div>
+                            <div class="file-meta">${file.size_mb} MB</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Show sync section
+                document.getElementById('syncSection').style.display = 'block';
+                document.getElementById('syncResult').innerHTML = '';
+                updateSyncButton();
+                
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+                document.getElementById('fileList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Erreur</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateSyncButton() {
+            const courseId = document.getElementById('courseSelect').value;
+            document.getElementById('syncBtn').disabled = !courseId || !selectedFolder;
+        }
+
+        async function syncWithCourse() {
+            const courseId = document.getElementById('courseSelect').value;
+            if (!courseId || !selectedFolder) return;
+
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<div class="spinner" style="margin-right: 8px;"></div> Synchronisation...';
+
+            try {
+                const result = await apiRequest(`/admin/courses/${courseId}/sync-r2`, 'POST', {
+                    r2_folder: selectedFolder
+                });
+
+                showToast(`Synchronisation réussie! ${result.total_episodes} épisodes traités.`, 'success');
+                
+                document.getElementById('syncResult').innerHTML = `
+                    <div class="success-box">
+                        <h4><i class="fas fa-check-circle"></i> Synchronisation terminée</h4>
+                        <ul>
+                            <li>Dossier R2: ${result.r2_folder}</li>
+                            <li>Épisodes créés: ${result.episodes_created}</li>
+                            <li>Épisodes mis à jour: ${result.episodes_updated}</li>
+                            <li>Total: ${result.total_episodes} épisodes</li>
+                        </ul>
+                    </div>
+                `;
+
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+                document.getElementById('syncResult').innerHTML = `
+                    <div class="info-box" style="border-color: var(--danger); background: rgba(239, 68, 68, 0.1);">
+                        <h4 style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Erreur de synchronisation</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = '<i class="fas fa-sync"></i> Synchroniser les épisodes';
+                updateSyncButton();
+            }
+        }
+
+        async function loadCourses() {
+            try {
+                courses = await apiRequest('/admin/courses') || [];
+                const select = document.getElementById('courseSelect');
+                select.innerHTML = '<option value="">-- Sélectionner un cours --</option>' +
+                    courses.map(c => `<option value="${c.id}">${c.title} (${c.scholar_name || 'N/A'})</option>`).join('');
+                select.onchange = updateSyncButton;
+            } catch (error) {
+                showToast('Erreur chargement cours', 'error');
+            }
+        }
+
+        async function init() {
+            if (!authToken) {
+                window.location.href = '/api/admin-panel/login';
+                return;
+            }
+
+            try {
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') {
+                    localStorage.removeItem('adminToken');
+                    window.location.href = '/api/admin-panel/login';
+                    return;
+                }
+                document.getElementById('userName').textContent = user.name || user.email;
+                if (user.picture) document.getElementById('userAvatar').src = user.picture;
+
+                await Promise.all([loadFolders(), loadCourses()]);
+            } catch (error) {
+                showToast('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
