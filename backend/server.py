@@ -267,6 +267,7 @@ class PlanCreate(BaseModel):
     duration_days: int
     type: str = "subscription"  # subscription, course_purchase, cursus_purchase
     description: str = ""
+    trial_days: int = 0  # Free trial period
     is_active: bool = True
 
 class PlanUpdate(BaseModel):
