@@ -12,6 +12,7 @@ interface User {
   name: string;
   picture?: string;
   provider?: string;
+  role?: 'admin' | 'user';
 }
 
 interface AuthContextType {
