@@ -1897,6 +1897,40 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
     else:
         raise HTTPException(400, "Veuillez specifier un plan, cours ou cursus")
     
+    # Apply promo code if provided
+    original_amount = amount
+    promo_applied = None
+    if body.promo_code:
+        promo = await db.promo_codes.find_one({'code': body.promo_code.upper(), 'is_active': True}, {'_id': 0})
+        if promo:
+            # Validate promo code
+            valid = True
+            if promo.get('expires_at'):
+                expires = promo['expires_at']
+                if isinstance(expires, str):
+                    expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+                if expires < datetime.now(timezone.utc):
+                    valid = False
+            if promo.get('max_uses') and promo.get('uses_count', 0) >= promo['max_uses']:
+                valid = False
+            applicable = promo.get('applicable_plans', [])
+            if applicable and body.plan_id and body.plan_id not in applicable:
+                valid = False
+            
+            if valid:
+                if promo.get('discount_percent'):
+                    discount = amount * (promo['discount_percent'] / 100)
+                    amount = max(0, amount - discount)
+                elif promo.get('discount_amount'):
+                    amount = max(0, amount - promo['discount_amount'])
+                
+                promo_applied = promo['code']
+                metadata['promo_code'] = promo['code']
+                metadata['original_amount'] = str(original_amount)
+                
+                # Increment uses count
+                await db.promo_codes.update_one({'code': promo['code']}, {'$inc': {'uses_count': 1}})
+    
     # Build URLs
     success_url = f"{body.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{body.origin_url}/payment/cancel"
