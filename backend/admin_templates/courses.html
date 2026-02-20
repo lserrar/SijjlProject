@@ -253,7 +253,8 @@
                 document.getElementById('title').value = course.title || '';
                 document.getElementById('description').value = course.description || '';
                 document.getElementById('scholar_id').value = course.scholar_id || '';
-                document.getElementById('level').value = course.level || 'Débutant';
+                document.getElementById('thematique_id').value = course.thematique_id || '';
+                document.getElementById('level').value = course.level || 'Debutant';
                 document.getElementById('topic').value = course.topic || '';
                 document.getElementById('duration').value = course.duration || 0;
                 document.getElementById('thumbnail').value = course.thumbnail || '';
@@ -271,8 +272,17 @@
 
         function populateScholarSelect() {
             const select = document.getElementById('scholar_id');
-            select.innerHTML = '<option value="">-- Sélectionner --</option>' + 
+            select.innerHTML = '<option value="">-- Selectionner --</option>' + 
                 scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            
+            const themSelect = document.getElementById('thematique_id');
+            themSelect.innerHTML = '<option value="">-- Aucun cursus --</option>' + 
+                thematiques.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        }
+
+        function getThematiqueName(id) {
+            const t = thematiques.find(x => x.id === id);
+            return t ? t.name : '-';
         }
 
         async function saveCourse(event) {
@@ -286,12 +296,13 @@
                 description: document.getElementById('description').value,
                 scholar_id: scholarId,
                 scholar_name: scholar ? scholar.name : '',
+                thematique_id: document.getElementById('thematique_id').value || null,
                 level: document.getElementById('level').value,
                 topic: document.getElementById('topic').value,
                 duration: parseInt(document.getElementById('duration').value) || 0,
                 thumbnail: document.getElementById('thumbnail').value,
                 tags: document.getElementById('tags').value.split(',').map(s => s.trim()).filter(s => s),
-                language: 'Français'
+                language: 'Francais'
             };
 
             try {
@@ -352,6 +363,7 @@
                                     </div>
                                 </td>
                                 <td>${c.scholar_name || '-'}</td>
+                                <td>${getThematiqueName(c.thematique_id)}</td>
                                 <td><span class="tag">${c.level || '-'}</span></td>
                                 <td><span class="status ${c.is_active !== false ? 'status-active' : 'status-inactive'}">${c.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
@@ -375,9 +387,14 @@
                 document.getElementById('userName').textContent = user.name || user.email;
                 if (user.picture) document.getElementById('userAvatar').src = user.picture;
 
-                [scholars, courses] = await Promise.all([apiRequest('/admin/scholars'), apiRequest('/admin/courses')]);
+                [scholars, courses, thematiques] = await Promise.all([
+                    apiRequest('/admin/scholars'), 
+                    apiRequest('/admin/courses'),
+                    apiRequest('/admin/thematiques')
+                ]);
                 scholars = scholars || [];
                 courses = courses || [];
+                thematiques = thematiques || [];
                 renderCourses(courses);
             } catch (error) { showToast('Erreur de chargement', 'error'); }
         }
