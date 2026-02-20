@@ -1123,6 +1123,177 @@ async def admin_toggle_course(course_id: str, request: Request):
     await db.courses.update_one({'id': course_id}, {'$set': {'is_active': new_status}})
     return {'id': course_id, 'is_active': new_status}
 
+# ─── R2 Folder Sync for Courses ───────────────────────────────────────────────
+
+class SyncR2FolderRequest(BaseModel):
+    r2_folder: str  # e.g. "Philosophie" or "Henry Corbin"
+
+@api_router.get("/admin/r2/folders")
+async def list_r2_folders(request: Request):
+    """List all folders (prefixes) in the R2 bucket."""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    try:
+        # List objects and extract unique folder prefixes
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, MaxKeys=1000)
+        folders = set()
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            if '/' in key:
+                folder = key.split('/')[0]
+                folders.add(folder)
+        return {'folders': sorted(list(folders)), 'bucket': R2_BUCKET}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/admin/r2/folder/{folder_name}/files")
+async def list_r2_folder_files(folder_name: str, request: Request):
+    """List all audio files in a specific R2 folder."""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    try:
+        prefix = f"{folder_name}/"
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=500)
+        files = []
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            size = obj['Size']
+            if size > 0:  # Skip folder markers
+                filename = key.replace(prefix, '')
+                files.append({
+                    'key': key,
+                    'filename': filename,
+                    'size': size,
+                    'size_mb': round(size / (1024*1024), 1),
+                })
+        # Sort by filename to get proper episode order
+        files.sort(key=lambda x: x['filename'])
+        return {'folder': folder_name, 'files': files, 'count': len(files)}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.post("/admin/courses/{course_id}/sync-r2")
+async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request: Request):
+    """
+    Sync a course with an R2 folder: scan the folder and create audio episodes.
+    Episodes are created based on files matching pattern: *_episode{N}.m4a or *_episode{N}.mp3
+    """
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Get the course
+    course = await db.courses.find_one({'id': course_id})
+    if not course:
+        raise HTTPException(404, "Cours non trouvé")
+    
+    r2_folder = body.r2_folder.strip()
+    if not r2_folder:
+        raise HTTPException(400, "Dossier R2 requis")
+    
+    try:
+        # List files in the R2 folder
+        prefix = f"{r2_folder}/"
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=500)
+        
+        files = []
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            size = obj['Size']
+            if size > 0:
+                filename = key.replace(prefix, '')
+                # Extract episode number from filename (e.g., "Cycle_Philosophie_episode1.m4a" -> 1)
+                import re
+                match = re.search(r'episode(\d+)', filename, re.IGNORECASE)
+                if match:
+                    ep_num = int(match.group(1))
+                    files.append({
+                        'key': key,
+                        'filename': filename,
+                        'size': size,
+                        'episode_number': ep_num,
+                    })
+        
+        if not files:
+            raise HTTPException(400, f"Aucun fichier d'épisode trouvé dans '{r2_folder}/'")
+        
+        # Sort by episode number
+        files.sort(key=lambda x: x['episode_number'])
+        
+        # Create or update audio entries for each episode
+        created = 0
+        updated = 0
+        now = datetime.now(timezone.utc)
+        
+        for f in files:
+            audio_id = f"aud-{course_id.replace('crs-', '')}-{f['episode_number']:02d}"
+            
+            audio_doc = {
+                'id': audio_id,
+                'title': f"Épisode {f['episode_number']} — {course['title']}",
+                'description': f"{course['title']}, épisode {f['episode_number']}.",
+                'scholar_id': course.get('scholar_id', ''),
+                'scholar_name': course.get('scholar_name', ''),
+                'duration': 0,  # Unknown duration
+                'audio_url': '',
+                'file_key': f['key'],
+                'thumbnail': course.get('thumbnail', ''),
+                'topic': course.get('topic', ''),
+                'type': 'lecture',
+                'course_id': course_id,
+                'episode_number': f['episode_number'],
+                'published_at': now.isoformat(),
+                'is_active': True,
+            }
+            
+            result = await db.audios.update_one(
+                {'id': audio_id},
+                {'$set': audio_doc},
+                upsert=True
+            )
+            
+            if result.upserted_id:
+                created += 1
+            elif result.modified_count > 0:
+                updated += 1
+        
+        # Update the course with r2_folder and modules_count
+        await db.courses.update_one(
+            {'id': course_id},
+            {'$set': {
+                'r2_folder': r2_folder,
+                'modules_count': len(files),
+            }}
+        )
+        
+        return {
+            'message': f"Synchronisation terminée pour '{r2_folder}'",
+            'course_id': course_id,
+            'r2_folder': r2_folder,
+            'episodes_created': created,
+            'episodes_updated': updated,
+            'total_episodes': len(files),
+        }
+        
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/admin/courses/{course_id}/episodes")
+async def get_course_episodes(course_id: str, request: Request):
+    """Get all audio episodes linked to a course."""
+    await require_admin(request)
+    episodes = await db.audios.find(
+        {'course_id': course_id},
+        {'_id': 0}
+    ).sort('episode_number', 1).to_list(100)
+    
+    for ep in episodes:
+        ep['stream_url'] = resolve_audio_url(ep)
+    
+    return {'course_id': course_id, 'episodes': episodes, 'count': len(episodes)}
+
 # ─── App Setup ────────────────────────────────────────────────────────────────
 
 app.include_router(api_router)
