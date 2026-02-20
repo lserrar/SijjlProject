@@ -224,9 +224,10 @@ class CourseCreate(BaseModel):
     description: str
     topic: str
     level: str
-    language: str = "Français"
+    language: str = "Francais"
     scholar_id: str
     scholar_name: str
+    thematique_id: Optional[str] = None
     duration: int = 0
     thumbnail: str = ""
     modules_count: int = 0
@@ -240,6 +241,7 @@ class CourseUpdate(BaseModel):
     language: Optional[str] = None
     scholar_id: Optional[str] = None
     scholar_name: Optional[str] = None
+    thematique_id: Optional[str] = None
     duration: Optional[int] = None
     thumbnail: Optional[str] = None
     modules_count: Optional[int] = None
@@ -1610,10 +1612,18 @@ async def admin_panel_dashboard():
 
 @api_router.get("/admin-panel/scholars", response_class=HTMLResponse)
 async def admin_panel_scholars():
-    """Admin panel scholars page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'scholars.html'
+    """Admin panel scholars page - redirect to professors."""
+    template_path = ADMIN_TEMPLATES_DIR / 'professors.html'
     if not template_path.exists():
-        raise HTTPException(404, "Template scholars non trouvé")
+        raise HTTPException(404, "Template professors non trouve")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/professors", response_class=HTMLResponse)
+async def admin_panel_professors():
+    """Admin panel professors page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'professors.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template professors non trouve")
     return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
 
 @api_router.get("/admin-panel/courses", response_class=HTMLResponse)
