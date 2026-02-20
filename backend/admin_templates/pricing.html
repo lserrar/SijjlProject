@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarification - HikmabyLM Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-card: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --brand-primary: #04D182;
+            --brand-secondary: #02b36e;
+            --border-subtle: #2a2a2a;
+            --border-hover: #3a3a3a;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 0 20px 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .sidebar-logo-text { font-size: 18px; font-weight: 700; }
+        .sidebar-logo-text span { color: var(--brand-primary); }
+        .sidebar-badge { font-size: 10px; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .sidebar-nav { padding: 0 12px; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+        .user-header { display: flex; align-items: center; gap: 12px; padding: 20px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .user-role { font-size: 12px; color: var(--brand-primary); }
+        .logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .logout-btn:hover { background: var(--bg-tertiary); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-description { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--brand-primary); color: var(--bg-primary); }
+        .btn-primary:hover { background: var(--brand-secondary); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .btn-secondary:hover { border-color: var(--border-hover); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-title { font-size: 18px; font-weight: 600; }
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .plan-card { background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; position: relative; }
+        .plan-card.featured { border-color: var(--brand-primary); }
+        .plan-badge { position: absolute; top: -10px; right: 20px; background: var(--brand-primary); color: var(--bg-primary); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .plan-type { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .plan-name { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+        .plan-price { font-size: 36px; font-weight: 700; color: var(--brand-primary); }
+        .plan-price span { font-size: 16px; color: var(--text-secondary); font-weight: 400; }
+        .plan-duration { color: var(--text-secondary); font-size: 14px; margin-bottom: 16px; }
+        .plan-description { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; min-height: 40px; }
+        .plan-actions { display: flex; gap: 8px; }
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .status-active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-inactive { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: var(--bg-card); border-radius: 16px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 12px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--brand-primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .transactions-table { width: 100%; border-collapse: collapse; }
+        .transactions-table th, .transactions-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+        .transactions-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 600; }
+        .transactions-table tr:hover { background: var(--bg-tertiary); }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; }
+            .main-content { margin-left: 70px; padding: 20px; }
+            .plans-grid { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">H</div>
+                    <div>
+                        <div class="sidebar-logo-text">Hikma<span>byLM</span></div>
+                        <div class="sidebar-badge">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="/api/admin-panel/" class="nav-item"><i class="fas fa-chart-pie"></i><span>Tableau de bord</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-graduate"></i><span>Professeurs</span></a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/thematiques" class="nav-item"><i class="fas fa-layer-group"></i><span>Cursus</span></a>
+                    <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-book"></i><span>Bibliographies</span></a>
+                    <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestion</div>
+                    <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/pricing" class="nav-item active"><i class="fas fa-credit-card"></i><span>Tarification</span></a>
+                    <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
+                </div>
+            </nav>
+            <div class="user-header">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=04D182&color=000" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Admin</div>
+                    <div class="user-role">Administrateur</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Tarification</h1>
+                    <p class="page-description">Gerez les abonnements et les achats uniques</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal()" data-testid="new-plan-btn">
+                    <i class="fas fa-plus"></i> Nouveau plan
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Plans d'abonnement</h2>
+                </div>
+                <div class="plans-grid" id="plansGrid">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Transactions recentes</h2>
+                </div>
+                <div id="transactionsTable">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Chargement...</p></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nouveau plan</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="planForm" onsubmit="savePlan(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editingPlanId">
+                    <div class="form-group">
+                        <label class="form-label">ID du plan *</label>
+                        <input type="text" class="form-input" id="planId" required placeholder="Ex: monthly, annual, course_123" data-testid="plan-id-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nom *</label>
+                        <input type="text" class="form-input" id="planName" required placeholder="Ex: Abonnement Mensuel" data-testid="plan-name-input">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Prix (EUR) *</label>
+                            <input type="number" step="0.01" class="form-input" id="planPrice" required placeholder="9.99" data-testid="plan-price-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duree (jours) *</label>
+                            <input type="number" class="form-input" id="planDuration" required placeholder="30" data-testid="plan-duration-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type *</label>
+                        <select class="form-select" id="planType" required data-testid="plan-type-select">
+                            <option value="subscription">Abonnement</option>
+                            <option value="course_purchase">Achat de cours</option>
+                            <option value="cursus_purchase">Achat de cursus</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input" id="planDescription" rows="2" placeholder="Description du plan..." data-testid="plan-description-input"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" data-testid="save-plan-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let plans = [];
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('adminToken');
+                window.location.href = '/api/admin-panel/login';
+                return null;
+            }
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Erreur serveur');
+            }
+            return response.json();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/api/admin-panel/login';
+        }
+
+        function openModal(plan = null) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = plan ? 'Modifier le plan' : 'Nouveau plan';
+            
+            if (plan) {
+                document.getElementById('editingPlanId').value = plan.plan_id;
+                document.getElementById('planId').value = plan.plan_id;
+                document.getElementById('planId').disabled = true;
+                document.getElementById('planName').value = plan.name || '';
+                document.getElementById('planPrice').value = plan.price || '';
+                document.getElementById('planDuration').value = plan.duration_days || '';
+                document.getElementById('planType').value = plan.type || 'subscription';
+                document.getElementById('planDescription').value = plan.description || '';
+            } else {
+                document.getElementById('planForm').reset();
+                document.getElementById('editingPlanId').value = '';
+                document.getElementById('planId').disabled = false;
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function savePlan(event) {
+            event.preventDefault();
+            const editingId = document.getElementById('editingPlanId').value;
+            const data = {
+                plan_id: document.getElementById('planId').value,
+                name: document.getElementById('planName').value,
+                price: parseFloat(document.getElementById('planPrice').value),
+                duration_days: parseInt(document.getElementById('planDuration').value),
+                type: document.getElementById('planType').value,
+                description: document.getElementById('planDescription').value,
+                is_active: true
+            };
+
+            try {
+                if (editingId) {
+                    await apiRequest(`/admin/plans/${editingId}`, 'PUT', data);
+                    showToast('Plan modifie avec succes');
+                } else {
+                    await apiRequest('/admin/plans', 'POST', data);
+                    showToast('Plan cree avec succes');
+                }
+                closeModal();
+                loadData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deletePlan(planId, planName) {
+            if (!confirm(`Supprimer le plan "${planName}" ?`)) return;
+            try {
+                await apiRequest(`/admin/plans/${planId}`, 'DELETE');
+                showToast('Plan supprime');
+                loadData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function getTypeLabel(type) {
+            const labels = {
+                'subscription': 'Abonnement',
+                'course_purchase': 'Cours',
+                'cursus_purchase': 'Cursus'
+            };
+            return labels[type] || type;
+        }
+
+        function renderPlans(data) {
+            // Add default plans if none exist
+            const allPlans = data.length > 0 ? data : [
+                { plan_id: 'monthly', name: 'Abonnement Mensuel', price: 9.99, duration_days: 30, type: 'subscription', description: 'Acces illimite pendant 1 mois', is_active: true, is_default: true },
+                { plan_id: 'annual', name: 'Abonnement Annuel', price: 89.99, duration_days: 365, type: 'subscription', description: 'Acces illimite pendant 1 an - Economisez 30%', is_active: true, is_default: true }
+            ];
+            
+            if (allPlans.length === 0) {
+                document.getElementById('plansGrid').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-credit-card"></i>
+                        <h3>Aucun plan</h3>
+                        <p>Creez votre premier plan tarifaire</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            document.getElementById('plansGrid').innerHTML = allPlans.map(p => `
+                <div class="plan-card ${p.plan_id === 'annual' ? 'featured' : ''}" data-testid="plan-card-${p.plan_id}">
+                    ${p.plan_id === 'annual' ? '<div class="plan-badge">Populaire</div>' : ''}
+                    <div class="plan-type">${getTypeLabel(p.type)}</div>
+                    <div class="plan-name">${p.name}</div>
+                    <div class="plan-price">${p.price.toFixed(2)}€ <span>/ ${p.duration_days} jours</span></div>
+                    <div class="plan-description">${p.description || ''}</div>
+                    <div style="margin-bottom: 16px;">
+                        <span class="status ${p.is_active !== false ? 'status-active' : 'status-inactive'}">
+                            ${p.is_active !== false ? 'Actif' : 'Inactif'}
+                        </span>
+                        ${p.is_default ? '<span class="status" style="background: var(--bg-tertiary); color: var(--text-muted);">Par defaut</span>' : ''}
+                    </div>
+                    <div class="plan-actions">
+                        ${!p.is_default ? `
+                            <button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(p)})' data-testid="edit-plan-${p.plan_id}">
+                                <i class="fas fa-edit"></i> Modifier
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.plan_id}', '${p.name}')" data-testid="delete-plan-${p.plan_id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : '<span style="color: var(--text-muted); font-size: 12px;">Plan systeme - non modifiable</span>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTransactions(transactions) {
+            if (!transactions || transactions.length === 0) {
+                document.getElementById('transactionsTable').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-receipt"></i>
+                        <h3>Aucune transaction</h3>
+                        <p>Les transactions apparaitront ici</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            document.getElementById('transactionsTable').innerHTML = `
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Utilisateur</th>
+                            <th>Produit</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${transactions.map(t => `
+                            <tr>
+                                <td>${new Date(t.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                                <td>${t.user_email || '-'}</td>
+                                <td>${t.product_name || '-'}</td>
+                                <td><strong>${t.amount?.toFixed(2) || '0.00'}€</strong></td>
+                                <td>
+                                    <span class="status ${t.payment_status === 'paid' ? 'status-active' : 'status-inactive'}">
+                                        ${t.payment_status === 'paid' ? 'Paye' : t.payment_status || 'En attente'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadData() {
+            try {
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') {
+                    localStorage.removeItem('adminToken');
+                    window.location.href = '/api/admin-panel/login';
+                    return;
+                }
+                document.getElementById('userName').textContent = user.name || user.email;
+                if (user.picture) document.getElementById('userAvatar').src = user.picture;
+
+                const [plansData, transactionsData] = await Promise.all([
+                    apiRequest('/admin/plans'),
+                    apiRequest('/admin/transactions')
+                ]);
+                
+                plans = plansData || [];
+                renderPlans(plans);
+                renderTransactions(transactionsData || []);
+            } catch (error) {
+                showToast('Erreur de chargement', 'error');
+            }
+        }
+
+        if (!authToken) {
+            window.location.href = '/api/admin-panel/login';
+        } else {
+            loadData();
+        }
+    </script>
+</body>
+</html>
