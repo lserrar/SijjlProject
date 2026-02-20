@@ -2133,6 +2133,158 @@ async def admin_panel_pricing():
         raise HTTPException(404, "Template pricing non trouve")
     return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
 
+# ─── Promo Codes & Free Trial ─────────────────────────────────────────────────
+
+@api_router.post("/promo/validate")
+async def validate_promo_code(code: str, plan_id: Optional[str] = None):
+    """Validate a promo code and return discount info."""
+    promo = await db.promo_codes.find_one({'code': code.upper(), 'is_active': True}, {'_id': 0})
+    if not promo:
+        raise HTTPException(404, "Code promo invalide")
+    
+    # Check expiration
+    if promo.get('expires_at'):
+        expires = promo['expires_at']
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+        if expires < datetime.now(timezone.utc):
+            raise HTTPException(400, "Code promo expire")
+    
+    # Check max uses
+    if promo.get('max_uses') and promo.get('uses_count', 0) >= promo['max_uses']:
+        raise HTTPException(400, "Code promo epuise")
+    
+    # Check applicable plans
+    applicable = promo.get('applicable_plans', [])
+    if applicable and plan_id and plan_id not in applicable:
+        raise HTTPException(400, "Code promo non applicable a ce plan")
+    
+    return {
+        'valid': True,
+        'code': promo['code'],
+        'discount_percent': promo.get('discount_percent'),
+        'discount_amount': promo.get('discount_amount'),
+        'description': promo.get('description', '')
+    }
+
+@api_router.get("/admin/promo-codes")
+async def admin_get_promo_codes(request: Request):
+    """Get all promo codes (admin)."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    promos = await db.promo_codes.find({}, {'_id': 0}).to_list(100)
+    return promos
+
+@api_router.post("/admin/promo-codes")
+async def admin_create_promo_code(promo: PromoCodeCreate, request: Request):
+    """Create a new promo code."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    
+    code = promo.code.upper().strip()
+    existing = await db.promo_codes.find_one({'code': code})
+    if existing:
+        raise HTTPException(400, "Ce code existe deja")
+    
+    promo_doc = promo.model_dump()
+    promo_doc['code'] = code
+    promo_doc['uses_count'] = 0
+    promo_doc['created_at'] = datetime.now(timezone.utc)
+    
+    await db.promo_codes.insert_one(promo_doc)
+    return {k: v for k, v in promo_doc.items() if k != '_id'}
+
+@api_router.put("/admin/promo-codes/{code}")
+async def admin_update_promo_code(code: str, promo: PromoCodeUpdate, request: Request):
+    """Update a promo code."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    
+    updates = {k: v for k, v in promo.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "Aucune modification")
+    
+    updates['updated_at'] = datetime.now(timezone.utc)
+    result = await db.promo_codes.update_one({'code': code.upper()}, {'$set': updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Code promo non trouve")
+    
+    updated = await db.promo_codes.find_one({'code': code.upper()}, {'_id': 0})
+    return updated
+
+@api_router.delete("/admin/promo-codes/{code}")
+async def admin_delete_promo_code(code: str, request: Request):
+    """Delete a promo code."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin requis")
+    
+    result = await db.promo_codes.delete_one({'code': code.upper()})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Code promo non trouve")
+    return {'message': 'Code promo supprime'}
+
+@api_router.post("/trial/start")
+async def start_free_trial(body: StartTrialRequest, request: Request):
+    """Start a free trial for a subscription plan."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    # Check if user already had a trial
+    user_doc = await db.users.find_one({'user_id': user['user_id']})
+    if user_doc.get('had_trial'):
+        raise HTTPException(400, "Vous avez deja utilise votre essai gratuit")
+    
+    # Get plan with trial
+    plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
+    if not plan:
+        # Check default plans
+        if body.plan_id == 'monthly':
+            plan = {'plan_id': 'monthly', 'trial_days': 7}
+        elif body.plan_id == 'annual':
+            plan = {'plan_id': 'annual', 'trial_days': 14}
+        else:
+            raise HTTPException(404, "Plan non trouve")
+    
+    trial_days = plan.get('trial_days', 7)
+    if trial_days <= 0:
+        raise HTTPException(400, "Ce plan n'offre pas d'essai gratuit")
+    
+    now = datetime.now(timezone.utc)
+    trial_expires = now + timedelta(days=trial_days)
+    
+    # Grant trial access
+    await db.users.update_one(
+        {'user_id': user['user_id']},
+        {'$set': {
+            'had_trial': True,
+            'trial': {
+                'plan_id': body.plan_id,
+                'started_at': now,
+                'expires_at': trial_expires
+            }
+        }}
+    )
+    
+    return {
+        'success': True,
+        'trial_days': trial_days,
+        'expires_at': trial_expires.isoformat(),
+        'message': f'Essai gratuit de {trial_days} jours active!'
+    }
+
+@api_router.get("/admin-panel/promos", response_class=HTMLResponse)
+async def admin_panel_promos():
+    """Admin panel promo codes management page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'promos.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template promos non trouve")
+    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+
 # ─── Health Check ──────────────────────────────────────────────────────────────
 
 @api_router.get("/health")
