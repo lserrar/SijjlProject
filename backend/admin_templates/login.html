@@ -202,10 +202,16 @@
                     body: JSON.stringify({ email, password })
                 });
 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    throw new Error('Erreur de serveur');
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.detail || 'Erreur de connexion');
+                    const errMsg = typeof data.detail === 'string' ? data.detail : 'Erreur de connexion';
+                    throw new Error(errMsg);
                 }
 
                 if (data.user.role !== 'admin') {
