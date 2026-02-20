@@ -474,6 +474,12 @@ async def get_home(request: Request):
     daily_pick = await db.audios.find_one({'type': 'quran'}, {'_id': 0})
     if not daily_pick:
         daily_pick = await db.audios.find_one({}, {'_id': 0})
+    if daily_pick:
+        daily_pick['stream_url'] = resolve_audio_url(daily_pick)
+
+    # Hero: resolve stream URL if audio
+    if hero and hero.get('content_type') == 'audio':
+        hero['content']['stream_url'] = resolve_audio_url(hero['content'])
 
     # Recent publications
     recent_articles = await db.articles.find({}, {'_id': 0}).limit(3).to_list(3)
