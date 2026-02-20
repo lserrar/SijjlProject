@@ -77,9 +77,9 @@ Application mobile e-learning academique francaise pour etudes islamiques (iOS &
 ## Backlog P1 (A venir)
 - Implementation des ecrans mobiles pour Cursus, Bibliotheque, Live
 - Stabilisation du tunnel Ngrok pour l'environnement Expo
+- Page de paiement dans l'app mobile (integration avec les APIs Stripe)
 
 ## Backlog P2 (Futur)
-- Systeme de monetisation (Stripe)
 - Push notifications
 - Analytics temps d'ecoute
 - Multi-langue (EN, AR, RTL)
