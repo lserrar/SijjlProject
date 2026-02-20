@@ -109,6 +109,24 @@ export default function ProfilScreen() {
           <Text style={styles.levelHint}>Complétez des cours pour progresser au niveau Intermédiaire</Text>
         </View>
 
+        {/* Admin Panel Button - Only visible for admins */}
+        {isAdmin && (
+          <TouchableOpacity
+            testID="profile-admin-btn"
+            style={styles.adminBtn}
+            onPress={() => router.push('/admin')}
+          >
+            <View style={styles.adminIconContainer}>
+              <Ionicons name="shield-checkmark" size={24} color={colors.brand.primary} />
+            </View>
+            <View style={styles.adminTextContainer}>
+              <Text style={styles.adminTitle}>Panel Administrateur</Text>
+              <Text style={styles.adminSubtitle}>Gérer le contenu de l'application</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+          </TouchableOpacity>
+        )}
+
         {/* Menu */}
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>Préférences</Text>
