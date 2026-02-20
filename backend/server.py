@@ -258,6 +258,30 @@ class CourseUpdate(BaseModel):
     tags: Optional[List[str]] = None
     is_active: Optional[bool] = None
 
+# ─── Subscription & Payment Models ───────────────────────────────────────────
+
+class PlanCreate(BaseModel):
+    plan_id: str
+    name: str
+    price: float
+    duration_days: int
+    type: str = "subscription"  # subscription, course_purchase, cursus_purchase
+    description: str = ""
+    is_active: bool = True
+
+class PlanUpdate(BaseModel):
+    name: Optional[str] = None
+    price: Optional[float] = None
+    duration_days: Optional[int] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class CheckoutRequest(BaseModel):
+    plan_id: Optional[str] = None
+    course_id: Optional[str] = None
+    cursus_id: Optional[str] = None
+    origin_url: str
+
 # ─── Auth Routes ────────────────────────────────────────────────────────────
 
 @api_router.post("/auth/register")
