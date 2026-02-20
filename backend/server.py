@@ -1752,7 +1752,7 @@ async def admin_panel_r2():
 # ─── Payment & Subscription Routes ─────────────────────────────────────────────
 
 async def check_user_access(user_id: str, content_type: str = None, content_id: str = None) -> dict:
-    """Check if user has access to content (subscription or purchase)."""
+    """Check if user has access to content (subscription, purchase, or trial)."""
     user = await db.users.find_one({'user_id': user_id}, {'_id': 0})
     if not user:
         return {'has_access': False, 'reason': 'user_not_found'}
@@ -1762,6 +1762,15 @@ async def check_user_access(user_id: str, content_type: str = None, content_id: 
         return {'has_access': True, 'reason': 'admin_or_free'}
     
     now = datetime.now(timezone.utc)
+    
+    # Check active free trial
+    trial = user.get('trial')
+    if trial and trial.get('expires_at'):
+        expires_at = trial['expires_at']
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+        if expires_at > now:
+            return {'has_access': True, 'reason': 'free_trial', 'expires_at': expires_at.isoformat()}
     
     # Check active subscription
     subscription = user.get('subscription')
