@@ -1646,9 +1646,28 @@ async def admin_panel_articles():
     """Admin panel articles page."""
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
+@api_router.get("/admin-panel/thematiques", response_class=HTMLResponse)
+async def admin_panel_thematiques():
+    """Admin panel thematiques page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'thematiques.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/bibliographies", response_class=HTMLResponse)
+async def admin_panel_bibliographies():
+    """Admin panel bibliographies page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'bibliographies.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
 @api_router.get("/admin-panel/masterclasses", response_class=HTMLResponse)
 async def admin_panel_masterclasses():
     """Admin panel masterclasses page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'masterclasses.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
 @api_router.get("/admin-panel/r2", response_class=HTMLResponse)
