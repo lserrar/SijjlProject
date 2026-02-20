@@ -23,6 +23,19 @@ interface Scholar {
   name: string;
 }
 
+interface R2File {
+  key: string;
+  filename: string;
+  size_mb: number;
+}
+
+interface Episode {
+  id: string;
+  title: string;
+  episode_number: number;
+  file_key: string;
+}
+
 export default function CourseForm() {
   const { token } = useAuth();
   const router = useRouter();
@@ -31,27 +44,35 @@ export default function CourseForm() {
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [scholars, setScholars] = useState<Scholar[]>([]);
+  const [r2Folders, setR2Folders] = useState<string[]>([]);
+  const [r2Files, setR2Files] = useState<R2File[]>([]);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scholarId, setScholarId] = useState('');
   const [scholarName, setScholarName] = useState('');
   const [topic, setTopic] = useState('');
-  const [level, setLevel] = useState('D\u00e9butant');
-  const [language, setLanguage] = useState('Fran\u00e7ais');
-  const [duration, setDuration] = useState('0');
+  const [level, setLevel] = useState('Débutant');
+  const [language, setLanguage] = useState('Français');
   const [modulesCount, setModulesCount] = useState('0');
   const [thumbnail, setThumbnail] = useState('');
   const [tags, setTags] = useState('');
+  const [r2Folder, setR2Folder] = useState('');
 
   const TOPICS = ['Philosophie islamique', 'Tasawwuf', 'Fiqh', 'Histoire de l\'Islam', 'Sciences coraniques', 'Kalam'];
-  const LEVELS = ['D\u00e9butant', 'Interm\u00e9diaire', 'Avanc\u00e9'];
-  const LANGUAGES = ['Fran\u00e7ais', 'Arabe', 'Anglais'];
+  const LEVELS = ['Débutant', 'Intermédiaire', 'Avancé'];
+  const LANGUAGES = ['Français', 'Arabe', 'Anglais'];
 
   useEffect(() => {
     loadScholars();
-    if (isEdit) loadCourse();
+    loadR2Folders();
+    if (isEdit) {
+      loadCourse();
+      loadEpisodes();
+    }
   }, [id]);
 
   const loadScholars = async () => {
@@ -66,6 +87,18 @@ export default function CourseForm() {
     }
   };
 
+  const loadR2Folders = async () => {
+    try {
+      const resp = await apiRequest('/admin/r2/folders', token);
+      if (resp.ok) {
+        const data = await resp.json();
+        setR2Folders(data.folders || []);
+      }
+    } catch (e) {
+      console.error('Failed to load R2 folders', e);
+    }
+  };
+
   const loadCourse = async () => {
     try {
       const resp = await apiRequest(`/courses/${id}`, token);
@@ -76,17 +109,44 @@ export default function CourseForm() {
         setScholarId(data.scholar_id || '');
         setScholarName(data.scholar_name || '');
         setTopic(data.topic || '');
-        setLevel(data.level || 'D\u00e9butant');
-        setLanguage(data.language || 'Fran\u00e7ais');
-        setDuration(String(data.duration || 0));
+        setLevel(data.level || 'Débutant');
+        setLanguage(data.language || 'Français');
         setModulesCount(String(data.modules_count || 0));
         setThumbnail(data.thumbnail || '');
         setTags((data.tags || []).join(', '));
+        setR2Folder(data.r2_folder || '');
+        if (data.r2_folder) {
+          loadR2FolderFiles(data.r2_folder);
+        }
       }
     } catch (e) {
       Alert.alert('Erreur', 'Impossible de charger le cours');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEpisodes = async () => {
+    try {
+      const resp = await apiRequest(`/admin/courses/${id}/episodes`, token);
+      if (resp.ok) {
+        const data = await resp.json();
+        setEpisodes(data.episodes || []);
+      }
+    } catch (e) {
+      console.error('Failed to load episodes', e);
+    }
+  };
+
+  const loadR2FolderFiles = async (folderName: string) => {
+    try {
+      const resp = await apiRequest(`/admin/r2/folder/${encodeURIComponent(folderName)}/files`, token);
+      if (resp.ok) {
+        const data = await resp.json();
+        setR2Files(data.files || []);
+      }
+    } catch (e) {
+      console.error('Failed to load R2 files', e);
     }
   };
 
@@ -96,9 +156,54 @@ export default function CourseForm() {
     if (scholar) setScholarName(scholar.name);
   };
 
+  const handleSelectR2Folder = (folderName: string) => {
+    setR2Folder(folderName);
+    if (folderName) {
+      loadR2FolderFiles(folderName);
+    } else {
+      setR2Files([]);
+    }
+  };
+
+  const handleSyncR2 = async () => {
+    if (!r2Folder) {
+      Alert.alert('Erreur', 'Sélectionnez d\'abord un dossier R2');
+      return;
+    }
+    if (!isEdit) {
+      Alert.alert('Info', 'Enregistrez d\'abord le cours, puis synchronisez avec R2');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const resp = await apiRequest(`/admin/courses/${id}/sync-r2`, token, {
+        method: 'POST',
+        body: JSON.stringify({ r2_folder: r2Folder }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        Alert.alert(
+          'Synchronisation réussie',
+          `${data.episodes_created} épisode(s) créé(s)\n${data.episodes_updated} épisode(s) mis à jour\nTotal: ${data.total_episodes} épisode(s)`
+        );
+        loadEpisodes();
+        setModulesCount(String(data.total_episodes));
+      } else {
+        const err = await resp.json();
+        Alert.alert('Erreur', err.detail || 'Synchronisation échouée');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Une erreur est survenue');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim() || !scholarId || !topic) {
-      Alert.alert('Champs requis', 'Veuillez remplir le titre, l\'\u00e9rudit et le sujet.');
+      Alert.alert('Champs requis', 'Veuillez remplir le titre, l\'érudit et le sujet.');
       return;
     }
 
@@ -112,10 +217,10 @@ export default function CourseForm() {
         topic,
         level,
         language,
-        duration: parseInt(duration) || 0,
         modules_count: parseInt(modulesCount) || 0,
         thumbnail: thumbnail.trim() || 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&q=80',
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+        r2_folder: r2Folder,
       };
 
       const endpoint = isEdit ? `/admin/courses/${id}` : '/admin/courses';
@@ -127,12 +232,12 @@ export default function CourseForm() {
       });
 
       if (resp.ok) {
-        Alert.alert('Succ\u00e8s', isEdit ? 'Cours mis \u00e0 jour' : 'Cours cr\u00e9\u00e9', [
+        Alert.alert('Succès', isEdit ? 'Cours mis à jour' : 'Cours créé', [
           { text: 'OK', onPress: () => router.back() },
         ]);
       } else {
         const err = await resp.json();
-        Alert.alert('Erreur', err.detail || 'Op\u00e9ration \u00e9chou\u00e9e');
+        Alert.alert('Erreur', err.detail || 'Opération échouée');
       }
     } catch (e) {
       Alert.alert('Erreur', 'Une erreur est survenue');
@@ -180,7 +285,7 @@ export default function CourseForm() {
             numberOfLines={4}
           />
 
-          <Text style={styles.label}>\u00c9rudit *</Text>
+          <Text style={styles.label}>Érudit *</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={scholarId}
@@ -188,7 +293,7 @@ export default function CourseForm() {
               style={styles.picker}
               dropdownIconColor={colors.text.secondary}
             >
-              <Picker.Item label="S\u00e9lectionnez un \u00e9rudit" value="" />
+              <Picker.Item label="Sélectionnez un érudit" value="" />
               {scholars.map((s) => (
                 <Picker.Item key={s.id} label={s.name} value={s.id} />
               ))}
@@ -203,7 +308,7 @@ export default function CourseForm() {
               style={styles.picker}
               dropdownIconColor={colors.text.secondary}
             >
-              <Picker.Item label="S\u00e9lectionnez un sujet" value="" />
+              <Picker.Item label="Sélectionnez un sujet" value="" />
               {TOPICS.map((t) => (
                 <Picker.Item key={t} label={t} value={t} />
               ))}
@@ -238,31 +343,6 @@ export default function CourseForm() {
             </Picker>
           </View>
 
-          <View style={styles.row}>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Dur\u00e9e (min)</Text>
-              <TextInput
-                style={styles.input}
-                value={duration}
-                onChangeText={setDuration}
-                placeholder="0"
-                placeholderTextColor={colors.text.tertiary}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.halfInput}>
-              <Text style={styles.label}>Nb modules</Text>
-              <TextInput
-                style={styles.input}
-                value={modulesCount}
-                onChangeText={setModulesCount}
-                placeholder="0"
-                placeholderTextColor={colors.text.tertiary}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-
           <Text style={styles.label}>URL de la miniature</Text>
           <TextInput
             style={styles.input}
@@ -273,14 +353,91 @@ export default function CourseForm() {
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Tags (s\u00e9par\u00e9s par des virgules)</Text>
+          <Text style={styles.label}>Tags (séparés par des virgules)</Text>
           <TextInput
             style={styles.input}
             value={tags}
             onChangeText={setTags}
-            placeholder="Philosophie, Avicenne, M\u00e9taphysique"
+            placeholder="Philosophie, Avicenne, Métaphysique"
             placeholderTextColor={colors.text.tertiary}
           />
+
+          {/* R2 Folder Section */}
+          <View style={styles.r2Section}>
+            <Text style={styles.r2Title}>
+              <Ionicons name="cloud-outline" size={18} color={colors.brand.primary} /> Dossier R2 (Audio)
+            </Text>
+            <Text style={styles.r2Hint}>
+              Sélectionnez un dossier de votre bucket R2 contenant les épisodes audio numérotés (ex: *_episode1.m4a, *_episode2.m4a...)
+            </Text>
+            
+            <View style={styles.r2FolderRow}>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={r2Folder}
+                  onValueChange={handleSelectR2Folder}
+                  style={styles.picker}
+                  dropdownIconColor={colors.text.secondary}
+                >
+                  <Picker.Item label="Sélectionnez un dossier R2" value="" />
+                  {r2Folders.map((f) => (
+                    <Picker.Item key={f} label={f} value={f} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {r2Folder && (
+              <TouchableOpacity
+                style={[styles.syncBtn, syncing && styles.syncBtnDisabled]}
+                onPress={handleSyncR2}
+                disabled={syncing || !isEdit}
+              >
+                {syncing ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <>
+                    <Ionicons name="sync" size={18} color="#000" />
+                    <Text style={styles.syncBtnText}>
+                      {isEdit ? 'Synchroniser avec R2' : 'Enregistrez d\'abord le cours'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {r2Folder && r2Files.length > 0 && (
+              <View style={styles.r2FilesPreview}>
+                <Text style={styles.r2FilesTitle}>
+                  {r2Files.length} fichier(s) dans "{r2Folder}/"
+                </Text>
+                {r2Files.slice(0, 5).map((f) => (
+                  <Text key={f.key} style={styles.r2FileItem}>
+                    • {f.filename} ({f.size_mb} MB)
+                  </Text>
+                ))}
+                {r2Files.length > 5 && (
+                  <Text style={styles.r2FileItem}>... et {r2Files.length - 5} autres</Text>
+                )}
+              </View>
+            )}
+
+            {episodes.length > 0 && (
+              <View style={styles.episodesSection}>
+                <Text style={styles.episodesTitle}>
+                  <Ionicons name="list" size={16} color={colors.text.secondary} /> {episodes.length} Épisode(s) liés
+                </Text>
+                {episodes.map((ep) => (
+                  <View key={ep.id} style={styles.episodeItem}>
+                    <Ionicons name="musical-note" size={14} color={colors.brand.primary} />
+                    <Text style={styles.episodeText} numberOfLines={1}>
+                      Ep. {ep.episode_number}: {ep.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
 
           <TouchableOpacity
             style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
@@ -292,7 +449,7 @@ export default function CourseForm() {
             ) : (
               <>
                 <Ionicons name="checkmark" size={20} color="#000" />
-                <Text style={styles.saveBtnText}>{isEdit ? 'Mettre \u00e0 jour' : 'Cr\u00e9er'}</Text>
+                <Text style={styles.saveBtnText}>{isEdit ? 'Mettre à jour' : 'Créer'}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -345,11 +502,85 @@ const styles = StyleSheet.create({
   picker: {
     color: colors.text.primary,
   },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.md,
+  r2Section: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.background.card,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.brand.primary + '30',
   },
-  halfInput: {
+  r2Title: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 15,
+    color: colors.brand.primary,
+    marginBottom: spacing.xs,
+  },
+  r2Hint: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: colors.text.tertiary,
+    marginBottom: spacing.md,
+  },
+  r2FolderRow: {
+    marginBottom: spacing.sm,
+  },
+  syncBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brand.primary,
+    borderRadius: radius.lg,
+    padding: spacing.sm,
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  syncBtnDisabled: { opacity: 0.6 },
+  syncBtnText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#000',
+  },
+  r2FilesPreview: {
+    marginTop: spacing.md,
+    backgroundColor: colors.background.elevated,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+  },
+  r2FilesTitle: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  r2FileItem: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 11,
+    color: colors.text.tertiary,
+    marginBottom: 2,
+  },
+  episodesSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.default,
+  },
+  episodesTitle: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+  },
+  episodeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 4,
+  },
+  episodeText: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: colors.text.primary,
     flex: 1,
   },
   saveBtn: {
