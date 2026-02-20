@@ -1,207 +1,220 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
-  Alert,
   RefreshControl,
+  Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiRequest } from '../../context/AuthContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, apiRequest } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
-import { formatSessionDate, formatSessionTime } from '../../constants/mockData';
 import { Ionicons } from '@expo/vector-icons';
 
+interface Masterclass {
+  id: string;
+  title: string;
+  description: string;
+  thematique_id: string;
+  scholar_name: string;
+  date: string | null;
+  duration: number;
+  price: number;
+  price_type: 'free' | 'paid';
+  max_participants: number;
+  current_participants: number;
+  thumbnail: string;
+  is_active: boolean;
+}
+
+interface Thematique {
+  id: string;
+  name: string;
+  order: number;
+}
+
 export default function LiveScreen() {
-  const { token } = useAuth();
-  const [sessions, setSessions] = useState<any[]>([]);
+  const { token, user } = useAuth();
+  const [masterclasses, setMasterclasses] = useState<Masterclass[]>([]);
+  const [thematiques, setThematiques] = useState<Thematique[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [registering, setRegistering] = useState<string | null>(null);
-  const [registeredSessions, setRegisteredSessions] = useState<Set<string>>(new Set());
+  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
 
-  const fetchSessions = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const resp = await apiRequest('/live-sessions', token);
-      const data = await resp.json();
-      setSessions(Array.isArray(data) ? data : []);
+      const [mcRes, themRes] = await Promise.all([
+        apiRequest('/masterclasses', token),
+        apiRequest('/thematiques', token),
+      ]);
+      
+      if (mcRes.ok) {
+        const data = await mcRes.json();
+        setMasterclasses(data);
+      }
+      if (themRes.ok) {
+        const data = await themRes.json();
+        setThematiques(data.sort((a: Thematique, b: Thematique) => a.order - b.order));
+      }
     } catch (e) {
-      console.error('Live sessions fetch error:', e);
+      console.error('Failed to load data', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [token]);
 
-  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  const onRefresh = () => { setRefreshing(true); fetchSessions(); };
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
 
-  const handleRegister = async (sessionId: string) => {
-    if (!token) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour vous inscrire');
+  const handleRegister = async (mc: Masterclass) => {
+    if (!user) {
+      Alert.alert('Connexion requise', 'Veuillez vous connecter pour vous inscrire.');
       return;
     }
-    setRegistering(sessionId);
+
+    if (registeredIds.includes(mc.id)) {
+      Alert.alert('Déjà inscrit', 'Vous êtes déjà inscrit à cette masterclass.');
+      return;
+    }
+
     try {
-      if (registeredSessions.has(sessionId)) {
-        await apiRequest(`/live-sessions/${sessionId}/register`, token, { method: 'DELETE' });
-        setRegisteredSessions(prev => { const s = new Set(prev); s.delete(sessionId); return s; });
-        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, registered_count: s.registered_count - 1 } : s));
-        Alert.alert('Désinscription', 'Vous avez été désinscrit de cette session');
+      const resp = await apiRequest(`/masterclasses/${mc.id}/register`, token, {
+        method: 'POST',
+      });
+
+      if (resp.ok) {
+        setRegisteredIds([...registeredIds, mc.id]);
+        Alert.alert(
+          'Inscription réussie !',
+          `Vous êtes inscrit à la masterclass "${mc.title.replace('Masterclass : ', '')}".`
+        );
       } else {
-        await apiRequest(`/live-sessions/${sessionId}/register`, token, { method: 'POST' });
-        setRegisteredSessions(prev => new Set([...prev, sessionId]));
-        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, registered_count: s.registered_count + 1 } : s));
-        Alert.alert('Inscription confirmée !', 'Vous êtes inscrit à cette session. Vous recevrez un rappel avant la session.');
+        const err = await resp.json();
+        Alert.alert('Erreur', err.detail || 'Inscription échouée');
       }
     } catch (e) {
-      Alert.alert('Erreur', "L'inscription a échoué. Réessayez.");
-    } finally {
-      setRegistering(null);
+      Alert.alert('Erreur', 'Une erreur est survenue');
     }
   };
 
-  const getSessionStatus = (dateStr: string) => {
-    const now = new Date();
-    const sessionDate = new Date(dateStr);
-    const diffDays = Math.ceil((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return { label: "Aujourd'hui", color: colors.brand.primary };
-    if (diffDays === 1) return { label: 'Demain', color: colors.brand.secondary };
-    if (diffDays <= 7) return { label: `Dans ${diffDays} jours`, color: '#FFC107' };
-    return { label: formatSessionDate(dateStr), color: colors.text.secondary };
+  const getThemeName = (themeId: string) => {
+    const theme = thematiques.find(t => t.id === themeId);
+    return theme?.name || '';
   };
 
-  const nextSession = sessions[0];
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.brand.primary} />
+          <Text style={styles.loadingText}>Chargement des masterclasses...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.brand.primary}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Sessions Live</Text>
-          <Text style={styles.subtitle}>Masterclasses, séminaires et débats académiques</Text>
+          <Text style={styles.headerTitle}>Masterclasses</Text>
+          <Text style={styles.headerSubtitle}>
+            Sessions live approfondies avec nos experts
+          </Text>
         </View>
 
-        {/* Hero Next Session */}
-        {nextSession && !loading && (
-          <View style={styles.heroSection}>
-            <View style={styles.heroBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.heroBadgeText}>PROCHAINE SESSION</Text>
-            </View>
-            <Image source={{ uri: nextSession.thumbnail }} style={styles.heroImage} />
-            <View style={styles.heroContent}>
-              <Text style={styles.heroTopic}>{nextSession.topic}</Text>
-              <Text style={styles.heroTitle}>{nextSession.title}</Text>
-              <Text style={styles.heroScholar}>{nextSession.scholar_name}</Text>
+        {/* Info Banner */}
+        <View style={styles.infoBanner}>
+          <Ionicons name="information-circle" size={20} color={colors.brand.primary} />
+          <Text style={styles.infoText}>
+            Les masterclasses sont actuellement gratuites. Inscrivez-vous pour être notifié des prochaines dates.
+          </Text>
+        </View>
 
-              <View style={styles.heroMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="calendar-outline" size={14} color={colors.text.secondary} />
-                  <Text style={styles.metaText}>{formatSessionDate(nextSession.date)}</Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={14} color={colors.text.secondary} />
-                  <Text style={styles.metaText}>{formatSessionTime(nextSession.date)}</Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <Ionicons name="people-outline" size={14} color={colors.text.secondary} />
-                  <Text style={styles.metaText}>{nextSession.registered_count}/{nextSession.max_participants}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                testID={`live-register-${nextSession.id}`}
-                style={[
-                  styles.registerBtn,
-                  registeredSessions.has(nextSession.id) && styles.registerBtnActive,
-                  nextSession.registered_count >= nextSession.max_participants && !registeredSessions.has(nextSession.id) && styles.registerBtnFull,
-                ]}
-                onPress={() => handleRegister(nextSession.id)}
-                disabled={!!registering || (nextSession.registered_count >= nextSession.max_participants && !registeredSessions.has(nextSession.id))}
-              >
-                {registering === nextSession.id ? (
-                  <ActivityIndicator size="small" color="#000" />
-                ) : (
-                  <Text style={styles.registerBtnText}>
-                    {registeredSessions.has(nextSession.id)
-                      ? '✓ Inscrit — Annuler'
-                      : nextSession.registered_count >= nextSession.max_participants
-                      ? 'Complet'
-                      : 'S\'inscrire'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* All Sessions */}
-        <Text style={styles.sectionTitle}>Toutes les sessions à venir</Text>
-
-        {loading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} size="large" color={colors.brand.primary} />
-        ) : (
-          sessions.map((session, index) => {
-            const status = getSessionStatus(session.date);
-            const isRegistered = registeredSessions.has(session.id);
-            const isFull = session.registered_count >= session.max_participants && !isRegistered;
+        {/* Masterclasses List */}
+        <View style={styles.mcList}>
+          {masterclasses.map((mc) => {
+            const isRegistered = registeredIds.includes(mc.id);
+            const themeName = getThemeName(mc.thematique_id);
 
             return (
-              <View key={session.id} testID={`live-session-${session.id}`} style={styles.sessionCard}>
-                <View style={styles.sessionLeft}>
-                  <Text style={[styles.sessionDateLabel, { color: status.color }]}>{status.label}</Text>
-                  <Text style={styles.sessionTime}>{formatSessionTime(session.date)}</Text>
-                  <Text style={styles.sessionDuration}>{session.duration} min</Text>
-                </View>
-
-                <View style={styles.sessionRight}>
-                  <Text style={styles.sessionTopic}>{session.topic}</Text>
-                  <Text style={styles.sessionTitle} numberOfLines={2}>{session.title}</Text>
-                  <Text style={styles.sessionScholar}>{session.scholar_name}</Text>
-
-                  <View style={styles.sessionBottom}>
-                    <View style={styles.sessionParticipants}>
-                      <Ionicons name="people-outline" size={12} color={colors.text.tertiary} />
-                      <Text style={styles.sessionParticipantsText}>
-                        {session.registered_count}/{session.max_participants}
+              <View key={mc.id} style={styles.mcCard}>
+                <Image
+                  source={{ uri: mc.thumbnail }}
+                  style={styles.mcThumbnail}
+                />
+                <View style={styles.mcContent}>
+                  <Text style={styles.mcTheme}>{themeName}</Text>
+                  <Text style={styles.mcTitle} numberOfLines={2}>
+                    {mc.title.replace('Masterclass : ', '')}
+                  </Text>
+                  <Text style={styles.mcScholar}>{mc.scholar_name}</Text>
+                  
+                  <View style={styles.mcMeta}>
+                    <View style={styles.mcMetaItem}>
+                      <Ionicons name="time-outline" size={14} color={colors.text.tertiary} />
+                      <Text style={styles.mcMetaText}>{mc.duration} min</Text>
+                    </View>
+                    <View style={[
+                      styles.mcPriceBadge,
+                      mc.price_type === 'free' ? styles.priceFree : styles.pricePaid
+                    ]}>
+                      <Text style={[
+                        styles.mcPriceText,
+                        mc.price_type === 'free' ? styles.priceTextFree : styles.priceTextPaid
+                      ]}>
+                        {mc.price_type === 'free' ? 'Gratuit' : `${mc.price}€`}
                       </Text>
                     </View>
-
-                    <TouchableOpacity
-                      testID={`live-reg-btn-${session.id}`}
-                      style={[
-                        styles.sessionRegBtn,
-                        isRegistered && styles.sessionRegBtnActive,
-                        isFull && styles.sessionRegBtnFull,
-                      ]}
-                      onPress={() => handleRegister(session.id)}
-                      disabled={!!registering || isFull}
-                    >
-                      {registering === session.id ? (
-                        <ActivityIndicator size="small" color="#000" />
-                      ) : (
-                        <Text style={[styles.sessionRegText, isRegistered && { color: '#000' }]}>
-                          {isRegistered ? '✓ Inscrit' : isFull ? 'Complet' : 'S\'inscrire'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
                   </View>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.registerBtn,
+                      isRegistered && styles.registerBtnDisabled
+                    ]}
+                    onPress={() => handleRegister(mc)}
+                    disabled={isRegistered}
+                  >
+                    <Ionicons
+                      name={isRegistered ? 'checkmark-circle' : 'add-circle'}
+                      size={18}
+                      color={isRegistered ? colors.text.secondary : '#000'}
+                    />
+                    <Text style={[
+                      styles.registerBtnText,
+                      isRegistered && styles.registerBtnTextDisabled
+                    ]}>
+                      {isRegistered ? 'Inscrit' : "S'inscrire"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
-          })
-        )}
+          })}
+        </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -212,60 +225,134 @@ export default function LiveScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background.primary },
   scroll: { flex: 1 },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm },
-  title: { fontFamily: 'Inter-Bold', fontSize: 28, color: colors.text.primary, letterSpacing: -0.5 },
-  subtitle: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary, marginTop: 3 },
-  // Hero
-  heroSection: { marginHorizontal: spacing.lg, backgroundColor: colors.background.card, borderRadius: radius.xl, overflow: 'hidden', marginBottom: spacing.lg },
-  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.md, paddingBottom: 0 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.brand.primary },
-  heroBadgeText: { fontFamily: 'Inter-SemiBold', fontSize: 10, color: colors.brand.primary, letterSpacing: 1 },
-  heroImage: { width: '100%', height: 160, resizeMode: 'cover' },
-  heroContent: { padding: spacing.md },
-  heroTopic: { fontFamily: 'Inter-Medium', fontSize: 11, color: colors.brand.primary, letterSpacing: 0.5, marginBottom: 4 },
-  heroTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: colors.text.primary, lineHeight: 22, marginBottom: 4 },
-  heroScholar: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary, marginBottom: 12 },
-  heroMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary },
-  registerBtn: {
-    backgroundColor: colors.brand.primary,
-    borderRadius: radius.full,
-    paddingVertical: 12,
-    alignItems: 'center',
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md },
+  loadingText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
-  registerBtnActive: { backgroundColor: 'rgba(4, 209, 130, 0.15)', borderWidth: 1, borderColor: colors.brand.primary },
-  registerBtnFull: { backgroundColor: colors.border.default },
-  registerBtnText: { fontFamily: 'Inter-Bold', fontSize: 14, color: '#000' },
-  // Session list
-  sectionTitle: { fontFamily: 'Inter-Bold', fontSize: 17, color: colors.text.primary, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  sessionCard: {
+  headerTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 28,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  headerSubtitle: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 14,
+    color: colors.text.secondary,
+    lineHeight: 20,
+  },
+  infoBanner: {
     flexDirection: 'row',
-    marginHorizontal: spacing.lg,
+    alignItems: 'flex-start',
+    backgroundColor: colors.brand.primary + '15',
+    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
-    backgroundColor: colors.background.card,
     borderRadius: radius.lg,
     padding: spacing.md,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  sessionLeft: { width: 80, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: colors.border.subtle, paddingRight: spacing.md },
-  sessionDateLabel: { fontFamily: 'Inter-SemiBold', fontSize: 11, textAlign: 'center', marginBottom: 3 },
-  sessionTime: { fontFamily: 'Inter-Bold', fontSize: 14, color: colors.text.primary, textAlign: 'center', marginBottom: 3 },
-  sessionDuration: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.tertiary, textAlign: 'center' },
-  sessionRight: { flex: 1 },
-  sessionTopic: { fontFamily: 'Inter-Medium', fontSize: 10, color: colors.brand.primary, letterSpacing: 0.5, marginBottom: 3 },
-  sessionTitle: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: colors.text.primary, lineHeight: 18, marginBottom: 3 },
-  sessionScholar: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.secondary, marginBottom: 10 },
-  sessionBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sessionParticipants: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  sessionParticipantsText: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.tertiary },
-  sessionRegBtn: {
-    backgroundColor: colors.brand.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  infoText: {
+    flex: 1,
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
+    color: colors.text.secondary,
+    lineHeight: 18,
+  },
+  mcList: {
+    paddingHorizontal: spacing.md,
+  },
+  mcCard: {
+    backgroundColor: colors.background.card,
+    borderRadius: radius.xl,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  mcThumbnail: {
+    width: '100%',
+    height: 140,
+    backgroundColor: colors.background.elevated,
+  },
+  mcContent: {
+    padding: spacing.md,
+  },
+  mcTheme: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 11,
+    color: colors.brand.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.xs,
+  },
+  mcTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 16,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  mcScholar: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+  },
+  mcMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  mcMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  mcMetaText: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: colors.text.tertiary,
+  },
+  mcPriceBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
     borderRadius: radius.full,
   },
-  sessionRegBtnActive: { backgroundColor: 'rgba(4, 209, 130, 0.15)', borderWidth: 1, borderColor: colors.brand.primary },
-  sessionRegBtnFull: { backgroundColor: colors.background.elevated },
-  sessionRegText: { fontFamily: 'Inter-SemiBold', fontSize: 11, color: '#000' },
+  priceFree: {
+    backgroundColor: colors.brand.primary + '20',
+  },
+  pricePaid: {
+    backgroundColor: '#FFD700' + '30',
+  },
+  mcPriceText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 11,
+  },
+  priceTextFree: {
+    color: colors.brand.primary,
+  },
+  priceTextPaid: {
+    color: '#B8860B',
+  },
+  registerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brand.primary,
+    borderRadius: radius.full,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  registerBtnDisabled: {
+    backgroundColor: colors.background.elevated,
+  },
+  registerBtnText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#000',
+  },
+  registerBtnTextDisabled: {
+    color: colors.text.secondary,
+  },
 });
