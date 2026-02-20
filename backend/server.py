@@ -142,6 +142,15 @@ async def get_current_user(request: Request) -> Optional[dict]:
 def hash_password(pw: str) -> str:
     return hashlib.sha256((pw + JWT_SECRET).encode()).hexdigest()
 
+# Only admin role is assignable via code — no API can grant admin
+ADMIN_EMAILS = {'loubna.serrar@gmail.com'}
+
+async def require_admin(request: Request) -> dict:
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Accès réservé aux administrateurs")
+    return user
+
 # ─── Pydantic Models ────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
@@ -159,15 +168,82 @@ class GoogleSessionRequest(BaseModel):
 class ProgressRequest(BaseModel):
     content_id: str
     content_type: str
-    progress: float  # 0.0 to 1.0
+    progress: float
     position: Optional[float] = 0
 
 class FavoriteRequest(BaseModel):
     content_id: str
-    content_type: str  # course | audio | article | film | book
+    content_type: str
 
 class LiveRegisterRequest(BaseModel):
     session_id: str
+
+class AudioCreate(BaseModel):
+    title: str
+    description: str
+    scholar_id: str
+    scholar_name: str
+    duration: int = 0
+    audio_url: Optional[str] = ""
+    file_key: Optional[str] = ""
+    thumbnail: str = ""
+    topic: str
+    type: str
+    is_active: bool = True
+
+class AudioUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    scholar_id: Optional[str] = None
+    scholar_name: Optional[str] = None
+    duration: Optional[int] = None
+    thumbnail: Optional[str] = None
+    topic: Optional[str] = None
+    type: Optional[str] = None
+    is_active: Optional[bool] = None
+    file_key: Optional[str] = None
+    audio_url: Optional[str] = None
+
+class ScholarCreate(BaseModel):
+    name: str
+    university: str
+    bio: str
+    photo: str = ""
+    specializations: List[str] = []
+
+class ScholarUpdate(BaseModel):
+    name: Optional[str] = None
+    university: Optional[str] = None
+    bio: Optional[str] = None
+    photo: Optional[str] = None
+    specializations: Optional[List[str]] = None
+
+class CourseCreate(BaseModel):
+    title: str
+    description: str
+    topic: str
+    level: str
+    language: str = "Français"
+    scholar_id: str
+    scholar_name: str
+    duration: int = 0
+    thumbnail: str = ""
+    modules_count: int = 0
+    tags: List[str] = []
+
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    topic: Optional[str] = None
+    level: Optional[str] = None
+    language: Optional[str] = None
+    scholar_id: Optional[str] = None
+    scholar_name: Optional[str] = None
+    duration: Optional[int] = None
+    thumbnail: Optional[str] = None
+    modules_count: Optional[int] = None
+    tags: Optional[List[str]] = None
+    is_active: Optional[bool] = None
 
 # ─── Auth Routes ────────────────────────────────────────────────────────────
 
