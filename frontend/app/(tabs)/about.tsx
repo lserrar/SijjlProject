@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, radius } from '../../constants/theme';
@@ -16,15 +15,15 @@ export default function AboutScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logoText}>Islam<Text style={styles.logo21}>21</Text></Text>
+          <Text style={styles.logoText}>Hikma<Text style={styles.logoAccent}>byLM</Text></Text>
           <Text style={styles.tagline}>Comprendre, transmettre, penser la pluralité des savoirs islamiques</Text>
         </View>
 
-        {/* Section: Pourquoi Islam 21 */}
+        {/* Section: Pourquoi Hikma */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="help-circle" size={24} color={colors.brand.primary} />
-            <Text style={styles.sectionTitle}>Pourquoi Islam 21 ?</Text>
+            <Text style={styles.sectionTitle}>Pourquoi Hikma ?</Text>
           </View>
           <Text style={styles.paragraph}>
             Parce que comprendre les savoirs du monde islamique est essentiel pour comprendre l'histoire globale des idées. Parce qu'il existe aujourd'hui un besoin profond d'accéder à ces héritages autrement que par des récits simplifiés, confessionnels ou polarisés.
@@ -36,7 +35,7 @@ export default function AboutScreen() {
             Parce que ces savoirs continuent d'inspirer des recherches contemporaines en philosophie, théologie, anthropologie, sciences historiques, esthétique ou études comparées.
           </Text>
           <Text style={styles.highlight}>
-            Islam 21 est un espace où ces héritages sont présentés dans leur complexité, avec le sérieux qu'ils méritent, et avec la conviction qu'ils demeurent essentiels pour penser le monde aujourd'hui.
+            Hikma est un espace où ces héritages sont présentés dans leur complexité, avec le sérieux qu'ils méritent, et avec la conviction qu'ils demeurent essentiels pour penser le monde aujourd'hui.
           </Text>
         </View>
 
@@ -47,7 +46,7 @@ export default function AboutScreen() {
             <Text style={styles.sectionTitle}>Qui sommes-nous ?</Text>
           </View>
           <Text style={styles.paragraph}>
-            Islam 21 est une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches, les plus pluriels et les plus féconds de l'humanité, mais trop souvent, elle demeure inaccessible, fragmentaire ou déformée.
+            Hikma est une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches, les plus pluriels et les plus féconds de l'humanité, mais trop souvent, elle demeure inaccessible, fragmentaire ou déformée.
           </Text>
           <Text style={styles.paragraph}>
             La philosophie, le kalām, la théologie, l'exégèse, l'histoire du hadith, le soufisme spéculatif, l'art, la littérature et les sciences ont pourtant été, durant des siècles, les lieux d'élaboration d'une véritable culture de la complexité, capable d'accueillir des héritages multiples, de les transformer et de les faire dialoguer.
@@ -81,7 +80,7 @@ export default function AboutScreen() {
             <View style={styles.principleContent}>
               <Text style={styles.principleTitle}>La rigueur scientifique comme exigence première</Text>
               <Text style={styles.principleText}>
-                Tous les contenus proposés sur Islam 21 sont conçus ou présentés par des chercheurs, enseignants-chercheurs ou universitaires reconnus dans leur domaine. Nous ne proposons ni vulgarisation approximative, ni discours d'autorité, mais une transmission fondée sur les textes, les manuscrits, les éditions critiques et les travaux académiques contemporains.
+                Tous les contenus proposés sur Hikma sont conçus ou présentés par des chercheurs, enseignants-chercheurs ou universitaires reconnus dans leur domaine. Nous ne proposons ni vulgarisation approximative, ni discours d'autorité, mais une transmission fondée sur les textes, les manuscrits, les éditions critiques et les travaux académiques contemporains.
               </Text>
             </View>
           </View>
@@ -133,7 +132,7 @@ export default function AboutScreen() {
             <Text style={styles.sectionTitle}>Une plateforme au service d'un héritage intellectuel pluriel</Text>
           </View>
           <Text style={styles.paragraph}>
-            L'objectif de Islam 21 n'est pas de promouvoir une école, une confession, une vision ou un cadre doctrinal particuliers. Nous ne cherchons ni à défendre une orthodoxie, ni à imposer une lecture, ni à simplifier les divergences.
+            L'objectif de Hikma n'est pas de promouvoir une école, une confession, une vision ou un cadre doctrinal particuliers. Nous ne cherchons ni à défendre une orthodoxie, ni à imposer une lecture, ni à simplifier les divergences.
           </Text>
           <Text style={styles.paragraph}>
             Ce que nous souhaitons, c'est mettre en lumière :
@@ -175,8 +174,9 @@ const styles = StyleSheet.create({
     fontSize: 36,
     color: colors.text.primary,
   },
-  logo21: {
+  logoAccent: {
     color: colors.brand.primary,
+    fontSize: 24,
   },
   tagline: {
     fontFamily: 'DMSans-Regular',
