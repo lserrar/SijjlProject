@@ -90,6 +90,15 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="about"
+          options={{
+            title: 'À propos',
+            tabBarIcon: ({ focused }) => (
+              <TabBarIcon name={focused ? 'information-circle' : 'information-circle-outline'} focused={focused} />
+            ),
+          }}
+        />
       </Tabs>
 
       {/* Mini Player positioned above tab bar */}
