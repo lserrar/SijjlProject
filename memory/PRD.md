@@ -1,150 +1,107 @@
-# PRD – HikmabyLM
+# HikmabyLM - Product Requirements Document
 
-## Statut : MVP Complet - Prêt pour production
+## Project Overview
+**App Name**: HikmabyLM  
+**Language**: French  
+**Platform**: Expo (iOS/Android) + Web Admin Panel (FastAPI + MongoDB)
 
-## Problème original
-Application mobile e-learning académique française pour études islamiques (iOS & Android) : cours vidéo, podcasts, articles, sessions live, bibliothèque. Design type Spotify dark. Tone intellectuel et rigoureux.
+## Core Architecture
 
-## Architecture
-- **Backend** : FastAPI + MongoDB (port 8001)
-- **Frontend Mobile** : Expo SDK 54 (React Native), expo-router
-- **Admin Panel Web** : Interface HTML/CSS/JS servie par FastAPI
-- **Storage audio** : Cloudflare R2 (bucket hikma-audio)
-- **Auth** : Email/password (JWT) + Google OAuth (Emergent Auth)
-- **Paiements** : Stripe (abonnements, achats uniques, codes promo)
+### 3-Level Content Hierarchy
+```
+Cursus (7 total)
+└── Cours (45+ courses)
+    └── Modules (93+ modules)
+        └── Audios (Épisodes)
+```
 
-## Ce qui est implémenté
+### Database Collections
+- `cursus`: `{id, name, description, icon, order, is_active, course_count}`
+- `courses`: `{id, title, description, cursus_id/thematique_id, scholar_id, scholar_name, is_active, module_count}`
+- `modules`: `{id, name, description, course_id, scholar_name, order, episode_count, is_active}`
+- `audios`: `{id, title, description, module_id, episode_number, category_id, file_key, is_active}`
+- `audio_categories`: `{id, name, r2_folder_path, is_active}`
 
-### Backend (server.py)
-- Auth : register/login (JWT), Google OAuth
-- **Professors** CRUD avec toggle (anciennement Scholars/Savants)
-- **Courses** CRUD avec sync R2 + champ thematique_id pour liaison Cursus
-- **Audios** CRUD avec file_key R2 + **category_id** pour catégories
-- **Audio Categories** CRUD complet (remplace Conférences)
-- **Thematiques** API (26 themes) = Cursus dans l'interface
-- **Bibliographies** API (22 entrées)
-- **Masterclasses** API (22 sessions, gratuit ou payant)
-- Admin Routes CRUD complètes pour toutes les entités
-- R2 Storage : folders listing, files listing, sync
+## Current Status
 
-### Admin Panel Web (Complet)
-- **Login** : Connexion sécurisée
-- **Dashboard** : Stats globales (Professeurs, Cours, Audios, Utilisateurs)
-- **Professeurs** : CRUD complet (renommé de "Savants")
-- **Cours** : CRUD avec sélection professeur + sélection Cursus + cours à la une
-- **Audios** : CRUD avec filtre type ET filtre catégorie + sélecteur de catégorie + navigateur R2 par catégorie
-- **Catégories Audio** : NOUVELLE PAGE - CRUD pour gérer les catégories d'audios (Conférences, Musique, Récitation du Coran, Podcasts...)
-- **Cursus** : CRUD (anciennement Thématiques dans le code, affiche "Cursus" dans l'interface)
-- **Bibliographies** : CRUD avec liens thématiques
-- **Masterclasses** : CRUD avec prix, durée, inscrits
-- **Utilisateurs** : Gestion complète avec affichage abonnements et actions
-- **Stockage R2** : Navigation + sync cours
-- **Tarification** : Gestion des plans Stripe
-- **Codes Promo** : CRUD avec périodes de validité (date début et fin)
+### Implemented Features (December 2025)
 
-### Frontend Mobile (Expo)
-- Auth screens : login (email + Google) / register
-- Home : hero, recommendations, érudit semaine, écoute du jour
-- **Navigation 6 onglets** : Accueil, Cursus, Biblio, Live, Profil, À propos
-- **Cursus** : Liste des thématiques avec cours associés
-- **Bibliothèque** : Articles par thème
-- **Live** : Masterclasses avec inscription
-- Audio player complet avec streaming R2
-- MiniPlayer persistant
+#### Admin Panel - 3-Level Hierarchy ✅
+- **Page Cursus** (`/api/admin-panel/cursus`):
+  - List 7 cursus with course counts
+  - Bulk actions (activate/deactivate multiple items)
+  - Create/Edit/Delete cursus
+  - Toggle individual cursus status
+  - Navigation to filtered courses
 
-## Modifications 2026-02-21 (Aujourd'hui)
+- **Page Cours** (`/api/admin-panel/courses`):
+  - List courses with module counts
+  - Bulk actions (activate/deactivate)
+  - Filter by cursus
+  - Featured course setting
+  - Navigation to filtered modules
 
-### ✅ **Système de Catégories Audio** (Remplace Conférences)
-- **Nouvelle collection `audio_categories`** dans MongoDB avec schéma :
-  - `id`, `name`, `description`, `r2_folder`, `icon`, `is_active`, `created_at`
-- **Nouveau champ `category_id`** dans les audios pour liaison
-- **Endpoints API** :
-  - `GET /api/admin/audio-categories` - Liste toutes les catégories (admin)
-  - `GET /api/audio-categories` - Liste les catégories actives (public)
-  - `POST /api/admin/audio-categories` - Créer une catégorie
-  - `PUT /api/admin/audio-categories/{cat_id}` - Modifier une catégorie
-  - `DELETE /api/admin/audio-categories/{cat_id}` - Supprimer (si pas d'audios liés)
-  - `PATCH /api/admin/audio-categories/{cat_id}/toggle` - Activer/Désactiver
-  - `GET /api/audios/by-category/{cat_id}` - Audios par catégorie
-- **Page admin `/api/admin-panel/audio-categories`** :
-  - Grille de cartes avec icône, nom, dossier R2, description
-  - Compteur d'audios par catégorie
-  - Actions : Modifier, Toggle, Supprimer
-  - Sélecteur d'icônes (headphones, microphone-alt, music, quran, podcast...)
-- **Catégories par défaut créées** :
-  - Conférences (hikma-audio/0. Conference/)
-  - Musique (hikma-audio/Musique/)
-  - Récitation du Coran (hikma-audio/Coran/)
-  - Podcasts (hikma-audio/Podcasts/)
+- **Page Modules** (`/api/admin-panel/modules`):
+  - List modules with parent course
+  - Bulk actions (activate/deactivate)
+  - Filter by course
+  - Scholar assignment
+  - Episode count tracking
 
-### ✅ **Page Audios mise à jour**
-- **Nouveau filtre "Catégorie"** dans la barre d'outils
-- **Nouvelle colonne "Catégorie"** dans le tableau
-- **Sélecteur de catégorie** dans le formulaire d'ajout/modification
-- **Navigateur R2 dynamique** : quand une catégorie est sélectionnée, le dossier R2 associé est utilisé pour parcourir les fichiers
-- Message d'aide indiquant le dossier R2 de la catégorie sélectionnée
+- **Page Audios** (`/api/admin-panel/audios`):
+  - Link audios to modules (instead of courses)
+  - Episode number assignment
+  - Audio categories with R2 folder paths
+  - R2 file browser integration
 
-### ✅ **Navigation Admin mise à jour**
-- Lien "Conférences" remplacé par "Catégories Audio" dans toutes les pages
-- Fichier `conferences.html` supprimé
-- Nouvelle icône `folder-tree` pour Catégories Audio
+#### Backend APIs ✅
+- `GET/POST/PUT/DELETE /api/admin/cursus`
+- `POST /api/admin/cursus/bulk-toggle`
+- `GET/POST/PUT/DELETE /api/admin/courses`
+- `POST /api/admin/courses/bulk-toggle`
+- `GET/POST/PUT/DELETE /api/admin/modules`
+- `POST /api/admin/modules/bulk-toggle`
+- `GET/POST/PUT/DELETE /api/admin/audios`
+- `GET/POST/PUT/DELETE /api/admin/audio-categories`
 
-## Modifications précédentes
+#### Data Migration ✅
+- 7 Cursus populated from user document
+- 45+ Courses created
+- 93+ Modules created
+- All linked in proper hierarchy
 
-### 2026-02-21 (Session précédente)
-- ✅ Gestion des abonnements utilisateurs dans le panel admin
-- ✅ Codes promo avec périodes de validité (date début et fin)
-- ✅ Écran de choix d'abonnement post-inscription
-- ✅ Protection du contenu payant (hook useAccessCheck, PaywallOverlay)
-- ✅ Essai gratuit de 3 jours
-- ✅ Écran Paramètres (/settings)
-- ✅ Écran Notifications (/notifications)
-- ✅ Écran À propos (/about)
-- ✅ Lecture audio en arrière-plan
-- ✅ Endpoint suppression de compte
-- ✅ Page d'accueil restructurée
-- ✅ Panel Admin - Cours featured
-- ✅ Onglet "Ressources" (ex-Bibliothèque)
-- ✅ Suggestions "Pour approfondir"
+### Known Issues
 
-### 2025-12-20
-- ✅ Renommage "Savants" → "Professeurs"
-- ✅ Renommage "Thématiques" → "Cursus"
-- ✅ Liaison Cours ↔ Cursus
-- ✅ Intégration Stripe complète
-- ✅ Abonnements Mensuel/Annuel
-- ✅ Achats uniques
-- ✅ Codes promo
-- ✅ Essais gratuits
+#### P0 - Critical
+- **Mobile App Non-Functional**: Expo app crashes on launch due to ngrok tunnel issues (`err_NGROK_3200`). This is an infrastructure problem in the preview environment.
 
-## Credentials
-- **Admin Panel** : admin@hikma-admin.com / Admin123!
-- **URL Panel** : https://islamic-content-hub-2.preview.emergentagent.com/api/admin-panel/
+#### P2 - Minor
+- **"Pierre Marchal" Mystery**: A user visible to client but not found in database queries. Suggests potential data integrity issue.
 
-## Contenu
-- 26 Cursus (Thématiques)
-- 22 Bibliographies
-- 22 Masterclasses
-- 38 Cours
-- 15 Audios
-- 9 Professeurs
-- 4 Catégories Audio
+## Upcoming Tasks
 
-## Backlog P0 (Urgent - En cours)
-- ⚠️ Application mobile Expo en erreur (ngrok tunnel issues)
-- Appliquer le paywall à tous les contenus premium (pas seulement les cours)
+### P1 - High Priority
+1. **Update Mobile App UI for 3-Level Hierarchy**: Once tunnel is fixed, update navigation to show Cursus -> Cours -> Modules flow
+2. **Apply Paywall to All Protected Content**: Implement `useAccessCheck` hook on premium content screens
 
-## Backlog P1 (À venir)
-- Implémentation backend "Continue Watching" et "Recommandations"
-- Implémentation backend "Mes Cursus" et "Mes Favoris" dans l'onglet Ressources
-- Suggestions post-cours (conférences/bibliographies liées)
-- Écrans mobiles pour afficher les audios par catégorie
+### P2 - Medium Priority
+1. **Homepage Backend Logic**: Implement "Continue Watching" and "Recommendations" features
+2. **Push Notifications**: Implement notification system for new content
 
-## Backlog P2 (Futur)
-- Push notifications pour nouveaux cours et expiration d'abonnement
-- Analytics temps d'écoute
-- Multi-langue (EN, AR, RTL)
-- Refactorisation backend (server.py monolithique → routers)
-- Suppression du code admin mobile déprécié (/app/frontend/app/admin)
+### P3 - Low Priority
+1. **Refactor server.py**: Break down 2500+ line monolithic file into modular routers
 
-## Date dernière mise à jour : 2026-02-21
+## Technical Stack
+- **Frontend**: React Native + Expo
+- **Backend**: FastAPI + Python
+- **Database**: MongoDB
+- **Storage**: Cloudflare R2
+- **Payments**: Stripe (subscriptions, promo codes)
+
+## Admin Credentials
+- **URL**: `/api/admin-panel/login`
+- **Email**: `admin@hikma-admin.com`
+- **Password**: `Admin123!`
+
+## API Base URL
+- **Preview**: `https://islamic-content-hub-2.preview.emergentagent.com`
