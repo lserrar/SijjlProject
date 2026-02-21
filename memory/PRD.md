@@ -26,6 +26,14 @@ Cursus (7 total)
 
 ### Implemented Features (December 2025)
 
+#### Mobile App (Expo Web) ✅ FIXED
+- **Login/Registration**: Email & password, Google, Apple sign-in
+- **Homepage**: "Continue watching", "Recommended for you", featured courses
+- **Cursus Page**: All 7 cursus displayed with course counts
+  - Expandable cursus showing all courses inside
+  - Navigation to course details
+- **Navigation**: Accueil, Cursus, Ressources, Live, Profil, À propos
+
 #### Admin Panel - 3-Level Hierarchy ✅
 - **Page Cursus** (`/api/admin-panel/cursus`):
   - List 7 cursus with course counts
