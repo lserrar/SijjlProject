@@ -707,6 +707,115 @@
             }
         }
 
+        // R2 Browser functions
+        let r2CurrentFolder = 'conferences';
+
+        function openR2Browser() {
+            document.getElementById('r2ModalOverlay').classList.add('active');
+            loadR2Files(r2CurrentFolder);
+        }
+
+        function closeR2Browser() {
+            document.getElementById('r2ModalOverlay').classList.remove('active');
+        }
+
+        async function loadR2Files(folder = 'conferences') {
+            r2CurrentFolder = folder;
+            document.getElementById('r2CurrentPath').textContent = folder + '/';
+            document.getElementById('r2FilesList').innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+
+            try {
+                const resp = await fetch(`${API_BASE}/r2/files/${encodeURIComponent(folder)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!resp.ok) {
+                    throw new Error('Erreur de chargement');
+                }
+                
+                const data = await resp.json();
+                renderR2Files(data.files || []);
+            } catch (e) {
+                document.getElementById('r2FilesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--error);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Erreur lors du chargement des fichiers</p>
+                        <p style="font-size: 12px; color: var(--text-muted);">Vérifiez que le dossier "${folder}" existe dans R2</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderR2Files(files) {
+            if (!files || files.length === 0) {
+                document.getElementById('r2FilesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fas fa-folder-open" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <p>Aucun fichier audio dans ce dossier</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Filter audio files
+            const audioFiles = files.filter(f => 
+                f.key.toLowerCase().endsWith('.mp3') || 
+                f.key.toLowerCase().endsWith('.m4a') || 
+                f.key.toLowerCase().endsWith('.wav') ||
+                f.key.toLowerCase().endsWith('.ogg')
+            );
+
+            if (audioFiles.length === 0) {
+                document.getElementById('r2FilesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fas fa-music" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <p>Aucun fichier audio trouvé</p>
+                        <p style="font-size: 12px;">Formats supportés: MP3, M4A, WAV, OGG</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('r2FilesList').innerHTML = audioFiles.map(f => {
+                const fileName = f.key.split('/').pop();
+                const fileSize = f.size ? (f.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+                return `
+                    <div style="display: flex; align-items: center; padding: 12px; background: var(--bg-elevated); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" 
+                         onclick="selectR2File('${f.key}')"
+                         onmouseover="this.style.background='var(--bg-card)'" 
+                         onmouseout="this.style.background='var(--bg-elevated)'">
+                        <i class="fas fa-file-audio" style="color: var(--brand-primary); font-size: 24px; margin-right: 12px;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500;">${fileName}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${fileSize}</div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectR2File('${f.key}')">
+                            <i class="fas fa-check"></i> Sélectionner
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function selectR2File(fileKey) {
+            try {
+                // Get the stream URL for this file
+                const resp = await fetch(`${API_BASE}/r2/stream/${encodeURIComponent(fileKey)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!resp.ok) throw new Error('Erreur');
+                
+                const data = await resp.json();
+                document.getElementById('audioUrl').value = data.url;
+                closeR2Browser();
+            } catch (e) {
+                // If stream URL fails, use the file key directly
+                document.getElementById('audioUrl').value = fileKey;
+                closeR2Browser();
+            }
+        }
+
         // Init
         loadUserInfo();
         loadThematiques().then(() => loadConferences());
