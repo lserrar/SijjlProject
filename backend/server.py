@@ -1405,6 +1405,9 @@ async def admin_delete_scholar(scholar_id: str, request: Request):
 async def admin_list_courses(request: Request):
     await require_admin(request)
     courses = await db.courses.find({}, {'_id': 0}).to_list(200)
+    # Count modules for each course
+    for c in courses:
+        c['module_count'] = await db.modules.count_documents({'course_id': c['id']})
     return courses
 
 @api_router.post("/admin/courses")
