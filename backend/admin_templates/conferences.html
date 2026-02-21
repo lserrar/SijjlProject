@@ -464,6 +464,26 @@
         </div>
     </div>
 
+    <!-- R2 Browser Modal -->
+    <div class="modal-overlay" id="r2ModalOverlay">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Sélectionner un fichier audio</h3>
+                <button class="modal-close" onclick="closeR2Browser()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                    <i class="fas fa-folder" style="color: var(--brand-primary); margin-right: 8px;"></i>
+                    <span id="r2CurrentPath">conferences/</span>
+                </div>
+                <div id="r2FilesList" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeR2Browser()">Annuler</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = '/api';
         let token = localStorage.getItem('adminToken');
