@@ -339,4 +339,59 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md 
   },
   accessWarningText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.brand.primary, flex: 1 },
+  
+  // Related Resources
+  resourceCategory: {
+    marginBottom: spacing.lg,
+  },
+  resourceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  resourceLabel: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text.primary,
+  },
+  resourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
+  },
+  resourceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resourceInfo: {
+    flex: 1,
+  },
+  resourceTitle: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  resourceMeta: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 11,
+    color: colors.text.secondary,
+  },
+  playBtnSmall: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
