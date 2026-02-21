@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conférences - HikmabyLM Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #121212;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #1e1e1e;
+            --bg-elevated: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --brand-primary: #D9FF00;
+            --border-color: #2a2a2a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .logo {
+            padding: 0 20px 30px;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .logo-hikma { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .logo-bylm { font-size: 12px; color: var(--brand-primary); }
+        .logo-sub { font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px; }
+
+        .nav-section { margin-bottom: 20px; }
+        .nav-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 20px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .nav-item.active {
+            background: rgba(217, 255, 0, 0.1);
+            color: var(--brand-primary);
+            border-right: 3px solid var(--brand-primary);
+        }
+        .nav-item i { width: 20px; text-align: center; }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            padding: 30px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-subtitle { color: var(--text-secondary); margin-top: 4px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: var(--brand-primary);
+            color: #000;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 12px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+        td {
+            padding: 16px 12px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        tr:hover { background: var(--bg-elevated); }
+
+        .conf-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .conf-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 20px;
+        }
+        .conf-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .conf-name { font-weight: 600; margin-bottom: 2px; }
+        .conf-speaker { font-size: 13px; color: var(--text-secondary); }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-active { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .badge-inactive { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+        .badge-public { background: rgba(217, 255, 0, 0.2); color: var(--brand-primary); }
+
+        .actions { display: flex; gap: 8px; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .modal-body { padding: 24px; }
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Form */
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+        .form-textarea { min-height: 100px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--brand-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text-secondary); }
+
+        /* User info bottom */
+        .user-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--brand-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #000;
+            font-size: 14px;
+        }
+        .user-name { font-weight: 500; font-size: 13px; }
+        .user-role { font-size: 11px; color: var(--brand-primary); }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <span class="logo-hikma">Hikma</span><span class="logo-bylm">byLM</span>
+            <span class="logo-sub">Admin Panel</span>
+        </div>
+        
+        <nav>
+            <div class="nav-section">
+                <div class="nav-section-title">Dashboard</div>
+                <a href="/api/admin-panel/dashboard" class="nav-item"><i class="fas fa-home"></i> Tableau de bord</a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Contenu</div>
+                <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-tie"></i> Professeurs</a>
+                <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book"></i> Cours</a>
+                <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i> Audios</a>
+                <a href="/api/admin-panel/cursus" class="nav-item"><i class="fas fa-layer-group"></i> Cursus</a>
+                <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-bookmark"></i> Bibliographies</a>
+                <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i> Masterclasses</a>
+                <a href="/api/admin-panel/conferences" class="nav-item active"><i class="fas fa-microphone-alt"></i> Conférences</a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Gestion</div>
+                <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i> Utilisateurs</a>
+                <a href="/api/admin-panel/pricing" class="nav-item"><i class="fas fa-credit-card"></i> Tarification</a>
+                <a href="/api/admin-panel/promos" class="nav-item"><i class="fas fa-tags"></i> Codes Promo</a>
+                <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i> Stockage R2</a>
+            </div>
+        </nav>
+        
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div>
+                <div class="user-name" id="userName">Admin</div>
+                <div class="user-role">Administrateur</div>
+            </div>
+            <button onclick="logout()" style="margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer;">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Conférences</h1>
+                <p class="page-subtitle">Gérez les conférences et interventions externes</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModal()" data-testid="new-conference-btn">
+                <i class="fas fa-plus"></i> Nouvelle conférence
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Liste des conférences</div>
+            <div id="conferencesTable"></div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nouvelle conférence</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="conferenceForm" onsubmit="saveConference(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editingId">
+                    
+                    <div class="form-group">
+                        <label class="form-label">Titre *</label>
+                        <input type="text" class="form-input" id="title" required data-testid="conf-title-input">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Intervenant *</label>
+                            <input type="text" class="form-input" id="speakerName" required data-testid="conf-speaker-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Durée (min)</label>
+                            <input type="number" class="form-input" id="duration" min="0" data-testid="conf-duration-input">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Biographie de l'intervenant</label>
+                        <textarea class="form-textarea" id="speakerBio" rows="2" data-testid="conf-bio-input"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="description" rows="3" data-testid="conf-desc-input"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cursus / Thématique</label>
+                            <select class="form-select" id="thematiqueId" data-testid="conf-theme-select">
+                                <option value="">-- Aucun --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date de la conférence</label>
+                            <input type="date" class="form-input" id="conferenceDate" data-testid="conf-date-input">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Source</label>
+                        <input type="text" class="form-input" id="source" placeholder="Ex: Colloque EPHE 2024" data-testid="conf-source-input">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">URL Audio</label>
+                            <input type="url" class="form-input" id="audioUrl" placeholder="https://..." data-testid="conf-audio-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">URL Vidéo</label>
+                            <input type="url" class="form-input" id="videoUrl" placeholder="https://..." data-testid="conf-video-input">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">URL Miniature</label>
+                        <input type="url" class="form-input" id="thumbnail" placeholder="https://..." data-testid="conf-thumb-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="isPublic" data-testid="conf-public-checkbox">
+                            <label for="isPublic">Conférence publique (gratuite)</label>
+                        </div>
+                        <div class="form-hint">Les conférences non publiques sont réservées aux abonnés</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" data-testid="conf-save-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let token = localStorage.getItem('adminToken');
+        let thematiques = [];
+
+        // Auth check
+        if (!token) {
+            window.location.href = '/api/admin-panel/login';
+        }
+
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const resp = await fetch(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!resp.ok) throw new Error('Auth failed');
+                const user = await resp.json();
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+            } catch (e) {
+                localStorage.removeItem('adminToken');
+                window.location.href = '/api/admin-panel/login';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/api/admin-panel/login';
+        }
+
+        // Load thematiques for dropdown
+        async function loadThematiques() {
+            try {
+                const resp = await fetch(`${API_BASE}/admin/thematiques`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                thematiques = await resp.json();
+                const select = document.getElementById('thematiqueId');
+                select.innerHTML = '<option value="">-- Aucun --</option>' +
+                    thematiques.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            } catch (e) {
+                console.error('Error loading thematiques:', e);
+            }
+        }
+
+        // Load conferences
+        async function loadConferences() {
+            try {
+                const resp = await fetch(`${API_BASE}/admin/conferences`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await resp.json();
+                renderConferences(data);
+            } catch (e) {
+                console.error('Error loading conferences:', e);
+            }
+        }
+
+        function getThematiqueName(id) {
+            const t = thematiques.find(t => t.id === id);
+            return t ? t.name : '-';
+        }
+
+        function renderConferences(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('conferencesTable').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-microphone-alt"></i>
+                        <h3>Aucune conférence</h3>
+                        <p>Ajoutez votre première conférence</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('conferencesTable').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Conférence</th>
+                            <th>Cursus</th>
+                            <th>Durée</th>
+                            <th>Type</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(c => `
+                            <tr data-testid="conf-row-${c.id}">
+                                <td>
+                                    <div class="conf-info">
+                                        <div class="conf-thumb">
+                                            ${c.thumbnail ? `<img src="${c.thumbnail}" alt="">` : '<i class="fas fa-microphone-alt"></i>'}
+                                        </div>
+                                        <div>
+                                            <div class="conf-name">${c.title}</div>
+                                            <div class="conf-speaker">${c.speaker_name}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>${getThematiqueName(c.thematique_id)}</td>
+                                <td>${c.duration ? c.duration + ' min' : '-'}</td>
+                                <td><span class="badge ${c.is_public ? 'badge-public' : ''}">${c.is_public ? 'Publique' : 'Premium'}</span></td>
+                                <td><span class="badge ${c.is_active !== false ? 'badge-active' : 'badge-inactive'}">${c.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(c)})' title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="toggleConference('${c.id}')" title="Activer/Désactiver">
+                                            <i class="fas fa-toggle-${c.is_active !== false ? 'on' : 'off'}"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteConference('${c.id}')" title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function openModal(conf = null) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = conf ? 'Modifier la conférence' : 'Nouvelle conférence';
+
+            if (conf) {
+                document.getElementById('editingId').value = conf.id;
+                document.getElementById('title').value = conf.title || '';
+                document.getElementById('speakerName').value = conf.speaker_name || '';
+                document.getElementById('speakerBio').value = conf.speaker_bio || '';
+                document.getElementById('description').value = conf.description || '';
+                document.getElementById('thematiqueId').value = conf.thematique_id || '';
+                document.getElementById('duration').value = conf.duration || '';
+                document.getElementById('conferenceDate').value = conf.conference_date ? conf.conference_date.split('T')[0] : '';
+                document.getElementById('source').value = conf.source || '';
+                document.getElementById('audioUrl').value = conf.audio_url || '';
+                document.getElementById('videoUrl').value = conf.video_url || '';
+                document.getElementById('thumbnail').value = conf.thumbnail || '';
+                document.getElementById('isPublic').checked = conf.is_public || false;
+            } else {
+                document.getElementById('conferenceForm').reset();
+                document.getElementById('editingId').value = '';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function saveConference(event) {
+            event.preventDefault();
+            const editingId = document.getElementById('editingId').value;
+
+            const data = {
+                title: document.getElementById('title').value,
+                speaker_name: document.getElementById('speakerName').value,
+                speaker_bio: document.getElementById('speakerBio').value,
+                description: document.getElementById('description').value,
+                thematique_id: document.getElementById('thematiqueId').value || null,
+                duration: parseInt(document.getElementById('duration').value) || 0,
+                conference_date: document.getElementById('conferenceDate').value || null,
+                source: document.getElementById('source').value,
+                audio_url: document.getElementById('audioUrl').value,
+                video_url: document.getElementById('videoUrl').value,
+                thumbnail: document.getElementById('thumbnail').value,
+                is_public: document.getElementById('isPublic').checked,
+                tags: []
+            };
+
+            try {
+                const url = editingId 
+                    ? `${API_BASE}/admin/conferences/${editingId}` 
+                    : `${API_BASE}/admin/conferences`;
+                const method = editingId ? 'PUT' : 'POST';
+
+                const resp = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!resp.ok) throw new Error('Save failed');
+
+                closeModal();
+                loadConferences();
+            } catch (e) {
+                alert('Erreur lors de la sauvegarde');
+            }
+        }
+
+        async function toggleConference(confId) {
+            try {
+                await fetch(`${API_BASE}/admin/conferences/${confId}/toggle`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadConferences();
+            } catch (e) {
+                alert('Erreur');
+            }
+        }
+
+        async function deleteConference(confId) {
+            if (!confirm('Supprimer cette conférence ?')) return;
+            try {
+                await fetch(`${API_BASE}/admin/conferences/${confId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadConferences();
+            } catch (e) {
+                alert('Erreur');
+            }
+        }
+
+        // Init
+        loadUserInfo();
+        loadThematiques().then(() => loadConferences());
+    </script>
+</body>
+</html>
