@@ -246,4 +246,14 @@ const styles = StyleSheet.create({
   moduleDuration: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.tertiary },
   freeBadge: { backgroundColor: 'rgba(4,209,130,0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3 },
   freeBadgeText: { fontFamily: 'Inter-Medium', fontSize: 9, color: colors.brand.primary },
+  accessWarning: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: spacing.sm, 
+    backgroundColor: 'rgba(217, 255, 0, 0.1)', 
+    padding: spacing.md, 
+    borderRadius: radius.md, 
+    marginBottom: spacing.md 
+  },
+  accessWarningText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.brand.primary, flex: 1 },
 });
