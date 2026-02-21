@@ -161,6 +161,11 @@
                         <option value="">Tous les cursus</option>
                     </select>
                 </div>
+                <div class="bulk-actions hidden" id="bulkActions" data-testid="bulk-actions-bar">
+                    <span id="selectedCount">0 sélectionné(s)</span>
+                    <button class="btn btn-primary btn-sm" onclick="bulkToggle(true)" data-testid="bulk-activate-btn"><i class="fas fa-toggle-on"></i> Activer</button>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkToggle(false)" data-testid="bulk-deactivate-btn"><i class="fas fa-toggle-off"></i> Désactiver</button>
+                </div>
             </div>
 
             <div class="card">
