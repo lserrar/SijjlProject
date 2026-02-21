@@ -394,9 +394,9 @@
                                 <td><span class="status ${c.is_active !== false ? 'status-active' : 'status-inactive'}">${c.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick='openModal(${JSON.stringify(c)})'><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editCourse('${c.id}')"><i class="fas fa-edit"></i></button>
                                         <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleCourse('${c.id}')"><i class="fas fa-toggle-${c.is_active !== false ? 'on' : 'off'}"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCourse('${c.id}', '${c.title.replace(/'/g, "\\'").replace(/"/g, '\\"')}')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCourse('${c.id}')"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -404,6 +404,23 @@
                     </tbody>
                 </table>
             `;
+        }
+
+        function editCourse(id) {
+            const course = courses.find(c => c.id === id);
+            if (course) openModal(course);
+        }
+
+        async function deleteCourse(id) {
+            const course = courses.find(c => c.id === id);
+            if (!confirm(`Supprimer le cours "${course?.title || id}" ?`)) return;
+            try {
+                await apiRequest(`/admin/courses/${id}`, 'DELETE');
+                showToast('Cours supprime');
+                loadCourses();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
         }
 
         async function loadCourses() {
