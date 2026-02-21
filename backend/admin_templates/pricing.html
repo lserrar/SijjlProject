@@ -354,9 +354,12 @@
         function renderPlans(data) {
             // Add default plans if none exist
             const allPlans = data.length > 0 ? data : [
-                { plan_id: 'monthly', name: 'Abonnement Mensuel', price: 9.99, duration_days: 30, type: 'subscription', description: 'Acces illimite pendant 1 mois', is_active: true, is_default: true },
-                { plan_id: 'annual', name: 'Abonnement Annuel', price: 89.99, duration_days: 365, type: 'subscription', description: 'Acces illimite pendant 1 an - Economisez 30%', is_active: true, is_default: true }
+                { plan_id: 'monthly', name: 'Abonnement Mensuel', price: 9.99, duration_days: 30, trial_days: 7, type: 'subscription', description: 'Acces illimite pendant 1 mois', is_active: true, is_default: true },
+                { plan_id: 'annual', name: 'Abonnement Annuel', price: 89.99, duration_days: 365, trial_days: 14, type: 'subscription', description: 'Acces illimite pendant 1 an - Economisez 30%', is_active: true, is_default: true }
             ];
+            
+            // Store plans globally for edit function
+            window.allPlansData = allPlans;
             
             if (allPlans.length === 0) {
                 document.getElementById('plansGrid').innerHTML = `
@@ -375,6 +378,7 @@
                     <div class="plan-type">${getTypeLabel(p.type)}</div>
                     <div class="plan-name">${p.name}</div>
                     <div class="plan-price">${p.price.toFixed(2)}€ <span>/ ${p.duration_days} jours</span></div>
+                    ${p.trial_days ? `<div style="color: var(--brand-primary); font-size: 13px; margin-bottom: 8px;"><i class="fas fa-gift"></i> ${p.trial_days} jours d'essai gratuit</div>` : ''}
                     <div class="plan-description">${p.description || ''}</div>
                     <div style="margin-bottom: 16px;">
                         <span class="status ${p.is_active !== false ? 'status-active' : 'status-inactive'}">
@@ -383,17 +387,34 @@
                         ${p.is_default ? '<span class="status" style="background: var(--bg-tertiary); color: var(--text-muted);">Par defaut</span>' : ''}
                     </div>
                     <div class="plan-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="editPlan('${p.plan_id}')" data-testid="edit-plan-${p.plan_id}">
+                            <i class="fas fa-edit"></i> Modifier
+                        </button>
                         ${!p.is_default ? `
-                            <button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(p)})' data-testid="edit-plan-${p.plan_id}">
-                                <i class="fas fa-edit"></i> Modifier
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.plan_id}', '${p.name}')" data-testid="delete-plan-${p.plan_id}">
+                            <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.plan_id}')" data-testid="delete-plan-${p.plan_id}">
                                 <i class="fas fa-trash"></i>
                             </button>
-                        ` : '<span style="color: var(--text-muted); font-size: 12px;">Plan systeme - non modifiable</span>'}
+                        ` : ''}
                     </div>
                 </div>
             `).join('');
+        }
+        
+        function editPlan(planId) {
+            const plan = window.allPlansData.find(p => p.plan_id === planId);
+            if (plan) openModal(plan);
+        }
+        
+        async function deletePlan(planId) {
+            const plan = window.allPlansData.find(p => p.plan_id === planId);
+            if (!confirm(`Supprimer le plan "${plan?.name || planId}" ?`)) return;
+            try {
+                await apiRequest(`/admin/plans/${planId}`, 'DELETE');
+                showToast('Plan supprime');
+                loadData();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
         }
 
         function renderTransactions(transactions) {
