@@ -167,6 +167,14 @@ export default function CourseDetailScreen() {
           {/* Modules */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Programme ({course.modules_count} modules)</Text>
+            {!hasAccess && (
+              <View style={styles.accessWarning}>
+                <Ionicons name="information-circle" size={16} color={colors.brand.primary} />
+                <Text style={styles.accessWarningText}>
+                  Abonnez-vous pour accéder à l'intégralité du cours
+                </Text>
+              </View>
+            )}
             {SAMPLE_MODULES.map((mod) => (
               <View key={mod.id} testID={`course-module-${mod.id}`} style={styles.moduleRow}>
                 <View style={[styles.moduleIcon, mod.isLocked && styles.moduleIconLocked]}>
@@ -182,9 +190,9 @@ export default function CourseDetailScreen() {
                   </Text>
                   <Text style={styles.moduleDuration}>{mod.duration} min</Text>
                 </View>
-                {mod.isLocked && (
+                {mod.isPreview && (
                   <View style={styles.freeBadge}>
-                    <Text style={styles.freeBadgeText}>Accès libre</Text>
+                    <Text style={styles.freeBadgeText}>Aperçu gratuit</Text>
                   </View>
                 )}
               </View>
