@@ -418,7 +418,8 @@
             let filtered = courses;
             
             if (cursusFilter) {
-                filtered = filtered.filter(c => c.thematique_id === cursusFilter);
+                // Check both cursus_id and thematique_id for compatibility
+                filtered = filtered.filter(c => c.cursus_id === cursusFilter || c.thematique_id === cursusFilter);
             }
             if (query) {
                 filtered = filtered.filter(c => 
