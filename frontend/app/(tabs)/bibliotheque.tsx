@@ -76,6 +76,9 @@ export default function RessourcesScreen() {
   const [thematiques, setThematiques] = useState<any[]>([]);
   const [userAccess, setUserAccess] = useState<any>(null);
   const [selectedBiblio, setSelectedBiblio] = useState<Bibliography | null>(null);
+  const [audioCategories, setAudioCategories] = useState<AudioCategory[]>([]);
+  const [audios, setAudios] = useState<Audio[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
