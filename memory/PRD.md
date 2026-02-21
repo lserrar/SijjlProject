@@ -80,8 +80,11 @@ Cursus (7 total)
 
 ### Known Issues
 
-#### P0 - Critical
-- **Mobile App Non-Functional**: Expo app crashes on launch due to ngrok tunnel issues (`err_NGROK_3200`). This is an infrastructure problem in the preview environment.
+#### RESOLVED
+- ~~**Mobile App Non-Functional**~~: Fixed! The app now runs in web mode. Issues fixed:
+  - `colors.status.success` → `colors.brand.success` (theme error)
+  - API compatibility: `/thematiques` now checks both `cursus` and `thematiques` collections
+  - Frontend filter: `getCoursesByTheme` now supports both `thematique_id` and `cursus_id`
 
 #### P2 - Minor
 - **"Pierre Marchal" Mystery**: A user visible to client but not found in database queries. Suggests potential data integrity issue.
