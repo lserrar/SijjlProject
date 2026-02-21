@@ -1040,7 +1040,9 @@ async def seed_data():
     await db.scholars.update_many({'is_active': {'$exists': False}}, {'$set': {'is_active': True}})
 
     # Check if custom cursus exists - skip demo seeding if so
-    if await db.thematiques.find_one({'id': 'cursus-falsafa'}):
+    custom_cursus = await db.thematiques.find_one({'id': 'cursus-falsafa'})
+    logger.info(f"DEBUG: Checking for cursus-falsafa, found: {custom_cursus is not None}")
+    if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
         logger.info("Database seeding complete")
         return
