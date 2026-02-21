@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "hikma",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.hikmabyLM.app",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Enregistrer des notes audio pour vos cours",
-        "NSCameraUsageDescription": "Scanner des documents pour vos cours"
+        "NSCameraUsageDescription": "Scanner des documents pour vos cours",
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -23,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.hikmabyLM.app",
-      "permissions": ["INTERNET", "READ_EXTERNAL_STORAGE"]
+      "permissions": ["INTERNET", "READ_EXTERNAL_STORAGE", "FOREGROUND_SERVICE"]
     },
     "web": {
       "bundler": "metro",
@@ -32,7 +33,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-av",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Enregistrer des notes audio pour vos cours"
+        }
+      ],
       [
         "expo-splash-screen",
         {
