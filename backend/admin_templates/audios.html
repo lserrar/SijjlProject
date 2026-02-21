@@ -223,6 +223,27 @@
                             <input type="text" class="form-input" id="topic" placeholder="Ex: Philosophie islamique" data-testid="audio-topic-input">
                         </div>
                     </div>
+                    
+                    <!-- Section Liaison Cours -->
+                    <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 20px;">
+                        <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--brand-primary);">
+                            <i class="fas fa-link"></i> Liaison à un cours (optionnel)
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Cours associé</label>
+                                <select class="form-select" id="course_id" data-testid="audio-course-select">
+                                    <option value="">-- Aucun cours --</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">N° Épisode</label>
+                                <input type="number" class="form-input" id="episode_number" placeholder="Ex: 1" min="1" data-testid="audio-episode-input">
+                            </div>
+                        </div>
+                        <div class="form-hint" style="margin-top: 8px;">Si cet audio est un épisode d'un cours, sélectionnez le cours et indiquez le numéro d'épisode</div>
+                    </div>
+                    
                     <div class="form-group">
                         <label class="form-label">Durée (secondes)</label>
                         <input type="number" class="form-input" id="duration" value="0" data-testid="audio-duration-input">
