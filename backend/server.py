@@ -1936,6 +1936,28 @@ async def get_user_access(request: Request, content_type: Optional[str] = None, 
         raise HTTPException(401, "Authentification requise")
     return await check_user_access(user['user_id'], content_type, content_id)
 
+@api_router.delete("/user/delete-account")
+async def delete_user_account(request: Request):
+    """Delete the current user's account and all associated data."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    user_id = user['user_id']
+    
+    # Delete user data from various collections
+    await db.user_favorites.delete_many({'user_id': user_id})
+    await db.payment_transactions.delete_many({'user_id': user_id})
+    
+    # Delete the user account
+    result = await db.users.delete_one({'user_id': user_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    
+    logger.info(f"User account deleted: {user_id}")
+    return {'message': 'Compte supprimé avec succès'}
+
 @api_router.get("/plans")
 async def get_plans():
     """Get all active subscription and purchase plans."""
