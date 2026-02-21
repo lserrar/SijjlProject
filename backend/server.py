@@ -205,22 +205,6 @@ class CursusUpdate(BaseModel):
     order: Optional[int] = None
     is_active: Optional[bool] = None
 
-# ─── Course Models ───────────────────────────────────────────────────────────
-
-class CourseCreate(BaseModel):
-    title: str
-    description: str = ""
-    cursus_id: str  # Link to cursus
-    order: int = 0
-    is_active: bool = False  # Default inactive for preparation
-
-class CourseUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    cursus_id: Optional[str] = None
-    order: Optional[int] = None
-    is_active: Optional[bool] = None
-
 # ─── Module Models ───────────────────────────────────────────────────────────
 
 class ModuleCreate(BaseModel):
