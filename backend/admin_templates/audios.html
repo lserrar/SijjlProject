@@ -390,6 +390,7 @@
             document.getElementById('modalTitle').textContent = audio ? 'Modifier l\'audio' : 'Nouvel audio';
             populateScholarSelect();
             populateCategorySelects();
+            populateCourseSelect();
             
             if (audio) {
                 document.getElementById('audioId').value = audio.id;
@@ -397,6 +398,8 @@
                 document.getElementById('description').value = audio.description || '';
                 document.getElementById('scholar_id').value = audio.scholar_id || '';
                 document.getElementById('category_id').value = audio.category_id || '';
+                document.getElementById('course_id').value = audio.course_id || '';
+                document.getElementById('episode_number').value = audio.episode_number || '';
                 document.getElementById('type').value = audio.type || 'podcast';
                 document.getElementById('topic').value = audio.topic || '';
                 document.getElementById('duration').value = audio.duration || 0;
@@ -406,6 +409,7 @@
             } else {
                 document.getElementById('audioForm').reset();
                 document.getElementById('audioId').value = '';
+                document.getElementById('episode_number').value = '';
                 currentR2Folder = '';
                 document.getElementById('r2FolderHint').textContent = 'Sélectionnez une catégorie pour naviguer dans le dossier R2 associé';
             }
