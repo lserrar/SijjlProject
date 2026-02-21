@@ -511,6 +511,7 @@
             const id = document.getElementById('audioId').value;
             const scholarId = document.getElementById('scholar_id').value;
             const scholar = scholars.find(s => s.id === scholarId);
+            const episodeNum = document.getElementById('episode_number').value;
             
             const data = {
                 title: document.getElementById('title').value,
@@ -518,6 +519,8 @@
                 scholar_id: scholarId,
                 scholar_name: scholar ? scholar.name : '',
                 category_id: document.getElementById('category_id').value || null,
+                course_id: document.getElementById('course_id').value || null,
+                episode_number: episodeNum ? parseInt(episodeNum) : null,
                 type: document.getElementById('type').value,
                 topic: document.getElementById('topic').value,
                 duration: parseInt(document.getElementById('duration').value) || 0,
