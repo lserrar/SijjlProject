@@ -42,7 +42,24 @@ interface Conference {
   thematique_id: string;
 }
 
-type TabType = 'cursus' | 'favoris' | 'biblio' | 'conferences';
+interface AudioCategory {
+  id: string;
+  name: string;
+  r2_folder: string;
+  is_active: boolean;
+}
+
+interface Audio {
+  id: string;
+  title: string;
+  scholar_name: string;
+  duration: number;
+  file_key: string;
+  category_id: string;
+  module_id: string;
+}
+
+type TabType = 'cursus' | 'favoris' | 'biblio' | 'conferences' | 'autres';
 
 export default function RessourcesScreen() {
   const { token, user } = useAuth();
