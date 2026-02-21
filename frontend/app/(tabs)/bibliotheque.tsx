@@ -90,12 +90,14 @@ export default function RessourcesScreen() {
       }
 
       // Load all data in parallel
-      const [themRes, coursesRes, biblioRes, confRes, favRes] = await Promise.all([
+      const [themRes, coursesRes, biblioRes, confRes, favRes, audioCatRes, audiosRes] = await Promise.all([
         apiRequest('/thematiques', token),
         apiRequest('/courses', token),
         apiRequest('/bibliographies', token),
         apiRequest('/conferences', token),
         apiRequest('/user/favorites', token).catch(() => ({ ok: false })),
+        apiRequest('/audio-categories', token).catch(() => ({ ok: false })),
+        apiRequest('/audios', token).catch(() => ({ ok: false })),
       ]);
 
       if (themRes.ok) {
@@ -122,6 +124,16 @@ export default function RessourcesScreen() {
       if (favRes.ok) {
         const data = await favRes.json();
         setFavorites(data);
+      }
+
+      if (audioCatRes.ok) {
+        const data = await audioCatRes.json();
+        setAudioCategories(data);
+      }
+
+      if (audiosRes.ok) {
+        const data = await audiosRes.json();
+        setAudios(data);
       }
     } catch (e) {
       console.error('Failed to load data', e);
