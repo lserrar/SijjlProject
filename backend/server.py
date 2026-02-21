@@ -242,6 +242,7 @@ class CourseCreate(BaseModel):
     thumbnail: str = ""
     modules_count: int = 0
     tags: List[str] = []
+    is_featured: bool = False  # Cours mis en avant sur la page d'accueil
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
@@ -256,6 +257,40 @@ class CourseUpdate(BaseModel):
     thumbnail: Optional[str] = None
     modules_count: Optional[int] = None
     tags: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+    is_featured: Optional[bool] = None
+
+# ─── Conference Models ─────────────────────────────────────────────────────────
+
+class ConferenceCreate(BaseModel):
+    title: str
+    description: str
+    speaker_name: str  # Peut être un professeur externe
+    speaker_bio: str = ""
+    thematique_id: Optional[str] = None  # Lien avec un cursus/thématique
+    audio_url: str = ""
+    video_url: str = ""
+    thumbnail: str = ""
+    duration: int = 0  # en minutes
+    conference_date: Optional[str] = None  # Date de la conférence
+    source: str = ""  # Source de la conférence (ex: "Colloque EPHE 2024")
+    tags: List[str] = []
+    is_public: bool = False  # Conférence gratuite ou payante
+
+class ConferenceUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    speaker_name: Optional[str] = None
+    speaker_bio: Optional[str] = None
+    thematique_id: Optional[str] = None
+    audio_url: Optional[str] = None
+    video_url: Optional[str] = None
+    thumbnail: Optional[str] = None
+    duration: Optional[int] = None
+    conference_date: Optional[str] = None
+    source: Optional[str] = None
+    tags: Optional[List[str]] = None
+    is_public: Optional[bool] = None
     is_active: Optional[bool] = None
 
 # ─── Subscription & Payment Models ───────────────────────────────────────────
