@@ -1039,6 +1039,12 @@ async def seed_data():
     await db.courses.update_many({'is_active': {'$exists': False}}, {'$set': {'is_active': True}})
     await db.scholars.update_many({'is_active': {'$exists': False}}, {'$set': {'is_active': True}})
 
+    # Check if custom cursus exists - skip demo seeding if so
+    if await db.thematiques.find_one({'id': 'cursus-falsafa'}):
+        logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
+        logger.info("Database seeding complete")
+        return
+
     # 2. Set admin role for admin email
     result = await db.users.update_one(
         {'email': 'loubna.serrar@gmail.com'},
