@@ -2307,29 +2307,45 @@ async def validate_promo_code(code: str, plan_id: Optional[str] = None):
     if not promo:
         raise HTTPException(404, "Code promo invalide")
     
+    now = datetime.now(timezone.utc)
+    
+    # Check start date (if promo hasn't started yet)
+    if promo.get('start_date'):
+        start = promo['start_date']
+        if isinstance(start, str):
+            start = datetime.fromisoformat(start.replace('Z', '+00:00'))
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        if start > now:
+            raise HTTPException(400, "Code promo pas encore valide")
+    
     # Check expiration
     if promo.get('expires_at'):
         expires = promo['expires_at']
         if isinstance(expires, str):
             expires = datetime.fromisoformat(expires.replace('Z', '+00:00'))
-        if expires < datetime.now(timezone.utc):
-            raise HTTPException(400, "Code promo expire")
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires < now:
+            raise HTTPException(400, "Code promo expiré")
     
     # Check max uses
     if promo.get('max_uses') and promo.get('uses_count', 0) >= promo['max_uses']:
-        raise HTTPException(400, "Code promo epuise")
+        raise HTTPException(400, "Code promo épuisé")
     
     # Check applicable plans
     applicable = promo.get('applicable_plans', [])
     if applicable and plan_id and plan_id not in applicable:
-        raise HTTPException(400, "Code promo non applicable a ce plan")
+        raise HTTPException(400, "Code promo non applicable à ce plan")
     
     return {
         'valid': True,
         'code': promo['code'],
         'discount_percent': promo.get('discount_percent'),
         'discount_amount': promo.get('discount_amount'),
-        'description': promo.get('description', '')
+        'description': promo.get('description', ''),
+        'start_date': promo.get('start_date'),
+        'expires_at': promo.get('expires_at')
     }
 
 @api_router.get("/admin/promo-codes")
