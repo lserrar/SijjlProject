@@ -715,6 +715,12 @@ async def get_thematiques():
     # Try new cursus collection first
     cursus = await db.cursus.find({'is_active': {'$ne': False}}, {'_id': 0}).sort('order', 1).to_list(100)
     if cursus:
+        # Add course count for each cursus
+        for c in cursus:
+            c['course_count'] = await db.courses.count_documents({
+                '$or': [{'cursus_id': c['id']}, {'thematique_id': c['id']}],
+                'is_active': {'$ne': False}
+            })
         return cursus
     # Fall back to old thematiques collection
     thematiques = await db.thematiques.find({'is_active': {'$ne': False}}, {'_id': 0}).sort('order', 1).to_list(100)
