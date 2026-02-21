@@ -310,7 +310,8 @@
                 thematiques.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         }
 
-        function getThematiqueName(id) {
+        function getThematiqueName(course) {
+            const id = course.cursus_id || course.thematique_id;
             const t = thematiques.find(x => x.id === id);
             return t ? t.name : '-';
         }
