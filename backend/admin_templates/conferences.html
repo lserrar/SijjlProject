@@ -427,15 +427,20 @@
                         <input type="text" class="form-input" id="source" placeholder="Ex: Colloque EPHE 2024" data-testid="conf-source-input">
                     </div>
                     
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">URL Audio</label>
-                            <input type="url" class="form-input" id="audioUrl" placeholder="https://..." data-testid="conf-audio-input">
+                    <div class="form-group">
+                        <label class="form-label">Fichier Audio (Cloudflare R2)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" class="form-input" id="audioUrl" placeholder="Sélectionnez un fichier audio..." readonly data-testid="conf-audio-input" style="flex: 1;">
+                            <button type="button" class="btn btn-secondary" onclick="openR2Browser()" data-testid="conf-browse-r2">
+                                <i class="fas fa-folder-open"></i> Parcourir R2
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">URL Vidéo</label>
-                            <input type="url" class="form-input" id="videoUrl" placeholder="https://..." data-testid="conf-video-input">
-                        </div>
+                        <div class="form-hint">Fichiers du dossier "conferences" dans Cloudflare R2</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">URL Vidéo (optionnel)</label>
+                        <input type="url" class="form-input" id="videoUrl" placeholder="https://..." data-testid="conf-video-input">
                     </div>
                     
                     <div class="form-group">
