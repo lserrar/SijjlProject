@@ -114,14 +114,25 @@ export default function CourseDetailScreen() {
           </TouchableOpacity>
 
           {/* CTA */}
-          <TouchableOpacity
-            testID="course-start-btn"
-            style={styles.startBtn}
-            onPress={() => {}}
-          >
-            <Ionicons name="play" size={18} color="#000" />
-            <Text style={styles.startBtnText}>Commencer le cours</Text>
-          </TouchableOpacity>
+          {hasAccess ? (
+            <TouchableOpacity
+              testID="course-start-btn"
+              style={styles.startBtn}
+              onPress={() => {}}
+            >
+              <Ionicons name="play" size={18} color="#000" />
+              <Text style={styles.startBtnText}>Commencer le cours</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              testID="course-subscribe-btn"
+              style={styles.startBtn}
+              onPress={() => router.push('/subscription-choice' as any)}
+            >
+              <Ionicons name="lock-closed" size={18} color="#000" />
+              <Text style={styles.startBtnText}>S'abonner pour accéder</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             testID="course-favorite-btn"
