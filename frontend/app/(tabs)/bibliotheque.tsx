@@ -733,4 +733,72 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border.subtle,
     marginVertical: spacing.lg,
   },
+  
+  // Autres (Audio Categories) Tab
+  sectionLabel: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  categoryPills: {
+    marginBottom: spacing.lg,
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    marginRight: spacing.sm,
+  },
+  categoryPillActive: {
+    backgroundColor: colors.brand.primary,
+    borderColor: colors.brand.primary,
+  },
+  categoryPillText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+    color: colors.text.secondary,
+  },
+  categoryPillTextActive: {
+    color: '#000',
+  },
+  audioCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
+  },
+  audioIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(4, 209, 130, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text.primary,
+    marginBottom: 4,
+    lineHeight: 19,
+  },
+  audioMeta: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
 });
