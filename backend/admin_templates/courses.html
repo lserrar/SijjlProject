@@ -480,7 +480,7 @@
                                     </div>
                                 </td>
                                 <td>${c.scholar_name || '-'}</td>
-                                <td>${getThematiqueName(c.thematique_id)}</td>
+                                <td>${getThematiqueName(c)}</td>
                                 <td>
                                     <a href="/api/admin-panel/modules?course=${c.id}" class="count-badge" data-testid="view-modules-${c.id}">
                                         <i class="fas fa-cubes"></i> ${c.module_count || 0} modules
