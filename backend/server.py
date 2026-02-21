@@ -508,16 +508,18 @@ async def get_scholar(scholar_id: str):
 # ─── Course Routes ──────────────────────────────────────────────────────────
 
 @api_router.get("/courses")
-async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None, thematique_id: Optional[str] = None):
-    query: dict = {}
+async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None, thematique_id: Optional[str] = None, cursus_id: Optional[str] = None):
+    query: dict = {'is_active': {'$ne': False}}  # Only show active courses
     if topic:
         query['topic'] = topic
     if level:
         query['level'] = level
     if scholar_id:
         query['scholar_id'] = scholar_id
-    if thematique_id:
-        query['thematique_id'] = thematique_id
+    # Support both old (thematique_id) and new (cursus_id) field names
+    filter_id = cursus_id or thematique_id
+    if filter_id:
+        query['$or'] = [{'cursus_id': filter_id}, {'thematique_id': filter_id}]
     courses = await db.courses.find(query, {'_id': 0}).to_list(100)
     return courses
 
