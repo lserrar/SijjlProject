@@ -189,6 +189,64 @@ class FavoriteRequest(BaseModel):
 class LiveRegisterRequest(BaseModel):
     session_id: str
 
+# ─── Cursus Models (was Thematiques) ─────────────────────────────────────────
+
+class CursusCreate(BaseModel):
+    name: str
+    description: str = ""
+    icon: str = "book-open"
+    order: int = 0
+    is_active: bool = False  # Default inactive for preparation
+
+class CursusUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+# ─── Course Models ───────────────────────────────────────────────────────────
+
+class CourseCreate(BaseModel):
+    title: str
+    description: str = ""
+    cursus_id: str  # Link to cursus
+    order: int = 0
+    is_active: bool = False  # Default inactive for preparation
+
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    cursus_id: Optional[str] = None
+    order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+# ─── Module Models ───────────────────────────────────────────────────────────
+
+class ModuleCreate(BaseModel):
+    name: str
+    description: str = ""
+    course_id: str  # Link to course
+    scholar_name: Optional[str] = None
+    order: int = 0
+    episode_count: int = 2  # Default: 1 short + 1 long
+    is_active: bool = False  # Default inactive for preparation
+
+class ModuleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    course_id: Optional[str] = None
+    scholar_name: Optional[str] = None
+    order: Optional[int] = None
+    episode_count: Optional[int] = None
+    is_active: Optional[bool] = None
+
+# ─── Bulk Action Models ──────────────────────────────────────────────────────
+
+class BulkToggleRequest(BaseModel):
+    ids: List[str]
+    is_active: bool
+
 # ─── Audio Category Models ─────────────────────────────────────────────────────
 
 class AudioCategoryCreate(BaseModel):
@@ -207,19 +265,19 @@ class AudioCategoryUpdate(BaseModel):
 
 class AudioCreate(BaseModel):
     title: str
-    description: str
-    scholar_id: str
-    scholar_name: str
+    description: str = ""
+    scholar_id: Optional[str] = None
+    scholar_name: Optional[str] = None
     duration: int = 0
     audio_url: Optional[str] = ""
     file_key: Optional[str] = ""
     thumbnail: str = ""
-    topic: str
-    type: str  # Legacy field - kept for compatibility
+    topic: str = ""
+    type: str = "episode"  # episode, short, long
     category_id: Optional[str] = None  # Link to audio_categories collection
-    course_id: Optional[str] = None  # Link to a course (for course episodes)
-    episode_number: Optional[int] = None  # Episode number if part of a course
-    is_active: bool = True
+    module_id: Optional[str] = None  # Link to a module (NEW - replaces course_id)
+    episode_number: Optional[int] = None
+    is_active: bool = False
 
 class AudioUpdate(BaseModel):
     title: Optional[str] = None
@@ -231,7 +289,7 @@ class AudioUpdate(BaseModel):
     topic: Optional[str] = None
     type: Optional[str] = None
     category_id: Optional[str] = None
-    course_id: Optional[str] = None
+    module_id: Optional[str] = None
     episode_number: Optional[int] = None
     is_active: Optional[bool] = None
     file_key: Optional[str] = None
