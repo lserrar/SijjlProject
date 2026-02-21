@@ -15,7 +15,7 @@ import uuid
 # Get BASE_URL from environment
 BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://thematic-platform.preview.emergentagent.com"
+    BASE_URL = "https://hikma-staging.preview.emergentagent.com"
 
 # Admin credentials
 ADMIN_EMAIL = "admin@hikma-admin.com"
