@@ -189,6 +189,22 @@ class FavoriteRequest(BaseModel):
 class LiveRegisterRequest(BaseModel):
     session_id: str
 
+# ─── Audio Category Models ─────────────────────────────────────────────────────
+
+class AudioCategoryCreate(BaseModel):
+    name: str
+    description: str = ""
+    r2_folder: str  # Dossier R2 associé (ex: "hikma-audio/0. Conference/")
+    icon: str = "headphones"  # Font Awesome icon name
+    is_active: bool = True
+
+class AudioCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    r2_folder: Optional[str] = None
+    icon: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class AudioCreate(BaseModel):
     title: str
     description: str
@@ -199,7 +215,8 @@ class AudioCreate(BaseModel):
     file_key: Optional[str] = ""
     thumbnail: str = ""
     topic: str
-    type: str
+    type: str  # Legacy field - kept for compatibility
+    category_id: Optional[str] = None  # New: link to audio_categories collection
     is_active: bool = True
 
 class AudioUpdate(BaseModel):
@@ -211,6 +228,7 @@ class AudioUpdate(BaseModel):
     thumbnail: Optional[str] = None
     topic: Optional[str] = None
     type: Optional[str] = None
+    category_id: Optional[str] = None
     is_active: Optional[bool] = None
     file_key: Optional[str] = None
     audio_url: Optional[str] = None
