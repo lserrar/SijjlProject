@@ -215,10 +215,11 @@ class TestCoursesAdmin:
                 "scholar_id": scholars[0]['id'],
                 "scholar_name": scholars[0]['name'],
                 "level": "Debutant",
-                "language": "Francais"
+                "language": "Francais",
+                "topic": "Test Topic"  # Required field
             }
             resp = api_client.post(f"{BASE_URL}/api/admin/courses", json=data)
-            assert resp.status_code == 200
+            assert resp.status_code == 200, f"Failed to create course: {resp.text}"
             ids.append(resp.json()['id'])
         
         # Bulk activate
