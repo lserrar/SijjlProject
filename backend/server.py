@@ -1468,15 +1468,116 @@ async def admin_grant_free_access(user_id: str, request: Request):
 
 @api_router.post("/admin/users/{user_id}/revoke-access")
 async def admin_revoke_access(user_id: str, request: Request):
-    """Revoke free access from a user."""
+    """Revoke all access from a user (free access and subscription)."""
     await require_admin(request)
     result = await db.users.update_one(
         {'user_id': user_id},
-        {'$set': {'has_free_access': False}, '$unset': {'free_access_granted_at': ''}}
+        {
+            '$set': {'free_access': False, 'has_free_access': False},
+            '$unset': {'free_access_granted_at': '', 'subscription': '', 'trial': ''}
+        }
     )
     if result.matched_count == 0:
         raise HTTPException(404, "Utilisateur non trouvé")
     return {'message': 'Accès révoqué', 'user_id': user_id}
+
+class ExtendSubscriptionRequest(BaseModel):
+    days: int
+
+class GrantSubscriptionRequest(BaseModel):
+    plan_id: str  # monthly or annual
+
+@api_router.post("/admin/users/{user_id}/extend-subscription")
+async def admin_extend_subscription(user_id: str, body: ExtendSubscriptionRequest, request: Request):
+    """Extend a user's subscription by a number of days."""
+    await require_admin(request)
+    user = await db.users.find_one({'user_id': user_id})
+    if not user:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    
+    now = datetime.now(timezone.utc)
+    current_expires = None
+    
+    # Check if user has an existing subscription or trial
+    if user.get('subscription') and user['subscription'].get('expires_at'):
+        current_expires = user['subscription']['expires_at']
+        if isinstance(current_expires, str):
+            current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
+    elif user.get('trial') and user['trial'].get('expires_at'):
+        current_expires = user['trial']['expires_at']
+        if isinstance(current_expires, str):
+            current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
+    
+    # Calculate new expiration date
+    if current_expires and current_expires > now:
+        # Extend from current expiration
+        new_expires = current_expires + timedelta(days=body.days)
+    else:
+        # Start fresh from now
+        new_expires = now + timedelta(days=body.days)
+    
+    # Update subscription
+    await db.users.update_one(
+        {'user_id': user_id},
+        {'$set': {
+            'subscription': {
+                'plan_id': user.get('subscription', {}).get('plan_id', 'manual'),
+                'expires_at': new_expires.isoformat(),
+                'status': 'active',
+                'extended_by_admin': True,
+                'extended_at': now.isoformat()
+            }
+        }}
+    )
+    
+    logger.info(f"Subscription extended for user {user_id} by {body.days} days until {new_expires.isoformat()}")
+    return {
+        'message': f'Abonnement prolongé de {body.days} jours',
+        'user_id': user_id,
+        'new_expires_at': new_expires.isoformat()
+    }
+
+@api_router.post("/admin/users/{user_id}/grant-subscription")
+async def admin_grant_subscription(user_id: str, body: GrantSubscriptionRequest, request: Request):
+    """Grant a subscription to a user (monthly or annual)."""
+    await require_admin(request)
+    user = await db.users.find_one({'user_id': user_id})
+    if not user:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Determine duration based on plan
+    if body.plan_id == 'annual':
+        days = 365
+        plan_name = 'Annuel'
+    else:  # monthly
+        days = 30
+        plan_name = 'Mensuel'
+    
+    expires_at = now + timedelta(days=days)
+    
+    # Update user with new subscription
+    await db.users.update_one(
+        {'user_id': user_id},
+        {'$set': {
+            'subscription': {
+                'plan_id': body.plan_id,
+                'plan_name': plan_name,
+                'expires_at': expires_at.isoformat(),
+                'status': 'active',
+                'granted_by_admin': True,
+                'granted_at': now.isoformat()
+            }
+        }}
+    )
+    
+    logger.info(f"Subscription {body.plan_id} granted to user {user_id} until {expires_at.isoformat()}")
+    return {
+        'message': f'Abonnement {plan_name} accordé',
+        'user_id': user_id,
+        'expires_at': expires_at.isoformat()
+    }
 
 # ─── Admin: Thematiques CRUD ───────────────────────────────────────────────────
 
