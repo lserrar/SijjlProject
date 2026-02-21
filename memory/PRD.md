@@ -62,6 +62,19 @@ Application mobile e-learning académique française pour études islamiques (iO
   - Validation : vérifie si code pas encore valide ou expiré
   - Affichage dans le tableau : colonne "Période de validité"
   - Statuts : Actif, Pas encore valide, Expiré, Épuisé
+- ✅ **Écran de choix d'abonnement post-inscription** :
+  - Nouveau fichier `/app/frontend/app/subscription-choice.tsx`
+  - Après inscription, l'utilisateur est redirigé vers cet écran
+  - Options : Essai gratuit 3 jours, Abonnement Mensuel, Abonnement Annuel
+  - Possibilité de continuer sans abonnement (accès limité)
+- ✅ **Protection du contenu payant** :
+  - Hook `useAccessCheck` pour vérifier l'accès utilisateur
+  - Composant `PaywallOverlay` pour bloquer le contenu
+  - Écran de cours modifié pour afficher un paywall si pas d'accès
+  - Modules verrouillés sauf aperçu gratuit du premier module
+- ✅ **Essai gratuit de 3 jours** :
+  - Endpoint `/api/trial/start` accepte `plan_id: trial_3days`
+  - Limité à un essai par utilisateur
 
 ## Modifications précédentes (2025-12-20)
 - ✅ Renommage "Savants" → "Professeurs" dans tout le panel admin
