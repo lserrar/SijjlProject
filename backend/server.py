@@ -2418,20 +2418,25 @@ async def start_free_trial(body: StartTrialRequest, request: Request):
     # Check if user already had a trial
     user_doc = await db.users.find_one({'user_id': user['user_id']})
     if user_doc.get('had_trial'):
-        raise HTTPException(400, "Vous avez deja utilise votre essai gratuit")
+        raise HTTPException(400, "Vous avez déjà utilisé votre essai gratuit")
     
-    # Get plan with trial
-    plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
-    if not plan:
-        # Check default plans
-        if body.plan_id == 'monthly':
-            plan = {'plan_id': 'monthly', 'trial_days': 7}
-        elif body.plan_id == 'annual':
-            plan = {'plan_id': 'annual', 'trial_days': 14}
-        else:
-            raise HTTPException(404, "Plan non trouve")
+    # Special 3-day trial for new users
+    if body.plan_id == 'trial_3days':
+        trial_days = 3
+    else:
+        # Get plan with trial
+        plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
+        if not plan:
+            # Check default plans
+            if body.plan_id == 'monthly':
+                plan = {'plan_id': 'monthly', 'trial_days': 7}
+            elif body.plan_id == 'annual':
+                plan = {'plan_id': 'annual', 'trial_days': 14}
+            else:
+                raise HTTPException(404, "Plan non trouvé")
+        
+        trial_days = plan.get('trial_days', 7)
     
-    trial_days = plan.get('trial_days', 7)
     if trial_days <= 0:
         raise HTTPException(400, "Ce plan n'offre pas d'essai gratuit")
     
@@ -2445,17 +2450,19 @@ async def start_free_trial(body: StartTrialRequest, request: Request):
             'had_trial': True,
             'trial': {
                 'plan_id': body.plan_id,
-                'started_at': now,
-                'expires_at': trial_expires
+                'started_at': now.isoformat(),
+                'expires_at': trial_expires.isoformat()
             }
         }}
     )
+    
+    logger.info(f"Trial {trial_days} days started for user {user['user_id']} until {trial_expires.isoformat()}")
     
     return {
         'success': True,
         'trial_days': trial_days,
         'expires_at': trial_expires.isoformat(),
-        'message': f'Essai gratuit de {trial_days} jours active!'
+        'message': f'Essai gratuit de {trial_days} jours activé !'
     }
 
 @api_router.get("/admin-panel/promos", response_class=HTMLResponse)
