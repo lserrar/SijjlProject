@@ -268,7 +268,7 @@
             const now = new Date();
             
             if (user.role === 'admin') return { type: 'admin', label: 'Admin', badge: 'badge-admin', expires: null };
-            if (user.free_access) return { type: 'free', label: 'Acces gratuit', badge: 'badge-free', expires: null };
+            if (user.free_access || user.has_free_access) return { type: 'free', label: 'Acces gratuit', badge: 'badge-free', expires: null };
             
             // Check subscription
             if (user.subscription && user.subscription.expires_at) {
