@@ -38,7 +38,8 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(name, email, password);
-      router.replace('/(tabs)');
+      // Redirect to subscription choice screen instead of tabs
+      router.replace('/subscription-choice');
     } catch (e: any) {
       Alert.alert('Erreur d\'inscription', e.message);
     } finally {
