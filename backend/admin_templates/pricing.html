@@ -331,17 +331,6 @@
             }
         }
 
-        async function deletePlan(planId, planName) {
-            if (!confirm(`Supprimer le plan "${planName}" ?`)) return;
-            try {
-                await apiRequest(`/admin/plans/${planId}`, 'DELETE');
-                showToast('Plan supprime');
-                loadData();
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        }
-
         function getTypeLabel(type) {
             const labels = {
                 'subscription': 'Abonnement',
