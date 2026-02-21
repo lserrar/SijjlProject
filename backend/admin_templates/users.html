@@ -267,23 +267,22 @@
         function getSubscriptionStatus(user) {
             const now = new Date();
             
-            if (user.role === 'admin') return { type: 'admin', label: 'Admin', badge: 'badge-admin', expires: null };
-            if (user.free_access || user.has_free_access) return { type: 'free', label: 'Acces gratuit', badge: 'badge-free', expires: null };
-            
-            // Check subscription
+            // Check subscription first (for all users including admin)
             if (user.subscription && user.subscription.expires_at) {
                 const expires = new Date(user.subscription.expires_at);
                 if (expires > now) {
                     const daysLeft = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
+                    let label = user.subscription.plan_id === 'annual' ? 'Annuel' : 'Mensuel';
+                    if (user.subscription.plan_id === 'manual') label = 'Manuel';
                     return { 
                         type: 'subscription', 
-                        label: user.subscription.plan_id === 'annual' ? 'Annuel' : 'Mensuel', 
+                        label: label, 
                         badge: 'badge-subscription',
                         expires: user.subscription.expires_at,
                         daysLeft: daysLeft
                     };
                 } else {
-                    return { type: 'expired', label: 'Expire', badge: 'badge-expired', expires: user.subscription.expires_at };
+                    return { type: 'expired', label: 'Expiré', badge: 'badge-expired', expires: user.subscription.expires_at };
                 }
             }
             
@@ -301,6 +300,12 @@
                     };
                 }
             }
+            
+            // Admin without subscription
+            if (user.role === 'admin') return { type: 'admin', label: 'Admin', badge: 'badge-admin', expires: null };
+            
+            // Free access
+            if (user.free_access || user.has_free_access) return { type: 'free', label: 'Accès gratuit', badge: 'badge-free', expires: null };
             
             return { type: 'none', label: 'Aucun', badge: 'badge-none', expires: null };
         }
