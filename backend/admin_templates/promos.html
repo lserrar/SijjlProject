@@ -293,6 +293,7 @@
             const discountPercent = document.getElementById('discountPercent').value;
             const discountAmount = document.getElementById('discountAmount').value;
             const maxUses = document.getElementById('maxUses').value;
+            const startDate = document.getElementById('startDate').value;
             const expiresAt = document.getElementById('expiresAt').value;
             
             const data = {
@@ -300,6 +301,7 @@
                 discount_percent: discountPercent ? parseFloat(discountPercent) : null,
                 discount_amount: discountAmount ? parseFloat(discountAmount) : null,
                 max_uses: maxUses ? parseInt(maxUses) : null,
+                start_date: startDate ? startDate + 'T00:00:00Z' : null,
                 expires_at: expiresAt ? expiresAt + 'T23:59:59Z' : null,
                 description: document.getElementById('description').value,
                 applicable_plans: [],
