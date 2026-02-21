@@ -271,6 +271,7 @@
                 document.getElementById('discountPercent').value = promo.discount_percent || '';
                 document.getElementById('discountAmount').value = promo.discount_amount || '';
                 document.getElementById('maxUses').value = promo.max_uses || '';
+                document.getElementById('startDate').value = promo.start_date ? promo.start_date.split('T')[0] : '';
                 document.getElementById('expiresAt').value = promo.expires_at ? promo.expires_at.split('T')[0] : '';
                 document.getElementById('description').value = promo.description || '';
             } else {
