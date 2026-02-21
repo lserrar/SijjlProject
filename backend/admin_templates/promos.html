@@ -351,16 +351,36 @@
 
         function getStatusClass(promo) {
             if (!promo.is_active) return 'status-inactive';
-            if (promo.expires_at && new Date(promo.expires_at) < new Date()) return 'status-warning';
+            const now = new Date();
+            // Check if not yet started
+            if (promo.start_date && new Date(promo.start_date) > now) return 'status-warning';
+            if (promo.expires_at && new Date(promo.expires_at) < now) return 'status-warning';
             if (promo.max_uses && promo.uses_count >= promo.max_uses) return 'status-warning';
             return 'status-active';
         }
 
         function getStatusText(promo) {
             if (!promo.is_active) return 'Inactif';
-            if (promo.expires_at && new Date(promo.expires_at) < new Date()) return 'Expire';
-            if (promo.max_uses && promo.uses_count >= promo.max_uses) return 'Epuise';
+            const now = new Date();
+            // Check if not yet started
+            if (promo.start_date && new Date(promo.start_date) > now) return 'Pas encore valide';
+            if (promo.expires_at && new Date(promo.expires_at) < now) return 'Expiré';
+            if (promo.max_uses && promo.uses_count >= promo.max_uses) return 'Épuisé';
             return 'Actif';
+        }
+
+        function formatValidityPeriod(promo) {
+            const startDate = promo.start_date ? new Date(promo.start_date).toLocaleDateString('fr-FR') : null;
+            const endDate = promo.expires_at ? new Date(promo.expires_at).toLocaleDateString('fr-FR') : null;
+            
+            if (startDate && endDate) {
+                return `${startDate} → ${endDate}`;
+            } else if (startDate) {
+                return `À partir du ${startDate}`;
+            } else if (endDate) {
+                return `Jusqu'au ${endDate}`;
+            }
+            return 'Illimité';
         }
 
         function renderPromos(data) {
