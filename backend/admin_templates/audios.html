@@ -580,7 +580,7 @@
             }
             document.getElementById('audiosTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Type</th><th>Durée</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Cours lié</th><th>Durée</th><th>Statut</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${data.map(a => `
                             <tr data-testid="audio-row-${a.id}">
@@ -595,7 +595,7 @@
                                 </td>
                                 <td>${a.scholar_name || '-'}</td>
                                 <td>${a.category_id ? `<span class="tag category">${getCategoryName(a.category_id)}</span>` : '<span class="tag">-</span>'}</td>
-                                <td><span class="tag">${a.type || '-'}</span></td>
+                                <td>${a.course_id ? `<span class="tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">${getCourseName(a.course_id)}${a.episode_number ? ` #${a.episode_number}` : ''}</span>` : '<span class="tag">-</span>'}</td>
                                 <td>${formatDuration(a.duration)}</td>
                                 <td><span class="status ${a.is_active !== false ? 'status-active' : 'status-inactive'}">${a.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
@@ -620,14 +620,16 @@
                 if (user.picture) document.getElementById('userAvatar').src = user.picture;
 
                 // Load all data in parallel
-                const [scholarsData, audiosData, categoriesData] = await Promise.all([
+                const [scholarsData, audiosData, categoriesData, coursesData] = await Promise.all([
                     apiRequest('/admin/scholars'),
                     apiRequest('/admin/audios'),
-                    apiRequest('/admin/audio-categories')
+                    apiRequest('/admin/audio-categories'),
+                    apiRequest('/admin/courses')
                 ]);
                 
                 scholars = scholarsData || [];
                 audios = audiosData || [];
+                courses = coursesData || [];
                 categories = categoriesData || [];
                 
                 populateCategorySelects();
