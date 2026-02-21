@@ -2078,10 +2078,10 @@ async def admin_panel_masterclasses():
         return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
-@api_router.get("/admin-panel/conferences", response_class=HTMLResponse)
-async def admin_panel_conferences():
-    """Admin panel conferences page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'conferences.html'
+@api_router.get("/admin-panel/audio-categories", response_class=HTMLResponse)
+async def admin_panel_audio_categories():
+    """Admin panel audio categories page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'audio-categories.html'
     if template_path.exists():
         return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
