@@ -15,6 +15,8 @@ import { apiRequest, useAuth } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
 import { formatCourseDuration, getLevelColor } from '../../constants/mockData';
 import { Ionicons } from '@expo/vector-icons';
+import { useAccessCheck } from '../../hooks/useAccessCheck';
+import { PaywallOverlay } from '../../components/PaywallOverlay';
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +25,9 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  
+  // Check if user has access to this course
+  const { hasAccess, reason, loading: accessLoading } = useAccessCheck('course', id);
 
   useEffect(() => {
     loadCourse();
@@ -51,7 +56,7 @@ export default function CourseDetailScreen() {
     }
   };
 
-  if (loading) return <View style={styles.loading}><ActivityIndicator size="large" color={colors.brand.primary} /></View>;
+  if (loading || accessLoading) return <View style={styles.loading}><ActivityIndicator size="large" color={colors.brand.primary} /></View>;
   if (!course) return null;
 
   const SAMPLE_MODULES = Array.from({ length: course.modules_count || 5 }, (_, i) => ({
