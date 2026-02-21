@@ -383,7 +383,10 @@
                                     <div class="table-cell-flex">
                                         <img src="${c.thumbnail || 'https://via.placeholder.com/60x40'}" class="table-avatar">
                                         <div>
-                                            <div class="table-cell-text">${c.title}</div>
+                                            <div class="table-cell-text">
+                                                ${c.is_featured ? '<i class="fas fa-star" style="color: #f59e0b; margin-right: 6px;" title="Cours mis en avant"></i>' : ''}
+                                                ${c.title}
+                                            </div>
                                             <div class="table-cell-subtext">${c.topic || '-'}</div>
                                         </div>
                                     </div>
@@ -394,6 +397,7 @@
                                 <td><span class="status ${c.is_active !== false ? 'status-active' : 'status-inactive'}">${c.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
                                     <div class="actions">
+                                        <button class="btn ${c.is_featured ? 'btn-primary' : 'btn-secondary'} btn-sm btn-icon" onclick="setFeatured('${c.id}')" title="${c.is_featured ? 'Cours en avant' : 'Mettre en avant'}"><i class="fas fa-star"></i></button>
                                         <button class="btn btn-secondary btn-sm btn-icon" onclick="editCourse('${c.id}')"><i class="fas fa-edit"></i></button>
                                         <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleCourse('${c.id}')"><i class="fas fa-toggle-${c.is_active !== false ? 'on' : 'off'}"></i></button>
                                         <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCourse('${c.id}')"><i class="fas fa-trash"></i></button>
@@ -404,6 +408,16 @@
                     </tbody>
                 </table>
             `;
+        }
+
+        async function setFeatured(courseId) {
+            try {
+                await apiRequest(`/admin/courses/${courseId}/set-featured`, 'PATCH');
+                showToast('Cours mis en avant');
+                loadCourses();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
         }
 
         function editCourse(id) {
