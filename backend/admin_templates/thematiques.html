@@ -276,9 +276,9 @@
                                 <td><span class="status ${item.is_active !== false ? 'status-active' : 'status-inactive'}">${item.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick='openModal(${JSON.stringify(item)})'><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editItem('${item.id}')"><i class="fas fa-edit"></i></button>
                                         <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleItem('${item.id}')"><i class="fas fa-toggle-${item.is_active !== false ? 'on' : 'off'}"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}', '${item.name.replace(/'/g, "\\'").replace(/"/g, '\\"')}')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}')"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -286,6 +286,21 @@
                     </tbody>
                 </table>
             `;
+        }
+
+        function editItem(id) {
+            const item = items.find(i => i.id === id);
+            if (item) openModal(item);
+        }
+
+        async function deleteItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!confirm(`Supprimer "${item?.name || id}" ?`)) return;
+            try {
+                await apiRequest(`/admin/thematiques/${id}`, 'DELETE');
+                showToast('Supprime');
+                loadData();
+            } catch (error) { showToast(error.message, 'error'); }
         }
 
         async function loadData() {
