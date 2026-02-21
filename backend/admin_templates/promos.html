@@ -194,14 +194,20 @@
                         </div>
                     </div>
                     <div class="form-hint" style="margin-top: -12px; margin-bottom: 16px;">Remplissez un seul type de reduction</div>
+                    <div class="form-group">
+                        <label class="form-label">Utilisations max</label>
+                        <input type="number" min="1" class="form-input" id="maxUses" placeholder="Illimité" data-testid="max-uses-input">
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Utilisations max</label>
-                            <input type="number" min="1" class="form-input" id="maxUses" placeholder="Illimite" data-testid="max-uses-input">
+                            <label class="form-label">Date de début</label>
+                            <input type="date" class="form-input" id="startDate" data-testid="start-date-input">
+                            <div class="form-hint">Optionnel - Le code sera valide à partir de cette date</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Date d'expiration</label>
                             <input type="date" class="form-input" id="expiresAt" data-testid="expires-at-input">
+                            <div class="form-hint">Optionnel - Le code expire après cette date</div>
                         </div>
                     </div>
                     <div class="form-group">
