@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: colors.status.success,
+    backgroundColor: colors.brand.success,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.full,
