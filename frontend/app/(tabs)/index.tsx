@@ -15,9 +15,9 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth, apiRequest } from '../../context/AuthContext';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
-import { ContentCard, ScholarCard } from '../../components/ContentCard';
-import { colors, spacing, radius, typography } from '../../constants/theme';
-import { formatDuration, formatDate } from '../../constants/mockData';
+import { ContentCard } from '../../components/ContentCard';
+import { colors, spacing, radius } from '../../constants/theme';
+import { formatDuration } from '../../constants/mockData';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
@@ -27,14 +27,46 @@ export default function HomeScreen() {
   const { play: playAudio } = useAudioPlayer();
   const router = useRouter();
   const [homeData, setHomeData] = useState<any>(null);
+  const [featuredCourse, setFeaturedCourse] = useState<any>(null);
+  const [recentCourses, setRecentCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchHome = useCallback(async () => {
     try {
-      const resp = await apiRequest('/home', token);
-      const data = await resp.json();
-      setHomeData(data);
+      // Fetch home data
+      const homeResp = await apiRequest('/home', token);
+      const homeJson = await homeResp.json();
+      setHomeData(homeJson);
+
+      // Fetch featured course
+      try {
+        const featuredResp = await apiRequest('/courses/featured', token);
+        if (featuredResp.ok) {
+          const featuredJson = await featuredResp.json();
+          setFeaturedCourse(featuredJson);
+        }
+      } catch (e) {
+        console.log('No featured course');
+      }
+
+      // Fetch recent courses
+      try {
+        const coursesResp = await apiRequest('/courses', token);
+        const coursesJson = await coursesResp.json();
+        // Sort by created_at desc and take first 6
+        const sorted = coursesJson
+          .filter((c: any) => c.is_active !== false)
+          .sort((a: any, b: any) => {
+            const dateA = new Date(a.created_at || 0);
+            const dateB = new Date(b.created_at || 0);
+            return dateB.getTime() - dateA.getTime();
+          })
+          .slice(0, 6);
+        setRecentCourses(sorted);
+      } catch (e) {
+        console.log('Error fetching courses');
+      }
     } catch (e) {
       console.error('Home fetch error:', e);
     } finally {
@@ -50,12 +82,8 @@ export default function HomeScreen() {
     fetchHome();
   };
 
-  const handlePlayAudio = async (audio: any) => {
-    await playAudio(audio);
-  };
-
   const navigateToContent = (item: any) => {
-    if (item.type === 'course') {
+    if (item.type === 'course' || item.id?.startsWith('crs-')) {
       router.push(`/course/${item.id}` as any);
     } else if (['podcast', 'lecture', 'quran', 'documentary'].includes(item.type)) {
       router.push(`/audio/${item.id}` as any);
@@ -72,11 +100,8 @@ export default function HomeScreen() {
     );
   }
 
-  const hero = homeData?.hero;
+  const hero = homeData?.hero; // Last watched content
   const recommendations = homeData?.recommendations || [];
-  const featuredScholar = homeData?.featured_scholar;
-  const dailyPick = homeData?.daily_pick;
-  const recentPublications = homeData?.recent_publications || [];
   const greeting = new Date().getHours() < 12 ? 'Bonjour' : new Date().getHours() < 18 ? 'Bon après-midi' : 'Bonsoir';
 
   return (
@@ -103,133 +128,114 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Hero - Continue Learning */}
-        {hero && (
+        {/* Featured Course - Highlight */}
+        {featuredCourse && (
           <TouchableOpacity
-            testID="home-hero-card"
-            style={styles.heroCard}
-            onPress={() => navigateToContent(hero.content)}
+            testID="home-featured-course"
+            style={styles.featuredCard}
+            onPress={() => navigateToContent({ id: featuredCourse.id, type: 'course' })}
           >
-            <Image source={{ uri: hero.content.thumbnail }} style={styles.heroImage} />
+            <Image source={{ uri: featuredCourse.thumbnail || 'https://via.placeholder.com/400x250' }} style={styles.featuredImage} />
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.85)']}
-              style={styles.heroGradient}
+              colors={['transparent', 'rgba(0,0,0,0.95)']}
+              style={styles.featuredGradient}
             >
-              <View style={styles.heroTag}>
-                <Text style={styles.heroTagText}>CONTINUER L'APPRENTISSAGE</Text>
+              <View style={styles.featuredBadge}>
+                <Ionicons name="star" size={12} color="#000" />
+                <Text style={styles.featuredBadgeText}>À LA UNE</Text>
               </View>
-              <Text style={styles.heroTitle} numberOfLines={2}>{hero.content.title}</Text>
-              <Text style={styles.heroScholar}>{hero.content.scholar_name}</Text>
-              <View style={styles.heroBottom}>
-                <View style={styles.heroProgressBar}>
-                  <View style={[styles.heroProgressFill, { width: `${(hero.progress || 0) * 100}%` }]} />
+              <Text style={styles.featuredTitle} numberOfLines={2}>{featuredCourse.title}</Text>
+              <Text style={styles.featuredScholar}>{featuredCourse.scholar_name}</Text>
+              <View style={styles.featuredMeta}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="book-outline" size={12} color={colors.text.secondary} />
+                  <Text style={styles.metaText}>{featuredCourse.modules_count || 0} modules</Text>
                 </View>
-                <Text style={styles.heroProgressText}>{Math.round((hero.progress || 0) * 100)}%</Text>
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={12} color={colors.text.secondary} />
+                  <Text style={styles.metaText}>{formatDuration(featuredCourse.duration)}</Text>
+                </View>
+                <View style={[styles.levelBadge, { borderColor: getLevelColor(featuredCourse.level) }]}>
+                  <Text style={[styles.levelText, { color: getLevelColor(featuredCourse.level) }]}>{featuredCourse.level}</Text>
+                </View>
               </View>
             </LinearGradient>
           </TouchableOpacity>
         )}
 
-        {/* Recommendations */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recommandé pour vous</Text>
-            <TouchableOpacity testID="home-see-all-recommendations" onPress={() => router.push('/(tabs)/explorer')}>
-              <Text style={styles.seeAll}>Voir tout</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
-            {recommendations.map((item: any) => (
-              <ContentCard
-                key={item.id}
-                item={item}
-                onPress={() => navigateToContent(item)}
-                size="medium"
-                testID={`home-rec-${item.id}`}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Featured Scholar */}
-        {featuredScholar && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Érudit de la semaine</Text>
-            <TouchableOpacity
-              testID="home-featured-scholar"
-              style={styles.featuredScholarCard}
-              onPress={() => router.push(`/scholar/${featuredScholar.id}` as any)}
-            >
-              <Image source={{ uri: featuredScholar.photo }} style={styles.scholarBg} />
-              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={styles.scholarGradient}>
-                <View style={styles.scholarWeekBadge}>
-                  <Ionicons name="star" size={10} color={colors.brand.primary} />
-                  <Text style={styles.scholarWeekText}>ÉRUDIT DE LA SEMAINE</Text>
-                </View>
-                <Text style={styles.scholarFeaturedName}>{featuredScholar.name}</Text>
-                <Text style={styles.scholarFeaturedUni}>{featuredScholar.university}</Text>
-                <Text style={styles.scholarFeaturedBio} numberOfLines={2}>{featuredScholar.bio}</Text>
-                <View style={styles.scholarTags}>
-                  {featuredScholar.specializations?.slice(0, 2).map((s: string) => (
-                    <View key={s} style={styles.specChip}>
-                      <Text style={styles.specChipText}>{s}</Text>
-                    </View>
-                  ))}
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Daily Pick */}
-        {dailyPick && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Écoute du jour</Text>
-            <TouchableOpacity
-              testID="home-daily-pick"
-              style={styles.dailyPickCard}
-              onPress={() => handlePlayAudio(dailyPick)}
-            >
-              <Image source={{ uri: dailyPick.thumbnail }} style={styles.dailyPickImage} />
-              <View style={styles.dailyPickInfo}>
-                <View style={styles.dailyPickBadge}>
-                  <Ionicons name="musical-note" size={10} color={colors.brand.secondary} />
-                  <Text style={styles.dailyPickBadgeText}>
-                    {dailyPick.type === 'quran' ? 'RÉCITATION' : dailyPick.type === 'podcast' ? 'PODCAST' : 'CONFÉRENCE'}
-                  </Text>
-                </View>
-                <Text style={styles.dailyPickTitle} numberOfLines={2}>{dailyPick.title}</Text>
-                <Text style={styles.dailyPickScholar}>{dailyPick.scholar_name}</Text>
-                <Text style={styles.dailyPickDuration}>{formatDuration(dailyPick.duration)}</Text>
-              </View>
-              <View style={styles.dailyPickPlay}>
-                <Ionicons name="play" size={18} color="#000" />
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Recent Publications */}
-        {recentPublications.length > 0 && (
+        {/* Continue Learning - Last watched */}
+        {hero && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Publications récentes</Text>
-              <TouchableOpacity testID="home-see-all-articles" onPress={() => router.push('/(tabs)/explorer')}>
+              <Text style={styles.sectionTitle}>Reprendre votre lecture</Text>
+            </View>
+            <TouchableOpacity
+              testID="home-continue-learning"
+              style={styles.continueCard}
+              onPress={() => navigateToContent(hero.content)}
+            >
+              <Image source={{ uri: hero.content.thumbnail }} style={styles.continueImage} />
+              <View style={styles.continueInfo}>
+                <Text style={styles.continueTitle} numberOfLines={2}>{hero.content.title}</Text>
+                <Text style={styles.continueScholar}>{hero.content.scholar_name}</Text>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${(hero.progress || 0) * 100}%` }]} />
+                  </View>
+                  <Text style={styles.progressText}>{Math.round((hero.progress || 0) * 100)}%</Text>
+                </View>
+              </View>
+              <View style={styles.playButton}>
+                <Ionicons name="play" size={16} color="#000" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recommandé pour vous</Text>
+              <TouchableOpacity testID="home-see-all-recommendations" onPress={() => router.push('/(tabs)/cursus')}>
                 <Text style={styles.seeAll}>Voir tout</Text>
               </TouchableOpacity>
             </View>
-            {recentPublications.map((article: any) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+              {recommendations.map((item: any) => (
+                <ContentCard
+                  key={item.id}
+                  item={item}
+                  onPress={() => navigateToContent(item)}
+                  size="medium"
+                  testID={`home-rec-${item.id}`}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Recent Courses */}
+        {recentCourses.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Derniers cours publiés</Text>
+              <TouchableOpacity testID="home-see-all-courses" onPress={() => router.push('/(tabs)/cursus')}>
+                <Text style={styles.seeAll}>Voir tout</Text>
+              </TouchableOpacity>
+            </View>
+            {recentCourses.map((course: any) => (
               <TouchableOpacity
-                key={article.id}
-                testID={`home-article-${article.id}`}
-                style={styles.articleRow}
-                onPress={() => router.push(`/article/${article.id}` as any)}
+                key={course.id}
+                testID={`home-recent-${course.id}`}
+                style={styles.courseRow}
+                onPress={() => navigateToContent({ id: course.id, type: 'course' })}
               >
-                <Image source={{ uri: article.thumbnail }} style={styles.articleThumb} />
-                <View style={styles.articleInfo}>
-                  <Text style={styles.articleTopic}>{article.topic}</Text>
-                  <Text style={styles.articleTitle} numberOfLines={2}>{article.title}</Text>
-                  <Text style={styles.articleMeta}>{article.scholar_name} · {article.reading_time} min</Text>
+                <Image source={{ uri: course.thumbnail || 'https://via.placeholder.com/80x80' }} style={styles.courseThumb} />
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTopic}>{course.topic || 'Philosophie'}</Text>
+                  <Text style={styles.courseTitle} numberOfLines={2}>{course.title}</Text>
+                  <Text style={styles.courseMeta}>{course.scholar_name} · {course.modules_count || 0} modules</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
               </TouchableOpacity>
@@ -243,61 +249,94 @@ export default function HomeScreen() {
   );
 }
 
+function getLevelColor(level: string) {
+  switch (level?.toLowerCase()) {
+    case 'débutant': return '#22c55e';
+    case 'intermédiaire': return '#f59e0b';
+    case 'avancé': return '#ef4444';
+    default: return colors.brand.primary;
+  }
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background.primary },
   scroll: { flex: 1 },
   loadingContainer: { flex: 1, backgroundColor: colors.background.primary, alignItems: 'center', justifyContent: 'center' },
+  
+  // Header
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   greeting: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary },
   logoRow: { flexDirection: 'row', alignItems: 'baseline' },
   logoHikma: { fontFamily: 'Inter-Bold', fontSize: 28, color: colors.text.primary, letterSpacing: -0.5 },
   logoByLM: { fontFamily: 'Inter-Regular', fontSize: 13, color: colors.brand.primary, marginLeft: 3 },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.background.card, borderWidth: 2, borderColor: colors.brand.primary },
-  // Hero
-  heroCard: { marginHorizontal: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', height: 220, marginBottom: spacing.lg },
-  heroImage: { width: '100%', height: '100%', position: 'absolute' },
-  heroGradient: { flex: 1, justifyContent: 'flex-end', padding: spacing.md },
-  heroTag: { backgroundColor: 'rgba(4, 209, 130, 0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.sm, alignSelf: 'flex-start', marginBottom: 6 },
-  heroTagText: { fontFamily: 'Inter-SemiBold', fontSize: 9, color: colors.brand.primary, letterSpacing: 1 },
-  heroTitle: { fontFamily: 'Inter-Bold', fontSize: 17, color: colors.text.primary, marginBottom: 3, lineHeight: 22 },
-  heroScholar: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary, marginBottom: 10 },
-  heroBottom: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heroProgressBar: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 1.5 },
-  heroProgressFill: { height: 3, backgroundColor: colors.brand.primary, borderRadius: 1.5 },
-  heroProgressText: { fontFamily: 'Inter-Medium', fontSize: 11, color: colors.brand.primary },
+  
+  // Featured Course
+  featuredCard: { marginHorizontal: spacing.lg, borderRadius: radius.xl, overflow: 'hidden', height: 260, marginBottom: spacing.xl },
+  featuredImage: { width: '100%', height: '100%', position: 'absolute' },
+  featuredGradient: { flex: 1, justifyContent: 'flex-end', padding: spacing.lg },
+  featuredBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6, 
+    backgroundColor: colors.brand.primary, 
+    paddingHorizontal: 10, 
+    paddingVertical: 5, 
+    borderRadius: radius.full, 
+    alignSelf: 'flex-start', 
+    marginBottom: spacing.sm 
+  },
+  featuredBadgeText: { fontFamily: 'Inter-Bold', fontSize: 10, color: '#000', letterSpacing: 0.5 },
+  featuredTitle: { fontFamily: 'Inter-Bold', fontSize: 22, color: colors.text.primary, marginBottom: 4, lineHeight: 28 },
+  featuredScholar: { fontFamily: 'DMSans-Medium', fontSize: 14, color: colors.brand.primary, marginBottom: spacing.md },
+  featuredMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary },
+  levelBadge: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.sm },
+  levelText: { fontFamily: 'Inter-Medium', fontSize: 10 },
+
+  // Continue Learning
+  continueCard: { 
+    marginHorizontal: spacing.lg, 
+    backgroundColor: colors.background.card, 
+    borderRadius: radius.lg, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: spacing.md, 
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 255, 0, 0.2)',
+  },
+  continueImage: { width: 80, height: 80, borderRadius: radius.md, backgroundColor: colors.background.elevated },
+  continueInfo: { flex: 1 },
+  continueTitle: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.text.primary, marginBottom: 3, lineHeight: 19 },
+  continueScholar: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary, marginBottom: spacing.sm },
+  progressContainer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  progressBar: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2 },
+  progressFill: { height: 4, backgroundColor: colors.brand.primary, borderRadius: 2 },
+  progressText: { fontFamily: 'Inter-Medium', fontSize: 11, color: colors.brand.primary },
+  playButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand.primary, alignItems: 'center', justifyContent: 'center' },
+
   // Sections
-  section: { marginBottom: spacing.lg },
+  section: { marginBottom: spacing.xl },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  sectionTitle: { fontFamily: 'Inter-Bold', fontSize: 17, color: colors.text.primary, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  seeAll: { fontFamily: 'Inter-Medium', fontSize: 12, color: colors.brand.primary },
-  horizontalList: { paddingHorizontal: spacing.lg, paddingRight: spacing.sm },
-  // Featured Scholar
-  featuredScholarCard: { marginHorizontal: spacing.lg, height: 200, borderRadius: radius.lg, overflow: 'hidden' },
-  scholarBg: { width: '100%', height: '100%', position: 'absolute' },
-  scholarGradient: { flex: 1, justifyContent: 'flex-end', padding: spacing.md },
-  scholarWeekBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  scholarWeekText: { fontFamily: 'Inter-SemiBold', fontSize: 9, color: colors.brand.primary, letterSpacing: 1 },
-  scholarFeaturedName: { fontFamily: 'Inter-Bold', fontSize: 18, color: colors.text.primary, marginBottom: 2 },
-  scholarFeaturedUni: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.brand.secondary, marginBottom: 6 },
-  scholarFeaturedBio: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary, lineHeight: 17, marginBottom: 8 },
-  scholarTags: { flexDirection: 'row', gap: 6 },
-  specChip: { backgroundColor: 'rgba(4, 209, 130, 0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 3 },
-  specChipText: { fontFamily: 'Inter-Medium', fontSize: 10, color: colors.brand.primary },
-  // Daily Pick
-  dailyPickCard: { marginHorizontal: spacing.lg, backgroundColor: colors.background.card, borderRadius: radius.lg, flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
-  dailyPickImage: { width: 70, height: 70, borderRadius: radius.md, backgroundColor: colors.background.elevated },
-  dailyPickInfo: { flex: 1 },
-  dailyPickBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
-  dailyPickBadgeText: { fontFamily: 'Inter-Medium', fontSize: 9, color: colors.brand.secondary, letterSpacing: 0.8 },
-  dailyPickTitle: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.text.primary, marginBottom: 3, lineHeight: 19 },
-  dailyPickScholar: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary, marginBottom: 3 },
-  dailyPickDuration: { fontFamily: 'Inter-Medium', fontSize: 11, color: colors.text.tertiary },
-  dailyPickPlay: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand.primary, alignItems: 'center', justifyContent: 'center' },
-  // Articles
-  articleRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
-  articleThumb: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.background.card },
-  articleInfo: { flex: 1 },
-  articleTopic: { fontFamily: 'Inter-Medium', fontSize: 10, color: colors.brand.primary, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.5 },
-  articleTitle: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: colors.text.primary, lineHeight: 18, marginBottom: 3 },
-  articleMeta: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.secondary },
+  sectionTitle: { fontFamily: 'Inter-Bold', fontSize: 18, color: colors.text.primary },
+  seeAll: { fontFamily: 'Inter-Medium', fontSize: 13, color: colors.brand.primary },
+  horizontalList: { paddingHorizontal: spacing.lg, paddingRight: spacing.sm, gap: spacing.md },
+
+  // Course Row
+  courseRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: spacing.lg, 
+    paddingVertical: spacing.md, 
+    gap: spacing.md, 
+    borderBottomWidth: 1, 
+    borderBottomColor: colors.border.subtle 
+  },
+  courseThumb: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.background.card },
+  courseInfo: { flex: 1 },
+  courseTopic: { fontFamily: 'Inter-Medium', fontSize: 10, color: colors.brand.primary, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  courseTitle: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.text.primary, lineHeight: 19, marginBottom: 3 },
+  courseMeta: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary },
 });
