@@ -389,7 +389,7 @@
                     <div class="empty-state">
                         <i class="fas fa-tags"></i>
                         <h3>Aucun code promo</h3>
-                        <p>Creez votre premier code promotionnel</p>
+                        <p>Créez votre premier code promotionnel</p>
                     </div>
                 `;
                 return;
@@ -400,9 +400,9 @@
                     <thead>
                         <tr>
                             <th>Code</th>
-                            <th>Reduction</th>
+                            <th>Réduction</th>
                             <th>Utilisations</th>
-                            <th>Expiration</th>
+                            <th>Période de validité</th>
                             <th>Statut</th>
                             <th>Actions</th>
                         </tr>
@@ -416,14 +416,14 @@
                                 </td>
                                 <td><span class="discount-badge">${getDiscountDisplay(p)}</span></td>
                                 <td>${p.uses_count || 0}${p.max_uses ? ` / ${p.max_uses}` : ''}</td>
-                                <td>${p.expires_at ? new Date(p.expires_at).toLocaleDateString('fr-FR') : 'Jamais'}</td>
+                                <td>${formatValidityPeriod(p)}</td>
                                 <td><span class="status ${getStatusClass(p)}">${getStatusText(p)}</span></td>
                                 <td>
                                     <div class="actions">
                                         <button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(p)})' title="Modifier">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-secondary btn-sm" onclick="togglePromo('${p.code}', ${p.is_active})" title="${p.is_active ? 'Desactiver' : 'Activer'}">
+                                        <button class="btn btn-secondary btn-sm" onclick="togglePromo('${p.code}', ${p.is_active})" title="${p.is_active ? 'Désactiver' : 'Activer'}">
                                             <i class="fas fa-toggle-${p.is_active ? 'on' : 'off'}"></i>
                                         </button>
                                         <button class="btn btn-danger btn-sm" onclick="deletePromo('${p.code}')" title="Supprimer">
