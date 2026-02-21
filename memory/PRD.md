@@ -1,9 +1,9 @@
 # PRD – HikmabyLM
 
-## Statut : MVP Complet - Pret pour production
+## Statut : MVP Complet - Prêt pour production
 
-## Probleme original
-Application mobile e-learning academique francaise pour etudes islamiques (iOS & Android) : cours video, podcasts, articles, sessions live, bibliotheque. Design type Spotify dark. Tone intellectuel et rigoureux.
+## Problème original
+Application mobile e-learning académique française pour études islamiques (iOS & Android) : cours vidéo, podcasts, articles, sessions live, bibliothèque. Design type Spotify dark. Tone intellectuel et rigoureux.
 
 ## Architecture
 - **Backend** : FastAPI + MongoDB (port 8001)
@@ -11,8 +11,9 @@ Application mobile e-learning academique francaise pour etudes islamiques (iOS &
 - **Admin Panel Web** : Interface HTML/CSS/JS servie par FastAPI
 - **Storage audio** : Cloudflare R2 (bucket hikma-audio)
 - **Auth** : Email/password (JWT) + Google OAuth (Emergent Auth)
+- **Paiements** : Stripe (abonnements, achats uniques, codes promo)
 
-## Ce qui est implemente
+## Ce qui est implémenté
 
 ### Backend (server.py)
 - Auth : register/login (JWT), Google OAuth
@@ -20,72 +21,87 @@ Application mobile e-learning academique francaise pour etudes islamiques (iOS &
 - **Courses** CRUD avec sync R2 + champ thematique_id pour liaison Cursus
 - **Audios** CRUD avec file_key R2
 - **Thematiques** API (26 themes) = Cursus dans l'interface
-- **Bibliographies** API (22 entrees)
+- **Bibliographies** API (22 entrées)
 - **Masterclasses** API (22 sessions, gratuit ou payant)
-- Admin Routes CRUD completes pour toutes les entites
+- Admin Routes CRUD complètes pour toutes les entités
 - R2 Storage : folders listing, files listing, sync
 
 ### Admin Panel Web (Complet)
-- **Login** : Connexion securisee
+- **Login** : Connexion sécurisée
 - **Dashboard** : Stats globales (Professeurs, Cours, Audios, Utilisateurs)
-- **Professeurs** : CRUD complet (renomme de "Savants")
-- **Cours** : CRUD avec selection professeur + selection Cursus
+- **Professeurs** : CRUD complet (renommé de "Savants")
+- **Cours** : CRUD avec sélection professeur + sélection Cursus
 - **Audios** : CRUD avec filtre type
-- **Cursus** : CRUD (anciennement Thematiques dans le code, affiche "Cursus" dans l'interface)
-- **Bibliographies** : CRUD avec liens thematiques
-- **Masterclasses** : CRUD avec prix, duree, inscrits
-- **Utilisateurs** : Gestion + acces gratuit
+- **Cursus** : CRUD (anciennement Thématiques dans le code, affiche "Cursus" dans l'interface)
+- **Bibliographies** : CRUD avec liens thématiques
+- **Masterclasses** : CRUD avec prix, durée, inscrits
+- **Utilisateurs** : Gestion complète avec affichage abonnements et actions (voir ci-dessous)
 - **Stockage R2** : Navigation + sync cours
+- **Tarification** : Gestion des plans Stripe
+- **Codes Promo** : CRUD avec périodes de validité (date début et fin)
 
 ### Frontend Mobile (Expo)
 - Auth screens : login (email + Google) / register
-- Home : hero, recommendations, erudit semaine, ecoute du jour
-- **Navigation 6 onglets** : Accueil, Cursus, Biblio, Live, Profil, A propos
-- **Cursus** : Liste des thematiques avec cours associes
-- **Bibliotheque** : Articles par theme
+- Home : hero, recommendations, érudit semaine, écoute du jour
+- **Navigation 6 onglets** : Accueil, Cursus, Biblio, Live, Profil, À propos
+- **Cursus** : Liste des thématiques avec cours associés
+- **Bibliothèque** : Articles par thème
 - **Live** : Masterclasses avec inscription
 - Audio player complet avec streaming R2
 - MiniPlayer persistant
 
-## Modifications recentes (2025-12-20)
+## Modifications récentes (2026-02-21)
+- ✅ **Gestion des abonnements utilisateurs** dans le panel admin :
+  - Affichage du type d'abonnement (Annuel, Mensuel, Manuel, Essai gratuit, Accès gratuit)
+  - Affichage de la date d'expiration avec jours restants
+  - Actions admin : Prolonger l'abonnement, Accorder un abonnement, Accès gratuit, Révoquer l'accès
+  - Endpoints : `/api/admin/users/{user_id}/extend-subscription`, `/api/admin/users/{user_id}/grant-subscription`
+- ✅ **Codes promo avec périodes de validité** :
+  - Champ `start_date` (date de début) ajouté
+  - Champ `expires_at` (date d'expiration) existant
+  - Validation : vérifie si code pas encore valide ou expiré
+  - Affichage dans le tableau : colonne "Période de validité"
+  - Statuts : Actif, Pas encore valide, Expiré, Épuisé
+
+## Modifications précédentes (2025-12-20)
 - ✅ Renommage "Savants" → "Professeurs" dans tout le panel admin
-- ✅ Renommage "Thematiques" → "Cursus" dans la navigation sidebar
+- ✅ Renommage "Thématiques" → "Cursus" dans la navigation sidebar
 - ✅ Ajout liaison Cours ↔ Cursus (champ thematique_id)
-- ✅ Formulaire de cours avec selection du Cursus
+- ✅ Formulaire de cours avec sélection du Cursus
 - ✅ Colonne Cursus dans la liste des cours
 - ✅ Nouvelle route /api/admin-panel/professors
 - ✅ **Filtre par Cursus** dans le panel admin (dropdown pour filtrer les cours)
-- ✅ **API publique /api/courses** accepte le parametre `thematique_id` pour filtrer par cursus
-- ✅ **Integration Stripe** complete pour paiements
+- ✅ **API publique /api/courses** accepte le paramètre `thematique_id` pour filtrer par cursus
+- ✅ **Intégration Stripe** complète pour paiements
 - ✅ **Abonnements** Mensuel (9.99€/30j) et Annuel (89.99€/365j)
-- ✅ **Achats uniques** de cours ou cursus (6 mois d'acces)
-- ✅ **Page admin Tarification** pour gerer les plans et voir les transactions
-- ✅ **Verification d'acces utilisateur** (abonnement, achat, admin, acces gratuit)
-- ✅ **Codes promo** : CRUD complet avec % ou montant fixe, max utilisations, date expiration
+- ✅ **Achats uniques** de cours ou cursus (6 mois d'accès)
+- ✅ **Page admin Tarification** pour gérer les plans et voir les transactions
+- ✅ **Vérification d'accès utilisateur** (abonnement, achat, admin, accès gratuit)
+- ✅ **Codes promo** : CRUD complet avec % ou montant fixe, max utilisations
 - ✅ **Essais gratuits** : 7 jours mensuel, 14 jours annuel (1 essai par utilisateur)
-- ✅ **Page admin Codes Promo** pour gerer les codes promotionnels
+- ✅ **Page admin Codes Promo** pour gérer les codes promotionnels
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
 - **URL Panel** : https://hikma-staging.preview.emergentagent.com/api/admin-panel/
 
 ## Contenu
-- 26 Cursus (Thematiques)
+- 26 Cursus (Thématiques)
 - 22 Bibliographies
 - 22 Masterclasses
 - 38 Cours
 - 15 Audios
 - 9 Professeurs
 
-## Backlog P1 (A venir)
-- Implementation des ecrans mobiles pour Cursus, Bibliotheque, Live
+## Backlog P1 (À venir)
+- Implémentation des écrans mobiles pour Cursus, Bibliothèque, Live
 - Stabilisation du tunnel Ngrok pour l'environnement Expo
-- Page de paiement dans l'app mobile (integration avec les APIs Stripe)
+- Page de paiement dans l'app mobile (intégration avec les APIs Stripe)
 
 ## Backlog P2 (Futur)
 - Push notifications
-- Analytics temps d'ecoute
+- Analytics temps d'écoute
 - Multi-langue (EN, AR, RTL)
 - Refactorisation backend (server.py monolithique)
 
-## Date implementation : 2025-12-20
+## Date implémentation : 2026-02-21
