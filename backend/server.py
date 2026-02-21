@@ -1503,15 +1503,29 @@ async def admin_extend_subscription(user_id: str, body: ExtendSubscriptionReques
     now = datetime.now(timezone.utc)
     current_expires = None
     
+    def parse_date(date_val):
+        """Parse a date value to a timezone-aware datetime."""
+        if date_val is None:
+            return None
+        if isinstance(date_val, datetime):
+            if date_val.tzinfo is None:
+                return date_val.replace(tzinfo=timezone.utc)
+            return date_val
+        if isinstance(date_val, str):
+            try:
+                dt = datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except:
+                return None
+        return None
+    
     # Check if user has an existing subscription or trial
     if user.get('subscription') and user['subscription'].get('expires_at'):
-        current_expires = user['subscription']['expires_at']
-        if isinstance(current_expires, str):
-            current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
+        current_expires = parse_date(user['subscription']['expires_at'])
     elif user.get('trial') and user['trial'].get('expires_at'):
-        current_expires = user['trial']['expires_at']
-        if isinstance(current_expires, str):
-            current_expires = datetime.fromisoformat(current_expires.replace('Z', '+00:00'))
+        current_expires = parse_date(user['trial']['expires_at'])
     
     # Calculate new expiration date
     if current_expires and current_expires > now:
