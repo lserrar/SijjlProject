@@ -98,6 +98,30 @@ Application mobile e-learning académique française pour études islamiques (iO
 - ✅ **Endpoint suppression de compte** :
   - `DELETE /api/user/delete-account`
   - Supprime toutes les données utilisateur
+- ✅ **Page d'accueil restructurée** :
+  - Cours "À la une" (featured) configurable depuis le panel admin
+  - Section "Reprendre votre lecture" (dernière lecture)
+  - Section "Recommandé pour vous"
+  - Section "Derniers cours publiés"
+  - Suppression de "Érudit de la semaine"
+- ✅ **Panel Admin - Cours featured** :
+  - Bouton étoile pour mettre un cours en avant
+  - Un seul cours peut être featured à la fois
+  - Endpoint `PATCH /api/admin/courses/{course_id}/set-featured`
+- ✅ **Nouvelle collection Conférences** :
+  - Modèles `ConferenceCreate` et `ConferenceUpdate`
+  - CRUD complet : GET, POST, PUT, DELETE `/api/admin/conferences`
+  - Endpoint public : `GET /api/conferences`
+  - Page admin `/api/admin-panel/conferences`
+- ✅ **Onglet "Ressources"** (ex-Bibliothèque) :
+  - Onglets : Mes cursus, Favoris, Bibliographie, Conférences
+  - Affichage des cursus en cours
+  - Affichage des favoris
+  - Bibliographie par thème
+  - Liste des conférences
+- ✅ **Suggestions "Pour approfondir"** :
+  - Endpoint `GET /api/courses/{course_id}/suggestions`
+  - Retourne conférences, bibliographies et cours liés au même thème
 
 ## Modifications précédentes (2025-12-20)
 - ✅ Renommage "Savants" → "Professeurs" dans tout le panel admin
