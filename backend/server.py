@@ -216,7 +216,9 @@ class AudioCreate(BaseModel):
     thumbnail: str = ""
     topic: str
     type: str  # Legacy field - kept for compatibility
-    category_id: Optional[str] = None  # New: link to audio_categories collection
+    category_id: Optional[str] = None  # Link to audio_categories collection
+    course_id: Optional[str] = None  # Link to a course (for course episodes)
+    episode_number: Optional[int] = None  # Episode number if part of a course
     is_active: bool = True
 
 class AudioUpdate(BaseModel):
@@ -229,6 +231,8 @@ class AudioUpdate(BaseModel):
     topic: Optional[str] = None
     type: Optional[str] = None
     category_id: Optional[str] = None
+    course_id: Optional[str] = None
+    episode_number: Optional[int] = None
     is_active: Optional[bool] = None
     file_key: Optional[str] = None
     audio_url: Optional[str] = None
