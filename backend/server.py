@@ -1457,9 +1457,14 @@ async def admin_get_user(user_id: str, request: Request):
 async def admin_grant_free_access(user_id: str, request: Request):
     """Grant free access to a user."""
     await require_admin(request)
+    now = datetime.now(timezone.utc)
     result = await db.users.update_one(
         {'user_id': user_id},
-        {'$set': {'has_free_access': True, 'free_access_granted_at': datetime.now(timezone.utc)}}
+        {'$set': {
+            'free_access': True,
+            'has_free_access': True,  # For backwards compatibility
+            'free_access_granted_at': now.isoformat()
+        }}
     )
     if result.matched_count == 0:
         raise HTTPException(404, "Utilisateur non trouvé")
