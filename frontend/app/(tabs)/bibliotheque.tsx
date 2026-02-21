@@ -209,6 +209,7 @@ export default function RessourcesScreen() {
     { key: 'favoris', label: 'Favoris', icon: 'heart-outline' },
     { key: 'biblio', label: 'Bibliographie', icon: 'book-outline' },
     { key: 'conferences', label: 'Conférences', icon: 'mic-outline' },
+    { key: 'autres', label: 'Autres', icon: 'musical-notes-outline' },
   ] as const;
 
   return (
