@@ -38,11 +38,11 @@ export default function ProfilScreen() {
   };
 
   const MENU_ITEMS = [
-    { icon: 'settings-outline', label: 'Paramètres', action: () => {} },
-    { icon: 'notifications-outline', label: 'Notifications', action: () => {} },
+    { icon: 'settings-outline', label: 'Paramètres', action: () => router.push('/settings') },
+    { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
     { icon: 'language-outline', label: 'Langue : Français', action: () => {} },
     { icon: 'help-circle-outline', label: 'Aide et support', action: () => {} },
-    { icon: 'information-circle-outline', label: 'À propos de HikmabyLM', action: () => {} },
+    { icon: 'information-circle-outline', label: 'À propos de HikmabyLM', action: () => router.push('/about') },
   ];
 
   return (
