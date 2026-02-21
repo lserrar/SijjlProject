@@ -386,6 +386,73 @@ export default function RessourcesScreen() {
               )}
             </View>
           )}
+
+          {activeTab === 'autres' && (
+            <View>
+              {/* Audio Categories */}
+              <Text style={styles.sectionLabel}>Catégories Audio</Text>
+              {audioCategories.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="musical-notes-outline" size={48} color={colors.text.tertiary} />
+                  <Text style={styles.emptyTitle}>Aucune catégorie</Text>
+                  <Text style={styles.emptySubtitle}>Les récitations du Coran, musique et autres audios seront ajoutés prochainement</Text>
+                </View>
+              ) : (
+                <>
+                  {/* Category Pills */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryPills}>
+                    {audioCategories.map(cat => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[styles.categoryPill, selectedCategory === cat.id && styles.categoryPillActive]}
+                        onPress={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+                      >
+                        <Ionicons 
+                          name={cat.name.toLowerCase().includes('coran') ? 'book' : cat.name.toLowerCase().includes('musique') ? 'musical-notes' : 'headset'} 
+                          size={16} 
+                          color={selectedCategory === cat.id ? '#000' : colors.text.secondary} 
+                        />
+                        <Text style={[styles.categoryPillText, selectedCategory === cat.id && styles.categoryPillTextActive]}>
+                          {cat.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* Audios list */}
+                  {audios
+                    .filter(a => !selectedCategory || a.category_id === selectedCategory)
+                    .map(audio => (
+                      <TouchableOpacity
+                        key={audio.id}
+                        style={styles.audioCard}
+                        onPress={() => {/* TODO: Play audio */}}
+                      >
+                        <View style={styles.audioIcon}>
+                          <Ionicons name="musical-note" size={20} color={colors.brand.primary} />
+                        </View>
+                        <View style={styles.courseInfo}>
+                          <Text style={styles.audioTitle} numberOfLines={2}>{audio.title}</Text>
+                          <Text style={styles.audioMeta}>
+                            {audio.scholar_name || 'Inconnu'} · {formatDuration(audio.duration)}
+                          </Text>
+                        </View>
+                        <View style={styles.playButton}>
+                          <Ionicons name="play" size={16} color="#000" />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+
+                  {audios.filter(a => !selectedCategory || a.category_id === selectedCategory).length === 0 && (
+                    <View style={styles.emptyState}>
+                      <Ionicons name="musical-notes-outline" size={32} color={colors.text.tertiary} />
+                      <Text style={styles.emptySubtitle}>Aucun audio dans cette catégorie</Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 100 }} />
