@@ -110,7 +110,7 @@ export default function NotificationsScreen() {
           
           <View style={styles.settingItem}>
             <View style={styles.settingIcon}>
-              <Ionicons name="time-outline" size={20} color={colors.status.warning} />
+              <Ionicons name="time-outline" size={20} color={colors.brand.warning} />
             </View>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Expiration de l'abonnement</Text>
