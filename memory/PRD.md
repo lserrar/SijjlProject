@@ -75,6 +75,29 @@ Application mobile e-learning académique française pour études islamiques (iO
 - ✅ **Essai gratuit de 3 jours** :
   - Endpoint `/api/trial/start` accepte `plan_id: trial_3days`
   - Limité à un essai par utilisateur
+- ✅ **Écran Paramètres** (`/settings`) :
+  - Gestion lecture audio (automatique, haute qualité)
+  - Gestion téléchargements (Wi-Fi uniquement)
+  - Accès abonnement, confidentialité, CGU
+  - **Suppression de compte** avec confirmation
+- ✅ **Écran Notifications** (`/notifications`) :
+  - Toggle nouveaux cours
+  - Toggle masterclasses en direct
+  - Toggle résumé hebdomadaire
+  - Toggle expiration abonnement
+  - Toggle promotions
+- ✅ **Écran À propos** (`/about`) :
+  - Présentation de l'application
+  - Liste des fonctionnalités
+  - Contact (email, Instagram)
+  - Mentions légales
+- ✅ **Lecture audio en arrière-plan** :
+  - Configuration `UIBackgroundModes: ["audio"]` pour iOS
+  - Permission `FOREGROUND_SERVICE` pour Android
+  - `staysActiveInBackground: true` dans expo-av
+- ✅ **Endpoint suppression de compte** :
+  - `DELETE /api/user/delete-account`
+  - Supprime toutes les données utilisateur
 
 ## Modifications précédentes (2025-12-20)
 - ✅ Renommage "Savants" → "Professeurs" dans tout le panel admin
