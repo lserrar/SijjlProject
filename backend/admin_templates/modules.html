@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modules - HikmabyLM Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-card: #1e1e1e; --text-primary: #ffffff; --text-secondary: #a0a0a0; --text-muted: #666666; --brand-primary: #04D182; --brand-secondary: #02b36e; --border-subtle: #2a2a2a; --danger: #ef4444; --warning: #f59e0b; --success: #10b981; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 0 20px 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .sidebar-logo-text { font-size: 18px; font-weight: 700; }
+        .sidebar-logo-text span { color: var(--brand-primary); }
+        .sidebar-badge { font-size: 10px; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .sidebar-nav { padding: 0 12px; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+        .user-header { display: flex; align-items: center; gap: 12px; padding: 20px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .user-role { font-size: 12px; color: var(--brand-primary); }
+        .logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .logout-btn:hover { background: var(--bg-tertiary); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-description { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--brand-primary); color: var(--bg-primary); }
+        .btn-primary:hover { background: var(--brand-secondary); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+        th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 600; }
+        tr:hover { background: var(--bg-tertiary); }
+        .table-cell-text { font-weight: 500; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .table-cell-subtext { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .status-active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-inactive { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .actions { display: flex; gap: 8px; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text-secondary); }
+        .spinner { width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: var(--bg-card); border-radius: 16px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .form-input, .form-textarea, .form-select { width: 100%; padding: 12px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--brand-primary); }
+        .form-textarea { min-height: 100px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .order-badge { background: var(--brand-primary); color: #000; font-size: 12px; font-weight: 700; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .count-badge { background: var(--bg-tertiary); color: var(--text-secondary); font-size: 12px; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+        .filter-box { min-width: 200px; }
+        .filter-select { width: 100%; padding: 10px 14px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; cursor: pointer; }
+        .filter-select:focus { outline: none; border-color: var(--brand-primary); }
+        .search-box { position: relative; max-width: 300px; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-input { width: 100%; padding: 10px 14px 10px 40px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
+        .bulk-actions { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; }
+        .bulk-actions.hidden { display: none; }
+        .checkbox-cell { width: 40px; }
+        .checkbox { width: 18px; height: 18px; accent-color: var(--brand-primary); cursor: pointer; }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; color: var(--text-secondary); font-size: 14px; }
+        .breadcrumb a { color: var(--brand-primary); text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb i { font-size: 10px; }
+        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; } .main-content { margin-left: 70px; padding: 20px; } .form-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">H</div>
+                    <div>
+                        <div class="sidebar-logo-text">Hikma<span>byLM</span></div>
+                        <div class="sidebar-badge">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="/api/admin-panel/" class="nav-item"><i class="fas fa-chart-pie"></i><span>Tableau de bord</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-graduate"></i><span>Professeurs</span></a>
+                    <a href="/api/admin-panel/cursus" class="nav-item"><i class="fas fa-layer-group"></i><span>Cursus</span></a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
+                    <a href="/api/admin-panel/modules" class="nav-item active"><i class="fas fa-cubes"></i><span>Modules</span></a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/audio-categories" class="nav-item"><i class="fas fa-folder-tree"></i><span>Catégories Audio</span></a>
+                    <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-book"></i><span>Bibliographies</span></a>
+                    <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestion</div>
+                    <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/pricing" class="nav-item"><i class="fas fa-credit-card"></i><span>Tarification</span></a>
+                    <a href="/api/admin-panel/promos" class="nav-item"><i class="fas fa-tags"></i><span>Codes Promo</span></a>
+                    <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
+                </div>
+            </nav>
+            <div class="user-header">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=04D182&color=000" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Admin</div>
+                    <div class="user-role">Administrateur</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="breadcrumb" id="breadcrumb">
+                <a href="/api/admin-panel/cursus">Cursus</a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="/api/admin-panel/courses">Cours</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>Modules</span>
+            </div>
+
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Modules</h1>
+                    <p class="page-description">Chaque module contient des épisodes audio</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal()" data-testid="new-module-btn"><i class="fas fa-plus"></i> Nouveau module</button>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="search-input" placeholder="Rechercher un module..." id="searchInput" oninput="filterModules()">
+                </div>
+                <div class="filter-box">
+                    <select class="filter-select" id="courseFilter" onchange="filterModules()" data-testid="course-filter-select">
+                        <option value="">Tous les cours</option>
+                    </select>
+                </div>
+                <div class="bulk-actions hidden" id="bulkActions" data-testid="bulk-actions-bar">
+                    <span id="selectedCount">0 sélectionné(s)</span>
+                    <button class="btn btn-primary btn-sm" onclick="bulkToggle(true)" data-testid="bulk-activate-btn"><i class="fas fa-toggle-on"></i> Activer</button>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkToggle(false)" data-testid="bulk-deactivate-btn"><i class="fas fa-toggle-off"></i> Désactiver</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div id="modulesTable" data-testid="modules-table"><div class="loading"><div class="spinner"></div> Chargement...</div></div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nouveau module</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="moduleForm" onsubmit="saveModule(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="moduleId">
+                    <div class="form-group">
+                        <label class="form-label">Nom du module *</label>
+                        <input type="text" class="form-input" id="name" required placeholder="Ex: Introduction à la philosophie" data-testid="module-name-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="description" placeholder="Description du module..." data-testid="module-desc-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cours parent *</label>
+                        <select class="form-select" id="course_id" required data-testid="module-course-select"></select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Intervenant</label>
+                            <input type="text" class="form-input" id="scholar_name" placeholder="Nom de l'intervenant" data-testid="module-scholar-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ordre</label>
+                            <input type="number" class="form-input" id="order" value="1" min="1" data-testid="module-order-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nombre d'épisodes prévus</label>
+                        <input type="number" class="form-input" id="episode_count" value="2" min="1" data-testid="module-episode-count-input">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" data-testid="module-save-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let modules = [];
+        let courses = [];
+        let selectedIds = new Set();
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return null; }
+            if (!response.ok) { const error = await response.json(); throw new Error(error.detail || 'Erreur serveur'); }
+            return response.json();
+        }
+
+        function logout() { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; }
+
+        function getCourseName(courseId) {
+            const course = courses.find(c => c.id === courseId);
+            return course ? course.title : '-';
+        }
+
+        function populateCourseSelect() {
+            const select = document.getElementById('course_id');
+            const filterSelect = document.getElementById('courseFilter');
+            
+            select.innerHTML = '<option value="">-- Sélectionner un cours --</option>' + 
+                courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+            
+            filterSelect.innerHTML = '<option value="">Tous les cours</option>' + 
+                courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+        }
+
+        function openModal(module = null) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = module ? 'Modifier le module' : 'Nouveau module';
+            populateCourseSelect();
+            
+            if (module) {
+                document.getElementById('moduleId').value = module.id;
+                document.getElementById('name').value = module.name || '';
+                document.getElementById('description').value = module.description || '';
+                document.getElementById('course_id').value = module.course_id || '';
+                document.getElementById('scholar_name').value = module.scholar_name || '';
+                document.getElementById('order').value = module.order || 1;
+                document.getElementById('episode_count').value = module.episode_count || 2;
+            } else {
+                document.getElementById('moduleForm').reset();
+                document.getElementById('moduleId').value = '';
+                document.getElementById('order').value = 1;
+                document.getElementById('episode_count').value = 2;
+                
+                // Pre-select course from URL if available
+                const urlParams = new URLSearchParams(window.location.search);
+                const courseId = urlParams.get('course');
+                if (courseId) {
+                    document.getElementById('course_id').value = courseId;
+                }
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function saveModule(event) {
+            event.preventDefault();
+            const id = document.getElementById('moduleId').value;
+            const data = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                course_id: document.getElementById('course_id').value,
+                scholar_name: document.getElementById('scholar_name').value,
+                order: parseInt(document.getElementById('order').value) || 1,
+                episode_count: parseInt(document.getElementById('episode_count').value) || 2
+            };
+
+            try {
+                if (id) {
+                    await apiRequest(`/admin/modules/${id}`, 'PUT', data);
+                    showToast('Module modifié avec succès');
+                } else {
+                    await apiRequest('/admin/modules', 'POST', data);
+                    showToast('Module créé avec succès');
+                }
+                closeModal();
+                loadModules();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteModule(id, name) {
+            if (!confirm(`Supprimer "${name}" ?\n\nAttention: tous les audios liés doivent d'abord être supprimés ou déplacés.`)) return;
+            try {
+                await apiRequest(`/admin/modules/${id}`, 'DELETE');
+                showToast('Module supprimé');
+                loadModules();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        async function toggleModule(id) {
+            try {
+                await apiRequest(`/admin/modules/${id}/toggle`, 'PATCH');
+                loadModules();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        function toggleCheckbox(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            updateBulkActions();
+        }
+
+        function toggleSelectAll() {
+            const allCheckbox = document.getElementById('selectAll');
+            const filteredModules = getFilteredModules();
+            if (allCheckbox.checked) {
+                filteredModules.forEach(item => selectedIds.add(item.id));
+            } else {
+                selectedIds.clear();
+            }
+            updateBulkActions();
+            renderModules(filteredModules);
+        }
+
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            if (selectedIds.size > 0) {
+                bulkActions.classList.remove('hidden');
+                selectedCount.textContent = `${selectedIds.size} sélectionné(s)`;
+            } else {
+                bulkActions.classList.add('hidden');
+            }
+        }
+
+        async function bulkToggle(isActive) {
+            if (selectedIds.size === 0) return;
+            try {
+                await apiRequest('/admin/modules/bulk-toggle', 'POST', {
+                    ids: Array.from(selectedIds),
+                    is_active: isActive
+                });
+                showToast(`${selectedIds.size} modules ${isActive ? 'activés' : 'désactivés'}`);
+                selectedIds.clear();
+                updateBulkActions();
+                loadModules();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        function getFilteredModules() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const courseFilter = document.getElementById('courseFilter').value;
+            
+            return modules.filter(m => {
+                const matchQuery = m.name.toLowerCase().includes(query) || (m.scholar_name && m.scholar_name.toLowerCase().includes(query));
+                const matchCourse = !courseFilter || m.course_id === courseFilter;
+                return matchQuery && matchCourse;
+            });
+        }
+
+        function filterModules() {
+            const filtered = getFilteredModules();
+            renderModules(filtered);
+        }
+
+        function renderModules(data) {
+            if (data.length === 0) {
+                document.getElementById('modulesTable').innerHTML = `<div class="empty-state"><i class="fas fa-cubes"></i><h3>Aucun module</h3><p>Créez un module pour commencer à organiser vos audios</p></div>`;
+                return;
+            }
+            document.getElementById('modulesTable').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell"><input type="checkbox" class="checkbox" id="selectAll" onchange="toggleSelectAll()" data-testid="select-all-checkbox"></th>
+                            <th>#</th>
+                            <th>Module</th>
+                            <th>Cours</th>
+                            <th>Intervenant</th>
+                            <th>Épisodes</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(m => `
+                            <tr data-testid="module-row-${m.id}">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="checkbox" ${selectedIds.has(m.id) ? 'checked' : ''} onchange="toggleCheckbox('${m.id}')" data-testid="checkbox-${m.id}">
+                                </td>
+                                <td><span class="order-badge">${m.order || '-'}</span></td>
+                                <td>
+                                    <div class="table-cell-text">${m.name}</div>
+                                    <div class="table-cell-subtext">${(m.description || '').substring(0, 50)}${m.description && m.description.length > 50 ? '...' : ''}</div>
+                                </td>
+                                <td><span style="color: var(--brand-primary);">${getCourseName(m.course_id)}</span></td>
+                                <td>${m.scholar_name || '-'}</td>
+                                <td>
+                                    <a href="/api/admin-panel/audios?module=${m.id}" class="count-badge" data-testid="view-audios-${m.id}">
+                                        <i class="fas fa-headphones"></i> ${m.episode_count_actual || 0} / ${m.episode_count || 2}
+                                    </a>
+                                </td>
+                                <td><span class="status ${m.is_active ? 'status-active' : 'status-inactive'}">${m.is_active ? 'Actif' : 'Inactif'}</span></td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editModule('${m.id}')" data-testid="edit-${m.id}"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleModule('${m.id}')" data-testid="toggle-${m.id}"><i class="fas fa-toggle-${m.is_active ? 'on' : 'off'}"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteModule('${m.id}', '${m.name.replace(/'/g, "\\'")}')" data-testid="delete-${m.id}"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function editModule(id) {
+            const module = modules.find(m => m.id === id);
+            if (module) openModal(module);
+        }
+
+        async function loadModules() {
+            try {
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return; }
+                document.getElementById('userName').textContent = user.name || user.email;
+                if (user.picture) document.getElementById('userAvatar').src = user.picture;
+
+                [modules, courses] = await Promise.all([
+                    apiRequest('/admin/modules'),
+                    apiRequest('/admin/courses')
+                ]);
+                modules = modules || [];
+                courses = courses || [];
+                
+                populateCourseSelect();
+                
+                // Apply URL filter if present
+                const urlParams = new URLSearchParams(window.location.search);
+                const courseId = urlParams.get('course');
+                if (courseId) {
+                    document.getElementById('courseFilter').value = courseId;
+                }
+                
+                filterModules();
+            } catch (error) { showToast('Erreur de chargement', 'error'); }
+        }
+
+        if (!authToken) { window.location.href = '/api/admin-panel/login'; } else { loadModules(); }
+    </script>
+</body>
+</html>
