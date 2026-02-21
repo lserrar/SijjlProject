@@ -290,7 +290,8 @@ class PromoCodeCreate(BaseModel):
     discount_percent: Optional[float] = None  # 0-100
     discount_amount: Optional[float] = None   # Fixed amount in EUR
     max_uses: Optional[int] = None
-    expires_at: Optional[str] = None
+    start_date: Optional[str] = None   # When the promo code becomes valid
+    expires_at: Optional[str] = None   # When the promo code expires
     applicable_plans: List[str] = []  # Empty = all plans
     description: str = ""
     is_active: bool = True
@@ -299,6 +300,7 @@ class PromoCodeUpdate(BaseModel):
     discount_percent: Optional[float] = None
     discount_amount: Optional[float] = None
     max_uses: Optional[int] = None
+    start_date: Optional[str] = None
     expires_at: Optional[str] = None
     applicable_plans: Optional[List[str]] = None
     description: Optional[str] = None
