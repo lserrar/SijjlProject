@@ -305,7 +305,7 @@
         let audios = [];
         let scholars = [];
         let categories = [];
-        let courses = [];
+        let modules = [];
         let currentR2Folder = '';
 
         function showToast(message, type = 'success') {
@@ -342,9 +342,9 @@
             return cat ? cat.name : '';
         }
 
-        function getCourseName(courseId) {
-            const course = courses.find(c => c.id === courseId);
-            return course ? course.title : '';
+        function getModuleName(moduleId) {
+            const module = modules.find(m => m.id === moduleId);
+            return module ? module.name : '';
         }
 
         function populateCategorySelects() {
@@ -366,10 +366,10 @@
                 scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
         }
 
-        function populateCourseSelect() {
-            const select = document.getElementById('course_id');
-            select.innerHTML = '<option value="">-- Aucun cours --</option>' + 
-                courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+        function populateModuleSelect() {
+            const select = document.getElementById('module_id');
+            select.innerHTML = '<option value="">-- Aucun module --</option>' + 
+                modules.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
         }
 
         function onCategoryChange() {
@@ -391,7 +391,7 @@
             document.getElementById('modalTitle').textContent = audio ? 'Modifier l\'audio' : 'Nouvel audio';
             populateScholarSelect();
             populateCategorySelects();
-            populateCourseSelect();
+            populateModuleSelect();
             
             if (audio) {
                 document.getElementById('audioId').value = audio.id;
@@ -399,7 +399,7 @@
                 document.getElementById('description').value = audio.description || '';
                 document.getElementById('scholar_id').value = audio.scholar_id || '';
                 document.getElementById('category_id').value = audio.category_id || '';
-                document.getElementById('course_id').value = audio.course_id || '';
+                document.getElementById('module_id').value = audio.module_id || '';
                 document.getElementById('episode_number').value = audio.episode_number || '';
                 document.getElementById('type').value = audio.type || 'podcast';
                 document.getElementById('topic').value = audio.topic || '';
@@ -413,6 +413,13 @@
                 document.getElementById('episode_number').value = '';
                 currentR2Folder = '';
                 document.getElementById('r2FolderHint').textContent = 'Sélectionnez une catégorie pour naviguer dans le dossier R2 associé';
+                
+                // Pre-select module from URL if available
+                const urlParams = new URLSearchParams(window.location.search);
+                const moduleId = urlParams.get('module');
+                if (moduleId) {
+                    document.getElementById('module_id').value = moduleId;
+                }
             }
         }
 
@@ -520,7 +527,7 @@
                 scholar_id: scholarId,
                 scholar_name: scholar ? scholar.name : '',
                 category_id: document.getElementById('category_id').value || null,
-                course_id: document.getElementById('course_id').value || null,
+                module_id: document.getElementById('module_id').value || null,
                 episode_number: episodeNum ? parseInt(episodeNum) : null,
                 type: document.getElementById('type').value,
                 topic: document.getElementById('topic').value,
@@ -581,7 +588,7 @@
             }
             document.getElementById('audiosTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Cours lié</th><th>Durée</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Module lié</th><th>Durée</th><th>Statut</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${data.map(a => `
                             <tr data-testid="audio-row-${a.id}">
@@ -596,7 +603,7 @@
                                 </td>
                                 <td>${a.scholar_name || '-'}</td>
                                 <td>${a.category_id ? `<span class="tag category">${getCategoryName(a.category_id)}</span>` : '<span class="tag">-</span>'}</td>
-                                <td>${a.course_id ? `<span class="tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">${getCourseName(a.course_id)}${a.episode_number ? ` #${a.episode_number}` : ''}</span>` : '<span class="tag">-</span>'}</td>
+                                <td>${a.module_id ? `<span class="tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">${getModuleName(a.module_id)}${a.episode_number ? ` #${a.episode_number}` : ''}</span>` : '<span class="tag">-</span>'}</td>
                                 <td>${formatDuration(a.duration)}</td>
                                 <td><span class="status ${a.is_active !== false ? 'status-active' : 'status-inactive'}">${a.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
@@ -621,16 +628,16 @@
                 if (user.picture) document.getElementById('userAvatar').src = user.picture;
 
                 // Load all data in parallel
-                const [scholarsData, audiosData, categoriesData, coursesData] = await Promise.all([
+                const [scholarsData, audiosData, categoriesData, modulesData] = await Promise.all([
                     apiRequest('/admin/scholars'),
                     apiRequest('/admin/audios'),
                     apiRequest('/admin/audio-categories'),
-                    apiRequest('/admin/courses')
+                    apiRequest('/admin/modules')
                 ]);
                 
                 scholars = scholarsData || [];
                 audios = audiosData || [];
-                courses = coursesData || [];
+                modules = modulesData || [];
                 categories = categoriesData || [];
                 
                 populateCategorySelects();
