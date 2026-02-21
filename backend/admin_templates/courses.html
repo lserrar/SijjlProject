@@ -89,6 +89,12 @@
         .filter-select:focus { outline: none; border-color: var(--brand-primary); }
         .toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
         .tag { display: inline-block; padding: 2px 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 11px; color: var(--text-secondary); margin-right: 4px; }
+        .bulk-actions { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; }
+        .bulk-actions.hidden { display: none; }
+        .checkbox-cell { width: 40px; }
+        .checkbox { width: 18px; height: 18px; accent-color: var(--brand-primary); cursor: pointer; }
+        .count-badge { background: var(--bg-tertiary); color: var(--text-secondary); font-size: 12px; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+        .count-badge:hover { background: rgba(4, 209, 130, 0.15); color: var(--brand-primary); }
         @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; } .main-content { margin-left: 70px; padding: 20px; } .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
