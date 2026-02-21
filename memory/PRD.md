@@ -19,7 +19,8 @@ Application mobile e-learning académique française pour études islamiques (iO
 - Auth : register/login (JWT), Google OAuth
 - **Professors** CRUD avec toggle (anciennement Scholars/Savants)
 - **Courses** CRUD avec sync R2 + champ thematique_id pour liaison Cursus
-- **Audios** CRUD avec file_key R2
+- **Audios** CRUD avec file_key R2 + **category_id** pour catégories
+- **Audio Categories** CRUD complet (remplace Conférences)
 - **Thematiques** API (26 themes) = Cursus dans l'interface
 - **Bibliographies** API (22 entrées)
 - **Masterclasses** API (22 sessions, gratuit ou payant)
@@ -30,12 +31,13 @@ Application mobile e-learning académique française pour études islamiques (iO
 - **Login** : Connexion sécurisée
 - **Dashboard** : Stats globales (Professeurs, Cours, Audios, Utilisateurs)
 - **Professeurs** : CRUD complet (renommé de "Savants")
-- **Cours** : CRUD avec sélection professeur + sélection Cursus
-- **Audios** : CRUD avec filtre type
+- **Cours** : CRUD avec sélection professeur + sélection Cursus + cours à la une
+- **Audios** : CRUD avec filtre type ET filtre catégorie + sélecteur de catégorie + navigateur R2 par catégorie
+- **Catégories Audio** : NOUVELLE PAGE - CRUD pour gérer les catégories d'audios (Conférences, Musique, Récitation du Coran, Podcasts...)
 - **Cursus** : CRUD (anciennement Thématiques dans le code, affiche "Cursus" dans l'interface)
 - **Bibliographies** : CRUD avec liens thématiques
 - **Masterclasses** : CRUD avec prix, durée, inscrits
-- **Utilisateurs** : Gestion complète avec affichage abonnements et actions (voir ci-dessous)
+- **Utilisateurs** : Gestion complète avec affichage abonnements et actions
 - **Stockage R2** : Navigation + sync cours
 - **Tarification** : Gestion des plans Stripe
 - **Codes Promo** : CRUD avec périodes de validité (date début et fin)
@@ -50,96 +52,70 @@ Application mobile e-learning académique française pour études islamiques (iO
 - Audio player complet avec streaming R2
 - MiniPlayer persistant
 
-## Modifications récentes (2026-02-21)
-- ✅ **Gestion des abonnements utilisateurs** dans le panel admin :
-  - Affichage du type d'abonnement (Annuel, Mensuel, Manuel, Essai gratuit, Accès gratuit)
-  - Affichage de la date d'expiration avec jours restants
-  - Actions admin : Prolonger l'abonnement, Accorder un abonnement, Accès gratuit, Révoquer l'accès
-  - Endpoints : `/api/admin/users/{user_id}/extend-subscription`, `/api/admin/users/{user_id}/grant-subscription`
-- ✅ **Codes promo avec périodes de validité** :
-  - Champ `start_date` (date de début) ajouté
-  - Champ `expires_at` (date d'expiration) existant
-  - Validation : vérifie si code pas encore valide ou expiré
-  - Affichage dans le tableau : colonne "Période de validité"
-  - Statuts : Actif, Pas encore valide, Expiré, Épuisé
-- ✅ **Écran de choix d'abonnement post-inscription** :
-  - Nouveau fichier `/app/frontend/app/subscription-choice.tsx`
-  - Après inscription, l'utilisateur est redirigé vers cet écran
-  - Options : Essai gratuit 3 jours, Abonnement Mensuel, Abonnement Annuel
-  - Possibilité de continuer sans abonnement (accès limité)
-- ✅ **Protection du contenu payant** :
-  - Hook `useAccessCheck` pour vérifier l'accès utilisateur
-  - Composant `PaywallOverlay` pour bloquer le contenu
-  - Écran de cours modifié pour afficher un paywall si pas d'accès
-  - Modules verrouillés sauf aperçu gratuit du premier module
-- ✅ **Essai gratuit de 3 jours** :
-  - Endpoint `/api/trial/start` accepte `plan_id: trial_3days`
-  - Limité à un essai par utilisateur
-- ✅ **Écran Paramètres** (`/settings`) :
-  - Gestion lecture audio (automatique, haute qualité)
-  - Gestion téléchargements (Wi-Fi uniquement)
-  - Accès abonnement, confidentialité, CGU
-  - **Suppression de compte** avec confirmation
-- ✅ **Écran Notifications** (`/notifications`) :
-  - Toggle nouveaux cours
-  - Toggle masterclasses en direct
-  - Toggle résumé hebdomadaire
-  - Toggle expiration abonnement
-  - Toggle promotions
-- ✅ **Écran À propos** (`/about`) :
-  - Présentation de l'application
-  - Liste des fonctionnalités
-  - Contact (email, Instagram)
-  - Mentions légales
-- ✅ **Lecture audio en arrière-plan** :
-  - Configuration `UIBackgroundModes: ["audio"]` pour iOS
-  - Permission `FOREGROUND_SERVICE` pour Android
-  - `staysActiveInBackground: true` dans expo-av
-- ✅ **Endpoint suppression de compte** :
-  - `DELETE /api/user/delete-account`
-  - Supprime toutes les données utilisateur
-- ✅ **Page d'accueil restructurée** :
-  - Cours "À la une" (featured) configurable depuis le panel admin
-  - Section "Reprendre votre lecture" (dernière lecture)
-  - Section "Recommandé pour vous"
-  - Section "Derniers cours publiés"
-  - Suppression de "Érudit de la semaine"
-- ✅ **Panel Admin - Cours featured** :
-  - Bouton étoile pour mettre un cours en avant
-  - Un seul cours peut être featured à la fois
-  - Endpoint `PATCH /api/admin/courses/{course_id}/set-featured`
-- ✅ **Nouvelle collection Conférences** :
-  - Modèles `ConferenceCreate` et `ConferenceUpdate`
-  - CRUD complet : GET, POST, PUT, DELETE `/api/admin/conferences`
-  - Endpoint public : `GET /api/conferences`
-  - Page admin `/api/admin-panel/conferences`
-- ✅ **Onglet "Ressources"** (ex-Bibliothèque) :
-  - Onglets : Mes cursus, Favoris, Bibliographie, Conférences
-  - Affichage des cursus en cours
-  - Affichage des favoris
-  - Bibliographie par thème
-  - Liste des conférences
-- ✅ **Suggestions "Pour approfondir"** :
-  - Endpoint `GET /api/courses/{course_id}/suggestions`
-  - Retourne conférences, bibliographies et cours liés au même thème
+## Modifications 2026-02-21 (Aujourd'hui)
 
-## Modifications précédentes (2025-12-20)
-- ✅ Renommage "Savants" → "Professeurs" dans tout le panel admin
-- ✅ Renommage "Thématiques" → "Cursus" dans la navigation sidebar
-- ✅ Ajout liaison Cours ↔ Cursus (champ thematique_id)
-- ✅ Formulaire de cours avec sélection du Cursus
-- ✅ Colonne Cursus dans la liste des cours
-- ✅ Nouvelle route /api/admin-panel/professors
-- ✅ **Filtre par Cursus** dans le panel admin (dropdown pour filtrer les cours)
-- ✅ **API publique /api/courses** accepte le paramètre `thematique_id` pour filtrer par cursus
-- ✅ **Intégration Stripe** complète pour paiements
-- ✅ **Abonnements** Mensuel (9.99€/30j) et Annuel (89.99€/365j)
-- ✅ **Achats uniques** de cours ou cursus (6 mois d'accès)
-- ✅ **Page admin Tarification** pour gérer les plans et voir les transactions
-- ✅ **Vérification d'accès utilisateur** (abonnement, achat, admin, accès gratuit)
-- ✅ **Codes promo** : CRUD complet avec % ou montant fixe, max utilisations
-- ✅ **Essais gratuits** : 7 jours mensuel, 14 jours annuel (1 essai par utilisateur)
-- ✅ **Page admin Codes Promo** pour gérer les codes promotionnels
+### ✅ **Système de Catégories Audio** (Remplace Conférences)
+- **Nouvelle collection `audio_categories`** dans MongoDB avec schéma :
+  - `id`, `name`, `description`, `r2_folder`, `icon`, `is_active`, `created_at`
+- **Nouveau champ `category_id`** dans les audios pour liaison
+- **Endpoints API** :
+  - `GET /api/admin/audio-categories` - Liste toutes les catégories (admin)
+  - `GET /api/audio-categories` - Liste les catégories actives (public)
+  - `POST /api/admin/audio-categories` - Créer une catégorie
+  - `PUT /api/admin/audio-categories/{cat_id}` - Modifier une catégorie
+  - `DELETE /api/admin/audio-categories/{cat_id}` - Supprimer (si pas d'audios liés)
+  - `PATCH /api/admin/audio-categories/{cat_id}/toggle` - Activer/Désactiver
+  - `GET /api/audios/by-category/{cat_id}` - Audios par catégorie
+- **Page admin `/api/admin-panel/audio-categories`** :
+  - Grille de cartes avec icône, nom, dossier R2, description
+  - Compteur d'audios par catégorie
+  - Actions : Modifier, Toggle, Supprimer
+  - Sélecteur d'icônes (headphones, microphone-alt, music, quran, podcast...)
+- **Catégories par défaut créées** :
+  - Conférences (hikma-audio/0. Conference/)
+  - Musique (hikma-audio/Musique/)
+  - Récitation du Coran (hikma-audio/Coran/)
+  - Podcasts (hikma-audio/Podcasts/)
+
+### ✅ **Page Audios mise à jour**
+- **Nouveau filtre "Catégorie"** dans la barre d'outils
+- **Nouvelle colonne "Catégorie"** dans le tableau
+- **Sélecteur de catégorie** dans le formulaire d'ajout/modification
+- **Navigateur R2 dynamique** : quand une catégorie est sélectionnée, le dossier R2 associé est utilisé pour parcourir les fichiers
+- Message d'aide indiquant le dossier R2 de la catégorie sélectionnée
+
+### ✅ **Navigation Admin mise à jour**
+- Lien "Conférences" remplacé par "Catégories Audio" dans toutes les pages
+- Fichier `conferences.html` supprimé
+- Nouvelle icône `folder-tree` pour Catégories Audio
+
+## Modifications précédentes
+
+### 2026-02-21 (Session précédente)
+- ✅ Gestion des abonnements utilisateurs dans le panel admin
+- ✅ Codes promo avec périodes de validité (date début et fin)
+- ✅ Écran de choix d'abonnement post-inscription
+- ✅ Protection du contenu payant (hook useAccessCheck, PaywallOverlay)
+- ✅ Essai gratuit de 3 jours
+- ✅ Écran Paramètres (/settings)
+- ✅ Écran Notifications (/notifications)
+- ✅ Écran À propos (/about)
+- ✅ Lecture audio en arrière-plan
+- ✅ Endpoint suppression de compte
+- ✅ Page d'accueil restructurée
+- ✅ Panel Admin - Cours featured
+- ✅ Onglet "Ressources" (ex-Bibliothèque)
+- ✅ Suggestions "Pour approfondir"
+
+### 2025-12-20
+- ✅ Renommage "Savants" → "Professeurs"
+- ✅ Renommage "Thématiques" → "Cursus"
+- ✅ Liaison Cours ↔ Cursus
+- ✅ Intégration Stripe complète
+- ✅ Abonnements Mensuel/Annuel
+- ✅ Achats uniques
+- ✅ Codes promo
+- ✅ Essais gratuits
 
 ## Credentials
 - **Admin Panel** : admin@hikma-admin.com / Admin123!
@@ -152,16 +128,23 @@ Application mobile e-learning académique française pour études islamiques (iO
 - 38 Cours
 - 15 Audios
 - 9 Professeurs
+- 4 Catégories Audio
+
+## Backlog P0 (Urgent - En cours)
+- ⚠️ Application mobile Expo en erreur (ngrok tunnel issues)
+- Appliquer le paywall à tous les contenus premium (pas seulement les cours)
 
 ## Backlog P1 (À venir)
-- Implémentation des écrans mobiles pour Cursus, Bibliothèque, Live
-- Stabilisation du tunnel Ngrok pour l'environnement Expo
-- Page de paiement dans l'app mobile (intégration avec les APIs Stripe)
+- Implémentation backend "Continue Watching" et "Recommandations"
+- Implémentation backend "Mes Cursus" et "Mes Favoris" dans l'onglet Ressources
+- Suggestions post-cours (conférences/bibliographies liées)
+- Écrans mobiles pour afficher les audios par catégorie
 
 ## Backlog P2 (Futur)
-- Push notifications
+- Push notifications pour nouveaux cours et expiration d'abonnement
 - Analytics temps d'écoute
 - Multi-langue (EN, AR, RTL)
-- Refactorisation backend (server.py monolithique)
+- Refactorisation backend (server.py monolithique → routers)
+- Suppression du code admin mobile déprécié (/app/frontend/app/admin)
 
-## Date implémentation : 2026-02-21
+## Date dernière mise à jour : 2026-02-21
