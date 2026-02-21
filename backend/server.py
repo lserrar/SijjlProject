@@ -1790,62 +1790,197 @@ async def admin_grant_subscription(user_id: str, body: GrantSubscriptionRequest,
 
 # ─── Admin: Thematiques CRUD ───────────────────────────────────────────────────
 
-@api_router.get("/admin/thematiques")
-async def admin_list_thematiques(request: Request):
-    await require_admin(request)
-    thematiques = await db.thematiques.find({}, {'_id': 0}).sort('order', 1).to_list(100)
-    return thematiques
+# ─── Admin: Cursus CRUD (was Thematiques) ──────────────────────────────────────
 
-@api_router.post("/admin/thematiques")
-async def admin_create_thematique(request: Request):
+@api_router.get("/admin/cursus")
+async def admin_list_cursus(request: Request):
+    """List all cursus (was thematiques)."""
     await require_admin(request)
-    body = await request.json()
-    thematique_id = f"them_{uuid.uuid4().hex[:8]}"
-    # Get max order
-    last = await db.thematiques.find_one(sort=[('order', -1)])
+    cursus_list = await db.cursus.find({}, {'_id': 0}).sort('order', 1).to_list(100)
+    # Count courses for each cursus
+    for c in cursus_list:
+        c['course_count'] = await db.courses.count_documents({'cursus_id': c['id']})
+    return cursus_list
+
+# Keep old endpoint for compatibility
+@api_router.get("/admin/thematiques")
+async def admin_list_thematiques_compat(request: Request):
+    """Compatibility endpoint - redirects to cursus."""
+    return await admin_list_cursus(request)
+
+@api_router.get("/cursus")
+async def public_list_cursus():
+    """Public endpoint to list active cursus."""
+    cursus_list = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(100)
+    return cursus_list
+
+@api_router.get("/thematiques")
+async def public_list_thematiques_compat():
+    """Compatibility endpoint."""
+    return await public_list_cursus()
+
+@api_router.post("/admin/cursus")
+async def admin_create_cursus(body: CursusCreate, request: Request):
+    await require_admin(request)
+    cursus_id = f"cursus_{uuid.uuid4().hex[:8]}"
+    last = await db.cursus.find_one(sort=[('order', -1)])
     next_order = (last.get('order', 0) + 1) if last else 1
     
     doc = {
-        'id': thematique_id,
-        'name': body['name'],
-        'description': body.get('description', ''),
-        'icon': body.get('icon', 'book'),
-        'order': body.get('order', next_order),
-        'is_active': True,
-        'created_at': datetime.now(timezone.utc)
+        'id': cursus_id,
+        'name': body.name,
+        'description': body.description,
+        'icon': body.icon,
+        'order': body.order or next_order,
+        'is_active': body.is_active,
+        'created_at': datetime.now(timezone.utc).isoformat()
     }
-    await db.thematiques.insert_one(doc)
-    doc.pop('_id', None)
-    return doc
+    await db.cursus.insert_one(doc)
+    return {'message': 'Cursus créé', 'id': cursus_id, 'cursus': {k: v for k, v in doc.items() if k != '_id'}}
 
-@api_router.put("/admin/thematiques/{thematique_id}")
-async def admin_update_thematique(thematique_id: str, request: Request):
+@api_router.put("/admin/cursus/{cursus_id}")
+async def admin_update_cursus(cursus_id: str, body: CursusUpdate, request: Request):
     await require_admin(request)
-    body = await request.json()
-    update = {k: v for k, v in body.items() if k in ['name', 'description', 'icon', 'order', 'is_active']}
-    update['updated_at'] = datetime.now(timezone.utc)
-    result = await db.thematiques.update_one({'id': thematique_id}, {'$set': update})
-    if result.matched_count == 0:
-        raise HTTPException(404, "Thématique non trouvée")
-    return {'message': 'Thématique mise à jour', 'id': thematique_id}
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if update:
+        update['updated_at'] = datetime.now(timezone.utc).isoformat()
+        result = await db.cursus.update_one({'id': cursus_id}, {'$set': update})
+        if result.matched_count == 0:
+            raise HTTPException(404, "Cursus non trouvé")
+    return {'message': 'Cursus mis à jour', 'id': cursus_id}
 
-@api_router.delete("/admin/thematiques/{thematique_id}")
-async def admin_delete_thematique(thematique_id: str, request: Request):
+@api_router.delete("/admin/cursus/{cursus_id}")
+async def admin_delete_cursus(cursus_id: str, request: Request):
     await require_admin(request)
-    result = await db.thematiques.delete_one({'id': thematique_id})
+    # Check for linked courses
+    course_count = await db.courses.count_documents({'cursus_id': cursus_id})
+    if course_count > 0:
+        raise HTTPException(400, f"Impossible de supprimer: {course_count} cours liés")
+    result = await db.cursus.delete_one({'id': cursus_id})
     if result.deleted_count == 0:
-        raise HTTPException(404, "Thématique non trouvée")
-    return {'message': 'Thématique supprimée'}
+        raise HTTPException(404, "Cursus non trouvé")
+    return {'message': 'Cursus supprimé'}
 
-@api_router.patch("/admin/thematiques/{thematique_id}/toggle")
-async def admin_toggle_thematique(thematique_id: str, request: Request):
+@api_router.patch("/admin/cursus/{cursus_id}/toggle")
+async def admin_toggle_cursus(cursus_id: str, request: Request):
     await require_admin(request)
-    doc = await db.thematiques.find_one({'id': thematique_id})
+    doc = await db.cursus.find_one({'id': cursus_id})
     if not doc:
-        raise HTTPException(404, "Thématique non trouvée")
-    new_status = not doc.get('is_active', True)
-    await db.thematiques.update_one({'id': thematique_id}, {'$set': {'is_active': new_status}})
-    return {'id': thematique_id, 'is_active': new_status}
+        raise HTTPException(404, "Cursus non trouvé")
+    new_status = not doc.get('is_active', False)
+    await db.cursus.update_one({'id': cursus_id}, {'$set': {'is_active': new_status}})
+    return {'id': cursus_id, 'is_active': new_status}
+
+@api_router.post("/admin/cursus/bulk-toggle")
+async def admin_bulk_toggle_cursus(body: BulkToggleRequest, request: Request):
+    """Toggle multiple cursus at once."""
+    await require_admin(request)
+    result = await db.cursus.update_many(
+        {'id': {'$in': body.ids}},
+        {'$set': {'is_active': body.is_active, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    return {'message': f'{result.modified_count} cursus mis à jour', 'is_active': body.is_active}
+
+# ─── Admin: Modules CRUD ───────────────────────────────────────────────────────
+
+@api_router.get("/admin/modules")
+async def admin_list_modules(request: Request, course_id: Optional[str] = None):
+    """List all modules, optionally filtered by course_id."""
+    await require_admin(request)
+    query = {}
+    if course_id:
+        query['course_id'] = course_id
+    modules = await db.modules.find(query, {'_id': 0}).sort('order', 1).to_list(500)
+    # Count episodes for each module
+    for m in modules:
+        m['episode_count_actual'] = await db.audios.count_documents({'module_id': m['id']})
+    return modules
+
+@api_router.get("/modules")
+async def public_list_modules(course_id: Optional[str] = None):
+    """Public endpoint to list active modules."""
+    query = {'is_active': True}
+    if course_id:
+        query['course_id'] = course_id
+    modules = await db.modules.find(query, {'_id': 0}).sort('order', 1).to_list(500)
+    return modules
+
+@api_router.post("/admin/modules")
+async def admin_create_module(body: ModuleCreate, request: Request):
+    await require_admin(request)
+    module_id = f"mod_{uuid.uuid4().hex[:8]}"
+    # Get max order for this course
+    last = await db.modules.find_one({'course_id': body.course_id}, sort=[('order', -1)])
+    next_order = (last.get('order', 0) + 1) if last else 1
+    
+    doc = {
+        'id': module_id,
+        'name': body.name,
+        'description': body.description,
+        'course_id': body.course_id,
+        'scholar_name': body.scholar_name,
+        'order': body.order or next_order,
+        'episode_count': body.episode_count,
+        'is_active': body.is_active,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.modules.insert_one(doc)
+    return {'message': 'Module créé', 'id': module_id, 'module': {k: v for k, v in doc.items() if k != '_id'}}
+
+@api_router.put("/admin/modules/{module_id}")
+async def admin_update_module(module_id: str, body: ModuleUpdate, request: Request):
+    await require_admin(request)
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if update:
+        update['updated_at'] = datetime.now(timezone.utc).isoformat()
+        result = await db.modules.update_one({'id': module_id}, {'$set': update})
+        if result.matched_count == 0:
+            raise HTTPException(404, "Module non trouvé")
+    return {'message': 'Module mis à jour', 'id': module_id}
+
+@api_router.delete("/admin/modules/{module_id}")
+async def admin_delete_module(module_id: str, request: Request):
+    await require_admin(request)
+    # Check for linked audios
+    audio_count = await db.audios.count_documents({'module_id': module_id})
+    if audio_count > 0:
+        raise HTTPException(400, f"Impossible de supprimer: {audio_count} épisodes liés")
+    result = await db.modules.delete_one({'id': module_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Module non trouvé")
+    return {'message': 'Module supprimé'}
+
+@api_router.patch("/admin/modules/{module_id}/toggle")
+async def admin_toggle_module(module_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.modules.find_one({'id': module_id})
+    if not doc:
+        raise HTTPException(404, "Module non trouvé")
+    new_status = not doc.get('is_active', False)
+    await db.modules.update_one({'id': module_id}, {'$set': {'is_active': new_status}})
+    return {'id': module_id, 'is_active': new_status}
+
+@api_router.post("/admin/modules/bulk-toggle")
+async def admin_bulk_toggle_modules(body: BulkToggleRequest, request: Request):
+    """Toggle multiple modules at once."""
+    await require_admin(request)
+    result = await db.modules.update_many(
+        {'id': {'$in': body.ids}},
+        {'$set': {'is_active': body.is_active, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    return {'message': f'{result.modified_count} modules mis à jour', 'is_active': body.is_active}
+
+# ─── Admin: Courses Bulk Actions ───────────────────────────────────────────────
+
+@api_router.post("/admin/courses/bulk-toggle")
+async def admin_bulk_toggle_courses(body: BulkToggleRequest, request: Request):
+    """Toggle multiple courses at once."""
+    await require_admin(request)
+    result = await db.courses.update_many(
+        {'id': {'$in': body.ids}},
+        {'$set': {'is_active': body.is_active, 'updated_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    return {'message': f'{result.modified_count} cours mis à jour', 'is_active': body.is_active}
 
 # ─── Admin: Bibliographies CRUD ────────────────────────────────────────────────
 
