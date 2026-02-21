@@ -457,12 +457,71 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
     courses = await db.courses.find(query, {'_id': 0}).to_list(100)
     return courses
 
+@api_router.get("/courses/featured")
+async def get_featured_course():
+    """Get the featured course for homepage highlight."""
+    course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+    return course
+
 @api_router.get("/courses/{course_id}")
 async def get_course(course_id: str):
     c = await db.courses.find_one({'id': course_id}, {'_id': 0})
     if not c:
         raise HTTPException(404, "Cours non trouvé")
     return c
+
+@api_router.get("/courses/{course_id}/suggestions")
+async def get_course_suggestions(course_id: str):
+    """Get 'Pour approfondir' suggestions based on course theme."""
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0})
+    if not course:
+        raise HTTPException(404, "Cours non trouvé")
+    
+    thematique_id = course.get('thematique_id')
+    suggestions = {
+        'conferences': [],
+        'bibliographies': [],
+        'related_courses': []
+    }
+    
+    if thematique_id:
+        # Get conferences on same theme
+        suggestions['conferences'] = await db.conferences.find(
+            {'thematique_id': thematique_id, 'is_active': True}, 
+            {'_id': 0}
+        ).to_list(5)
+        
+        # Get bibliographies on same theme
+        suggestions['bibliographies'] = await db.bibliographies.find(
+            {'thematique_id': thematique_id}, 
+            {'_id': 0}
+        ).to_list(5)
+        
+        # Get other courses on same theme (excluding current)
+        suggestions['related_courses'] = await db.courses.find(
+            {'thematique_id': thematique_id, 'id': {'$ne': course_id}, 'is_active': True}, 
+            {'_id': 0}
+        ).to_list(3)
+    
+    return suggestions
+
+# ─── Conference Routes ─────────────────────────────────────────────────────────
+
+@api_router.get("/conferences")
+async def get_conferences(thematique_id: Optional[str] = None):
+    """Get all conferences, optionally filtered by theme."""
+    query: dict = {'is_active': True}
+    if thematique_id:
+        query['thematique_id'] = thematique_id
+    conferences = await db.conferences.find(query, {'_id': 0}).to_list(100)
+    return conferences
+
+@api_router.get("/conferences/{conference_id}")
+async def get_conference(conference_id: str):
+    conf = await db.conferences.find_one({'id': conference_id}, {'_id': 0})
+    if not conf:
+        raise HTTPException(404, "Conférence non trouvée")
+    return conf
 
 # ─── Audio Routes ───────────────────────────────────────────────────────────
 
