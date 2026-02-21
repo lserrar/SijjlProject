@@ -2037,6 +2037,14 @@ async def admin_panel_masterclasses():
         return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
+@api_router.get("/admin-panel/conferences", response_class=HTMLResponse)
+async def admin_panel_conferences():
+    """Admin panel conferences page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'conferences.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
 @api_router.get("/admin-panel/r2", response_class=HTMLResponse)
 async def admin_panel_r2():
     """Admin panel R2 storage page."""
