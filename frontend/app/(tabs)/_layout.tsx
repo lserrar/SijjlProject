@@ -66,9 +66,9 @@ export default function TabLayout() {
         <Tabs.Screen
           name="bibliotheque"
           options={{
-            title: 'Biblio',
+            title: 'Ressources',
             tabBarIcon: ({ focused }) => (
-              <TabBarIcon name={focused ? 'book' : 'book-outline'} focused={focused} />
+              <TabBarIcon name={focused ? 'library' : 'library-outline'} focused={focused} />
             ),
           }}
         />
