@@ -1104,6 +1104,12 @@ async def seed_data():
     )
     logger.info("Scholar Henry Corbin added/updated")
 
+    # Skip creating demo courses if our custom cursus exists
+    if await db.thematiques.find_one({'id': 'cursus-falsafa'}):
+        logger.info("Custom cursus found - skipping demo course seeding")
+        logger.info("Database seeding complete")
+        return
+
     # 5. Create Course for "Philosophie" folder (Meryem Sebti)
     philosophie_course = {
         "id": "crs-philo-sebti",
