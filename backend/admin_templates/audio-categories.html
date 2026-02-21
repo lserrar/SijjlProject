@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catégories Audio - HikmabyLM Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-card: #1e1e1e; --text-primary: #ffffff; --text-secondary: #a0a0a0; --text-muted: #666666; --brand-primary: #04D182; --brand-secondary: #02b36e; --border-subtle: #2a2a2a; --border-hover: #3a3a3a; --danger: #ef4444; --warning: #f59e0b; --success: #10b981; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 0 20px 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+        .sidebar-logo-text { font-size: 18px; font-weight: 700; }
+        .sidebar-logo-text span { color: var(--brand-primary); }
+        .sidebar-badge { font-size: 10px; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .sidebar-nav { padding: 0 12px; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; color: var(--text-secondary); text-decoration: none; transition: all 0.2s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
+        .user-header { display: flex; align-items: center; gap: 12px; padding: 20px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .user-role { font-size: 12px; color: var(--brand-primary); }
+        .logout-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px; border-radius: 6px; }
+        .logout-btn:hover { background: var(--bg-tertiary); color: var(--danger); }
+        .main-content { flex: 1; margin-left: 260px; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .page-description { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; text-decoration: none; }
+        .btn-primary { background: var(--brand-primary); color: var(--bg-primary); }
+        .btn-primary:hover { background: var(--brand-secondary); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .categories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .category-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; transition: all 0.2s; }
+        .category-card:hover { border-color: var(--border-hover); }
+        .category-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        .category-icon { width: 56px; height: 56px; border-radius: 12px; background: rgba(4, 209, 130, 0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--brand-primary); }
+        .category-title { font-size: 18px; font-weight: 600; }
+        .category-folder { font-size: 12px; color: var(--text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+        .category-description { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+        .category-stats { display: flex; gap: 16px; margin-bottom: 16px; }
+        .category-stat { font-size: 13px; color: var(--text-muted); }
+        .category-stat strong { color: var(--text-primary); }
+        .category-actions { display: flex; gap: 8px; }
+        .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .status-active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-inactive { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: var(--bg-card); border-radius: 16px; max-width: 550px; width: 90%; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 18px; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .form-input, .form-textarea, .form-select { width: 100%; padding: 12px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: inherit; }
+        .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--brand-primary); }
+        .form-textarea { min-height: 80px; resize: vertical; }
+        .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .icon-picker { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 8px; }
+        .icon-option { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; background: var(--bg-card); border: 2px solid transparent; transition: all 0.2s; }
+        .icon-option:hover { border-color: var(--border-hover); }
+        .icon-option.selected { border-color: var(--brand-primary); background: rgba(4, 209, 130, 0.1); }
+        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; } .main-content { margin-left: 70px; padding: 20px; } .categories-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">H</div>
+                    <div>
+                        <div class="sidebar-logo-text">Hikma<span>byLM</span></div>
+                        <div class="sidebar-badge">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a href="/api/admin-panel/" class="nav-item"><i class="fas fa-chart-pie"></i><span>Tableau de bord</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-graduate"></i><span>Professeurs</span></a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/audio-categories" class="nav-item active"><i class="fas fa-folder-tree"></i><span>Catégories Audio</span></a>
+                    <a href="/api/admin-panel/thematiques" class="nav-item"><i class="fas fa-layer-group"></i><span>Cursus</span></a>
+                    <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-book"></i><span>Bibliographies</span></a>
+                    <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestion</div>
+                    <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/pricing" class="nav-item"><i class="fas fa-credit-card"></i><span>Tarification</span></a>
+                    <a href="/api/admin-panel/promos" class="nav-item"><i class="fas fa-tags"></i><span>Codes Promo</span></a>
+                    <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
+                </div>
+            </nav>
+            <div class="user-header">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=04D182&color=000" class="user-avatar" id="userAvatar">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Admin</div>
+                    <div class="user-role">Administrateur</div>
+                </div>
+                <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Catégories Audio</h1>
+                    <p class="page-description">Organisez vos audios par catégories (Conférences, Musique, Coran...)</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal()" data-testid="new-category-btn"><i class="fas fa-plus"></i> Nouvelle catégorie</button>
+            </div>
+
+            <div id="categoriesContainer" class="categories-grid">
+                <div class="empty-state">
+                    <i class="fas fa-folder-tree"></i>
+                    <h3>Chargement...</h3>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nouvelle catégorie</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="categoryForm" onsubmit="saveCategory(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="categoryId">
+                    <div class="form-group">
+                        <label class="form-label">Nom de la catégorie *</label>
+                        <input type="text" class="form-input" id="name" required placeholder="Ex: Conférences" data-testid="cat-name-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="description" placeholder="Description optionnelle de la catégorie" data-testid="cat-desc-input"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Dossier R2 *</label>
+                        <input type="text" class="form-input" id="r2_folder" required placeholder="Ex: hikma-audio/0. Conference/" data-testid="cat-folder-input">
+                        <div class="form-hint">Chemin complet du dossier dans Cloudflare R2 contenant les fichiers audio</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Icône</label>
+                        <input type="text" class="form-input" id="icon" value="headphones" readonly>
+                        <div class="icon-picker" id="iconPicker"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" data-testid="cat-save-btn">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let categories = [];
+        let audioCounts = {};
+
+        const ICONS = ['headphones', 'microphone-alt', 'music', 'quran', 'book-reader', 'podcast', 'file-audio', 'volume-up', 'broadcast-tower', 'mosque', 'pray', 'star', 'heart', 'graduation-cap', 'chalkboard-teacher', 'users'];
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return null; }
+            if (!response.ok) { const error = await response.json(); throw new Error(error.detail || 'Erreur serveur'); }
+            return response.json();
+        }
+
+        function logout() { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; }
+
+        function initIconPicker() {
+            const picker = document.getElementById('iconPicker');
+            picker.innerHTML = ICONS.map(icon => `
+                <div class="icon-option" data-icon="${icon}" onclick="selectIcon('${icon}')">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+            `).join('');
+        }
+
+        function selectIcon(icon) {
+            document.getElementById('icon').value = icon;
+            document.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.icon === icon);
+            });
+        }
+
+        function openModal(category = null) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalTitle').textContent = category ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+            initIconPicker();
+            
+            if (category) {
+                document.getElementById('categoryId').value = category.id;
+                document.getElementById('name').value = category.name || '';
+                document.getElementById('description').value = category.description || '';
+                document.getElementById('r2_folder').value = category.r2_folder || '';
+                document.getElementById('icon').value = category.icon || 'headphones';
+                selectIcon(category.icon || 'headphones');
+            } else {
+                document.getElementById('categoryForm').reset();
+                document.getElementById('categoryId').value = '';
+                document.getElementById('icon').value = 'headphones';
+                selectIcon('headphones');
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function saveCategory(event) {
+            event.preventDefault();
+            const id = document.getElementById('categoryId').value;
+            
+            const data = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                r2_folder: document.getElementById('r2_folder').value,
+                icon: document.getElementById('icon').value
+            };
+
+            try {
+                if (id) {
+                    await apiRequest(`/admin/audio-categories/${id}`, 'PUT', data);
+                    showToast('Catégorie modifiée avec succès');
+                } else {
+                    await apiRequest('/admin/audio-categories', 'POST', data);
+                    showToast('Catégorie créée avec succès');
+                }
+                closeModal();
+                loadCategories();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteCategory(id, name) {
+            if (!confirm(`Supprimer la catégorie "${name}" ?`)) return;
+            try {
+                await apiRequest(`/admin/audio-categories/${id}`, 'DELETE');
+                showToast('Catégorie supprimée');
+                loadCategories();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        async function toggleCategory(id) {
+            try {
+                await apiRequest(`/admin/audio-categories/${id}/toggle`, 'PATCH');
+                loadCategories();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        function renderCategories() {
+            if (categories.length === 0) {
+                document.getElementById('categoriesContainer').innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <i class="fas fa-folder-tree"></i>
+                        <h3>Aucune catégorie</h3>
+                        <p>Créez votre première catégorie audio</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('categoriesContainer').innerHTML = categories.map(cat => `
+                <div class="category-card" data-testid="cat-card-${cat.id}">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas fa-${cat.icon || 'headphones'}"></i>
+                        </div>
+                        <div>
+                            <div class="category-title">${cat.name}</div>
+                            <div class="category-folder">
+                                <i class="fas fa-folder"></i>
+                                ${cat.r2_folder || 'Non défini'}
+                            </div>
+                        </div>
+                    </div>
+                    ${cat.description ? `<div class="category-description">${cat.description}</div>` : ''}
+                    <div class="category-stats">
+                        <span class="category-stat"><strong>${audioCounts[cat.id] || 0}</strong> audios</span>
+                        <span class="status ${cat.is_active !== false ? 'status-active' : 'status-inactive'}">
+                            ${cat.is_active !== false ? 'Actif' : 'Inactif'}
+                        </span>
+                    </div>
+                    <div class="category-actions">
+                        <button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(cat).replace(/'/g, "&apos;")})'>
+                            <i class="fas fa-edit"></i> Modifier
+                        </button>
+                        <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleCategory('${cat.id}')" title="${cat.is_active !== false ? 'Désactiver' : 'Activer'}">
+                            <i class="fas fa-toggle-${cat.is_active !== false ? 'on' : 'off'}"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCategory('${cat.id}', '${cat.name.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadCategories() {
+            try {
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') { localStorage.removeItem('adminToken'); window.location.href = '/api/admin-panel/login'; return; }
+                document.getElementById('userName').textContent = user.name || user.email;
+                if (user.picture) document.getElementById('userAvatar').src = user.picture;
+
+                // Load categories
+                categories = await apiRequest('/admin/audio-categories') || [];
+                
+                // Load audios to count per category
+                const audios = await apiRequest('/admin/audios') || [];
+                audioCounts = {};
+                audios.forEach(a => {
+                    if (a.category_id) {
+                        audioCounts[a.category_id] = (audioCounts[a.category_id] || 0) + 1;
+                    }
+                });
+
+                renderCategories();
+            } catch (error) { showToast('Erreur de chargement', 'error'); }
+        }
+
+        if (!authToken) { window.location.href = '/api/admin-panel/login'; } else { loadCategories(); }
+    </script>
+</body>
+</html>
