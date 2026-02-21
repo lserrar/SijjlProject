@@ -1885,56 +1885,79 @@ async def admin_toggle_masterclass(mc_id: str, request: Request):
     await db.masterclasses.update_one({'id': mc_id}, {'$set': {'is_active': new_status}})
     return {'id': mc_id, 'is_active': new_status}
 
-# ─── Admin: Conferences CRUD ─────────────────────────────────────────────────
+# ─── Admin: Audio Categories CRUD ─────────────────────────────────────────────
 
-@api_router.get("/admin/conferences")
-async def admin_list_conferences(request: Request):
+@api_router.get("/admin/audio-categories")
+async def admin_list_audio_categories(request: Request):
+    """List all audio categories."""
     await require_admin(request)
-    conferences = await db.conferences.find({}, {'_id': 0}).to_list(100)
-    return conferences
+    categories = await db.audio_categories.find({}, {'_id': 0}).to_list(100)
+    return categories
 
-@api_router.post("/admin/conferences")
-async def admin_create_conference(body: ConferenceCreate, request: Request):
+@api_router.get("/audio-categories")
+async def public_list_audio_categories():
+    """Public endpoint to list active audio categories."""
+    categories = await db.audio_categories.find({'is_active': True}, {'_id': 0}).to_list(100)
+    return categories
+
+@api_router.post("/admin/audio-categories")
+async def admin_create_audio_category(body: AudioCategoryCreate, request: Request):
+    """Create a new audio category."""
     await require_admin(request)
-    conf_id = f"conf_{uuid.uuid4().hex[:12]}"
+    cat_id = f"cat_{uuid.uuid4().hex[:8]}"
     doc = {
-        'id': conf_id,
+        'id': cat_id,
         **body.model_dump(),
-        'is_active': True,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
-    await db.conferences.insert_one(doc)
-    logger.info(f"Conference '{body.title}' created with id {conf_id}")
-    return {'message': 'Conférence créée', 'id': conf_id}
+    await db.audio_categories.insert_one(doc)
+    logger.info(f"Audio category '{body.name}' created with id {cat_id}")
+    return {'message': 'Catégorie créée', 'id': cat_id, 'category': {**doc, '_id': None}}
 
-@api_router.put("/admin/conferences/{conf_id}")
-async def admin_update_conference(conf_id: str, body: ConferenceUpdate, request: Request):
+@api_router.put("/admin/audio-categories/{cat_id}")
+async def admin_update_audio_category(cat_id: str, body: AudioCategoryUpdate, request: Request):
+    """Update an audio category."""
     await require_admin(request)
     update_data = {k: v for k, v in body.model_dump().items() if v is not None}
     if update_data:
         update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
-        result = await db.conferences.update_one({'id': conf_id}, {'$set': update_data})
+        result = await db.audio_categories.update_one({'id': cat_id}, {'$set': update_data})
         if result.matched_count == 0:
-            raise HTTPException(404, "Conférence non trouvée")
-    return {'message': 'Conférence mise à jour', 'id': conf_id}
+            raise HTTPException(404, "Catégorie non trouvée")
+    doc = await db.audio_categories.find_one({'id': cat_id}, {'_id': 0})
+    return {'message': 'Catégorie mise à jour', 'id': cat_id, 'category': doc}
 
-@api_router.delete("/admin/conferences/{conf_id}")
-async def admin_delete_conference(conf_id: str, request: Request):
+@api_router.delete("/admin/audio-categories/{cat_id}")
+async def admin_delete_audio_category(cat_id: str, request: Request):
+    """Delete an audio category."""
     await require_admin(request)
-    result = await db.conferences.delete_one({'id': conf_id})
+    # Check if any audios use this category
+    audios_count = await db.audios.count_documents({'category_id': cat_id})
+    if audios_count > 0:
+        raise HTTPException(400, f"Impossible de supprimer: {audios_count} audio(s) utilisent cette catégorie")
+    result = await db.audio_categories.delete_one({'id': cat_id})
     if result.deleted_count == 0:
-        raise HTTPException(404, "Conférence non trouvée")
-    return {'message': 'Conférence supprimée'}
+        raise HTTPException(404, "Catégorie non trouvée")
+    return {'message': 'Catégorie supprimée'}
 
-@api_router.patch("/admin/conferences/{conf_id}/toggle")
-async def admin_toggle_conference(conf_id: str, request: Request):
+@api_router.patch("/admin/audio-categories/{cat_id}/toggle")
+async def admin_toggle_audio_category(cat_id: str, request: Request):
+    """Toggle audio category active status."""
     await require_admin(request)
-    doc = await db.conferences.find_one({'id': conf_id})
+    doc = await db.audio_categories.find_one({'id': cat_id})
     if not doc:
-        raise HTTPException(404, "Conférence non trouvée")
+        raise HTTPException(404, "Catégorie non trouvée")
     new_status = not doc.get('is_active', True)
-    await db.conferences.update_one({'id': conf_id}, {'$set': {'is_active': new_status}})
-    return {'id': conf_id, 'is_active': new_status}
+    await db.audio_categories.update_one({'id': cat_id}, {'$set': {'is_active': new_status}})
+    return {'id': cat_id, 'is_active': new_status}
+
+@api_router.get("/audios/by-category/{cat_id}")
+async def get_audios_by_category(cat_id: str):
+    """Get all audios in a specific category."""
+    audios = await db.audios.find({'category_id': cat_id, 'is_active': True}, {'_id': 0}).to_list(100)
+    for a in audios:
+        a['stream_url'] = resolve_audio_url(a)
+    return audios
 
 # ─── Admin: Set Featured Course ─────────────────────────────────────────────────
 
