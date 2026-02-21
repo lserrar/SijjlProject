@@ -76,6 +76,7 @@
         .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--brand-primary); }
         .form-textarea { min-height: 100px; resize: vertical; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
         .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1100; }
         .toast { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; animation: slideIn 0.3s ease; min-width: 300px; }
         .toast.success { border-left: 4px solid var(--success); }
@@ -86,8 +87,16 @@
         .search-input { width: 100%; padding: 10px 14px 10px 40px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-primary); font-size: 14px; }
         .toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
         .tag { display: inline-block; padding: 2px 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 11px; color: var(--text-secondary); margin-right: 4px; }
-        .play-btn { background: var(--brand-primary); color: var(--bg-primary); border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .play-btn:hover { background: var(--brand-secondary); }
+        .tag.category { background: rgba(4, 209, 130, 0.15); color: var(--brand-primary); }
+        .file-input-wrapper { display: flex; gap: 8px; }
+        .file-input-wrapper .form-input { flex: 1; }
+        .r2-files-list { max-height: 350px; overflow-y: auto; }
+        .r2-file-item { display: flex; align-items: center; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .r2-file-item:hover { background: var(--bg-card); }
+        .r2-file-item i { color: var(--brand-primary); font-size: 20px; margin-right: 12px; }
+        .r2-file-info { flex: 1; }
+        .r2-file-name { font-weight: 500; }
+        .r2-file-size { font-size: 12px; color: var(--text-muted); }
         @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar-header, .nav-section-title, .user-info, .nav-item span, .sidebar-badge { display: none; } .main-content { margin-left: 70px; padding: 20px; } .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -113,6 +122,7 @@
                     <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-user-graduate"></i><span>Professeurs</span></a>
                     <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book-open"></i><span>Cours</span></a>
                     <a href="/api/admin-panel/audios" class="nav-item active"><i class="fas fa-headphones"></i><span>Audios</span></a>
+                    <a href="/api/admin-panel/audio-categories" class="nav-item"><i class="fas fa-folder-tree"></i><span>Catégories Audio</span></a>
                     <a href="/api/admin-panel/thematiques" class="nav-item"><i class="fas fa-layer-group"></i><span>Cursus</span></a>
                     <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-book"></i><span>Bibliographies</span></a>
                     <a href="/api/admin-panel/masterclasses" class="nav-item"><i class="fas fa-video"></i><span>Masterclasses</span></a>
@@ -120,6 +130,8 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Gestion</div>
                     <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i><span>Utilisateurs</span></a>
+                    <a href="/api/admin-panel/pricing" class="nav-item"><i class="fas fa-credit-card"></i><span>Tarification</span></a>
+                    <a href="/api/admin-panel/promos" class="nav-item"><i class="fas fa-tags"></i><span>Codes Promo</span></a>
                     <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i><span>Stockage R2</span></a>
                 </div>
             </nav>
@@ -137,9 +149,9 @@
             <div class="page-header">
                 <div>
                     <h1 class="page-title">Audios</h1>
-                    <p class="page-description">Gérez les podcasts, conférences et récitations</p>
+                    <p class="page-description">Gérez les podcasts, conférences, musiques et récitations</p>
                 </div>
-                <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> Nouvel audio</button>
+                <button class="btn btn-primary" onclick="openModal()" data-testid="new-audio-btn"><i class="fas fa-plus"></i> Nouvel audio</button>
             </div>
 
             <div class="toolbar">
@@ -147,12 +159,16 @@
                     <i class="fas fa-search"></i>
                     <input type="text" class="search-input" placeholder="Rechercher un audio..." id="searchInput" oninput="filterAudios()">
                 </div>
+                <select class="form-select" id="categoryFilter" onchange="filterAudios()" style="width: auto; padding: 10px 16px;">
+                    <option value="">Toutes les catégories</option>
+                </select>
                 <select class="form-select" id="typeFilter" onchange="filterAudios()" style="width: auto; padding: 10px 16px;">
                     <option value="">Tous les types</option>
                     <option value="podcast">Podcasts</option>
                     <option value="lecture">Conférences</option>
                     <option value="quran">Coran</option>
                     <option value="documentary">Documentaires</option>
+                    <option value="music">Musique</option>
                 </select>
             </div>
 
@@ -173,51 +189,89 @@
                     <input type="hidden" id="audioId">
                     <div class="form-group">
                         <label class="form-label">Titre *</label>
-                        <input type="text" class="form-input" id="title" required>
+                        <input type="text" class="form-input" id="title" required data-testid="audio-title-input">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Description</label>
-                        <textarea class="form-textarea" id="description"></textarea>
+                        <textarea class="form-textarea" id="description" data-testid="audio-desc-input"></textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Professeur *</label>
-                            <select class="form-select" id="scholar_id" required></select>
+                            <select class="form-select" id="scholar_id" required data-testid="audio-scholar-select"></select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" id="type">
-                                <option value="podcast">Podcast</option>
-                                <option value="lecture">Conférence</option>
-                                <option value="quran">Coran</option>
-                                <option value="documentary">Documentaire</option>
+                            <label class="form-label">Catégorie</label>
+                            <select class="form-select" id="category_id" onchange="onCategoryChange()" data-testid="audio-category-select">
+                                <option value="">-- Aucune catégorie --</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Topic</label>
-                            <input type="text" class="form-input" id="topic" placeholder="Ex: Philosophie islamique">
+                            <label class="form-label">Type (legacy)</label>
+                            <select class="form-select" id="type" data-testid="audio-type-select">
+                                <option value="podcast">Podcast</option>
+                                <option value="lecture">Conférence</option>
+                                <option value="quran">Coran</option>
+                                <option value="documentary">Documentaire</option>
+                                <option value="music">Musique</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Durée (secondes)</label>
-                            <input type="number" class="form-input" id="duration" value="0">
+                            <label class="form-label">Topic</label>
+                            <input type="text" class="form-input" id="topic" placeholder="Ex: Philosophie islamique" data-testid="audio-topic-input">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Clé fichier R2 (file_key)</label>
-                        <input type="text" class="form-input" id="file_key" placeholder="Ex: podcasts/mon-audio.mp3">
+                        <label class="form-label">Durée (secondes)</label>
+                        <input type="number" class="form-input" id="duration" value="0" data-testid="audio-duration-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fichier Audio (R2)</label>
+                        <div class="file-input-wrapper">
+                            <input type="text" class="form-input" id="file_key" placeholder="Sélectionnez un fichier ou entrez le chemin" data-testid="audio-filekey-input">
+                            <button type="button" class="btn btn-secondary" onclick="openR2Browser()" data-testid="audio-browse-r2">
+                                <i class="fas fa-folder-open"></i> R2
+                            </button>
+                        </div>
+                        <div class="form-hint" id="r2FolderHint">Sélectionnez une catégorie pour naviguer dans le dossier R2 associé</div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">URL de la miniature</label>
-                        <input type="url" class="form-input" id="thumbnail">
+                        <input type="url" class="form-input" id="thumbnail" data-testid="audio-thumb-input">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    <button type="submit" class="btn btn-primary" data-testid="audio-save-btn">Enregistrer</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- R2 Browser Modal -->
+    <div class="modal-overlay" id="r2ModalOverlay" onclick="closeR2Browser(event)">
+        <div class="modal" style="max-width: 650px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title">Sélectionner un fichier audio</h3>
+                <button class="modal-close" onclick="closeR2Browser()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <i class="fas fa-folder" style="color: var(--brand-primary); margin-right: 8px;"></i>
+                    <span id="r2CurrentPath">-</span>
+                </div>
+                <div id="r2FilesList" class="r2-files-list">
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>Sélectionnez une catégorie pour parcourir les fichiers</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeR2Browser()">Annuler</button>
+            </div>
         </div>
     </div>
 
@@ -228,6 +282,8 @@
         let authToken = localStorage.getItem('adminToken');
         let audios = [];
         let scholars = [];
+        let categories = [];
+        let currentR2Folder = '';
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
@@ -258,24 +314,67 @@
             return `${m}min ${s}s`;
         }
 
+        function getCategoryName(catId) {
+            const cat = categories.find(c => c.id === catId);
+            return cat ? cat.name : '';
+        }
+
+        function populateCategorySelects() {
+            const filterSelect = document.getElementById('categoryFilter');
+            const formSelect = document.getElementById('category_id');
+            
+            // Filter dropdown
+            filterSelect.innerHTML = '<option value="">Toutes les catégories</option>' + 
+                categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            
+            // Form dropdown
+            formSelect.innerHTML = '<option value="">-- Aucune catégorie --</option>' + 
+                categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        function populateScholarSelect() {
+            const select = document.getElementById('scholar_id');
+            select.innerHTML = '<option value="">-- Sélectionner --</option>' + 
+                scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        function onCategoryChange() {
+            const catId = document.getElementById('category_id').value;
+            const cat = categories.find(c => c.id === catId);
+            const hint = document.getElementById('r2FolderHint');
+            
+            if (cat && cat.r2_folder) {
+                currentR2Folder = cat.r2_folder;
+                hint.innerHTML = `<i class="fas fa-folder"></i> Dossier R2: <strong>${cat.r2_folder}</strong>`;
+            } else {
+                currentR2Folder = '';
+                hint.textContent = 'Sélectionnez une catégorie pour naviguer dans le dossier R2 associé';
+            }
+        }
+
         function openModal(audio = null) {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = audio ? 'Modifier l\'audio' : 'Nouvel audio';
             populateScholarSelect();
+            populateCategorySelects();
             
             if (audio) {
                 document.getElementById('audioId').value = audio.id;
                 document.getElementById('title').value = audio.title || '';
                 document.getElementById('description').value = audio.description || '';
                 document.getElementById('scholar_id').value = audio.scholar_id || '';
+                document.getElementById('category_id').value = audio.category_id || '';
                 document.getElementById('type').value = audio.type || 'podcast';
                 document.getElementById('topic').value = audio.topic || '';
                 document.getElementById('duration').value = audio.duration || 0;
                 document.getElementById('file_key').value = audio.file_key || '';
                 document.getElementById('thumbnail').value = audio.thumbnail || '';
+                onCategoryChange();
             } else {
                 document.getElementById('audioForm').reset();
                 document.getElementById('audioId').value = '';
+                currentR2Folder = '';
+                document.getElementById('r2FolderHint').textContent = 'Sélectionnez une catégorie pour naviguer dans le dossier R2 associé';
             }
         }
 
@@ -284,10 +383,90 @@
             document.getElementById('modalOverlay').classList.remove('active');
         }
 
-        function populateScholarSelect() {
-            const select = document.getElementById('scholar_id');
-            select.innerHTML = '<option value="">-- Sélectionner --</option>' + 
-                scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        // R2 Browser Functions
+        function openR2Browser() {
+            if (!currentR2Folder) {
+                showToast('Veuillez sélectionner une catégorie d\'abord', 'error');
+                return;
+            }
+            document.getElementById('r2ModalOverlay').classList.add('active');
+            loadR2Files(currentR2Folder);
+        }
+
+        function closeR2Browser(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('r2ModalOverlay').classList.remove('active');
+        }
+
+        async function loadR2Files(folder) {
+            document.getElementById('r2CurrentPath').textContent = folder;
+            document.getElementById('r2FilesList').innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);"><div class="spinner" style="display: inline-block;"></div> Chargement...</div>';
+
+            try {
+                // Remove trailing slash for API call
+                const cleanFolder = folder.replace(/\/$/, '');
+                const resp = await fetch(`${API_BASE}/r2/files/${encodeURIComponent(cleanFolder)}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!resp.ok) throw new Error('Erreur de chargement');
+                
+                const data = await resp.json();
+                renderR2Files(data.files || []);
+            } catch (e) {
+                document.getElementById('r2FilesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Erreur lors du chargement des fichiers</p>
+                        <p style="font-size: 12px; color: var(--text-muted);">Vérifiez que le dossier "${folder}" existe dans R2</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderR2Files(files) {
+            // Filter audio files
+            const audioFiles = files.filter(f => 
+                f.key.toLowerCase().endsWith('.mp3') || 
+                f.key.toLowerCase().endsWith('.m4a') || 
+                f.key.toLowerCase().endsWith('.wav') ||
+                f.key.toLowerCase().endsWith('.ogg') ||
+                f.key.toLowerCase().endsWith('.aac')
+            );
+
+            if (audioFiles.length === 0) {
+                document.getElementById('r2FilesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fas fa-music" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
+                        <p>Aucun fichier audio trouvé dans ce dossier</p>
+                        <p style="font-size: 12px;">Formats supportés: MP3, M4A, WAV, OGG, AAC</p>
+                    </div>
+                `;
+                return;
+            }
+
+            document.getElementById('r2FilesList').innerHTML = audioFiles.map(f => {
+                const fileName = f.key.split('/').pop();
+                const fileSize = f.size ? (f.size / 1024 / 1024).toFixed(2) + ' MB' : '';
+                return `
+                    <div class="r2-file-item" onclick="selectR2File('${f.key}')">
+                        <i class="fas fa-file-audio"></i>
+                        <div class="r2-file-info">
+                            <div class="r2-file-name">${fileName}</div>
+                            <div class="r2-file-size">${fileSize}</div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectR2File('${f.key}')">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectR2File(fileKey) {
+            document.getElementById('file_key').value = fileKey;
+            closeR2Browser();
+            showToast('Fichier sélectionné');
         }
 
         async function saveAudio(event) {
@@ -301,6 +480,7 @@
                 description: document.getElementById('description').value,
                 scholar_id: scholarId,
                 scholar_name: scholar ? scholar.name : '',
+                category_id: document.getElementById('category_id').value || null,
                 type: document.getElementById('type').value,
                 topic: document.getElementById('topic').value,
                 duration: parseInt(document.getElementById('duration').value) || 0,
@@ -342,10 +522,13 @@
         function filterAudios() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const typeFilter = document.getElementById('typeFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
             const filtered = audios.filter(a => {
                 const matchQuery = a.title.toLowerCase().includes(query) || (a.scholar_name && a.scholar_name.toLowerCase().includes(query));
                 const matchType = !typeFilter || a.type === typeFilter;
-                return matchQuery && matchType;
+                const matchCategory = !categoryFilter || a.category_id === categoryFilter;
+                return matchQuery && matchType && matchCategory;
             });
             renderAudios(filtered);
         }
@@ -357,10 +540,10 @@
             }
             document.getElementById('audiosTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Audio</th><th>Professeur</th><th>Type</th><th>Duree</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Type</th><th>Durée</th><th>Statut</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${data.map(a => `
-                            <tr>
+                            <tr data-testid="audio-row-${a.id}">
                                 <td>
                                     <div class="table-cell-flex">
                                         <img src="${a.thumbnail || 'https://via.placeholder.com/48'}" class="table-avatar">
@@ -371,6 +554,7 @@
                                     </div>
                                 </td>
                                 <td>${a.scholar_name || '-'}</td>
+                                <td>${a.category_id ? `<span class="tag category">${getCategoryName(a.category_id)}</span>` : '<span class="tag">-</span>'}</td>
                                 <td><span class="tag">${a.type || '-'}</span></td>
                                 <td>${formatDuration(a.duration)}</td>
                                 <td><span class="status ${a.is_active !== false ? 'status-active' : 'status-inactive'}">${a.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
@@ -395,9 +579,18 @@
                 document.getElementById('userName').textContent = user.name || user.email;
                 if (user.picture) document.getElementById('userAvatar').src = user.picture;
 
-                [scholars, audios] = await Promise.all([apiRequest('/admin/scholars'), apiRequest('/admin/audios')]);
-                scholars = scholars || [];
-                audios = audios || [];
+                // Load all data in parallel
+                const [scholarsData, audiosData, categoriesData] = await Promise.all([
+                    apiRequest('/admin/scholars'),
+                    apiRequest('/admin/audios'),
+                    apiRequest('/admin/audio-categories')
+                ]);
+                
+                scholars = scholarsData || [];
+                audios = audiosData || [];
+                categories = categoriesData || [];
+                
+                populateCategorySelects();
                 renderAudios(audios);
             } catch (error) { showToast('Erreur de chargement', 'error'); }
         }
