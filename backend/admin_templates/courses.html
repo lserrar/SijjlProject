@@ -244,6 +244,7 @@
         let courses = [];
         let scholars = [];
         let thematiques = [];
+        let selectedIds = new Set();
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
@@ -284,6 +285,13 @@
             } else {
                 document.getElementById('courseForm').reset();
                 document.getElementById('courseId').value = '';
+                
+                // Pre-select cursus from URL if available
+                const urlParams = new URLSearchParams(window.location.search);
+                const cursusId = urlParams.get('cursus');
+                if (cursusId) {
+                    document.getElementById('thematique_id').value = cursusId;
+                }
             }
         }
 
@@ -343,7 +351,7 @@
         }
 
         async function deleteCourse(id, title) {
-            if (!confirm(`Supprimer "${title}" ?`)) return;
+            if (!confirm(`Supprimer "${title}" ?\n\nAttention: tous les modules liés doivent d'abord être supprimés.`)) return;
             try {
                 await apiRequest(`/admin/courses/${id}`, 'DELETE');
                 showToast('Cours supprimé');
@@ -358,7 +366,53 @@
             } catch (error) { showToast(error.message, 'error'); }
         }
 
-        function filterCourses() {
+        function toggleCheckbox(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            updateBulkActions();
+        }
+
+        function toggleSelectAll() {
+            const allCheckbox = document.getElementById('selectAll');
+            const filteredCourses = getFilteredCourses();
+            if (allCheckbox.checked) {
+                filteredCourses.forEach(item => selectedIds.add(item.id));
+            } else {
+                selectedIds.clear();
+            }
+            updateBulkActions();
+            renderCourses(filteredCourses);
+        }
+
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            if (selectedIds.size > 0) {
+                bulkActions.classList.remove('hidden');
+                selectedCount.textContent = `${selectedIds.size} sélectionné(s)`;
+            } else {
+                bulkActions.classList.add('hidden');
+            }
+        }
+
+        async function bulkToggle(isActive) {
+            if (selectedIds.size === 0) return;
+            try {
+                await apiRequest('/admin/courses/bulk-toggle', 'POST', {
+                    ids: Array.from(selectedIds),
+                    is_active: isActive
+                });
+                showToast(`${selectedIds.size} cours ${isActive ? 'activés' : 'désactivés'}`);
+                selectedIds.clear();
+                updateBulkActions();
+                loadCourses();
+            } catch (error) { showToast(error.message, 'error'); }
+        }
+
+        function getFilteredCourses() {
             const query = document.getElementById('searchInput').value.toLowerCase();
             const cursusFilter = document.getElementById('cursusFilter').value;
             let filtered = courses;
@@ -372,6 +426,11 @@
                     (c.scholar_name && c.scholar_name.toLowerCase().includes(query))
                 );
             }
+            return filtered;
+        }
+
+        function filterCourses() {
+            const filtered = getFilteredCourses();
             renderCourses(filtered);
         }
 
@@ -388,10 +447,24 @@
             }
             document.getElementById('coursesTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Cours</th><th>Professeur</th><th>Cursus</th><th>Niveau</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell"><input type="checkbox" class="checkbox" id="selectAll" onchange="toggleSelectAll()" data-testid="select-all-checkbox"></th>
+                            <th>Cours</th>
+                            <th>Professeur</th>
+                            <th>Cursus</th>
+                            <th>Modules</th>
+                            <th>Niveau</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         ${data.map(c => `
-                            <tr>
+                            <tr data-testid="course-row-${c.id}">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="checkbox" ${selectedIds.has(c.id) ? 'checked' : ''} onchange="toggleCheckbox('${c.id}')" data-testid="checkbox-${c.id}">
+                                </td>
                                 <td>
                                     <div class="table-cell-flex">
                                         <img src="${c.thumbnail || 'https://via.placeholder.com/60x40'}" class="table-avatar">
@@ -406,14 +479,19 @@
                                 </td>
                                 <td>${c.scholar_name || '-'}</td>
                                 <td>${getThematiqueName(c.thematique_id)}</td>
+                                <td>
+                                    <a href="/api/admin-panel/modules?course=${c.id}" class="count-badge" data-testid="view-modules-${c.id}">
+                                        <i class="fas fa-cubes"></i> ${c.module_count || 0} modules
+                                    </a>
+                                </td>
                                 <td><span class="tag">${c.level || '-'}</span></td>
                                 <td><span class="status ${c.is_active !== false ? 'status-active' : 'status-inactive'}">${c.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn ${c.is_featured ? 'btn-primary' : 'btn-secondary'} btn-sm btn-icon" onclick="setFeatured('${c.id}')" title="${c.is_featured ? 'Cours en avant' : 'Mettre en avant'}"><i class="fas fa-star"></i></button>
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editCourse('${c.id}')"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleCourse('${c.id}')"><i class="fas fa-toggle-${c.is_active !== false ? 'on' : 'off'}"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCourse('${c.id}')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn ${c.is_featured ? 'btn-primary' : 'btn-secondary'} btn-sm btn-icon" onclick="setFeatured('${c.id}')" title="${c.is_featured ? 'Cours en avant' : 'Mettre en avant'}" data-testid="featured-${c.id}"><i class="fas fa-star"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editCourse('${c.id}')" data-testid="edit-${c.id}"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleCourse('${c.id}')" data-testid="toggle-${c.id}"><i class="fas fa-toggle-${c.is_active !== false ? 'on' : 'off'}"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCourse('${c.id}', '${c.title.replace(/'/g, "\\'").replace(/"/g, '\\"')}')" data-testid="delete-${c.id}"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -438,18 +516,6 @@
             if (course) openModal(course);
         }
 
-        async function deleteCourse(id) {
-            const course = courses.find(c => c.id === id);
-            if (!confirm(`Supprimer le cours "${course?.title || id}" ?`)) return;
-            try {
-                await apiRequest(`/admin/courses/${id}`, 'DELETE');
-                showToast('Cours supprime');
-                loadCourses();
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        }
-
         async function loadCourses() {
             try {
                 const user = await apiRequest('/auth/me');
@@ -460,13 +526,22 @@
                 [scholars, courses, thematiques] = await Promise.all([
                     apiRequest('/admin/scholars'), 
                     apiRequest('/admin/courses'),
-                    apiRequest('/admin/thematiques')
+                    apiRequest('/admin/cursus')
                 ]);
                 scholars = scholars || [];
                 courses = courses || [];
                 thematiques = thematiques || [];
+                
                 populateCursusFilter();
-                renderCourses(courses);
+                
+                // Apply URL filter if present
+                const urlParams = new URLSearchParams(window.location.search);
+                const cursusId = urlParams.get('cursus');
+                if (cursusId) {
+                    document.getElementById('cursusFilter').value = cursusId;
+                }
+                
+                filterCourses();
             } catch (error) { showToast('Erreur de chargement', 'error'); }
         }
 
