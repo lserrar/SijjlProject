@@ -377,7 +377,7 @@
                                 </td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick='openModal(${JSON.stringify(s)})' title="Modifier" data-testid="edit-professor-${s.id}">
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editProfessor('${s.id}')" title="Modifier" data-testid="edit-professor-${s.id}">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleProfessor('${s.id}')" title="Activer/Desactiver" data-testid="toggle-professor-${s.id}">
@@ -393,6 +393,11 @@
                     </tbody>
                 </table>
             `;
+        }
+
+        function editProfessor(id) {
+            const professor = professors.find(p => p.id === id);
+            if (professor) openModal(professor);
         }
 
         async function loadProfessors() {
