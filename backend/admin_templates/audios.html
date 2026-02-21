@@ -304,6 +304,7 @@
         let audios = [];
         let scholars = [];
         let categories = [];
+        let courses = [];
         let currentR2Folder = '';
 
         function showToast(message, type = 'success') {
@@ -340,6 +341,11 @@
             return cat ? cat.name : '';
         }
 
+        function getCourseName(courseId) {
+            const course = courses.find(c => c.id === courseId);
+            return course ? course.title : '';
+        }
+
         function populateCategorySelects() {
             const filterSelect = document.getElementById('categoryFilter');
             const formSelect = document.getElementById('category_id');
@@ -357,6 +363,12 @@
             const select = document.getElementById('scholar_id');
             select.innerHTML = '<option value="">-- Sélectionner --</option>' + 
                 scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        }
+
+        function populateCourseSelect() {
+            const select = document.getElementById('course_id');
+            select.innerHTML = '<option value="">-- Aucun cours --</option>' + 
+                courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
         }
 
         function onCategoryChange() {
