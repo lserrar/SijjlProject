@@ -1867,6 +1867,86 @@ async def admin_toggle_masterclass(mc_id: str, request: Request):
     await db.masterclasses.update_one({'id': mc_id}, {'$set': {'is_active': new_status}})
     return {'id': mc_id, 'is_active': new_status}
 
+# ─── Admin: Conferences CRUD ─────────────────────────────────────────────────
+
+@api_router.get("/admin/conferences")
+async def admin_list_conferences(request: Request):
+    await require_admin(request)
+    conferences = await db.conferences.find({}, {'_id': 0}).to_list(100)
+    return conferences
+
+@api_router.post("/admin/conferences")
+async def admin_create_conference(body: ConferenceCreate, request: Request):
+    await require_admin(request)
+    conf_id = f"conf_{uuid.uuid4().hex[:12]}"
+    doc = {
+        'id': conf_id,
+        **body.model_dump(),
+        'is_active': True,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.conferences.insert_one(doc)
+    logger.info(f"Conference '{body.title}' created with id {conf_id}")
+    return {'message': 'Conférence créée', 'id': conf_id}
+
+@api_router.put("/admin/conferences/{conf_id}")
+async def admin_update_conference(conf_id: str, body: ConferenceUpdate, request: Request):
+    await require_admin(request)
+    update_data = {k: v for k, v in body.model_dump().items() if v is not None}
+    if update_data:
+        update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+        result = await db.conferences.update_one({'id': conf_id}, {'$set': update_data})
+        if result.matched_count == 0:
+            raise HTTPException(404, "Conférence non trouvée")
+    return {'message': 'Conférence mise à jour', 'id': conf_id}
+
+@api_router.delete("/admin/conferences/{conf_id}")
+async def admin_delete_conference(conf_id: str, request: Request):
+    await require_admin(request)
+    result = await db.conferences.delete_one({'id': conf_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Conférence non trouvée")
+    return {'message': 'Conférence supprimée'}
+
+@api_router.patch("/admin/conferences/{conf_id}/toggle")
+async def admin_toggle_conference(conf_id: str, request: Request):
+    await require_admin(request)
+    doc = await db.conferences.find_one({'id': conf_id})
+    if not doc:
+        raise HTTPException(404, "Conférence non trouvée")
+    new_status = not doc.get('is_active', True)
+    await db.conferences.update_one({'id': conf_id}, {'$set': {'is_active': new_status}})
+    return {'id': conf_id, 'is_active': new_status}
+
+# ─── Admin: Set Featured Course ─────────────────────────────────────────────────
+
+@api_router.patch("/admin/courses/{course_id}/set-featured")
+async def admin_set_featured_course(course_id: str, request: Request):
+    """Set a course as the featured course (only one can be featured at a time)."""
+    await require_admin(request)
+    
+    # First, unfeature all courses
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    
+    # Then feature the selected course
+    result = await db.courses.update_one(
+        {'id': course_id}, 
+        {'$set': {'is_featured': True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(404, "Cours non trouvé")
+    
+    logger.info(f"Course {course_id} set as featured")
+    return {'message': 'Cours mis en avant', 'id': course_id}
+
+@api_router.delete("/admin/courses/featured")
+async def admin_remove_featured_course(request: Request):
+    """Remove the featured status from all courses."""
+    await require_admin(request)
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    return {'message': 'Aucun cours mis en avant'}
+
 # ─── Admin Panel Web Routes ────────────────────────────────────────────────────
 
 ADMIN_TEMPLATES_DIR = ROOT_DIR / 'admin_templates'
