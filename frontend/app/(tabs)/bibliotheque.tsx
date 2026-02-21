@@ -7,17 +7,22 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth, apiRequest } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { formatDuration } from '../../constants/mockData';
 
-interface Thematique {
+interface Course {
   id: string;
-  name: string;
-  order: number;
+  title: string;
+  scholar_name: string;
+  thumbnail: string;
+  thematique_id: string;
+  modules_count: number;
 }
 
 interface Bibliography {
@@ -28,29 +33,75 @@ interface Bibliography {
   content_en: string;
 }
 
-export default function BibliothequeScreen() {
-  const { token } = useAuth();
+interface Conference {
+  id: string;
+  title: string;
+  speaker_name: string;
+  duration: number;
+  thumbnail: string;
+  thematique_id: string;
+}
+
+type TabType = 'cursus' | 'favoris' | 'biblio' | 'conferences';
+
+export default function RessourcesScreen() {
+  const { token, user } = useAuth();
   const router = useRouter();
-  const [thematiques, setThematiques] = useState<Thematique[]>([]);
-  const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
+  const [activeTab, setActiveTab] = useState<TabType>('cursus');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Data states
+  const [userCourses, setUserCourses] = useState<Course[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
+  const [conferences, setConferences] = useState<Conference[]>([]);
+  const [thematiques, setThematiques] = useState<any[]>([]);
+  const [userAccess, setUserAccess] = useState<any>(null);
   const [selectedBiblio, setSelectedBiblio] = useState<Bibliography | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const [themRes, biblioRes] = await Promise.all([
+      // Get user access info to filter by subscribed thematiques
+      const accessResp = await apiRequest('/user/access', token);
+      if (accessResp.ok) {
+        const accessData = await accessResp.json();
+        setUserAccess(accessData);
+      }
+
+      // Load all data in parallel
+      const [themRes, coursesRes, biblioRes, confRes, favRes] = await Promise.all([
         apiRequest('/thematiques', token),
+        apiRequest('/courses', token),
         apiRequest('/bibliographies', token),
+        apiRequest('/conferences', token),
+        apiRequest('/user/favorites', token).catch(() => ({ ok: false })),
       ]);
-      
+
       if (themRes.ok) {
         const data = await themRes.json();
-        setThematiques(data.sort((a: Thematique, b: Thematique) => a.order - b.order));
+        setThematiques(data);
       }
+
+      if (coursesRes.ok) {
+        const data = await coursesRes.json();
+        // Filter to show courses the user has started (in progress)
+        setUserCourses(data.filter((c: Course) => c.is_active !== false).slice(0, 10));
+      }
+
       if (biblioRes.ok) {
         const data = await biblioRes.json();
         setBibliographies(data);
+      }
+
+      if (confRes.ok) {
+        const data = await confRes.json();
+        setConferences(data);
+      }
+
+      if (favRes.ok) {
+        const data = await favRes.json();
+        setFavorites(data);
       }
     } catch (e) {
       console.error('Failed to load data', e);
@@ -69,8 +120,9 @@ export default function BibliothequeScreen() {
     loadData();
   };
 
-  const getBiblioByTheme = (themeId: string) => {
-    return bibliographies.find(b => b.thematique_id === themeId);
+  const getThematiqueName = (id: string) => {
+    const t = thematiques.find(t => t.id === id);
+    return t?.name || '';
   };
 
   if (loading) {
@@ -78,21 +130,18 @@ export default function BibliothequeScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.brand.primary} />
-          <Text style={styles.loadingText}>Chargement de la bibliothèque...</Text>
+          <Text style={styles.loadingText}>Chargement des ressources...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // If a biblio is selected, show the detail view
+  // Bibliography detail view
   if (selectedBiblio) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.detailHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => setSelectedBiblio(null)}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => setSelectedBiblio(null)}>
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.detailTitle} numberOfLines={1}>
@@ -104,17 +153,15 @@ export default function BibliothequeScreen() {
             <View style={styles.articleSection}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="book" size={20} color={colors.brand.primary} />
-                <Text style={styles.sectionTitle}>Ouvrages en français</Text>
+                <Text style={styles.sectionTitleDetail}>Ouvrages en français</Text>
               </View>
               <Text style={styles.articleText}>{selectedBiblio.content_fr}</Text>
             </View>
-            
             <View style={styles.divider} />
-            
             <View style={styles.articleSection}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="globe" size={20} color={colors.brand.primary} />
-                <Text style={styles.sectionTitle}>Essential readings (English)</Text>
+                <Text style={styles.sectionTitleDetail}>Essential readings (English)</Text>
               </View>
               <Text style={styles.articleText}>{selectedBiblio.content_en}</Text>
             </View>
@@ -125,55 +172,187 @@ export default function BibliothequeScreen() {
     );
   }
 
+  const TABS = [
+    { key: 'cursus', label: 'Mes cursus', icon: 'school-outline' },
+    { key: 'favoris', label: 'Favoris', icon: 'heart-outline' },
+    { key: 'biblio', label: 'Bibliographie', icon: 'book-outline' },
+    { key: 'conferences', label: 'Conférences', icon: 'mic-outline' },
+  ] as const;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.brand.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.primary} />
         }
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Bibliothèque</Text>
+          <Text style={styles.headerTitle}>Ressources</Text>
           <Text style={styles.headerSubtitle}>
-            Découvrez les ouvrages essentiels pour chaque thématique
+            Vos cursus, favoris et ressources complémentaires
           </Text>
         </View>
 
-        {/* Articles List */}
-        <View style={styles.articlesList}>
-          {thematiques.map((theme, index) => {
-            const biblio = getBiblioByTheme(theme.id);
-            if (!biblio) return null;
+        {/* Tabs */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.tabsContainer}
+          contentContainerStyle={styles.tabsContent}
+        >
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key as TabType)}
+            >
+              <Ionicons 
+                name={tab.icon as any} 
+                size={18} 
+                color={activeTab === tab.key ? '#000' : colors.text.secondary} 
+              />
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-            return (
-              <TouchableOpacity
-                key={theme.id}
-                style={styles.articleCard}
-                onPress={() => setSelectedBiblio(biblio)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.articleNumber}>
-                  <Text style={styles.articleNumberText}>{index + 1}</Text>
+        {/* Tab Content */}
+        <View style={styles.content}>
+          {activeTab === 'cursus' && (
+            <View>
+              {userCourses.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="school-outline" size={48} color={colors.text.tertiary} />
+                  <Text style={styles.emptyTitle}>Aucun cursus en cours</Text>
+                  <Text style={styles.emptySubtitle}>Commencez un cours pour le voir ici</Text>
+                  <TouchableOpacity 
+                    style={styles.emptyButton}
+                    onPress={() => router.push('/(tabs)/cursus')}
+                  >
+                    <Text style={styles.emptyButtonText}>Explorer les cursus</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.articleInfo}>
-                  <Text style={styles.articleName}>{theme.name}</Text>
-                  <Text style={styles.articleHint}>Voir la bibliographie</Text>
+              ) : (
+                userCourses.map(course => (
+                  <TouchableOpacity
+                    key={course.id}
+                    style={styles.courseCard}
+                    onPress={() => router.push(`/course/${course.id}` as any)}
+                  >
+                    <Image 
+                      source={{ uri: course.thumbnail || 'https://via.placeholder.com/80' }} 
+                      style={styles.courseThumb} 
+                    />
+                    <View style={styles.courseInfo}>
+                      <Text style={styles.courseTopic}>{getThematiqueName(course.thematique_id)}</Text>
+                      <Text style={styles.courseTitle} numberOfLines={2}>{course.title}</Text>
+                      <Text style={styles.courseMeta}>{course.scholar_name} · {course.modules_count} modules</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+
+          {activeTab === 'favoris' && (
+            <View>
+              {favorites.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="heart-outline" size={48} color={colors.text.tertiary} />
+                  <Text style={styles.emptyTitle}>Aucun favori</Text>
+                  <Text style={styles.emptySubtitle}>Ajoutez des cours à vos favoris pour y accéder rapidement</Text>
                 </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.text.tertiary}
-                />
-              </TouchableOpacity>
-            );
-          })}
+              ) : (
+                favorites.map((fav: any) => (
+                  <TouchableOpacity
+                    key={fav.content_id}
+                    style={styles.courseCard}
+                    onPress={() => router.push(`/course/${fav.content_id}` as any)}
+                  >
+                    <View style={styles.favIcon}>
+                      <Ionicons name="heart" size={20} color={colors.brand.primary} />
+                    </View>
+                    <View style={styles.courseInfo}>
+                      <Text style={styles.courseTitle}>{fav.content_title || fav.content_id}</Text>
+                      <Text style={styles.courseMeta}>{fav.content_type}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+
+          {activeTab === 'biblio' && (
+            <View>
+              {bibliographies.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="book-outline" size={48} color={colors.text.tertiary} />
+                  <Text style={styles.emptyTitle}>Aucune bibliographie</Text>
+                  <Text style={styles.emptySubtitle}>Les bibliographies seront disponibles prochainement</Text>
+                </View>
+              ) : (
+                bibliographies.map((biblio, index) => (
+                  <TouchableOpacity
+                    key={biblio.id}
+                    style={styles.biblioCard}
+                    onPress={() => setSelectedBiblio(biblio)}
+                  >
+                    <View style={styles.biblioNumber}>
+                      <Text style={styles.biblioNumberText}>{index + 1}</Text>
+                    </View>
+                    <View style={styles.courseInfo}>
+                      <Text style={styles.biblioTitle}>{biblio.title.replace('Bibliographie : ', '')}</Text>
+                      <Text style={styles.biblioHint}>Voir les ouvrages recommandés</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+
+          {activeTab === 'conferences' && (
+            <View>
+              {conferences.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="mic-outline" size={48} color={colors.text.tertiary} />
+                  <Text style={styles.emptyTitle}>Aucune conférence</Text>
+                  <Text style={styles.emptySubtitle}>Les conférences et interventions externes seront ajoutées prochainement</Text>
+                </View>
+              ) : (
+                conferences.map(conf => (
+                  <TouchableOpacity
+                    key={conf.id}
+                    style={styles.confCard}
+                    onPress={() => {/* TODO: Open conference detail */}}
+                  >
+                    <Image 
+                      source={{ uri: conf.thumbnail || 'https://via.placeholder.com/80' }} 
+                      style={styles.confThumb} 
+                    />
+                    <View style={styles.courseInfo}>
+                      <Text style={styles.confTitle} numberOfLines={2}>{conf.title}</Text>
+                      <Text style={styles.confSpeaker}>{conf.speaker_name}</Text>
+                      <View style={styles.confMeta}>
+                        <Ionicons name="time-outline" size={12} color={colors.text.tertiary} />
+                        <Text style={styles.confDuration}>{formatDuration(conf.duration)}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.playButton}>
+                      <Ionicons name="play" size={16} color="#000" />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 100 }} />
@@ -187,6 +366,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md },
   loadingText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary },
+  
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
@@ -204,10 +384,77 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     lineHeight: 20,
   },
-  articlesList: {
-    paddingHorizontal: spacing.md,
+
+  // Tabs
+  tabsContainer: {
+    marginBottom: spacing.lg,
   },
-  articleCard: {
+  tabsContent: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.background.card,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+  },
+  tabActive: {
+    backgroundColor: colors.brand.primary,
+    borderColor: colors.brand.primary,
+  },
+  tabText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 13,
+    color: colors.text.secondary,
+  },
+  tabTextActive: {
+    color: '#000',
+  },
+
+  content: {
+    paddingHorizontal: spacing.lg,
+  },
+
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl * 2,
+    gap: spacing.md,
+  },
+  emptyTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 18,
+    color: colors.text.primary,
+  },
+  emptySubtitle: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 14,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  emptyButton: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.brand.primary,
+    borderRadius: radius.full,
+  },
+  emptyButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#000',
+  },
+
+  // Course Card
+  courseCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background.card,
@@ -216,34 +463,130 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     gap: spacing.md,
   },
-  articleNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.brand.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
+  courseThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.md,
+    backgroundColor: colors.background.elevated,
   },
-  articleNumberText: {
+  courseInfo: {
+    flex: 1,
+  },
+  courseTopic: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 10,
+    color: colors.brand.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  courseTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text.primary,
+    marginBottom: 4,
+    lineHeight: 19,
+  },
+  courseMeta: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+
+  // Favorite
+  favIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(217, 255, 0, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Bibliography
+  biblioCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
+  },
+  biblioNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(217, 255, 0, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  biblioNumberText: {
     fontFamily: 'Inter-Bold',
     fontSize: 14,
     color: colors.brand.primary,
   },
-  articleInfo: {
-    flex: 1,
-  },
-  articleName: {
+  biblioTitle: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 14,
     color: colors.text.primary,
     marginBottom: 2,
   },
-  articleHint: {
+  biblioHint: {
     fontFamily: 'DMSans-Regular',
     fontSize: 12,
     color: colors.text.secondary,
   },
-  // Detail view styles
+
+  // Conference
+  confCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.md,
+  },
+  confThumb: {
+    width: 70,
+    height: 70,
+    borderRadius: radius.md,
+    backgroundColor: colors.background.elevated,
+  },
+  confTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text.primary,
+    marginBottom: 4,
+    lineHeight: 19,
+  },
+  confSpeaker: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
+    color: colors.brand.primary,
+    marginBottom: 6,
+  },
+  confMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  confDuration: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: colors.text.tertiary,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Detail view
   detailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -274,7 +617,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  sectionTitle: {
+  sectionTitleDetail: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
     color: colors.text.primary,
