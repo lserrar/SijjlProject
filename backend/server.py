@@ -2270,8 +2270,24 @@ async def admin_panel_articles():
 
 @api_router.get("/admin-panel/thematiques", response_class=HTMLResponse)
 async def admin_panel_thematiques():
-    """Admin panel thematiques page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'thematiques.html'
+    """Admin panel thematiques page - redirects to cursus."""
+    template_path = ADMIN_TEMPLATES_DIR / 'cursus.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/cursus", response_class=HTMLResponse)
+async def admin_panel_cursus():
+    """Admin panel cursus page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'cursus.html'
+    if template_path.exists():
+        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/modules", response_class=HTMLResponse)
+async def admin_panel_modules():
+    """Admin panel modules page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'modules.html'
     if template_path.exists():
         return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
