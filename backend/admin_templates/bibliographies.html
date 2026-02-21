@@ -274,8 +274,8 @@
                                 <td><div class="table-cell-subtext">${(item.content_fr || '-').substring(0, 80)}...</div></td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick='openModal(${JSON.stringify(item)})'><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}', '${item.title.replace(/'/g, "\\'").replace(/"/g, '\\"')}')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editItem('${item.id}')"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}')"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -283,6 +283,21 @@
                     </tbody>
                 </table>
             `;
+        }
+
+        function editItem(id) {
+            const item = items.find(i => i.id === id);
+            if (item) openModal(item);
+        }
+
+        async function deleteItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!confirm(`Supprimer "${item?.title || id}" ?`)) return;
+            try {
+                await apiRequest(`/admin/bibliographies/${id}`, 'DELETE');
+                showToast('Supprime');
+                loadData();
+            } catch (error) { showToast(error.message, 'error'); }
         }
 
         async function loadData() {
