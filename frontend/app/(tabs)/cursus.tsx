@@ -78,7 +78,8 @@ export default function CursusScreen() {
   };
 
   const getCoursesByTheme = (themeId: string) => {
-    return courses.filter(c => c.thematique_id === themeId);
+    // Support both old (thematique_id) and new (cursus_id) field names
+    return courses.filter(c => c.thematique_id === themeId || (c as any).cursus_id === themeId);
   };
 
   if (loading) {
