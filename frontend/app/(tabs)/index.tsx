@@ -380,15 +380,16 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
-  greetingText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary },
-  userName: { fontFamily: 'Inter-Bold', fontSize: 26, color: colors.text.primary, letterSpacing: -0.5, marginTop: 2 },
+  greetingText: { fontFamily: 'Cinzel', fontSize: 9, color: '#888888', letterSpacing: 3, textTransform: 'uppercase' },
+  userName: { fontFamily: 'Cinzel', fontSize: 24, color: '#F5F0E8', letterSpacing: 4, marginTop: 4 },
   searchBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#222222',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#111111',
   },
 
   // Hero card
