@@ -951,54 +951,89 @@ async def get_home(request: Request):
     user = await get_current_user(request)
     user_id = user['user_id'] if user else None
 
-    # Hero: last progress item
-    hero = None
+    # 1. Featured course
+    featured_course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+    if not featured_course:
+        featured_course = await db.courses.find_one({'is_active': True}, {'_id': 0})
+
+    # 2. Continue watching (last 3 in-progress audios)
+    continue_watching = []
     if user_id:
-        progress_item = await db.user_progress.find_one(
-            {'user_id': user_id}, sort=[('updated_at', -1)], projection={'_id': 0}
-        )
-        if progress_item:
-            ctype = progress_item.get('content_type', 'audio')
-            coll = db.audios if ctype == 'audio' else db.courses
-            content = await coll.find_one({'id': progress_item['content_id']}, {'_id': 0})
-            if content:
-                hero = {'content': content, 'progress': progress_item.get('progress', 0), 'content_type': ctype}
+        progress_items = await db.user_progress.find(
+            {'user_id': user_id, 'content_type': 'audio', 'completed': {'$ne': True}, 'progress': {'$gt': 0.01}},
+            {'_id': 0}
+        ).sort('updated_at', -1).limit(3).to_list(3)
+        for p in progress_items:
+            audio = await db.audios.find_one({'id': p['content_id']}, {'_id': 0})
+            if audio:
+                audio['stream_url'] = resolve_audio_url(audio)
+                course_info = None
+                if audio.get('course_id'):
+                    course_info = await db.courses.find_one(
+                        {'id': audio['course_id']}, {'_id': 0, 'title': 1, 'thumbnail': 1, 'id': 1}
+                    )
+                continue_watching.append({
+                    'audio': audio,
+                    'course': course_info,
+                    'progress': p.get('progress', 0),
+                    'position': p.get('position', 0),
+                })
 
-    if not hero:
-        latest_audio = await db.audios.find_one({}, {'_id': 0}, sort=[('published_at', -1)])
-        if latest_audio:
-            hero = {'content': latest_audio, 'progress': 0.0, 'content_type': 'audio'}
+    # 3. Recommendations (6 active courses)
+    recommendations = await db.courses.find({'is_active': True}, {'_id': 0}).limit(6).to_list(6)
 
-    # Recommendations
-    recommendations = await db.courses.find({}, {'_id': 0}).limit(4).to_list(4)
-    rec_audios = await db.audios.find({'type': 'podcast'}, {'_id': 0}).limit(3).to_list(3)
-    recommendations = recommendations + rec_audios
+    # 4. Scholars
+    scholars_list = await db.scholars.find({'is_active': True}, {'_id': 0}).to_list(10)
 
-    # Featured scholar + scholars list
-    featured_scholar = await db.scholars.find_one({'id': {'$not': {'$regex': 'test', '$options': 'i'}}}, {'_id': 0})
-    scholars_list = await db.scholars.find({}, {'_id': 0}).to_list(10)
+    # 5. Top 10 courses (admin config + auto fill by play_count)
+    top10_courses = []
+    config = await db.config.find_one({'key': 'top10_courses'}, {'_id': 0})
+    if config and config.get('course_ids'):
+        for cid in config['course_ids'][:10]:
+            c = await db.courses.find_one({'id': cid, 'is_active': True}, {'_id': 0})
+            if c:
+                top10_courses.append(c)
+    if len(top10_courses) < 10:
+        existing_ids = [c['id'] for c in top10_courses]
+        extra = await db.courses.find(
+            {'is_active': True, 'id': {'$nin': existing_ids}},
+            {'_id': 0}
+        ).sort('play_count', -1).limit(10 - len(top10_courses)).to_list(10)
+        top10_courses.extend(extra)
 
-    # Daily pick
-    daily_pick = await db.audios.find_one({'type': 'quran'}, {'_id': 0})
-    if not daily_pick:
-        daily_pick = await db.audios.find_one({}, {'_id': 0})
-    if daily_pick:
-        daily_pick['stream_url'] = resolve_audio_url(daily_pick)
+    # 6. Course bandeaux (all courses with their episodes — parallel fetch)
+    all_courses = await db.courses.find({'is_active': True}, {'_id': 0}).to_list(50)
 
-    # Hero: resolve stream URL if audio
-    if hero and hero.get('content_type') == 'audio':
-        hero['content']['stream_url'] = resolve_audio_url(hero['content'])
+    async def _get_course_with_episodes(course: dict) -> Optional[dict]:
+        # Try direct course_id link first (synced R2 audios)
+        episodes = await db.audios.find(
+            {'course_id': course['id'], 'is_active': True}, {'_id': 0}
+        ).sort('episode_number', 1).limit(10).to_list(10)
+        if not episodes:
+            # Fallback: try via modules
+            modules = await db.modules.find(
+                {'course_id': course['id'], 'is_active': True}, {'_id': 0}
+            ).sort('order', 1).limit(10).to_list(10)
+            for mod in modules:
+                audio = await db.audios.find_one({'module_id': mod['id']}, {'_id': 0})
+                if audio:
+                    episodes.append(audio)
+        if not episodes:
+            return None
+        for ep in episodes:
+            ep['stream_url'] = resolve_audio_url(ep)
+        return {**course, 'episodes': episodes}
 
-    # Recent publications
-    recent_articles = await db.articles.find({}, {'_id': 0}).limit(3).to_list(3)
+    bandeaux_results = await asyncio.gather(*[_get_course_with_episodes(c) for c in all_courses])
+    course_bandeaux = [b for b in bandeaux_results if b is not None]
 
     return {
-        'hero': hero,
+        'featured_course': featured_course,
+        'continue_watching': continue_watching,
         'recommendations': recommendations,
-        'featured_scholar': featured_scholar,
         'scholars': scholars_list,
-        'daily_pick': daily_pick,
-        'recent_publications': recent_articles
+        'top10_courses': top10_courses,
+        'course_bandeaux': course_bandeaux,
     }
 
 # ─── User Progress Routes ────────────────────────────────────────────────────
