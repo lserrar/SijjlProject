@@ -1,0 +1,68 @@
+{
+  "summary": "Iteration 9: Full test of bug fixes: playlist endpoint, 'Commencer le cours' button visibility, audio player navigation, episode counter, play button state, skip buttons. 20/20 backend tests passed (100%). 7/8 frontend test scenarios passed. One minor design gap on home page (test #8).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "HomeScreen - FeaturedCourse card",
+        "issue": "Test #8: No explicit 'Commencer le cours' button on featured course card on home page. The entire card is clickable (navigates to course detail), but there's no CTA button visible. Test requirement was 'bouton Commencer le cours visible sur le cours en vedette'. Current implementation: clickable card → course detail → Commencer le cours. Minor UX gap.",
+        "selector": "[data-testid='home-featured-course']",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Audio autoplay on direct URL visit",
+        "issue": "Browser autoplay policy: when navigating directly to /audio/...?autoplay=1, 'NotAllowedError: play() failed because the user didn't interact with the document first' is logged. This is EXPECTED browser behavior - autoplay works correctly when navigated FROM the course page (user click = interaction). Not a code bug.",
+        "affected_selectors": ["[data-testid='audio-play-pause']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_results_detail": {
+    "test_1_backend": "PASS: GET /api/courses/cours-falsafa-grands/playlist → 200, returns 5 episodes in order",
+    "test_2_backend": "PASS: GET /api/courses/cours-kalam/playlist → 200, returns exactly 4 episodes",
+    "test_3_frontend": "PASS: /course/cours-falsafa-grands accessible WITHOUT login, 'Commencer le cours' button visible",
+    "test_4_frontend": "PASS: Clicking 'Commencer le cours' → navigates to /audio/aud_cours-falsafa-grands-mod-1?course_id=cours-falsafa-grands&autoplay=1",
+    "test_5_frontend": "PASS: Audio player header shows 'ÉPISODE 1/5' when course_id param is present",
+    "test_6_frontend": "PASS: Play button visible as green circle with play icon (no ActivityIndicator spinner)",
+    "test_7_frontend": "PASS: Skip backward (-15s) and skip forward (+15s) buttons both visible with '15' labels",
+    "test_8_frontend": "PARTIAL: Home page has clickable featured course card ('À LA UNE') but no explicit 'Commencer le cours' CTA button inside it"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_playlist_iteration9.py",
+    "/app/test_reports/pytest/playlist_iteration9.xml"
+  ],
+  "action_items": [
+    "LOW: Add 'Commencer le cours' button inside the featured course card on the home page (app/(tabs)/index.tsx). Currently the whole card is clickable but there's no explicit CTA button visible to users."
+  ],
+  "critical_code_review_comments": [
+    "FIXED from iteration_8: Play button no longer shows spinner in initial state - now shows play icon correctly (Ionicons name='play' when not isCurrentTrack || !isPlaying)",
+    "handleSeek now has try-catch with locationX ?? offsetX ?? 0 fallback - correctly handles web events",
+    "seekTo in PlayerContext guards NaN/negative values - prevents crash on seek",
+    "setOnFinish properly added to PlayerContext - auto-next overlay works correctly",
+    "Playlist endpoint GET /courses/{id}/playlist returns ordered episodes with correct stream_url (proxy URLs)",
+    "Header correctly shows 'ÉPISODE X/N' using currentIndex+1 from playlist when course_id param present"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_playlist_iteration9.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20)",
+    "frontend": "87.5% (7/8 - test #8 is minor design gap)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All bug fixes verified: (1) 'Commencer le cours' visible without auth on course page ✅ (2) Navigation to /audio/...?course_id=...&autoplay=1 ✅ (3) 'ÉPISODE 1/5' in header ✅ (4) Play button shows play icon (not spinner) ✅ (5) Skip ±15s buttons ✅ (6) Playlist endpoint returns 5 episodes for falsafa, 4 for kalam ✅. Only minor gap: home page featured card has no explicit 'Commencer le cours' button (whole card is clickable). Known browser issue: autoplay blocked by browser policy when navigating directly to URL (normal behavior, works fine from in-app navigation). Backend: 20/20 tests pass.",
+  "rca_of_issues_fixed": {
+    "commencer_le_cours_button": "Previously had hasAccess check around the button. Fix: button rendered unconditionally (lines 153-167 of course/[id].tsx), only the 'S'abonner' button is conditionally shown below it when !hasAccess.",
+    "seek_crash": "nativeEvent.locationX is undefined on web. Fix: evt.nativeEvent?.locationX ?? evt.nativeEvent?.offsetX ?? 0 with try-catch wrapper.",
+    "seekTo_nan": "seekTo in PlayerContext now checks isNaN(positionSeconds) || positionSeconds < 0 before calling setPositionAsync.",
+    "episode_counter": "Audio screen loads playlist via GET /courses/{course_id}/playlist when course_id param is present. currentIndex = playlist.findIndex(p => p.audio_id === id). Header displays 'ÉPISODE {currentIndex+1}/{playlist.length}'.",
+    "auto_next": "setOnFinish callback registered in useEffect, onFinishRef triggers overlay with 5s countdown after audio ends."
+  }
+}
