@@ -367,4 +367,31 @@ const styles = StyleSheet.create({
   descSection: { backgroundColor: colors.background.card, borderRadius: radius.xl, padding: spacing.lg },
   descTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: colors.text.primary, marginBottom: spacing.sm },
   descText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary, lineHeight: 22 },
+  // Auto-next overlay
+  nextOverlay: {
+    position: 'absolute', bottom: 120, left: spacing.lg, right: spacing.lg, zIndex: 100,
+  },
+  nextCard: {
+    backgroundColor: 'rgba(20,20,20,0.97)', borderRadius: radius.xl, padding: spacing.lg,
+    borderWidth: 1, borderColor: 'rgba(4,209,130,0.3)',
+  },
+  nextLabel: {
+    fontFamily: 'Inter-SemiBold', fontSize: 12, color: colors.brand.primary,
+    marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  nextTitle: {
+    fontFamily: 'Inter-Bold', fontSize: 15, color: colors.text.primary,
+    lineHeight: 22, marginBottom: spacing.md,
+  },
+  nextBtns: { flexDirection: 'row', gap: 10 },
+  nextBtnCancel: {
+    flex: 1, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border.default,
+  },
+  nextBtnCancelText: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: colors.text.secondary },
+  nextBtnPlay: {
+    flex: 2, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center',
+    backgroundColor: colors.brand.primary, flexDirection: 'row', justifyContent: 'center', gap: 6,
+  },
+  nextBtnPlayText: { fontFamily: 'Inter-Bold', fontSize: 13, color: '#000' },
 });
