@@ -247,16 +247,16 @@ const styles = StyleSheet.create({
   results: { flex: 1 },
 
   groupTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 14,
-    color: colors.text.secondary,
+    fontFamily: 'Cinzel',
+    fontSize: 9,
+    color: '#04D182',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 5,
   },
-  groupCount: { fontFamily: 'Inter-Regular', color: colors.text.tertiary },
+  groupCount: { fontFamily: 'EB Garamond', fontStyle: 'italic', color: '#888888', fontSize: 13 },
   coursesGroup: { marginTop: spacing.md },
 
   resultRow: {
