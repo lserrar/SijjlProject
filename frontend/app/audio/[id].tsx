@@ -266,7 +266,7 @@ export default function AudioDetailScreen() {
             <Ionicons name="chevron-back" size={18} color="#F5F0E8" />
             <Text style={s.backLabel}>Épisodes</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.moreBtn} onPress={() => {}}>
+          <TouchableOpacity testID="audio-more-btn" style={s.moreBtn} onPress={() => {}}>
             <Ionicons name="ellipsis-horizontal" size={18} color="#F5F0E8" />
           </TouchableOpacity>
         </View>
