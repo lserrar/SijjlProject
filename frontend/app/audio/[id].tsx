@@ -164,9 +164,18 @@ export default function AudioDetailScreen() {
   };
 
   const handleSeek = (evt: any) => {
-    const x = evt.nativeEvent.locationX;
-    const seekProgress = Math.max(0, Math.min(1, x / (SCREEN_WIDTH - spacing.lg * 2)));
-    seekTo(seekProgress * displayDuration);
+    try {
+      // Support both React Native (locationX) and web (offsetX/pageX)
+      const x = evt.nativeEvent?.locationX ??
+                evt.nativeEvent?.offsetX ??
+                0;
+      const barWidth = SCREEN_WIDTH - spacing.lg * 2;
+      if (!displayDuration || barWidth <= 0 || isNaN(x)) return;
+      const seekProgress = Math.max(0, Math.min(1, x / barWidth));
+      seekTo(seekProgress * displayDuration);
+    } catch (e) {
+      console.warn('Seek error:', e);
+    }
   };
 
   const formatTime = (seconds: number) => {
