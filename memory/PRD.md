@@ -1,115 +1,130 @@
-# Sijill - Product Requirements Document
+# Sijill — PRD (Product Requirements Document)
 
-## Project Overview
-**App Name**: Sijill (anciennement "Le Sijill", anciennement "Hikma by LM")
-**Language**: French
-**Platform**: Expo (Web) + Web Admin Panel (FastAPI + MongoDB)
+## Nom de l'application
+**Sijill** — Plateforme d'études islamiques en ligne
 
-## Core Architecture
+## Langue de l'interface
+Français (fr)
 
-### 5 Cursus Structure
+## Type d'application
+React Native (Expo Web) + FastAPI backend + MongoDB
+
+---
+
+## Description du produit
+Sijill est une plateforme académique d'études islamiques proposant une hiérarchie de contenu en 3 niveaux :
+**Cursus → Cours → Modules → Audios (Épisodes)**
+
+Le contenu audio est stocké dans un bucket Cloudflare R2.
+
+---
+
+## Personas utilisateurs
+- **Étudiants** : accès au catalogue, lecture audio, suivi de progression
+- **Auditeurs libres** : navigation, recherche, écoute gratuite ou payante
+- **Administrateurs** : gestion du contenu (panneaul admin)
+
+---
+
+## Architecture technique
+
 ```
-A. La Falsafa et son héritage (7 cours, ~30 modules)
-B. Théologie et Droit (2 cours)
-C. Sciences islamiques et transmission (5 cours)
-D. Arts, Littérature et Sciences (6 cours)
-E. Philosophies et spiritualités connexes (4 cours)
+/app
+├── backend/
+│   ├── server.py          # FastAPI monolithique (proxy R2, playlist, home, search, top10)
+│   ├── sync_r2_audios.py  # Script de sync R2 → MongoDB
+│   └── tests/             # Tests pytest
+├── frontend/              # React Native (Expo for Web)
+│   ├── app/
+│   │   ├── (tabs)/
+│   │   │   └── index.tsx      # Homepage Netflix-style (REFONTE COMPLÈTE)
+│   │   ├── audio/[id].tsx     # Player audio avec playlist auto-play
+│   │   ├── course/[id].tsx    # Page cours avec "Commencer le cours"
+│   │   ├── search.tsx         # Écran de recherche (NOUVEAU)
+│   │   └── ...
+│   ├── context/
+│   │   ├── AuthContext.tsx
+│   │   └── PlayerContext.tsx  # Gestion audio global + callback onFinish
+│   └── components/
+│       └── MiniPlayer.tsx
+└── r2-assets/                 # Mount Cloudflare R2
 ```
 
-### Database Collections
-- `cursus`: `{id, name, description, icon, order, is_active, course_count}`
-- `courses`: `{id, title, description, cursus_id, thumbnail, duration, scholar_name, level, is_active}`
-- `modules`: `{id, name, course_id, order, episode_count, is_active}`
-- `audios`: `{id, title, module_id, course_id, file_key, episode_number, type, is_active}`
-- `audio_categories`: `{id, name, r2_folder_path, is_active}`
+---
 
-## Current Status (Updated Feb 2026)
+## Schéma DB (MongoDB)
 
-### Implemented Features ✅
+- `cursus`: `{id, name, description, icon, order, is_active}`
+- `courses`: `{id, title, cursus_id, scholar_id, scholar_name, thumbnail, duration, modules_count, is_active, is_featured, play_count}`
+- `modules`: `{id, title, course_id, is_active, order}`
+- `audios`: `{id, title, audio_url, file_key, module_id, course_id, episode_number, order, play_count, is_active}`
+- `scholars`: `{id, name, photo, bio, specializations, is_active}`
+- `user_progress`: `{user_id, content_id, content_type, progress, position, updated_at, completed}`
+- `config`: `{key: 'top10_courses', course_ids: [...]}` (configuration admin)
 
-#### Mobile App (Expo Web)
-- Login/Registration: Email & password, Google sign-in
-- Homepage: Featured courses, recommendations
-- **Cursus Page**: All 5 cursus (A-E) displayed with course counts
-  - Expandable cursus showing all courses inside
-  - Navigation to course detail page
-- **Course Detail Page**: Real modules displayed (not dummy data)
-  - Modules fetched from `/api/modules?course_id={id}`
-  - Audio per module fetched from `/api/audios?module_id={id}`
-  - Clickable modules navigate to audio player (`/audio/{id}`)
-  - First module free preview, rest locked for non-subscribers
-- Navigation: Accueil, Cursus, Ressources, Live, Profil, À propos
-- App name: "Sijill" (renamed from "Le Sijill")
+---
 
-#### Admin Panel - 3-Level Hierarchy ✅
-- Cursus management (`/api/admin-panel/cursus`)
-- Cours management (`/api/admin-panel/courses`)
-- Modules management (`/api/admin-panel/modules`)
-- Audios management (`/api/admin-panel/audios`)
+## API Endpoints Clés
 
-#### Backend APIs ✅
-- `GET /api/audios?module_id={id}` — filter audios by module (new)
-- `GET /api/modules?course_id={id}` — list modules for a course
-- `GET /api/audios/{id}/stream-url` — R2 presigned URL for streaming
-- `GET /api/cursus`, `GET /api/courses`, `GET /api/modules`
+### Publics
+- `GET /api/home` — Homepage data (featured_course, continue_watching, recommendations, scholars, top10_courses, course_bandeaux)
+- `GET /api/search?q=...` — Recherche épisodes/cours par mots-clés
+- `POST /api/audios/{id}/play` — Incrémenter compteur d'écoutes
+- `GET /api/courses/{id}/playlist` — Playlist ordonnée d'un cours
+- `GET /api/audios/{id}/stream` — Streaming proxy R2 (contournement CORS)
+- `POST /api/user/progress` — Sauvegarder progression (position, progress%)
+- `GET /api/user/progress` — Récupérer progressions utilisateur
 
-#### Audio Sync ✅ (Feb 2026)
-- 70 audio files from R2 bucket synced to database
-- R2 path structure: `Audio/cursus-{x}/{course-num}/{module-slug}/episode-01.m4a`
-- Each audio linked to its module via `module_id` + `file_key`
-- **Audio proxy streaming** via `/api/audios/{id}/stream` (backend proxies R2 to avoid CORS)
-- `PUBLIC_URL` env var in backend .env controls proxy base URL
-- HEAD + GET + Range requests fully supported on proxy endpoint
+### Admin
+- `GET /api/admin/top10` — Voir la config Top 10
+- `PUT /api/admin/top10` — Mettre à jour le Top 10 manuellement
+- Admin CRUD pour cursus, cours, modules, audios, scholars
 
-#### Data ✅
-- 5 Cursus (A-E)
-- 24 Courses with duration, scholar_name, level populated
-- 101 Modules (all active)
-- 70 Audios linked to modules with R2 file_keys
+---
 
-### Known Issues
-#### Resolved
-- ~~Audio playback broken~~ → Fixed! 70 audios synced from R2
-- ~~Henry Corbin old data~~ → Fixed! Cleared and replaced
-- ~~"NaNmin" in course duration~~ → Fixed! Courses updated with calculated duration
-- ~~Mobile App Non-Functional~~ → Workaround: Expo Web mode
+## Ce qui a été implémenté
 
-#### P3 - Minor
-- Expo service uses ngrok which keeps failing. Port 3000 works locally. Environment issue.
-- "Pierre Marchal" mystery user - low priority data integrity issue
+### Session actuelle (Feb 2026)
+- ✅ **Refonte homepage Netflix-style** :
+  - Header : "Bonjour [prénom]" + icône recherche (sans logo Sijill)
+  - Hero card "À LA UNE" avec gradient + badge + bouton "Commencer"
+  - Section "Reprendre la lecture" (progression utilisateur)
+  - Section "Recommandations" (scroll horizontal)
+  - Section "Professeurs" (avatars circulaires)
+  - Section "Top 10 du mois" (numéros Netflix-style)
+  - Bandeaux par cours (24 bandeaux horizontaux d'épisodes)
+- ✅ **Écran de recherche** (`/search`) : input autofocused, résultats en temps réel (debounced 350ms)
+- ✅ **Backend** : endpoint `/api/search`, `/api/audios/{id}/play`, `/api/admin/top10` GET/PUT
+- ✅ **Suivi du play_count** sur audios et cours
+- ✅ **Top 10 configurable** : par écoutes + override manuel via admin
 
-## Upcoming Tasks
+### Sessions précédentes
+- ✅ Synchronisation audios R2 → MongoDB (sync_r2_audios.py)
+- ✅ Proxy streaming audio (bypass CORS R2)
+- ✅ Playlist avec auto-play séquentiel
+- ✅ Homepage restaurée (featured course, scholars)
+- ✅ Bugs critiques corrigés (bouton "Commencer le cours", seeking audio)
+- ✅ Renommage app en "Sijill"
+- ✅ Intégration Stripe (paiement)
+- ✅ Auth JWT + Google OAuth
 
-### P1 - High Priority
-1. **Logo Sijill** - Improve the logo design in the app
-2. **Page d'accueil** - Improve homepage display
-3. **Sync Géographes** - Add audio for `cours-geographie` when files are added to R2
-4. **Onglet "Ressources" → "Autres"** - Display audio categories (Quran, music)
+---
 
-### P2 - Medium Priority
-1. **Apply Paywall**: Implement `useAccessCheck` on all premium content screens
-2. **Homepage Logic**: "Continue Watching" and "Recommendations" features
-3. **Push Notifications**
+## Backlog Priorisé
 
-### P3 - Low Priority
-1. **Refactor server.py**: Break down 2500+ line monolithic file
-2. **Audio durations**: Get real durations from R2 metadata instead of 0
+### P0 — En cours / Vérification
+- Vérification utilisateur des dernières corrections (playlist, seeking audio, bouton "Commencer")
 
-## Technical Stack
-- Frontend: React Native + Expo (Web mode)
-- Backend: FastAPI + Python
-- Database: MongoDB (`test_database`)
-- Storage: Cloudflare R2 (`hikma-audio` bucket)
-- Payments: Stripe
+### P1 — Prochain sprint
+- Améliorer le logo Sijill
+- Synchroniser le nouveau cursus "Géographes" depuis R2
+- Implémenter l'onglet "Ressources" (sous-onglet "Autres" + "Ressources liées")
+- Appliquer le Paywall sur tout le contenu premium (useAccessCheck hook)
+- Ajouter play_count tracking dans le player audio (appel POST /audios/{id}/play au démarrage)
 
-## Admin Credentials
-- URL: `/api/admin-panel/login`
-- Email: `admin@hikma-admin.com`
-- Password: `Admin123!`
-
-## Test User
-- Email: `testuser@hikma.com`
-- Password: `TestUser123!`
-
-## API Base URL
-- Preview: `https://audio-playlist-5.preview.emergentagent.com`
+### P2 — Futur
+- Refactoriser backend/server.py en routers modulaires
+- Section "Continuer à regarder" enrichie (afficher position exacte)
+- "Recommandations pour vous" basées sur historique
+- Notifications push
+- Pagination des bandeaux sur homepage (lazy loading)
