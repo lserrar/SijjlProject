@@ -598,7 +598,7 @@ async def get_conference(conference_id: str):
 # ─── Audio Routes ───────────────────────────────────────────────────────────
 
 @api_router.get("/audios")
-async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = None, scholar_id: Optional[str] = None, module_id: Optional[str] = None):
+async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = None, scholar_id: Optional[str] = None, module_id: Optional[str] = None, course_id: Optional[str] = None):
     query: dict = {}
     if topic:
         query['topic'] = topic
@@ -608,6 +608,8 @@ async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = No
         query['scholar_id'] = scholar_id
     if module_id:
         query['module_id'] = module_id
+    if course_id:
+        query['course_id'] = course_id
     audios = await db.audios.find(query, {'_id': 0}).to_list(100)
     # Attach resolved stream URL to each audio
     for a in audios:
