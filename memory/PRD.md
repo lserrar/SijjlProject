@@ -68,7 +68,7 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 ## API Endpoints Clés
 
 ### Publics
-- `GET /api/home` — Homepage data (featured_course, continue_watching, recommendations, scholars, top10_courses, course_bandeaux)
+- `GET /api/home` — Homepage data (featured_course avec hero_type='cursus'|'course', continue_watching, recommendations, scholars, top5_courses)
 - `GET /api/search?q=...` — Recherche épisodes/cours par mots-clés
 - `POST /api/audios/{id}/play` — Incrémenter compteur d'écoutes
 - `GET /api/courses/{id}/playlist` — Playlist ordonnée d'un cours
