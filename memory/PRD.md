@@ -1,25 +1,26 @@
-# HikmabyLM - Product Requirements Document
+# Le Sijill - Product Requirements Document
 
 ## Project Overview
-**App Name**: HikmabyLM  
+**App Name**: Le Sijill (anciennement Hikma by LM)  
 **Language**: French  
-**Platform**: Expo (iOS/Android) + Web Admin Panel (FastAPI + MongoDB)
+**Platform**: Expo (iOS/Android/Web) + Web Admin Panel (FastAPI + MongoDB)
 
 ## Core Architecture
 
-### 3-Level Content Hierarchy
+### 5 Cursus Structure (Updated Dec 2025)
 ```
-Cursus (7 total)
-└── Cours (45+ courses)
-    └── Modules (93+ modules)
-        └── Audios (Épisodes)
+A. La Falsafa et son héritage (7 cours, ~30 modules)
+B. Théologie et Droit (2 cours)
+C. Sciences islamiques et transmission (5 cours)
+D. Arts, Littérature et Sciences (6 cours)
+E. Philosophies et spiritualités connexes (4 cours)
 ```
 
 ### Database Collections
 - `cursus`: `{id, name, description, icon, order, is_active, course_count}`
-- `courses`: `{id, title, description, cursus_id/thematique_id, scholar_id, scholar_name, is_active, module_count}`
-- `modules`: `{id, name, description, course_id, scholar_name, order, episode_count, is_active}`
-- `audios`: `{id, title, description, module_id, episode_number, category_id, file_key, is_active}`
+- `courses`: `{id, title, description, cursus_id, thumbnail, is_active}`
+- `modules`: `{id, name, course_id, scholar_name, episode_count, order, is_active}`
+- `audios`: `{id, title, module_id, episode_number, category_id, file_key, is_active}`
 - `audio_categories`: `{id, name, r2_folder_path, is_active}`
 
 ## Current Status
