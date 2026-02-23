@@ -1,0 +1,87 @@
+{
+  "summary": "Frontend-only testing of Sijill homepage (iteration 12). Login flow, hero section, nav, episodes, Top 5 design all verified. Found 3 confirmed bugs: (1) 6 recommendation cards rendered instead of max 4 despite slice(0,4) in source, (2) badges '↑ 3' (rank 2) and 'Nouveau' (rank 5) in Top 5 not visible — only 'Nº1' (rank 1) badge renders correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Recommendations section (BLOC 3)",
+        "issue": "6 recommendation cards rendered in DOM instead of max 4. Source code has recommendations.slice(0,4) at line 178 of index.tsx, but browser renders all 6 items from API (scrollWidth=1290px = 6x200px cards). Likely Metro bundle cache mismatch — running bundle may not reflect latest source.",
+        "selector": "[data-testid^='home-rec-']",
+        "priority": "HIGH",
+        "expected": "max 4 cards",
+        "actual": "6 cards rendered (all from API response)"
+      },
+      {
+        "component": "Top 5 badges — rank 2",
+        "issue": "Badge '↑ 3' NOT rendered for rank 2 (i=1). Source code has {i === 1 && <Badge label='↑ 3' />} but no element with rgba(4,209,130,0.1) background found in DOM. Only Nº1 badge (rank 1) renders correctly. Likely same Metro bundle cache issue.",
+        "selector": "[data-testid='home-top5-cours-falsafa-grands']",
+        "priority": "MEDIUM",
+        "expected": "Badge '↑ 3' with green translucent background",
+        "actual": "No badge visible, only duration '4min' shown"
+      },
+      {
+        "component": "Top 5 badges — rank 5",
+        "issue": "Badge 'Nouveau' NOT rendered for rank 5 (i=4). Source code has {i === 4 && <Badge label='Nouveau' />} but text 'Nouveau' not found anywhere in DOM. Same issue as rank 2 badge.",
+        "selector": "[data-testid='home-top5-cours-post-avicennisme']",
+        "priority": "MEDIUM",
+        "expected": "Badge 'Nouveau' with gold translucent background",
+        "actual": "No badge visible, only duration shown"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Clear Metro bundler cache and restart frontend to ensure latest source code is running: recommendations.slice(0,4) and badges for ranks 2/5 should appear after cache clear",
+    "Verify that the following badges render after fix: rank 2 = '↑ 3' (green bg rgba(4,209,130,0.1)), rank 5 = 'Nouveau' (gold bg rgba(201,168,76,0.12))",
+    "Verify recommendations section shows max 4 cards after fix"
+  ],
+  "critical_code_review_comments": [
+    "Metro bundle cache mismatch: source code (index.tsx) has slice(0,4) for recommendations and badges for ranks 2 & 5, but the running bundle renders 6 cards and only shows 1 badge. This is a hot reload / build cache issue that requires metro cache clear.",
+    "The arrow character (U+2191) in Badge label '↑ 3' might not render in Cinzel font if the font does not support this glyph — test after cache clear to confirm if this is font or cache issue"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "72% (13 of 18 requirements passing)"
+  },
+  "test_credentials": {
+    "user_email": "testuser@hikma.com",
+    "user_password": "TestUser123!"
+  },
+  "seed_data_creation": "No seed data created",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Homepage testing complete. 3 bugs found. Most likely root cause is Metro bundle cache not reflecting latest code changes. After clearing cache (expo start --clear or equivalent), retest: (1) recommendations count should be 4 not 6, (2) badge '↑ 3' should appear for rank 2, (3) badge 'Nouveau' should appear for rank 5. All other features are working correctly. test_ids: home-ep-*, home-rec-*, home-top5-*, home-hero-title, home-hero-start-btn, home-hero-more-btn, home-search-btn, top-nav. API /api/home returns: recent_episodes=8, recommendations=6, top5_courses=5.",
+  "passing_verifications": {
+    "login_flow": "PASS: Login with testuser@hikma.com / TestUser123! works, redirects to homepage",
+    "logo_sijill": "PASS: 'SIJILL' text visible with green dot (5x5px, #04D182, rgb(4,209,130))",
+    "search_icon": "PASS: Search button (home-search-btn) present in top nav",
+    "hero_section": "PASS: Hero shows 'À LA UNE · CURSUS A', title 'Cours 1 : Le mouvement de traduction', description visible",
+    "commencer_btn": "PASS: Green bg (#04D182), dark text, borderRadius: 0px (square corners)",
+    "en_savoir_plus_btn": "PASS: Gold text rgb(201,168,76), gold border rgba(201,168,76,0.35), borderRadius: 0px",
+    "nouveaux_episodes": "PASS: Section visible with exactly 5 episode cards (slice(0,5) working correctly)",
+    "ep_card_design": "PASS: Label Cinzel 7px uppercase; Title EB Garamond 13px; bg rgb(26,26,26)=#1A1A1A; borderRadius 0px",
+    "recommande_section": "FAIL: Section visible but has 6 cards instead of max 4",
+    "reco_card_design": "PASS: Gold left border rgba(201,168,76,0.3), bg #1A1A1A, no border-radius",
+    "top5_section": "PASS: 5 rows visible with correct rank colors (rank1=gold, rank2=gold dim, rank3=gold lighter, rank4/5=gray #444)",
+    "top5_badge_no1": "PASS: Badge 'Nº1' visible for rank 1 (gold translucent bg rgba(201,168,76,0.12))",
+    "top5_badge_rank2": "FAIL: Badge '↑ 3' NOT visible for rank 2",
+    "top5_badge_rank5": "FAIL: Badge 'Nouveau' NOT visible for rank 5",
+    "top5_no_strip": "PASS: No colored side bar (top5Strip) — rows have #1A1A1A background only",
+    "top5_structure": "PASS: Each row has cursus label (colored) + title (EB Garamond) + author (italic gray) + duration right",
+    "bottom_nav": "PASS: 5 tabs visible: ACCUEIL, CURSUS, EPISODES, PROFS, BIBLIO; ACCUEIL active in green rgb(4,209,130)",
+    "background_color": "PASS: Body background rgb(10,10,10) = #0A0A0A correct",
+    "no_images": "PASS: Zero images on homepage (img count = 0)",
+    "content_scrollable": "PASS: Main scroll container (scrollHeight 1216px > clientHeight 716px) — content is scrollable"
+  },
+  "rca_of_issue": {
+    "bug_description": "Metro bundle cache mismatch. The source file /app/frontend/app/(tabs)/index.tsx has: (1) recommendations.slice(0,4) at line 178, (2) badges for {i===1 and i===4} at lines 244-245. But the running Expo/Metro bundle renders 6 recommendation cards (all from API response of 6) and only shows badge for i===0. This is consistent with the deployed bundle being compiled from an older version of the source, before slice and badges were added.",
+    "reproduction": "Navigate to homepage after login → scroll RECOMMANDÉ POUR VOUS section horizontally → count 6 cards (should be 4). Scroll to TOP 5 → rows 2 and 5 show no badge (only row 1 has Nº1 badge).",
+    "mitigation": "Run expo start with --clear flag to clear Metro bundler cache: cd /app/frontend && npx expo start --clear. Or use supervisor to restart frontend service. Alternatively, touch the file to trigger re-bundle: touch /app/frontend/app/(tabs)/index.tsx"
+  }
+}
