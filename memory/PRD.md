@@ -85,6 +85,14 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 ## Ce qui a été implémenté
 
 ### Session actuelle (Feb 2026)
+- ✅ **Design System complet** (brief Sijill Option A) :
+  - Typographie : Cinzel (titres/navigation) + EB Garamond (corps/descriptions)
+  - Palette : #0A0A0A bg, #F5F0E8 ivoire, #04D182 vert, #C9A84C or
+  - Logo SIJILL en Cinzel avec point vert lumineux
+  - Boutons carrés (sans border-radius), bordures 1px #222222
+  - Bouton primaire : vert #04D182, Cinzel uppercase, letter-spacing 4px
+  - Bouton secondaire : bordure or, texte or transparent
+  - Tab bar : Cinzel 7px, uppercase, letter-spacing 2px
 - ✅ **Refonte homepage Netflix-style** :
   - Header : "Bonjour [prénom]" + icône recherche (sans logo Sijill)
   - Hero card "À LA UNE" avec gradient + badge + bouton "Commencer"
