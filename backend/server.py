@@ -1066,7 +1066,7 @@ async def get_home(request: Request):
         top5_courses.extend([enrich_cursus(c) for c in extra])
 
     return {
-        'featured_course': featured_course,
+        'featured_course': featured_hero,
         'continue_watching': continue_watching,
         'recent_episodes': recent_episodes,
         'recommendations': recommendations,
