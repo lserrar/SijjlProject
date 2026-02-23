@@ -24,9 +24,10 @@ export default function Root({ children }: PropsWithChildren) {
             __html: `
               body > div:first-child { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; }
               [role="tablist"] [role="tab"] * { overflow: visible !important; }
-              [role="heading"], [role="heading"] * { overflow: visible !important; }
               * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
               ::selection { background: rgba(4,209,130,0.2); color: #F5F0E8; }
+              ::-webkit-scrollbar { display: none; }
+              * { scrollbar-width: none; -ms-overflow-style: none; }
             `,
           }}
         />
