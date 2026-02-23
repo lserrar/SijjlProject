@@ -203,7 +203,10 @@ class CursusCreate(BaseModel):
     description: str = ""
     icon: str = "book-open"
     order: int = 0
-    is_active: bool = False  # Default inactive for preparation
+    is_active: bool = False
+    is_featured: bool = False
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
 
 class CursusUpdate(BaseModel):
     name: Optional[str] = None
@@ -211,6 +214,9 @@ class CursusUpdate(BaseModel):
     icon: Optional[str] = None
     order: Optional[int] = None
     is_active: Optional[bool] = None
+    is_featured: Optional[bool] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
 
 # ─── Module Models ───────────────────────────────────────────────────────────
 
