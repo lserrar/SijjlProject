@@ -144,7 +144,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.hList}
             >
-              {recent_episodes.map((ep: any, i: number) => (
+              {recent_episodes.slice(0, 5).map((ep: any, i: number) => (
                 <EpisodeCard
                   key={ep.id || i}
                   testID={`home-ep-${ep.id}`}
