@@ -19,11 +19,11 @@ export default function AboutScreen() {
           <Text style={styles.tagline}>Comprendre, transmettre, penser la pluralité des savoirs islamiques</Text>
         </View>
 
-        {/* Section: Pourquoi Le Sijill */}
+        {/* Section: Pourquoi Sijill */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="help-circle" size={24} color={colors.brand.primary} />
-            <Text style={styles.sectionTitle}>Pourquoi Le Sijill ?</Text>
+            <Text style={styles.sectionTitle}>Pourquoi Sijill ?</Text>
           </View>
           <Text style={styles.paragraph}>
             Parce que comprendre les savoirs du monde islamique est essentiel pour comprendre l'histoire globale des idées. Parce qu'il existe aujourd'hui un besoin profond d'accéder à ces héritages autrement que par des récits simplifiés, confessionnels ou polarisés.
@@ -35,7 +35,7 @@ export default function AboutScreen() {
             Parce que ces savoirs continuent d'inspirer des recherches contemporaines en philosophie, théologie, anthropologie, sciences historiques, esthétique ou études comparées.
           </Text>
           <Text style={styles.highlight}>
-            Le Sijill est un espace où ces héritages sont présentés dans leur complexité, avec le sérieux qu'ils méritent, et avec la conviction qu'ils demeurent essentiels pour penser le monde aujourd'hui.
+            Sijill est un espace où ces héritages sont présentés dans leur complexité, avec le sérieux qu'ils méritent, et avec la conviction qu'ils demeurent essentiels pour penser le monde aujourd'hui.
           </Text>
         </View>
 
@@ -46,7 +46,7 @@ export default function AboutScreen() {
             <Text style={styles.sectionTitle}>Qui sommes-nous ?</Text>
           </View>
           <Text style={styles.paragraph}>
-            Le Sijill est une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches, les plus pluriels et les plus féconds de l'humanité, mais trop souvent, elle demeure inaccessible, fragmentaire ou déformée.
+            Sijill est une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches, les plus pluriels et les plus féconds de l'humanité, mais trop souvent, elle demeure inaccessible, fragmentaire ou déformée.
           </Text>
           <Text style={styles.paragraph}>
             La philosophie, le kalām, la théologie, l'exégèse, l'histoire du hadith, le soufisme spéculatif, l'art, la littérature et les sciences ont pourtant été, durant des siècles, les lieux d'élaboration d'une véritable culture de la complexité, capable d'accueillir des héritages multiples, de les transformer et de les faire dialoguer.
@@ -80,7 +80,7 @@ export default function AboutScreen() {
             <View style={styles.principleContent}>
               <Text style={styles.principleTitle}>La rigueur scientifique comme exigence première</Text>
               <Text style={styles.principleText}>
-                Tous les contenus proposés sur Le Sijill sont conçus ou présentés par des chercheurs, enseignants-chercheurs ou universitaires reconnus dans leur domaine. Nous ne proposons ni vulgarisation approximative, ni discours d'autorité, mais une transmission fondée sur les textes, les manuscrits, les éditions critiques et les travaux académiques contemporains.
+                Tous les contenus proposés sur Sijill sont conçus ou présentés par des chercheurs, enseignants-chercheurs ou universitaires reconnus dans leur domaine. Nous ne proposons ni vulgarisation approximative, ni discours d'autorité, mais une transmission fondée sur les textes, les manuscrits, les éditions critiques et les travaux académiques contemporains.
               </Text>
             </View>
           </View>
@@ -132,7 +132,7 @@ export default function AboutScreen() {
             <Text style={styles.sectionTitle}>Une plateforme au service d'un héritage intellectuel pluriel</Text>
           </View>
           <Text style={styles.paragraph}>
-            L'objectif de Le Sijill n'est pas de promouvoir une école, une confession, une vision ou un cadre doctrinal particuliers. Nous ne cherchons ni à défendre une orthodoxie, ni à imposer une lecture, ni à simplifier les divergences.
+            L'objectif de Sijill n'est pas de promouvoir une école, une confession, une vision ou un cadre doctrinal particuliers. Nous ne cherchons ni à défendre une orthodoxie, ni à imposer une lecture, ni à simplifier les divergences.
           </Text>
           <Text style={styles.paragraph}>
             Ce que nous souhaitons, c'est mettre en lumière :

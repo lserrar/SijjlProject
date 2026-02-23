@@ -116,8 +116,8 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.greeting}>{greeting},</Text>
             <View style={styles.logoRow}>
-              <Text style={styles.logoMain}>Le Sijill</Text>
-              <Text style={styles.logoByLM}>by LM</Text>
+              <Text style={styles.logoMain}>Sijill</Text>
+              <Text style={styles.logoByLM}></Text>
             </View>
           </View>
           <TouchableOpacity testID="home-profile-btn" onPress={() => router.push('/(tabs)/profil')}>

@@ -103,8 +103,8 @@ export default function SubscriptionChoiceScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            <Text style={styles.logoMain}>Le Sijill</Text>
-            <Text style={styles.logoByLM}>by LM</Text>
+            <Text style={styles.logoMain}>Sijill</Text>
+            <Text style={styles.logoByLM}></Text>
           </View>
           <Text style={styles.welcome}>Bienvenue {user?.name?.split(' ')[0]} !</Text>
           <Text style={styles.subtitle}>

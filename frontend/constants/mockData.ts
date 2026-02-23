@@ -1,4 +1,4 @@
-// Types for the Le Sijill app
+// Types for the Sijill app
 
 export interface Scholar {
   id: string;

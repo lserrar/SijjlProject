@@ -42,8 +42,8 @@ export default function AboutScreen() {
         {/* Logo & Brand */}
         <View style={styles.brandSection}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoMain}>Le Sijill</Text>
-            <Text style={styles.logoByLM}>by LM</Text>
+            <Text style={styles.logoMain}>Sijill</Text>
+            <Text style={styles.logoByLM}></Text>
           </View>
           <Text style={styles.tagline}>La sagesse à portée de main</Text>
           <Text style={styles.version}>Version 1.0.0</Text>
@@ -54,7 +54,7 @@ export default function AboutScreen() {
           <Text style={styles.sectionTitle}>Notre mission</Text>
           <View style={styles.card}>
             <Text style={styles.missionText}>
-              Le Sijill est une plateforme d'e-learning dédiée aux études islamiques académiques. 
+              Sijill est une plateforme d'e-learning dédiée aux études islamiques académiques. 
               Notre mission est de rendre accessible un savoir rigoureux et authentique, 
               transmis par des professeurs reconnus dans leur domaine.
             </Text>
@@ -151,7 +151,7 @@ export default function AboutScreen() {
 
         {/* Copyright */}
         <View style={styles.copyright}>
-          <Text style={styles.copyrightText}>© 2025 Le Sijill. Tous droits réservés.</Text>
+          <Text style={styles.copyrightText}>© 2025 Sijill. Tous droits réservés.</Text>
           <Text style={styles.copyrightSubtext}>Fait avec ❤️ pour la communauté</Text>
         </View>
 

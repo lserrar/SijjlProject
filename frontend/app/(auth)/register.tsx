@@ -59,8 +59,8 @@ export default function RegisterScreen() {
 
           {/* Logo */}
           <View style={styles.logoSection}>
-            <Text style={styles.logoMain}>Le Sijill</Text>
-            <Text style={styles.logoByLM}>by LM</Text>
+            <Text style={styles.logoMain}>Sijill</Text>
+            <Text style={styles.logoByLM}></Text>
           </View>
 
           <Text style={styles.subtitle}>Créer votre compte académique</Text>

@@ -42,7 +42,7 @@ export default function ProfilScreen() {
     { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
     { icon: 'language-outline', label: 'Langue : Français', action: () => {} },
     { icon: 'help-circle-outline', label: 'Aide et support', action: () => {} },
-    { icon: 'information-circle-outline', label: 'À propos de Le Sijill', action: () => router.push('/about') },
+    { icon: 'information-circle-outline', label: 'À propos de Sijill', action: () => router.push('/about') },
   ];
 
   return (
@@ -156,8 +156,8 @@ export default function ProfilScreen() {
 
         {/* Brand footer */}
         <View style={styles.brandFooter}>
-          <Text style={styles.brandName}>Le Sijill</Text>
-          <Text style={styles.brandByLM}>by LM</Text>
+          <Text style={styles.brandName}>Sijill</Text>
+          <Text style={styles.brandByLM}></Text>
           <Text style={styles.brandVersion}>v1.0.0 · Prototype</Text>
         </View>
 
