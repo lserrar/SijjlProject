@@ -217,15 +217,11 @@ export default function AudioDetailScreen() {
                 style={styles.playBtn}
                 onPress={handlePlayPause}
               >
-                {!isCurrentTrack && !isPlaying ? (
-                  <ActivityIndicator size="small" color="#000" />
-                ) : (
-                  <Ionicons
-                    name={isCurrentTrack && isPlaying ? 'pause' : 'play'}
-                    size={32}
-                    color="#000"
-                  />
-                )}
+                <Ionicons
+                  name={isCurrentTrack && isPlaying ? 'pause' : 'play'}
+                  size={32}
+                  color="#000"
+                />
               </TouchableOpacity>
 
               <TouchableOpacity testID="audio-skip-forward" style={styles.skipBtn} onPress={() => skipForward(15)}>
