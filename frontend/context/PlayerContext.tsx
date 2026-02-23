@@ -165,6 +165,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         skipBackward,
         stopTrack,
         setSpeed,
+        setOnFinish,
       }}
     >
       {children}
