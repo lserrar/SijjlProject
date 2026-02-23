@@ -24,6 +24,7 @@ interface PlayerContextType {
   stopTrack: () => Promise<void>;
   setSpeed: (speed: number) => Promise<void>;
   speed: number;
+  setOnFinish: (cb: (() => void) | null) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType>(null!);
