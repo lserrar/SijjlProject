@@ -122,7 +122,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 testID="home-hero-start-btn"
                 style={s.btnPrimary}
-                onPress={() => goCourse(hero.id)}
+                onPress={() => goHero(hero)}
               >
                 <Ionicons name="play" size={11} color="#0A0A0A" />
                 <Text style={s.btnPrimaryText}>COMMENCER</Text>
@@ -130,7 +130,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 testID="home-hero-more-btn"
                 style={s.btnSecondary}
-                onPress={() => goCourse(hero.id)}
+                onPress={() => goHero(hero)}
               >
                 <Text style={s.btnSecondaryText}>EN SAVOIR PLUS</Text>
               </TouchableOpacity>
