@@ -52,6 +52,9 @@ if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_KEY:
 
 PRESIGNED_URL_EXPIRY = 3600  # 1 hour
 
+# Public base URL for audio proxy (avoids R2 CORS issues)
+PUBLIC_URL = os.environ.get('PUBLIC_URL', '')
+
 # ─── Stripe Config ───────────────────────────────────────────────────────────
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
