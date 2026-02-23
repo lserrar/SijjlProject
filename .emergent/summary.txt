@@ -1,232 +1,155 @@
-<analysis>**original_problem_statement**: The user wants to build an Islamic studies e-learning platform, now named Sijill. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains audio episodes.
+<analysis>**original_problem_statement**: The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-The latest user requests are:
-1.  **Rename the app**: Change the name from Le Sijill to Sijill everywhere in the app and admin panel, and remove the by LM suffix.
-2.  **Update Content**: Align the app's content with the latest provided document (), which outlines a new 5-cursus structure. This involves removing any old, outdated course data that is still visible (e.g., Henry Corbin).
-3.  **Synchronize Audios**: Link audio files from a Cloudflare R2 bucket to their corresponding modules in the database. The user has specified that each course has a corresponding folder in R2, containing subfolders for modules, and each module subfolder has one audio episode that needs to be synced.
+The project has evolved through several phases:
+1.  **Initial Setup & Core Features**: Syncing audio from Cloudflare R2, fixing playback, and implementing a playlist system with auto-play.
+2.  **Netflix-Style Homepage**: A major UI overhaul to create a content-rich homepage featuring a hero banner, recommendation carousels, a Top 10 list, and per-course episode rows.
+3.  **Prestige Design System**: A full rebranding based on a user-provided design brief, introducing specific fonts (Cinzel, EB Garamond) and a new color palette.
+4.  **Final Text-Only UI (Current)**: A second, more refined homepage redesign based on a new, highly detailed user specification. This version removes all images in favor of a text-centric, minimalist, and academic aesthetic. It also simplifies the content to a Top 5 vertical list and removes redundant carousels.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill
 -   **Language**: French
 -   **Platform**: Expo (running as a web app) + Web Admin Panel (FastAPI).
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
--   **Admin System**: A web admin panel for full content management.
 -   **Content Storage**: Audio files are stored in a Cloudflare R2 bucket.
+-   **Design**: A highly specific, text-only, dark-mode UI following a detailed design brief.
 
 **User's preferred language**: French. The next agent MUST respond in French.
 
 **what currently exists?**
-A full-stack application with a FastAPI backend, MongoDB database, and a React Native frontend currently running as a web app (Expo Web).
--   **Backend**:  contains the logic for the 3-level hierarchy and the admin panel. Endpoints for managing cursus, courses, and modules, including bulk actions, are implemented. A critical bug related to data being seeded into the wrong database ( instead of ) has been identified and fixed.
--   **Web Admin Panel**: The admin UI has been completely updated to manage the Cursus -> Cours -> Modules hierarchy. It includes pages for each level and supports bulk activation/deactivation. The name has been updated to Le Sijill (pending change to Sijill).
--   **Frontend (Mobile App)**: The native mobile app tunnel () is broken. The agent successfully implemented a workaround by running the app in **web mode** ([15:27:23] Starting project at /app/frontend). The web app is functional, displays the new content structure with course images, and allows user login.
+A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database.
+-   **Backend**:  has been expanded to support the dynamic homepage. It includes a search endpoint (), an endpoint to track plays (), and admin routes to manage a Top 10 list. The main  endpoint has been updated to serve data for the Top 5 and other sections, with the per-course episode carousels now removed as per the user's request.
+-   **Frontend**: The application is in the middle of a major UI overhaul.
+    -   The core design system has been updated: Google Fonts (Cinzel, EB Garamond) are loaded via , and a new color palette and typography rules are defined in .
+    -   The main layout  has been updated to reflect the new 5-tab design with custom icons and fonts.
+    -   The homepage  has been partially updated to remove images and carousels, but it does not yet fully match the user's final, detailed design specification. A bundler caching issue was resolved by restarting the service.
 
 **Last working item**:
--   **Last item agent was working**: The agent began addressing the user's latest requests from message #367. It started renaming the app to Sijill and explored the Cloudflare R2 directory structure to prepare for the audio synchronization task.
+-   **Last item agent was working**: The agent was implementing a highly specific, text-only homepage design based on a new user mockup and a very detailed, multi-page design specification provided by the user. The goal was to remove all images, transform the Top 10 horizontal carousel into a Top 5 vertical list, and remove the episode-by-course carousels. The agent had just updated the backend, cleared a frontend caching issue, and was preparing to run a full validation against the user's detailed spec.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (for the new requests)
--   **Which testing method agent to use?**: both.
-    1.  **Backend**: Use a Python script to perform the audio synchronization. Verify the  collection in the database is correctly populated using .
-    2.  **Frontend**: Use the  to verify the name change to Sijill is reflected everywhere and to test audio playback in the app after synchronization.
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: frontend testing agent. The user provided an extremely detailed, multi-page specification (message #175) covering colors, fonts, spacing, layout, and content for every element. This requires a comprehensive validation that only the testing agent can perform against such a precise brief.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Audio Playback is Broken (P0 - BLOCKER)
-    -   **Description**: Users cannot play any audio lessons because the audio files stored in Cloudflare R2 are not linked to the modules in the database.
-    -   **Attempted fixes**: The agent has listed the R2 directory structure to understand the layout.
-    -   **Next debug checklist**:
-        1.  Create and execute a Python script () that connects to the .
-        2.  The script should scan the  directory recursively.
-        3.  For each  file found, parse its path to determine the Cursus, Cours, and Module it belongs to.
-        4.  Find the corresponding  in the database based on the parsed names.
-        5.  Create a new document in the  collection linking the  to the audio file's R2 path. Clear the  collection before starting to avoid duplicates.
-        6.  Handle potential name mismatches between R2 folders and database entries (e.g., A-Falsafa... vs A. La Falsafa...).
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the app's core functionality. Fixing it will make the e-learning content playable.
+-   **Issue 1**: Final Homepage Redesign Implementation (P0)
+    -   **Description**: The current homepage does not match the user's final, detailed design specification. The layout needs to be rewritten to be text-only, with a vertical Top 5 list, and all styles (fonts, colors, spacing) must be made pixel-perfect according to the brief in message #175.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
--   **Issue 2**: Outdated Course Data Still Visible (P1)
-    -   **Description**: The user reports seeing old courses (e.g., Henry Corbin) that are not in the new curriculum. This is likely due to stale data from previous failed migration attempts or the  function.
     -   **Next debug checklist**:
-        1.  Create a script to completely clear the , , and  collections in the .
-        2.  Re-run the  script to ensure a clean slate with only the correct data from .
-    -   **Why fix this issue and what will be achieved with the fix?**: Ensures data integrity and prevents user confusion.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: both
+        1.  Carefully review the user's final design specification in message #175.
+        2.  Rewrite  to match the specification exactly. This includes:
+            -   Hero section (text-only, radial gradient).
+            -   Nouveaux épisodes section (text-only cards).
+            -   Recommandé pour vous section (text-only cards).
+            -   Top 5 du mois section (vertical numbered list).
+        3.  Ensure  and  also perfectly match the spec.
+        4.  Fix the bug where the full cursus name appears in the hero breadcrumb instead of the short version (e.g., CURSUS A).
+        5.  Call the  with the entire specification from message #175 as the test instructions.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the user's primary goal for the current session, defining the final look and feel of the app's most important screen.
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1**: Finalize App Renaming to Sijill (P1)
-    -   **Description**: The user requested the app be renamed from Le Sijill to just Sijill, with the by LM suffix removed.
-    -   **Where to resume**: The agent ran  commands. The next step is to perform a global search for Le Sijill and Hikma to catch any remaining instances. Also, fix any broken CSS class names or variable names caused by the replacement (e.g.,  should be ).
-    -   **What will be achieved with this?**: Fulfills a direct branding request from the user.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: frontend
+None. The single in-progress issue covers all current work.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Implement Ressources Tab Features**:
-        -   Create an Autres sub-tab to display audio categories (e.g., Quran recitations, music).
-        -   Add a Ressources liées section to the course detail page to show related content.
+    -   **(P1) Sync New Géographes Cursus**: The user mentioned adding a new Géographes cursus in R2; its audios need to be synced.
+    -   **(P1) Implement Ressources Tab**: Create the Autres sub-tab and Ressources liées section.
+    -   **(P1) Apply Paywall**: Implement the  hook on all premium content screens.
 -   **Future Tasks:**
-    -   **(P2) Refactor Monolithic Backend**: Break down  into a modular structure.
-    -   **(P2) Implement Homepage Logic**: Continue Watching and Recommendations for you.
+    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure (e.g., routers, services).
+    -   **(P2) Enhance Homepage Logic**: Implement a Continue Watching section.
     -   **(P2) Implement Push Notifications**.
-    -   **(P1) Apply Paywall**: Ensure the  hook is implemented on all premium content screens.
 
 **Completed work in this session**
--   **Fixed Mobile App**: Successfully migrated the broken mobile app from an unstable  tunnel to a functional **Expo Web** instance, fixing JavaScript crashes along the way.
--   **Implemented Admin Panel Hierarchy**: Built out the complete 3-level (Cursus, Cours, Modules) management interface in the admin panel, including bulk actions. The changes were verified by the testing agent.
--   **Updated App Content & Name**: Renamed the app from Hikma by LM to Le Sijill and updated the database content based on the user's  file.
--   **Fixed Critical Database Bug**: Identified and resolved a major issue where update scripts were writing to the wrong database () while the server was reading from , causing persistent data inconsistencies.
--   **Added Course Images**: Implemented a feature to display thematic images for each course in the app.
+-   **Netflix-Style Homepage (v1)**: Implemented a dynamic homepage with multiple carousels (featured, recommendations, top 10, per-course episodes).
+-   **Backend API Expansion**: Created new endpoints for search (), play tracking (), and admin Top 10 management. The  endpoint was significantly enhanced.
+-   **Search Feature**: Added a fully functional keyword search for episodes with a dedicated UI screen.
+-   **Prestige Design System Foundation**: Integrated custom Google Fonts (Cinzel, EB Garamond) and implemented a new app-wide theme (colors, typography) based on user's initial design direction.
+-   **Homepage Simplification**: Updated the backend and frontend to remove the per-course episode carousels and change the Top 10 to a Top 5, as per the user's latest request.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent User Data (Pierre Marchal Mystery). This was deferred from a previous session and is low priority.
+-   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue deferred from a previous session.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Frontend environment instability (Expo/Ngrok tunnel).
+-   **Issue recurrence in previous fork**: Frontend environment instability.
 -   **Recurrence count**: 4+
--   **Status**: RESOLVED (Workaround). The issue is bypassed by running the app in Expo Web mode. A permanent fix to the supervisor config is not possible as it's read-only.
+-   **Status**: RESOLVED (Workaround). The issue is permanently bypassed by running the app in Expo Web mode, which has proven stable.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React Native, Expo (running in Web Mode).
+-   **Frontend**: React Native, Expo (Web Mode),  for custom font loading.
 -   **Backend**: FastAPI, Python.
 -   **Database**: MongoDB.
--   **File Storage**: Cloudflare R2 (mounted at ).
+-   **Styling**: Centralized theme object in  defining colors, fonts, and spacing for app-wide consistency.
 
 **key DB schema**
--   : 
--   : 
--   : 
--   : 
--   : 
+-   : Updated to include .
+-   : Updated to include .
+
+**changes in tech stack**
+-   
+-   
 
 **All files of reference**
--   : Contains all backend logic. Key endpoints to check are , , , and the admin routes.
--   : The script used to populate the database from the user's  file. It must target .
--   : Contains API fetching logic for the frontend.
--   : Main screen for displaying the cursus list.
--   : The user-provided source of truth for all content. Located in .
+-   ** (message #175)**: **CRITICAL**. This is the source of truth for the entire pending task. It contains pixel-perfect instructions.
+-   : The primary file to be modified.
+-   : The file defining the core design system values.
+-   : Defines the main tab navigation, which must match the design spec.
+-   : Contains the API logic supporting the homepage.
 
 **Areas that need refactoring**:
--   The  function within  contains outdated demo data and logic. It should be disabled or cleaned up to prevent conflicts with the  script.
+-    is a large monolithic file and is a good candidate for being broken down into separate routers.
 
 **key api endpoints**
--   : Public endpoint to fetch all active cursus.
--   : Public endpoint to fetch courses.
--   : Admin endpoint for bulk actions.
--   All admin CRUD endpoints under 
+-   : **(NEW)** Searches for episodes by keyword.
+-   : **(NEW)** Increments play count for an audio track.
+-   : **(NEW)** Retrieves the manually set Top 10 list.
+-   : **(NEW)** Updates the manual Top 10 list.
+-   : **(UPDATED)** Serves data for the simplified, text-only homepage (hero, new episodes, recommendations, Top 5).
 
 **Critical Info for New Agent**
--   **The app is Sijill**. The rename from Le Sijill is the first pending task.
--   **The mobile app is only functional in web mode**. Do not try to fix the  tunnel. Use expo-web: ERROR (no such process)
-expo-web: ERROR (no such process) to run the app. If that fails, manually run [15:27:24] Starting project at /app/frontend from the  directory.
--   **Your top priority is to sync the audio files**. The app's core functionality is broken without it. Create a script to map files in  to the  in the .
--   **Ensure all database operations target **. A previous critical bug was caused by scripts writing to the wrong DB. The  in  points to the correct instance, but scripts must explicitly use .
+-   Your **only priority** is to implement the user's final homepage design. The specification for this is located in **message #175** of the chat history. It is extremely detailed and must be followed with precision.
+-   The design is **text-only**. No images should be present on the homepage cards or in the hero section.
+-   The Top 10 horizontal scroll has been replaced by a **Top 5 vertical list** with a unique numbered design.
+-   The Bandeaux par cours (per-course episode carousels) **must be removed**. The agent has already updated the backend API for this.
+-   After implementation, you must use the  and provide the **entire specification from message #175** as the testing instructions to ensure a perfect match.
 
 **documents and test reports created in this job**
+-   
+-   
 -    (updated)
--   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **#367**: Rename to Sijill (from Le Sijill), remove by LM. Old courses are still visible. Audios are empty, need to sync with Cloudflare R2 folders. (IN PROGRESS)
--   **#250**: Provided new document  for content update. Requested app name change to Le Sijill. (DONE, but new rename requested)
--   **#238**: Reported being unable to connect to the app/admin panel. (RESOLVED)
--   **#185**: Requested UI improvements: course images, Autres tab for resources, and related resources on course pages. (PARTIALLY DONE)
--   **#183**: Asked for the admin panel link. (RESOLVED)
--   **#179**: Expressed frustration with the  error. (RESOLVED with workaround)
+1.  **User (Final Request)**: Provides a new HTML mockup for a text-only, prestige design.
+2.  **Agent**: Analyzes the mockup.
+3.  **Agent**: Provides a detailed breakdown of the changes (text-only cards, vertical Top 5, no images).
+4.  **User**: Confirms the changes (oui), requests a Top 5 instead of Top 10, and explicitly asks to remove the per-course episode carousels.
+5.  **Agent**: Starts implementation.
+6.  **Agent**: Fixes a frontend caching issue by restarting the bundler.
+7.  **Agent**: Gets the new text-only design to render but notices a minor bug (long breadcrumb text).
+8.  **Agent**: Prepares to run the testing agent with the full design spec.
+9.  **User (as Agent input)**: Provides the full, extremely detailed, multi-page design specification (message #175) to be used for testing.
+10. **Agent**: Acknowledges the detailed spec and prepares to implement it exactly.
 
 **Project Health Check:**
--   **Broken**:
-    -   Core audio playback functionality.
-    -   The  process for the frontend (
-  Usage: expo [command] [options]
-
-  Options:
-  
-    -V, --version                     output the version number
-    --non-interactive                 Fail, if an interactive prompt would be required to continue.
-    -h, --help                        output usage information
-  
-  Commands:
-
-    init [name]                       Create a new Expo project
-    start [path]                      Start a local dev server for the app
-    start:web [path]                  Start a Webpack dev server for the web app
-    export [path]                     Export the static files of the app for hosting it on a web server
-    install [packages...]             Install a module or other package to a project
-    run:android [path]                Run the Android app binary locally
-    run:ios [path]                    Run the iOS app binary locally
-    send [path]                       Share the project's URL to an email address
-
-    login                             Login to an Expo account
-    logout                            Logout of an Expo account
-    register                          Sign up for a new Expo account
-    whoami                            Return the currently authenticated account
-
-    client:install:ios                Install Expo Go for iOS on the simulator
-    client:install:android            Install Expo Go for Android on a connected device or emulator
-
-    config [path]                     Show the project config
-    doctor [path]                     Diagnose issues with the project
-    upgrade [sdk-version]             Upgrade the project packages and config for the given SDK version
-
-    customize:web [path]              Eject the default web files for customization
-    prebuild [path]                   Create native iOS and Android project files before building natively.
-                                      Learn more: https://docs.expo.dev/workflow/customizing/
-
-    build:web [path]                  Build the web app for production
-
-    credentials:manager [path]        Superseded by eas credentials in eas-cli
-
-    url [path]                        Log a URL for opening the project in Expo Go
-    url:ipa [path]                    Log the download URL for the standalone iOS binary
-    url:apk [path]                    Log the download URL for the standalone Android binary
-
-    webhooks [path]                   List all webhooks for a project
-    webhooks:add [path]               Add a webhook to a project
-    webhooks:remove [path]            Delete a webhook
-    webhooks:update [path]            Update an existing webhook
-
-    build:ios [path]                  Superseded by eas build in eas-cli
-    build:android [path]              Superseded by eas build in eas-cli
-    build:status [path]               Superseded by eas build:list in eas-cli
-    eject [path]                      Superseded by expo prebuild
-    fetch:ios:certs [path]            Superseded by eas credentials in eas-cli
-    fetch:android:keystore [path]     Superseded by eas credentials in eas-cli
-    fetch:android:hashes [path]       Superseded by eas credentials in eas-cli
-    fetch:android:upload-cert [path]  Superseded by eas credentials in eas-cli
-    publish [path]                    Superseded by eas update in eas-cli
-    publish:set [path]                Superseded by eas update:republish in eas-cli
-    publish:rollback [path]           Superseded by eas update:republish in eas-cli
-    publish:history [path]            Superseded by eas update:list in eas-cli
-    publish:details [path]            Superseded by eas update:view in eas-cli
-    push:android:upload [path]        Superseded by eas credentials in eas-cli
-    push:android:show [path]          Superseded by eas credentials in eas-cli
-    push:android:clear [path]         Superseded by eas credentials in eas-cli
-    upload:android [path]             Superseded by eas submit in eas-cli
-    upload:ios [path]                 Superseded by eas submit in eas-cli
-    client:ios [path]                 Superseded by Expo Dev Clients
-
-[15:27:24]   Run a command with --help for more info 💡
-[15:27:24]     $ expo start --help
-[15:27:24]), which tries to use a broken  tunnel. A workaround () is in place.
+-   **Broken**: The homepage is in a half-finished state. It displays text instead of images but does not yet match the final, detailed layout and styling specified by the user.
 -   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **Cloudflare R2**: For audio file storage.
--   **Stripe**: For payments, subscriptions, and promo codes (integrated in a previous session).
+-   Cloudflare R2 (Audio storage)
+-   Stripe (Payments)
+-   Google Fonts (via  packages)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (for admin panel implementation).
+-   **Testing agent used after significant changes**: YES, it was used to validate the previous Netflix-style homepage.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: 
--   **Known regressions**: None.
+-   **Test files created**: , 
+-   **Known regressions**: None
 
 **Credentials to test flow:**
 -   **Admin Panel Route**: 
@@ -236,5 +159,4 @@ expo-web: ERROR (no such process) to run the app. If that fails, manually run [1
 -   **Test User Password**: 
 
 **What agent forgot to execute**
--   The agent started the rename from Le Sijill to Sijill but did not fully verify all instances or check for broken variable/style names.
--   The agent did not yet implement a script to clear old data before re-populating, which is necessary to fix the Henry Corbin issue.</analysis>
+The agent was in the middle of executing the final design request when the session ended. The task is not forgotten, but it is incomplete. The next step is the full implementation of the design spec from message #175 in .</analysis>
