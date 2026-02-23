@@ -61,6 +61,20 @@ export default function AdminCourses() {
     loadCourses();
   };
 
+  const handleSetFeatured = async (courseId: string) => {
+    try {
+      const resp = await apiRequest(`/admin/courses/${courseId}/set-featured`, token, { method: 'PATCH' });
+      if (resp.ok) {
+        setCourses((prev) =>
+          prev.map((c) => ({ ...c, is_featured: c.id === courseId }))
+        );
+        Alert.alert('Succès', 'Cours mis en avant sur la page d\'accueil');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de mettre le cours en avant');
+    }
+  };
+
   const handleToggle = async (courseId: string) => {
     try {
       const resp = await apiRequest(`/admin/courses/${courseId}/toggle`, token, { method: 'PATCH' });
