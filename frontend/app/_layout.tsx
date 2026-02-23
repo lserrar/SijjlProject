@@ -12,6 +12,15 @@ import {
   DMSans_400Regular,
   DMSans_500Medium,
 } from '@expo-google-fonts/dm-sans';
+import {
+  Cinzel_400Regular,
+  Cinzel_600SemiBold,
+} from '@expo-google-fonts/cinzel';
+import {
+  EBGaramond_400Regular,
+  EBGaramond_500Medium,
+  EBGaramond_400Regular_Italic,
+} from '@expo-google-fonts/eb-garamond';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '../context/AuthContext';
 import { PlayerProvider } from '../context/PlayerContext';
@@ -26,6 +35,11 @@ export default function RootLayout() {
     'Inter-Bold': Inter_700Bold,
     'DMSans-Regular': DMSans_400Regular,
     'DMSans-Medium': DMSans_500Medium,
+    'Cinzel': Cinzel_400Regular,
+    'Cinzel-SemiBold': Cinzel_600SemiBold,
+    'EB Garamond': EBGaramond_400Regular,
+    'EB Garamond Medium': EBGaramond_500Medium,
+    'EB Garamond Italic': EBGaramond_400Regular_Italic,
   });
 
   useEffect(() => {
