@@ -1,28 +1,22 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   RefreshControl,
   ActivityIndicator,
   Dimensions,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth, apiRequest } from '../../context/AuthContext';
-import { colors, spacing, radius } from '../../constants/theme';
+import { spacing } from '../../constants/theme';
 import { formatDuration } from '../../constants/mockData';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(160, width * 0.42);
-const EPISODE_CARD_WIDTH = 150;
-const EPISODE_CARD_HEIGHT = 90;
 
 export default function HomeScreen() {
   const { user, token } = useAuth();
@@ -45,20 +39,19 @@ export default function HomeScreen() {
   }, [token]);
 
   useEffect(() => { fetchHome(); }, [fetchHome]);
-
   const onRefresh = () => { setRefreshing(true); fetchHome(); };
 
-  const goToCourse = (courseId: string) => router.push(`/course/${courseId}` as any);
-  const goToAudio = (audioId: string) => router.push(`/audio/${audioId}` as any);
+  const goToCourse = (id: string) => router.push(`/course/${id}` as any);
+  const goToAudio = (id: string) => router.push(`/audio/${id}` as any);
 
-  const firstName = user?.name?.split(' ')[0] || 'vous';
   const hour = new Date().getHours();
-  const greetingText = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const firstName = user?.name?.split(' ')[0] || 'vous';
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.brand.primary} />
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color="#04D182" />
       </View>
     );
   }
@@ -66,10 +59,10 @@ export default function HomeScreen() {
   const {
     featured_course,
     continue_watching = [],
+    recent_episodes = [],
     recommendations = [],
     scholars = [],
-    top10_courses = [],
-    course_bandeaux = [],
+    top5_courses = [],
   } = homeData || {};
 
   return (
@@ -77,202 +70,204 @@ export default function HomeScreen() {
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#04D182" />}
       >
         {/* ── Header ── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greetingText}>{greetingText},</Text>
-            <Text style={styles.userName}>{firstName}</Text>
+            <Text style={styles.greetingLabel}>{greeting.toUpperCase()}</Text>
+            <Text style={styles.greetingName}>{firstName.toUpperCase()}</Text>
           </View>
           <TouchableOpacity
-            data-testid="home-search-btn"
             testID="home-search-btn"
             style={styles.searchBtn}
             onPress={() => router.push('/search' as any)}
           >
-            <Ionicons name="search" size={22} color={colors.text.primary} />
+            <Ionicons name="search" size={18} color="#F5F0E8" />
           </TouchableOpacity>
         </View>
 
-        {/* ── Featured Course (Hero Netflix) ── */}
+        <GoldLine />
+
+        {/* ── Hero (featured course — no image) ── */}
         {featured_course && (
-          <TouchableOpacity
-            testID="home-featured-course"
-            style={styles.heroCard}
-            onPress={() => goToCourse(featured_course.id)}
-            activeOpacity={0.95}
-          >
-            <Image
-              source={{ uri: featured_course.thumbnail || 'https://via.placeholder.com/400x260' }}
-              style={styles.heroImage}
-            />
-            <LinearGradient
-              colors={['transparent', 'rgba(8,8,8,0.85)', 'rgba(8,8,8,1)']}
-              style={styles.heroGradient}
+          <View style={styles.heroWrap}>
+            <View style={styles.heroCursusTag}>
+              <Text style={[styles.cursusTagText, { color: featured_course.cursus_color || '#04D182' }]}>
+                À LA UNE · CURSUS {featured_course.cursus_letter || 'A'}
+                {featured_course.cursus_name ? ` · ${featured_course.cursus_name.toUpperCase()}` : ''}
+              </Text>
+            </View>
+            <Text style={styles.heroTitle} testID="home-featured-title">
+              {featured_course.title}
+            </Text>
+            {featured_course.description ? (
+              <Text style={styles.heroDesc} numberOfLines={3}>
+                {featured_course.description}
+              </Text>
+            ) : null}
+            <Text style={styles.heroScholar}>
+              {featured_course.scholar_name ? `Prof. ${featured_course.scholar_name}` : ''}
+            </Text>
+            <View style={styles.heroMeta}>
+              {featured_course.modules_count > 0 && (
+                <Text style={styles.heroMetaText}>
+                  {featured_course.modules_count} ÉPISODE{featured_course.modules_count > 1 ? 'S' : ''}
+                </Text>
+              )}
+              {featured_course.modules_count > 0 && featured_course.duration > 0 && (
+                <Text style={styles.heroMetaDot}>·</Text>
+              )}
+              {featured_course.duration > 0 && (
+                <Text style={styles.heroMetaText}>{formatDuration(featured_course.duration)}</Text>
+              )}
+            </View>
+            <TouchableOpacity
+              testID="home-hero-start-btn"
+              style={styles.heroBtn}
+              onPress={() => goToCourse(featured_course.id)}
             >
-              <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>À LA UNE</Text>
-              </View>
-              <Text style={styles.heroTitle} numberOfLines={2}>{featured_course.title}</Text>
-              <Text style={styles.heroScholar}>{featured_course.scholar_name}</Text>
-              <View style={styles.heroMeta}>
-                <MetaChip icon="book-outline" label={`${featured_course.modules_count || 0} épisodes`} />
-                <MetaChip icon="time-outline" label={formatDuration(featured_course.duration)} />
-                {featured_course.level && <LevelChip level={featured_course.level} />}
-              </View>
-              <TouchableOpacity
-                testID="home-hero-start-btn"
-                style={styles.heroBtn}
-                onPress={() => goToCourse(featured_course.id)}
-              >
-                <Ionicons name="play" size={15} color="#000" />
-                <Text style={styles.heroBtnText}>Commencer</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </TouchableOpacity>
+              <Ionicons name="play" size={12} color="#0A0A0A" />
+              <Text style={styles.heroBtnText}>COMMENCER</Text>
+            </TouchableOpacity>
+          </View>
         )}
+
+        <GoldLine />
 
         {/* ── Reprendre la lecture ── */}
         {continue_watching.length > 0 && (
-          <Section title="Reprendre la lecture" icon="play-circle-outline">
+          <Section label="REPRENDRE LA LECTURE">
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
               {continue_watching.map((item: any) => (
                 <TouchableOpacity
                   key={item.audio.id}
                   testID={`home-continue-${item.audio.id}`}
-                  style={styles.continueCard}
+                  style={styles.episodeCard}
                   onPress={() => goToAudio(item.audio.id)}
                 >
-                  <View style={styles.continueImgWrap}>
-                    <Image
-                      source={{ uri: item.audio.thumbnail || item.course?.thumbnail || 'https://via.placeholder.com/160x90' }}
-                      style={styles.continueImg}
-                    />
-                    <View style={styles.continueBadge}>
-                      <Ionicons name="play" size={14} color="#000" />
-                    </View>
+                  <CursusTag letter={item.audio.cursus_letter || 'A'} name={item.audio.cursus_name} color={item.audio.cursus_color || '#04D182'} />
+                  <Text style={styles.epCardTitle} numberOfLines={3}>{item.audio.title}</Text>
+                  <View style={styles.progressBarOuter}>
+                    <View style={[styles.progressBarInner, { width: `${(item.progress || 0) * 100}%` as any }]} />
                   </View>
-                  <View style={styles.continueProgressBar}>
-                    <View style={[styles.continueProgressFill, { width: `${(item.progress || 0) * 100}%` }]} />
-                  </View>
-                  <Text style={styles.continueTitle} numberOfLines={2}>{item.audio.title}</Text>
-                  {item.position > 0 && (
-                    <Text style={styles.continuePosition}>{formatSeconds(item.position)}</Text>
-                  )}
+                  <Text style={styles.epCardDuration}>{formatSeconds(item.position)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </Section>
         )}
 
-        {/* ── Recommandations ── */}
-        {recommendations.length > 0 && (
-          <Section title="Recommandé pour vous" seeAllRoute="/(tabs)/cursus">
+        {/* ── Nouveaux épisodes ── */}
+        {recent_episodes.length > 0 && (
+          <Section label="NOUVEAUX ÉPISODES" seeAll={() => router.push('/(tabs)/cursus' as any)}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-              {recommendations.map((course: any) => (
-                <CourseCard key={course.id} course={course} onPress={() => goToCourse(course.id)} />
-              ))}
-            </ScrollView>
-          </Section>
-        )}
-
-        {/* ── Professeurs ── */}
-        {scholars.length > 0 && (
-          <Section title="Professeurs" seeAllRoute="/(tabs)/explorer">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-              {scholars.map((scholar: any) => (
-                <TouchableOpacity
-                  key={scholar.id}
-                  testID={`home-scholar-${scholar.id}`}
-                  style={styles.scholarCard}
-                  onPress={() => router.push(`/scholar/${scholar.id}` as any)}
-                >
-                  <Image
-                    source={{ uri: scholar.photo_url || scholar.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name || 'S')}&background=1a1a1a&color=04D182&bold=true&size=128` }}
-                    style={styles.scholarAvatar}
-                  />
-                  <Text style={styles.scholarName} numberOfLines={2}>{scholar.name?.split(' ').slice(-1)[0]}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Section>
-        )}
-
-        {/* ── Top 10 du mois ── */}
-        {top10_courses.length > 0 && (
-          <Section title="Top 10 ce mois-ci">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-              {top10_courses.slice(0, 10).map((course: any, index: number) => (
-                <TouchableOpacity
-                  key={course.id}
-                  testID={`home-top10-${course.id}`}
-                  style={styles.top10Card}
-                  onPress={() => goToCourse(course.id)}
-                >
-                  <Text style={styles.top10Rank}>{index + 1}</Text>
-                  <View style={styles.top10ImgWrap}>
-                    <Image
-                      source={{ uri: course.thumbnail || 'https://via.placeholder.com/100x140' }}
-                      style={styles.top10Img}
-                    />
-                    <LinearGradient
-                      colors={['transparent', 'rgba(0,0,0,0.8)']}
-                      style={styles.top10Overlay}
-                    >
-                      <Text style={styles.top10Title} numberOfLines={2}>{course.title}</Text>
-                    </LinearGradient>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Section>
-        )}
-
-        {/* ── Bandeaux par cours ── */}
-        {course_bandeaux.map((course: any) => (
-          <View key={course.id} style={styles.bandeau}>
-            <View style={styles.bandeauHeader}>
-              <View style={styles.bandeauTitleRow}>
-                <Text style={styles.bandeauTitle} numberOfLines={1}>{course.title}</Text>
-                <Text style={styles.bandeauCount}>{course.episodes?.length || 0} épisodes</Text>
-              </View>
-              <TouchableOpacity
-                testID={`home-bandeau-voir-${course.id}`}
-                onPress={() => goToCourse(course.id)}
-              >
-                <Text style={styles.bandeauSeeAll}>Voir tout</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-              {(course.episodes || []).map((ep: any, idx: number) => (
+              {recent_episodes.map((ep: any) => (
                 <TouchableOpacity
                   key={ep.id}
                   testID={`home-ep-${ep.id}`}
-                  style={styles.epCard}
+                  style={styles.episodeCard}
                   onPress={() => goToAudio(ep.id)}
                 >
-                  <View style={styles.epImgWrap}>
-                    <Image
-                      source={{ uri: ep.thumbnail || course.thumbnail || 'https://via.placeholder.com/150x90' }}
-                      style={styles.epImg}
-                    />
-                    <View style={styles.epNumberBadge}>
-                      <Text style={styles.epNumberText}>Ép. {ep.episode_number || idx + 1}</Text>
-                    </View>
-                    <View style={styles.epPlayBtn}>
-                      <Ionicons name="play" size={12} color="#fff" />
-                    </View>
-                  </View>
-                  <Text style={styles.epTitle} numberOfLines={2}>{ep.title}</Text>
-                  {ep.duration > 0 && (
-                    <Text style={styles.epDuration}>{formatDuration(ep.duration)}</Text>
-                  )}
+                  <CursusTag letter={ep.cursus_letter || 'A'} name={ep.cursus_name} color={ep.cursus_color || '#04D182'} />
+                  <Text style={styles.epCardTitle} numberOfLines={3}>{ep.title}</Text>
+                  {ep.duration > 0 && <Text style={styles.epCardDuration}>{formatDuration(ep.duration)}</Text>}
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </Section>
+        )}
+
+        <GoldLine />
+
+        {/* ── Recommandé pour vous ── */}
+        {recommendations.length > 0 && (
+          <Section label="RECOMMANDÉ POUR VOUS" seeAll={() => router.push('/(tabs)/cursus' as any)}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
+              {recommendations.map((course: any) => (
+                <TouchableOpacity
+                  key={course.id}
+                  testID={`home-rec-${course.id}`}
+                  style={styles.courseCard}
+                  onPress={() => goToCourse(course.id)}
+                >
+                  <CursusTag letter={course.cursus_letter || 'A'} name={course.cursus_name} color={course.cursus_color || '#04D182'} />
+                  <Text style={styles.courseCardTitle} numberOfLines={3}>{course.title}</Text>
+                  {course.description ? (
+                    <Text style={styles.courseCardDesc} numberOfLines={2}>{course.description}</Text>
+                  ) : null}
+                  <Text style={styles.courseCardScholar} numberOfLines={1}>
+                    {course.scholar_name ? `Prof. ${course.scholar_name}` : ''}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Section>
+        )}
+
+        <GoldLine />
+
+        {/* ── Professeurs ── */}
+        {scholars.length > 0 && (
+          <Section label="PROFESSEURS">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
+              {scholars.map((s: any) => (
+                <TouchableOpacity
+                  key={s.id}
+                  testID={`home-scholar-${s.id}`}
+                  style={styles.scholarCard}
+                  onPress={() => router.push(`/scholar/${s.id}` as any)}
+                >
+                  <View style={styles.scholarAvatar}>
+                    <Text style={styles.scholarInitial}>
+                      {(s.name || 'S').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.scholarName} numberOfLines={2}>
+                    {s.name?.split(' ').slice(-1)[0]?.toUpperCase() || 'PROF.'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Section>
+        )}
+
+        <GoldLine />
+
+        {/* ── Top 5 du mois ── */}
+        {top5_courses.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionLabel}>TOP 5 DU MOIS</Text>
+                <Text style={styles.sectionSub}>{getMonthLabel()}</Text>
+              </View>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/cursus' as any)}>
+                <Text style={styles.seeAllText}>Voir le classement →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.top5List}>
+              {top5_courses.map((course: any, idx: number) => (
+                <TouchableOpacity
+                  key={course.id}
+                  testID={`home-top5-${course.id}`}
+                  style={[styles.top5Item, idx < top5_courses.length - 1 && styles.top5ItemBorder]}
+                  onPress={() => goToCourse(course.id)}
+                >
+                  <Text style={styles.top5Rank}>{idx + 1}</Text>
+                  <View style={styles.top5Info}>
+                    <CursusTag letter={course.cursus_letter || 'A'} name={course.cursus_name} color={course.cursus_color || '#04D182'} />
+                    <Text style={styles.top5Title} numberOfLines={2}>{course.title}</Text>
+                    <Text style={styles.top5Scholar}>
+                      {course.scholar_name ? `Prof. ${course.scholar_name}` : ''}
+                    </Text>
+                  </View>
+                  <View style={[styles.top5ColorStrip, { backgroundColor: course.cursus_color || '#04D182' }]} />
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        ))}
+        )}
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -282,18 +277,18 @@ export default function HomeScreen() {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function Section({ title, icon, seeAllRoute, children }: any) {
-  const router = useRouter();
+function GoldLine() {
+  return <View style={styles.goldLine} />;
+}
+
+function Section({ label, seeAll, children }: { label: string; seeAll?: () => void; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          {icon && <Ionicons name={icon} size={16} color={colors.brand.primary} style={{ marginRight: 6 }} />}
-          <Text style={styles.sectionTitle}>{title}</Text>
-        </View>
-        {seeAllRoute && (
-          <TouchableOpacity onPress={() => router.push(seeAllRoute as any)}>
-            <Text style={styles.seeAll}>Voir tout</Text>
+        <Text style={styles.sectionLabel}>{label}</Text>
+        {seeAll && (
+          <TouchableOpacity onPress={seeAll}>
+            <Text style={styles.seeAllText}>Voir tout →</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -302,59 +297,20 @@ function Section({ title, icon, seeAllRoute, children }: any) {
   );
 }
 
-function CourseCard({ course, onPress }: any) {
+function CursusTag({ letter, name, color }: { letter: string; name?: string; color: string }) {
+  const display = name ? `CURSUS ${letter} · ${name.toUpperCase()}` : `CURSUS ${letter}`;
   return (
-    <TouchableOpacity
-      testID={`home-course-${course.id}`}
-      style={styles.courseCard}
-      onPress={onPress}
-    >
-      <Image
-        source={{ uri: course.thumbnail || 'https://via.placeholder.com/160x220' }}
-        style={styles.courseCardImg}
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.9)']}
-        style={styles.courseCardOverlay}
-      >
-        <Text style={styles.courseCardTitle} numberOfLines={2}>{course.title}</Text>
-        <Text style={styles.courseCardScholar} numberOfLines={1}>{course.scholar_name}</Text>
-      </LinearGradient>
-    </TouchableOpacity>
+    <Text style={[styles.cursusTag, { color }]} numberOfLines={1}>
+      {display}
+    </Text>
   );
 }
 
-function MetaChip({ icon, label }: any) {
-  return (
-    <View style={styles.metaChip}>
-      <Ionicons name={icon} size={11} color={colors.text.secondary} />
-      <Text style={styles.metaChipText}>{label}</Text>
-    </View>
-  );
-}
-
-function normLevel(s: string) {
-  return (s || '').toLowerCase()
-    .replace(/é|è|ê/g, 'e')
-    .replace(/â|à/g, 'a');
-}
-
-function LevelChip({ level }: any) {
-  const n = normLevel(level);
-  const color = n === 'debutant' ? '#22c55e' : n === 'intermediaire' ? '#f59e0b' : '#ef4444';
-  return (
-    <View style={[styles.levelChip, { borderColor: color }]}>
-      <Text style={[styles.levelChipText, { color }]}>{level}</Text>
-    </View>
-  );
-}
-
-function getLevelColor(level: string) {
-  const n = normLevel(level);
-  if (n === 'debutant') return '#22c55e';
-  if (n === 'intermediaire') return '#f59e0b';
-  if (n === 'avance') return '#ef4444';
-  return colors.brand.primary;
+function getMonthLabel() {
+  const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+  const now = new Date();
+  return `${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
 function formatSeconds(seconds: number): string {
@@ -366,25 +322,39 @@ function formatSeconds(seconds: number): string {
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
+const EPISODE_CARD_W = Math.min(140, width * 0.37);
+const COURSE_CARD_W = Math.min(160, width * 0.42);
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0A0A0A' },
   scroll: { flex: 1 },
-  loadingContainer: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
+  loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
 
   // Header
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
-  greetingText: { fontFamily: 'Cinzel', fontSize: 9, color: '#888888', letterSpacing: 3, textTransform: 'uppercase' },
-  userName: { fontFamily: 'Cinzel', fontSize: 24, color: '#F5F0E8', letterSpacing: 4, marginTop: 4 },
+  greetingLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    color: '#888888',
+    letterSpacing: 4,
+  },
+  greetingName: {
+    fontFamily: 'Cinzel',
+    fontSize: 22,
+    color: '#F5F0E8',
+    letterSpacing: 6,
+    marginTop: 4,
+  },
   searchBtn: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderWidth: 1,
     borderColor: '#222222',
     alignItems: 'center',
@@ -392,37 +362,85 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
   },
 
-  heroCard: { marginHorizontal: spacing.lg, overflow: 'hidden', height: 300, marginBottom: spacing.xl },
-  heroImage: { width: '100%', height: '100%', position: 'absolute' },
-  heroGradient: { flex: 1, justifyContent: 'flex-end', padding: spacing.lg },
-  heroBadge: {
-    backgroundColor: '#04D182',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
+  // Gold separator
+  goldLine: {
+    height: 1,
+    backgroundColor: '#C9A84C',
+    opacity: 0.2,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
+  },
+
+  // Hero (no image)
+  heroWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  heroCursusTag: { marginBottom: spacing.sm },
+  cursusTagText: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 26,
+    color: '#F5F0E8',
+    lineHeight: 36,
+    letterSpacing: 1,
+    marginBottom: spacing.md,
+  },
+  heroDesc: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 16,
+    color: '#888888',
+    lineHeight: 24,
+    marginBottom: spacing.md,
+  },
+  heroScholar: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 14,
+    color: '#C9A84C',
     marginBottom: spacing.sm,
   },
-  heroBadgeText: { fontFamily: 'Cinzel', fontSize: 8, color: '#000', letterSpacing: 4, textTransform: 'uppercase' },
-  heroTitle: { fontFamily: 'Cinzel', fontSize: 18, color: '#F5F0E8', marginBottom: 6, lineHeight: 26, letterSpacing: 1 },
-  heroScholar: { fontFamily: 'EB Garamond', fontStyle: 'italic', fontSize: 14, color: '#C9A84C', marginBottom: spacing.sm },
-  heroMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
-  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaChipText: { fontFamily: 'Cinzel', fontSize: 8, color: '#888888', letterSpacing: 2, textTransform: 'uppercase' },
-  levelChip: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
-  levelChipText: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 2 },
+  heroMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing.lg,
+  },
+  heroMetaText: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    color: '#888888',
+    letterSpacing: 2,
+  },
+  heroMetaDot: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    color: '#444444',
+  },
   heroBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#04D182',
     paddingHorizontal: spacing.lg,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignSelf: 'flex-start',
   },
-  heroBtnText: { fontFamily: 'Cinzel', fontSize: 9, color: '#000', letterSpacing: 4, textTransform: 'uppercase' },
+  heroBtnText: {
+    fontFamily: 'Cinzel',
+    fontSize: 9,
+    color: '#0A0A0A',
+    letterSpacing: 4,
+  },
 
   // Sections
-  section: { marginBottom: spacing.xl },
+  section: { marginBottom: spacing.lg },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -430,164 +448,178 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: { fontFamily: 'Cinzel', fontSize: 11, color: '#F5F0E8', letterSpacing: 3, textTransform: 'uppercase' },
-  seeAll: { fontFamily: 'EB Garamond', fontStyle: 'italic', fontSize: 13, color: '#C9A84C' },
+  sectionLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 9,
+    color: '#04D182',
+    letterSpacing: 5,
+    textTransform: 'uppercase',
+  },
+  sectionSub: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 12,
+    color: '#888888',
+    marginTop: 2,
+  },
+  seeAllText: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 13,
+    color: '#C9A84C',
+  },
   hList: { paddingHorizontal: spacing.lg, gap: spacing.md },
 
-  // Continue Watching
-  continueCard: { width: EPISODE_CARD_WIDTH },
-  continueImgWrap: { position: 'relative' },
-  continueImg: {
-    width: EPISODE_CARD_WIDTH,
-    height: EPISODE_CARD_HEIGHT,
-    backgroundColor: '#1A1A1A',
+  // Cursus tag
+  cursusTag: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
-  continueBadge: {
-    position: 'absolute',
-    right: 8,
-    bottom: 8,
-    width: 28,
-    height: 28,
-    backgroundColor: '#04D182',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueProgressBar: {
-    height: 2,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  continueProgressFill: { height: 2, backgroundColor: '#04D182' },
-  continueTitle: { fontFamily: 'EB Garamond', fontSize: 13, color: '#F5F0E8', lineHeight: 17 },
-  continuePosition: { fontFamily: 'Cinzel', fontSize: 8, color: '#888888', marginTop: 2, letterSpacing: 1 },
 
-  // Course Cards (Recommendations)
-  courseCard: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH * 1.4,
-    overflow: 'hidden',
-    backgroundColor: '#1A1A1A',
+  // Episode cards (text-only)
+  episodeCard: {
+    width: EPISODE_CARD_W,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    padding: spacing.sm + 4,
+    justifyContent: 'space-between',
+    minHeight: 120,
   },
-  courseCardImg: { width: '100%', height: '100%', position: 'absolute' },
-  courseCardOverlay: {
+  epCardTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    color: '#F5F0E8',
+    lineHeight: 16,
+    letterSpacing: 0.3,
     flex: 1,
-    justifyContent: 'flex-end',
-    padding: spacing.sm,
   },
-  courseCardTitle: { fontFamily: 'EB Garamond', fontSize: 13, color: '#F5F0E8', lineHeight: 17 },
-  courseCardScholar: { fontFamily: 'Cinzel', fontSize: 8, color: '#C9A84C', marginTop: 3, letterSpacing: 1 },
+  epCardDuration: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    color: '#888888',
+    letterSpacing: 1,
+    marginTop: 8,
+  },
+
+  // Progress bar
+  progressBarOuter: {
+    height: 2,
+    backgroundColor: '#222222',
+    marginTop: 8,
+  },
+  progressBarInner: {
+    height: 2,
+    backgroundColor: '#04D182',
+  },
+
+  // Course cards (text-only, taller)
+  courseCard: {
+    width: COURSE_CARD_W,
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#222222',
+    padding: spacing.md,
+    minHeight: 160,
+    justifyContent: 'space-between',
+  },
+  courseCardTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    color: '#F5F0E8',
+    lineHeight: 18,
+    letterSpacing: 0.3,
+    flex: 1,
+  },
+  courseCardDesc: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 12,
+    color: '#888888',
+    lineHeight: 16,
+    marginTop: 6,
+  },
+  courseCardScholar: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 11,
+    color: '#C9A84C',
+    marginTop: 6,
+  },
 
   // Scholars
-  scholarCard: { alignItems: 'center', width: 76, gap: 6 },
+  scholarCard: { alignItems: 'center', width: 68, gap: 6 },
   scholarAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
     backgroundColor: '#1A1A1A',
     borderWidth: 1,
     borderColor: 'rgba(201,168,76,0.3)',
-  },
-  scholarName: {
-    fontFamily: 'Cinzel',
-    fontSize: 8,
-    color: '#888888',
-    textAlign: 'center',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-
-  // Top 10
-  top10Card: {
-    width: 100,
-    alignItems: 'flex-end',
-  },
-  top10Rank: {
-    fontFamily: 'Cinzel',
-    fontSize: 72,
-    color: 'rgba(245,240,232,0.07)',
-    lineHeight: 80,
-    position: 'absolute',
-    left: -8,
-    bottom: 0,
-    zIndex: 2,
-    letterSpacing: -4,
-  },
-  top10ImgWrap: {
-    width: 80,
-    height: 120,
-    overflow: 'hidden',
-    backgroundColor: '#1A1A1A',
-  },
-  top10Img: { width: '100%', height: '100%' },
-  top10Overlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 6,
-  },
-  top10Title: { fontFamily: 'EB Garamond', fontSize: 10, color: '#F5F0E8', lineHeight: 13 },
-
-  // Bandeaux
-  bandeau: { marginBottom: spacing.xl },
-  bandeauHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1A1A1A',
-    marginBottom: spacing.md,
-  },
-  bandeauTitleRow: { flex: 1, marginRight: spacing.sm },
-  bandeauTitle: { fontFamily: 'Cinzel', fontSize: 11, color: '#F5F0E8', letterSpacing: 2 },
-  bandeauCount: { fontFamily: 'EB Garamond', fontStyle: 'italic', fontSize: 12, color: '#888888', marginTop: 1 },
-  bandeauSeeAll: { fontFamily: 'EB Garamond', fontStyle: 'italic', fontSize: 13, color: '#C9A84C' },
-
-  // Episode Cards
-  epCard: { width: EPISODE_CARD_WIDTH },
-  epImgWrap: { position: 'relative' },
-  epImg: {
-    width: EPISODE_CARD_WIDTH,
-    height: EPISODE_CARD_HEIGHT,
-    backgroundColor: '#1A1A1A',
-  },
-  epNumberBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  epNumberText: { fontFamily: 'Cinzel', fontSize: 8, color: '#F5F0E8', letterSpacing: 1 },
-  epPlayBtn: {
-    position: 'absolute',
-    right: 6,
-    bottom: 6,
-    width: 24,
-    height: 24,
-    backgroundColor: 'rgba(4,209,130,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(4,209,130,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  epTitle: {
-    fontFamily: 'EB Garamond',
-    fontSize: 13,
+  scholarInitial: {
+    fontFamily: 'Cinzel',
+    fontSize: 18,
+    color: '#C9A84C',
+  },
+  scholarName: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    color: '#888888',
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+
+  // Top 5
+  top5List: {
+    marginHorizontal: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  top5Item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: '#111111',
+  },
+  top5ItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+  },
+  top5Rank: {
+    fontFamily: 'Cinzel',
+    fontSize: 36,
+    color: 'rgba(201,168,76,0.25)',
+    width: 44,
+    textAlign: 'center',
+    lineHeight: 44,
+  },
+  top5Info: {
+    flex: 1,
+  },
+  top5Title: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
     color: '#F5F0E8',
     lineHeight: 17,
-    marginTop: 6,
+    letterSpacing: 0.3,
+    marginTop: 4,
   },
-  epDuration: {
-    fontFamily: 'Cinzel',
-    fontSize: 8,
+  top5Scholar: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 12,
     color: '#888888',
-    marginTop: 2,
-    letterSpacing: 1,
+    marginTop: 4,
+  },
+  top5ColorStrip: {
+    width: 3,
+    alignSelf: 'stretch',
+    opacity: 0.6,
   },
 });
