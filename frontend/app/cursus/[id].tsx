@@ -142,10 +142,10 @@ export default function CursusDetailScreen() {
             courses.map((course: any, idx: number) => (
               <TouchableOpacity
                 key={course.id}
+                testID={`cursus-course-${course.id}`}
                 style={s.courseCard}
                 onPress={() => router.push(`/course/${course.id}` as any)}
                 activeOpacity={0.8}
-                data-testid={`cursus-course-${course.id}`}
               >
                 {/* Index number */}
                 <Text style={[s.courseNum, { color: idx === 0 ? cursusColor : '#444' }]}>
