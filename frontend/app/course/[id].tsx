@@ -25,16 +25,18 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [modules, setModules] = useState<any[]>([]);
+  const [moduleAudios, setModuleAudios] = useState<{ [moduleId: string]: any }>({});
   const [relatedResources, setRelatedResources] = useState<{
     bibliographies: any[];
-    audios: any[];
-  }>({ bibliographies: [], audios: [] });
+  }>({ bibliographies: [] });
   
   // Check if user has access to this course
   const { hasAccess, reason, loading: accessLoading } = useAccessCheck('course', id);
 
   useEffect(() => {
     loadCourse();
+    loadModules();
     loadRelatedResources();
   }, [id]);
 
@@ -47,27 +49,33 @@ export default function CourseDetailScreen() {
     finally { setLoading(false); }
   };
 
+  const loadModules = async () => {
+    try {
+      const resp = await apiRequest(`/modules?course_id=${id}`, token);
+      if (!resp.ok) return;
+      const mods = await resp.json();
+      setModules(mods);
+      // Fetch audios for each module in parallel
+      const audioEntries = await Promise.all(
+        mods.map(async (m: any) => {
+          try {
+            const ar = await apiRequest(`/audios?module_id=${m.id}`, token);
+            if (!ar.ok) return [m.id, null];
+            const audios = await ar.json();
+            return [m.id, audios.length > 0 ? audios[0] : null];
+          } catch { return [m.id, null]; }
+        })
+      );
+      setModuleAudios(Object.fromEntries(audioEntries));
+    } catch (e) { console.error('Error loading modules:', e); }
+  };
+
   const loadRelatedResources = async () => {
     try {
-      // Load bibliographies and audios related to this course
-      const [biblioResp, audiosResp] = await Promise.all([
-        apiRequest('/bibliographies', token).catch(() => ({ ok: false })),
-        apiRequest('/audios', token).catch(() => ({ ok: false })),
-      ]);
-      
+      const biblioResp = await apiRequest('/bibliographies', token).catch(() => ({ ok: false }));
       if (biblioResp.ok) {
         const biblios = await biblioResp.json();
-        // Filter bibliographies that might be related to this course (by topic or theme)
-        setRelatedResources(prev => ({ ...prev, bibliographies: biblios.slice(0, 3) }));
-      }
-      
-      if (audiosResp.ok) {
-        const audios = await audiosResp.json();
-        // Filter audios that are related to this course's modules or topic
-        const courseAudios = audios.filter((a: any) => 
-          a.course_id === id || a.topic?.toLowerCase().includes(course?.topic?.toLowerCase())
-        );
-        setRelatedResources(prev => ({ ...prev, audios: courseAudios.slice(0, 5) }));
+        setRelatedResources({ bibliographies: biblios.slice(0, 3) });
       }
     } catch (e) { console.error('Error loading related resources:', e); }
   };
