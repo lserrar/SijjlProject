@@ -95,8 +95,11 @@ def get_presigned_upload_url(file_key: str, content_type: str = 'audio/mpeg') ->
         return None
 
 def resolve_audio_url(audio_doc: dict) -> str:
-    """Return a streaming URL: R2 presigned if file_key exists, else fallback audio_url."""
+    """Return a streaming URL: proxy via backend (avoids CORS) if possible, else presigned R2 URL."""
     file_key = audio_doc.get('file_key')
+    audio_id = audio_doc.get('id', '')
+    if file_key and audio_id and PUBLIC_URL:
+        return f"{PUBLIC_URL}/api/audios/{audio_id}/stream"
     if file_key:
         presigned = get_presigned_stream_url(file_key)
         if presigned:
