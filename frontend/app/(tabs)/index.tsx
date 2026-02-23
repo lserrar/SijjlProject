@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   greeting: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary },
   logoRow: { flexDirection: 'row', alignItems: 'baseline' },
-  logoLe Sijill: { fontFamily: 'Inter-Bold', fontSize: 28, color: colors.text.primary, letterSpacing: -0.5 },
+  logoMain: { fontFamily: 'Inter-Bold', fontSize: 28, color: colors.text.primary, letterSpacing: -0.5 },
   logoByLM: { fontFamily: 'Inter-Regular', fontSize: 13, color: colors.brand.primary, marginLeft: 3 },
   avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.background.card, borderWidth: 2, borderColor: colors.brand.primary },
   

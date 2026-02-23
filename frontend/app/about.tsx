@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   logoContainer: { flexDirection: 'row', alignItems: 'baseline', marginBottom: spacing.sm },
-  logoLe Sijill: { fontFamily: 'Inter-Bold', fontSize: 42, color: colors.text.primary, letterSpacing: -1 },
+  logoMain: { fontFamily: 'Inter-Bold', fontSize: 42, color: colors.text.primary, letterSpacing: -1 },
   logoByLM: { fontFamily: 'Inter-Regular', fontSize: 16, color: colors.brand.primary, marginLeft: 4 },
   tagline: { fontFamily: 'DMSans-Regular', fontSize: 16, color: colors.text.secondary, marginBottom: spacing.xs },
   version: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.tertiary },
