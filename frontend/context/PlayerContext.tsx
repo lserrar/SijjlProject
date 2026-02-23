@@ -37,6 +37,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [speed, setSpeedState] = useState(1.0);
   const soundRef = useRef<Audio.Sound | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onFinishRef = useRef<(() => void) | null>(null);
+
+  const setOnFinish = (cb: (() => void) | null) => {
+    onFinishRef.current = cb;
+  };
 
   useEffect(() => {
     Audio.setAudioModeAsync({
@@ -63,6 +68,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             setIsPlaying(false);
             setPosition(0);
             if (intervalRef.current) clearInterval(intervalRef.current);
+            // Notify listener (auto-next)
+            if (onFinishRef.current) onFinishRef.current();
           }
         }
       }
