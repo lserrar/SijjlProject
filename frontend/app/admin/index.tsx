@@ -73,6 +73,14 @@ export default function AdminDashboard() {
       color: '#45B7D1',
       route: '/admin/courses',
     },
+    {
+      icon: 'star',
+      label: 'Cursus — À la une',
+      count: null,
+      active: null,
+      color: '#C9A84C',
+      route: '/admin/cursus',
+    },
   ];
 
   if (loading) {
