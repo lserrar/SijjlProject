@@ -1,0 +1,39 @@
+{
+  "summary": "Post-rebuild regression test (iteration 13). All 3 bugs from iteration_12 (Metro cache issue) are now FIXED after full bundle rebuild. Login works, 4 recommendation cards, badges for ranks 2 and 5 now render correctly with correct colors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_13.json"],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% (8/8 tests passing)"
+  },
+  "test_credentials": {
+    "user_email": "testuser@hikma.com",
+    "user_password": "TestUser123!"
+  },
+  "seed_data_creation": "No seed data created",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All homepage features verified and working. 3 bugs from iteration_12 confirmed fixed: (1) recommendations.slice(0,4) works → 4 cards, (2) rank #2 badge '↑ 3' renders with bg=rgba(4,209,130,0.1) and green text, (3) rank #5 badge 'Nouveau' renders with bg=rgba(201,168,76,0.12) and gold text. The ↑ character renders correctly in the badge. Login uses data-testid: login-email-input, login-password-input, login-submit-btn.",
+  "passing_verifications": {
+    "login": "PASS: testuser@hikma.com / TestUser123! redirects to homepage",
+    "bug_fix_1_recommendations": "PASS: 4 cards rendered (home-rec-cours-traduction, home-rec-cours-falsafa-grands, home-rec-cours-post-avicennisme, home-rec-cours-falsafa-occident)",
+    "regression_episodes": "PASS: 5 episode cards (≤5)",
+    "top5_rank1_badge": "PASS: 'Nº1' badge with bg=rgba(201,168,76,0.12), gold text rgb(201,168,76)",
+    "bug_fix_2_rank2_badge": "PASS: '↑ 3' badge with bg=rgba(4,209,130,0.1), green text rgb(4,209,130). Arrow character renders correctly.",
+    "rank3_no_badge": "PASS: No badge on rank #3",
+    "rank4_no_badge": "PASS: No badge on rank #4",
+    "bug_fix_3_rank5_badge": "PASS: 'Nouveau' badge with bg=rgba(201,168,76,0.12), gold text rgb(201,168,76)"
+  },
+  "rca_confirmation": "Metro bundle cache was the root cause confirmed. After full rebuild (980 modules, cache cleared), all source code changes are now reflected: recommendations.slice(0,4) and badges for i===1 and i===4 are now active in the running bundle."
+}
