@@ -1,42 +1,106 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-  ActivityIndicator,
-  Dimensions,
-  PanResponder,
-  Platform,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  ActivityIndicator, Dimensions, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { apiRequest } from '../../context/AuthContext';
-import { useAuth } from '../../context/AuthContext';
+import { apiRequest, useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
-import { colors, spacing, radius } from '../../constants/theme';
-import { formatDuration, getTypeLabel } from '../../constants/mockData';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SPEEDS = [0.75, 1.0, 1.25, 1.5, 2.0];
+const { width: SW } = Dimensions.get('window');
+const SPEEDS = [1.0, 1.25, 1.5, 2.0, 0.75];
 
+// Waveform bar heights (% of 32px container)
+const WF_HEIGHTS = [40, 60, 45, 80, 55, 90, 70, 50, 65, 85, 40, 55, 75, 60, 95, 50, 70, 40, 60, 45, 80, 55, 90, 50, 30, 70, 85, 60, 45, 55];
+
+function formatTime(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function fmtDur(s: number) {
+  if (!s) return '';
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${m % 60 > 0 ? (m % 60) + 'min' : ''}`.trim();
+  return `${m} min`;
+}
+
+// ─── Waveform ─────────────────────────────────────────────────────────────────
+function Waveform({ progress, color, onSeek }: { progress: number; color: string; onSeek: (p: number) => void }) {
+  const playedCount = Math.floor(progress * WF_HEIGHTS.length);
+  const handlePress = (evt: any) => {
+    const x = evt.nativeEvent?.locationX ?? evt.nativeEvent?.offsetX ?? 0;
+    const w = SW - 40;
+    onSeek(Math.max(0, Math.min(1, x / w)));
+  };
+  return (
+    <TouchableOpacity
+      testID="audio-waveform"
+      style={s.waveform}
+      onPress={handlePress}
+      activeOpacity={1}
+    >
+      {WF_HEIGHTS.map((h, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            height: Math.max(4, Math.round(h / 100 * 32)),
+            backgroundColor: i < playedCount ? color : '#222222',
+            borderRadius: 1,
+          }}
+        />
+      ))}
+    </TouchableOpacity>
+  );
+}
+
+// ─── Scrubber ─────────────────────────────────────────────────────────────────
+function Scrubber({ progress, duration, color, position, onSeek }: any) {
+  const handlePress = (evt: any) => {
+    const x = evt.nativeEvent?.locationX ?? evt.nativeEvent?.offsetX ?? 0;
+    const w = SW - 40;
+    onSeek(Math.max(0, Math.min(1, x / w)));
+  };
+  const pct = `${Math.min(100, progress * 100)}%`;
+  return (
+    <View testID="audio-scrubber">
+      <TouchableOpacity style={s.scrubberWrap} onPress={handlePress} activeOpacity={1}>
+        <View style={s.scrubberTrack}>
+          <View style={[s.scrubberFill, { width: pct, backgroundColor: color }]} />
+          <View style={[s.scrubberThumb, { left: pct, backgroundColor: color,
+            ...(Platform.OS === 'web' ? { boxShadow: `0 0 8px ${color}66` } as any : { shadowColor: color, shadowOpacity: 0.4, shadowRadius: 4 }),
+          }]} />
+        </View>
+      </TouchableOpacity>
+      <View style={s.timeRow}>
+        <Text style={s.timeElapsed}>{formatTime(position)}</Text>
+        <Text style={s.timeDuration}>{formatTime(duration)}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
 export default function AudioDetailScreen() {
   const { id, course_id, autoplay } = useLocalSearchParams<{ id: string; course_id?: string; autoplay?: string }>();
   const router = useRouter();
   const { token } = useAuth();
   const { currentTrack, isPlaying, position, duration, togglePlayPause, seekTo, skipForward, skipBackward, setSpeed, speed, setOnFinish } = usePlayer();
   const { play } = useAudioPlayer();
+
   const [audio, setAudio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [playlist, setPlaylist] = useState<any[]>([]);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [descExpanded, setDescExpanded] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastSavedProgress = useRef(0);
 
@@ -48,19 +112,23 @@ export default function AudioDetailScreen() {
   const currentIndex = playlist.findIndex(p => p.audio_id === id);
   const nextItem = currentIndex >= 0 && currentIndex < playlist.length - 1 ? playlist[currentIndex + 1] : null;
 
+  const cursusColor = audio?.cursus_color || '#04D182';
+  const cursusLetter = audio?.cursus_letter || 'A';
+
+  const speedIdx = SPEEDS.indexOf(speed);
+  const nextSpeed = SPEEDS[(speedIdx + 1) % SPEEDS.length];
+
   useEffect(() => {
     loadAudio();
     if (course_id) loadPlaylist();
   }, [id]);
 
-  // Auto-play when arriving from "Commencer le cours"
   useEffect(() => {
     if (!loading && audio && autoplay === '1' && !isCurrentTrack) {
       play(audio);
     }
   }, [loading, audio]);
 
-  // Register auto-next callback
   useEffect(() => {
     setOnFinish(() => {
       if (nextItem) {
@@ -83,28 +151,16 @@ export default function AudioDetailScreen() {
     };
   }, [nextItem, id]);
 
-  const navigateToNext = () => {
-    if (!nextItem) return;
-    setShowNextOverlay(false);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    router.replace(`/audio/${nextItem.audio_id}?course_id=${course_id}&autoplay=1` as any);
-  };
-
-  const cancelNext = () => {
-    setShowNextOverlay(false);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-  };
-
   // Auto-save progress every 30s
   useEffect(() => {
     if (!isCurrentTrack || !isPlaying) return;
-    const interval = setInterval(() => {
+    const iv = setInterval(() => {
       if (Math.abs(progress - lastSavedProgress.current) > 0.01) {
         saveProgress();
         lastSavedProgress.current = progress;
       }
     }, 30000);
-    return () => clearInterval(interval);
+    return () => clearInterval(iv);
   }, [isCurrentTrack, isPlaying, progress]);
 
   const loadAudio = async () => {
@@ -122,13 +178,8 @@ export default function AudioDetailScreen() {
   const loadPlaylist = async () => {
     try {
       const resp = await apiRequest(`/courses/${course_id}/playlist`, token);
-      if (resp.ok) {
-        const data = await resp.json();
-        setPlaylist(data);
-      }
-    } catch (e) {
-      console.error('Playlist load error:', e);
-    }
+      if (resp.ok) setPlaylist(await resp.json());
+    } catch { }
   };
 
   const saveProgress = async () => {
@@ -142,12 +193,14 @@ export default function AudioDetailScreen() {
   };
 
   const handlePlayPause = async () => {
-    if (isCurrentTrack) {
-      await togglePlayPause();
-    } else if (audio) {
-      await play(audio);
-    }
+    if (isCurrentTrack) await togglePlayPause();
+    else if (audio) await play(audio);
   };
+
+  const handleSeek = useCallback((p: number) => {
+    if (!displayDuration) return;
+    seekTo(p * displayDuration);
+  }, [displayDuration, seekTo]);
 
   const handleSaveFavorite = async () => {
     if (!token) return;
@@ -155,252 +208,418 @@ export default function AudioDetailScreen() {
       await apiRequest(`/user/favorites/audio/${id}`, token, { method: 'DELETE' });
       setIsFavorite(false);
     } else {
-      await apiRequest('/user/favorites', token, {
-        method: 'POST',
-        body: JSON.stringify({ content_id: id, content_type: 'audio' }),
-      });
+      await apiRequest('/user/favorites', token, { method: 'POST', body: JSON.stringify({ content_id: id, content_type: 'audio' }) });
       setIsFavorite(true);
     }
   };
 
-  const handleSeek = (evt: any) => {
-    try {
-      // Support both React Native (locationX) and web (offsetX/pageX)
-      const x = evt.nativeEvent?.locationX ??
-                evt.nativeEvent?.offsetX ??
-                0;
-      const barWidth = SCREEN_WIDTH - spacing.lg * 2;
-      if (!displayDuration || barWidth <= 0 || isNaN(x)) return;
-      const seekProgress = Math.max(0, Math.min(1, x / barWidth));
-      seekTo(seekProgress * displayDuration);
-    } catch (e) {
-      console.warn('Seek error:', e);
-    }
+  const navigateToNext = () => {
+    if (!nextItem) return;
+    setShowNextOverlay(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    router.replace(`/audio/${nextItem.audio_id}?course_id=${course_id}&autoplay=1` as any);
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  const cancelNext = () => {
+    setShowNextOverlay(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
   };
-
-  const speedIndex = SPEEDS.indexOf(speed);
-  const nextSpeed = SPEEDS[(speedIndex + 1) % SPEEDS.length];
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.brand.primary} />
+      <View style={s.loadingWrap}>
+        <ActivityIndicator size="large" color="#04D182" />
       </View>
     );
   }
-
   if (!audio) return null;
 
-  return (
-    <View style={styles.container}>
-      {/* Background */}
-      <Image source={{ uri: audio.thumbnail }} style={styles.bgImage} blurRadius={20} />
-      <LinearGradient
-        colors={['rgba(18,18,18,0.6)', 'rgba(18,18,18,0.95)', '#121212']}
-        style={StyleSheet.absoluteFillObject}
-      />
+  const totalEp = audio.total_episodes || (playlist.length > 0 ? playlist.length : 0);
+  const epNum = audio.episode_number || (currentIndex >= 0 ? currentIndex + 1 : 1);
+  const scholarInitials = (audio.scholar_name || 'P').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
 
+  return (
+    <View style={s.root}>
       {/* Auto-next overlay */}
       {showNextOverlay && nextItem && (
-        <View style={styles.nextOverlay}>
-          <View style={styles.nextCard}>
-            <Text style={styles.nextLabel}>Prochain épisode dans {countdown}s</Text>
-            <Text style={styles.nextTitle} numberOfLines={2}>{nextItem.module_name}</Text>
-            <View style={styles.nextBtns}>
-              <TouchableOpacity style={styles.nextBtnCancel} onPress={cancelNext}>
-                <Text style={styles.nextBtnCancelText}>Annuler</Text>
+        <View style={s.nextOverlay}>
+          <View style={[s.nextCard, { borderColor: `${cursusColor}44` }]}>
+            <Text style={[s.nextLabel, { color: cursusColor }]}>Épisode suivant dans {countdown}s</Text>
+            <Text style={s.nextTitle} numberOfLines={2}>{nextItem.module_name}</Text>
+            <View style={s.nextBtns}>
+              <TouchableOpacity style={s.nextBtnCancel} onPress={cancelNext}>
+                <Text style={s.nextBtnCancelText}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.nextBtnPlay} onPress={navigateToNext}>
-                <Ionicons name="play" size={14} color="#000" />
-                <Text style={styles.nextBtnPlayText}>Lancer maintenant</Text>
+              <TouchableOpacity style={[s.nextBtnPlay, { backgroundColor: cursusColor }]} onPress={navigateToNext}>
+                <Ionicons name="play" size={14} color="#0A0A0A" />
+                <Text style={s.nextBtnPlayText}>Lancer maintenant</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       )}
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity testID="audio-back-btn" style={styles.iconBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-down" size={26} color={colors.text.primary} />
+      {/* Sticky top nav */}
+      <SafeAreaView edges={['top']} style={s.navWrap}>
+        <View style={s.nav}>
+          <TouchableOpacity testID="audio-back-btn" style={s.backBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={18} color="#F5F0E8" />
+            <Text style={s.backLabel}>Épisodes</Text>
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            {playlist.length > 0 && currentIndex >= 0 ? (
-              <Text style={styles.headerLabel}>ÉPISODE {currentIndex + 1}/{playlist.length}</Text>
-            ) : (
-              <Text style={styles.headerLabel}>{getTypeLabel(audio.type).toUpperCase()}</Text>
-            )}
-          </View>
-          <TouchableOpacity
-            testID="audio-favorite-btn"
-            style={styles.iconBtn}
-            onPress={handleSaveFavorite}
-          >
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFavorite ? colors.brand.primary : colors.text.primary}
-            />
+          <TouchableOpacity style={s.moreBtn} onPress={() => {}}>
+            <Ionicons name="ellipsis-horizontal" size={18} color="#F5F0E8" />
           </TouchableOpacity>
         </View>
+      </SafeAreaView>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          {/* Cover Art */}
-          <View style={styles.coverContainer}>
-            <Image source={{ uri: audio.thumbnail }} style={styles.coverArt} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {/* Cursus Badge */}
+        <View style={s.cursusBadge}>
+          <View style={[s.cursusDot, { backgroundColor: cursusColor,
+            ...(Platform.OS === 'web' ? { boxShadow: `0 0 8px ${cursusColor}66` } as any : { shadowColor: cursusColor, shadowOpacity: 0.4, shadowRadius: 4 }),
+          }]} />
+          <Text style={[s.cursusLabel, { color: cursusColor }]}>
+            Cursus {cursusLetter} · {audio.cursus_name || ''} · Épisode {epNum}
+          </Text>
+        </View>
+
+        {/* Artwork */}
+        <View style={s.artwork}>
+          {/* Decorative circles */}
+          <View style={[s.artCircleLg, { borderColor: `${cursusColor}0F` }]} />
+          <View style={[s.artCircleSm, { borderColor: `${cursusColor}17` }]} />
+          {/* Central content */}
+          <View style={s.artCenter}>
+            <Text style={[s.artLetter, { color: cursusColor + '26' }]}>{cursusLetter}</Text>
+            <View style={[s.artLine, { background: undefined } as any,
+              Platform.OS === 'web' ? { background: `linear-gradient(90deg, transparent, ${cursusColor}, transparent)` } as any : { backgroundColor: cursusColor }
+            ]} />
           </View>
+          {/* Episode number bottom-right */}
+          <Text style={[s.artEpNum, { color: `${cursusColor}66` }]}>
+            Ép. {String(epNum).padStart(2, '0')} · {fmtDur(audio.duration || displayDuration)}
+          </Text>
+        </View>
 
-          {/* Title & Scholar */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>{audio.title}</Text>
-            <TouchableOpacity
-              testID="audio-scholar-link"
-              onPress={() => router.push(`/scholar/${audio.scholar_id}` as any)}
-            >
-              <Text style={styles.scholar}>{audio.scholar_name}</Text>
-            </TouchableOpacity>
-            <View style={styles.topicChip}>
-              <Text style={styles.topicText}>{audio.topic}</Text>
+        {/* Episode header */}
+        <View style={s.epHeader}>
+          <Text style={s.epNumLabel}>
+            {totalEp > 0 ? `Épisode ${epNum} sur ${totalEp}` : `Épisode ${epNum}`}
+          </Text>
+          <Text style={s.epTitle}>{audio.title}</Text>
+          <View style={s.authorRow}>
+            <View style={[s.authorAvatar, { backgroundColor: `${cursusColor}26` }]}>
+              <Text style={[s.authorInitials, { color: cursusColor }]}>{scholarInitials}</Text>
             </View>
+            <Text style={s.authorName}>{audio.scholar_name}</Text>
           </View>
+        </View>
 
-          {/* Progress Bar */}
-          <View style={styles.playerSection}>
-            <TouchableOpacity
-              testID="audio-seek-bar"
-              style={styles.seekBarContainer}
-              onPress={handleSeek}
-              activeOpacity={1}
-            >
-              <View style={styles.seekTrack}>
-                <View style={[styles.seekFill, { width: `${progress * 100}%` }]} />
-                <View style={[styles.seekThumb, { left: `${progress * 100}%` }]} />
+        {/* Player */}
+        <View style={s.player}>
+          {/* Waveform */}
+          <Waveform progress={progress} color={cursusColor} onSeek={handleSeek} />
+
+          {/* Scrubber */}
+          <Scrubber
+            progress={progress}
+            duration={displayDuration}
+            color={cursusColor}
+            position={displayPosition}
+            onSeek={handleSeek}
+          />
+
+          {/* Controls */}
+          <View style={s.controls}>
+            {/* Shuffle */}
+            <TouchableOpacity testID="audio-shuffle" style={s.ctrlBtn} onPress={() => {}}>
+              <Ionicons name="shuffle" size={20} color="#777777" />
+            </TouchableOpacity>
+
+            {/* Skip back 15s */}
+            <TouchableOpacity testID="audio-skip-back" style={s.ctrlBtn} onPress={() => skipBackward(15)}>
+              <View>
+                <Ionicons name="refresh" size={22} color="#F5F0E8" style={{ transform: [{ scaleX: -1 }] }} />
+                <Text style={s.skipNum}>15</Text>
               </View>
             </TouchableOpacity>
 
-            <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{formatTime(displayPosition)}</Text>
-              <Text style={styles.timeText}>{formatTime(displayDuration)}</Text>
-            </View>
+            {/* Play/Pause */}
+            <TouchableOpacity
+              testID="audio-play-pause"
+              style={[s.playBtn, { backgroundColor: cursusColor,
+                ...(Platform.OS === 'web' ? { boxShadow: `0 0 24px ${cursusColor}59` } as any : { shadowColor: cursusColor, shadowOpacity: 0.35, shadowRadius: 12 }),
+              }]}
+              onPress={handlePlayPause}
+            >
+              <Ionicons
+                name={isCurrentTrack && isPlaying ? 'pause' : 'play'}
+                size={22}
+                color="#0A0A0A"
+                style={!isPlaying ? { marginLeft: 2 } : {}}
+              />
+            </TouchableOpacity>
 
-            {/* Controls */}
-            <View style={styles.controls}>
-              <TouchableOpacity
-                testID="audio-speed-btn"
-                style={styles.speedBtn}
-                onPress={() => setSpeed(nextSpeed)}
-              >
-                <Text style={styles.speedText}>{speed}×</Text>
-              </TouchableOpacity>
+            {/* Skip forward 15s */}
+            <TouchableOpacity testID="audio-skip-forward" style={s.ctrlBtn} onPress={() => skipForward(15)}>
+              <View>
+                <Ionicons name="refresh" size={22} color="#F5F0E8" />
+                <Text style={s.skipNum}>15</Text>
+              </View>
+            </TouchableOpacity>
 
-              <TouchableOpacity testID="audio-skip-back" style={styles.skipBtn} onPress={() => skipBackward(15)}>
-                <Ionicons name="play-back-outline" size={28} color={colors.text.primary} />
-                <Text style={styles.skipLabel}>15</Text>
-              </TouchableOpacity>
+            {/* Playlist */}
+            <TouchableOpacity testID="audio-playlist-btn" style={s.ctrlBtn} onPress={() => router.back()}>
+              <Ionicons name="list" size={20} color="#777777" />
+            </TouchableOpacity>
+          </View>
 
-              <TouchableOpacity
-                testID="audio-play-pause"
-                style={styles.playBtn}
-                onPress={handlePlayPause}
-              >
+          {/* Extras */}
+          <View style={s.extras}>
+            {/* Speed */}
+            <TouchableOpacity
+              testID="audio-speed-btn"
+              style={s.speedBtn}
+              onPress={() => setSpeed(nextSpeed)}
+            >
+              <Text style={s.speedText}>× {speed.toFixed(2).replace(/\.?0+$/, '')}</Text>
+            </TouchableOpacity>
+
+            {/* Actions */}
+            <View style={s.actionsRow}>
+              <TouchableOpacity testID="audio-favorite-btn" onPress={handleSaveFavorite}>
                 <Ionicons
-                  name={isCurrentTrack && isPlaying ? 'pause' : 'play'}
-                  size={32}
-                  color="#000"
+                  name={isFavorite ? 'bookmark' : 'bookmark-outline'}
+                  size={18}
+                  color={isFavorite ? '#C9A84C' : '#777777'}
                 />
               </TouchableOpacity>
-
-              <TouchableOpacity testID="audio-skip-forward" style={styles.skipBtn} onPress={() => skipForward(15)}>
-                <Ionicons name="play-forward-outline" size={28} color={colors.text.primary} />
-                <Text style={styles.skipLabel}>15</Text>
+              <TouchableOpacity testID="audio-share-btn" onPress={() => {}}>
+                <Ionicons name="share-social-outline" size={18} color="#777777" />
               </TouchableOpacity>
-
-              <TouchableOpacity testID="audio-share-btn" style={styles.speedBtn} onPress={() => {}}>
-                <Ionicons name="share-outline" size={22} color={colors.text.secondary} />
+              <TouchableOpacity testID="audio-download-btn" onPress={() => {}}>
+                <Ionicons name="download-outline" size={18} color="#777777" />
               </TouchableOpacity>
             </View>
           </View>
+        </View>
 
-          {/* Description */}
-          <View style={styles.descSection}>
-            <Text style={styles.descTitle}>À propos</Text>
-            <Text style={styles.descText}>{audio.description}</Text>
+        {/* Separator */}
+        <View style={s.sep} />
+
+        {/* Description */}
+        {audio.description ? (
+          <View style={s.descSection}>
+            <Text style={[s.sectionLabel, { color: cursusColor }]}>À PROPOS DE CET ÉPISODE</Text>
+            <Text
+              style={s.descText}
+              numberOfLines={descExpanded ? undefined : 4}
+            >
+              {audio.description}
+            </Text>
+            {!descExpanded && (
+              <TouchableOpacity onPress={() => setDescExpanded(true)}>
+                <Text style={s.readMore}>Lire plus →</Text>
+              </TouchableOpacity>
+            )}
           </View>
+        ) : null}
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </SafeAreaView>
+        {/* Chapters — only if audio has chapters data */}
+        {audio.chapters && audio.chapters.length > 0 && (
+          <View style={s.chaptersSection}>
+            <Text style={s.chapterSectionLabel}>CHAPITRES</Text>
+            {audio.chapters.map((ch: any, i: number) => {
+              const isPlayed = ch.position_seconds <= displayPosition;
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={s.chapterRow}
+                  onPress={() => seekTo(ch.position_seconds)}
+                >
+                  <Text style={[s.chapterTs, { color: isPlayed ? cursusColor : '#444' }]}>
+                    {formatTime(ch.position_seconds)}
+                  </Text>
+                  <Text style={[s.chapterTitle, { color: isPlayed ? '#F5F0E8' : 'rgba(245,240,232,0.45)' }]}>
+                    {ch.title}
+                  </Text>
+                  <View style={[s.chapterDot, {
+                    backgroundColor: isPlayed ? cursusColor : '#444',
+                    ...(isPlayed && Platform.OS === 'web' ? { boxShadow: `0 0 6px ${cursusColor}66` } as any : {}),
+                  }]} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Next Episode card */}
+        {nextItem && (
+          <View style={s.nextSection}>
+            <Text style={s.sectionLabel}>ÉPISODE SUIVANT</Text>
+            <TouchableOpacity
+              style={s.nextEpCard}
+              onPress={navigateToNext}
+              activeOpacity={0.8}
+            >
+              {/* Vignette */}
+              <View style={[s.nextEpThumb, { backgroundColor: `${cursusColor}1A` }]}>
+                <Text style={[s.nextEpThumbLetter, { color: cursusColor }]}>{cursusLetter}</Text>
+              </View>
+              {/* Info */}
+              <View style={s.nextEpInfo}>
+                <Text style={[s.nextEpCursus, { color: cursusColor }]}>Cursus {cursusLetter}</Text>
+                <Text style={s.nextEpTitle} numberOfLines={2}>{nextItem.module_name}</Text>
+                <Text style={s.nextEpMeta}>
+                  {nextItem.episode_number ? `Ép. ${nextItem.episode_number}` : `Ép. ${currentIndex + 2}`}
+                </Text>
+              </View>
+              {/* Arrow */}
+              <Ionicons name="chevron-forward" size={16} color="#777777" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background.primary },
-  bgImage: { position: 'absolute', width: '100%', height: 400, top: 0 },
-  safe: { flex: 1 },
-  loadingContainer: { flex: 1, backgroundColor: colors.background.primary, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerLabel: { fontFamily: 'Inter-SemiBold', fontSize: 11, color: colors.text.secondary, letterSpacing: 1 },
-  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingHorizontal: spacing.lg },
-  coverContainer: { alignItems: 'center', marginVertical: spacing.xl },
-  coverArt: { width: 220, height: 220, borderRadius: radius.xl, backgroundColor: colors.background.card },
-  titleSection: { marginBottom: spacing.xl },
-  title: { fontFamily: 'Inter-Bold', fontSize: 22, color: colors.text.primary, lineHeight: 30, marginBottom: spacing.sm },
-  scholar: { fontFamily: 'DMSans-Regular', fontSize: 15, color: colors.brand.secondary, marginBottom: spacing.sm },
-  topicChip: { alignSelf: 'flex-start', backgroundColor: 'rgba(4,209,130,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, borderWidth: 1, borderColor: colors.brand.primary },
-  topicText: { fontFamily: 'Inter-Medium', fontSize: 11, color: colors.brand.primary },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
+
+  // Top nav
+  navWrap: { backgroundColor: 'rgba(10,10,10,0.92)' },
+  nav: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#222222',
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  backLabel: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 3, color: '#777777', textTransform: 'uppercase' },
+  moreBtn: { padding: 4 },
+
+  // Cursus badge
+  cursusBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, marginLeft: 20 },
+  cursusDot: { width: 6, height: 6, borderRadius: 3 },
+  cursusLabel: { fontFamily: 'Cinzel', fontSize: 7, letterSpacing: 3, textTransform: 'uppercase' },
+
+  // Artwork
+  artwork: {
+    marginTop: 18, marginHorizontal: 20, height: 200,
+    backgroundColor: '#080D0B', overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  artCircleLg: {
+    position: 'absolute', width: 320, height: 320, borderRadius: 160,
+    borderWidth: 1, top: '50%', left: '50%',
+    marginTop: -160, marginLeft: -160,
+  },
+  artCircleSm: {
+    position: 'absolute', width: 220, height: 220, borderRadius: 110,
+    borderWidth: 1, top: '50%', left: '50%',
+    marginTop: -110, marginLeft: -110,
+  },
+  artCenter: { alignItems: 'center', gap: 10, zIndex: 2 },
+  artLetter: { fontFamily: 'Cinzel', fontSize: 52, fontWeight: '600', lineHeight: 56 },
+  artLine: { width: 40, height: 1 },
+  artEpNum: {
+    position: 'absolute', bottom: 14, right: 16, zIndex: 3,
+    fontFamily: 'Cinzel', fontSize: 7, letterSpacing: 3, textTransform: 'uppercase',
+  },
+
+  // Episode header
+  epHeader: { paddingTop: 20, paddingHorizontal: 20 },
+  epNumLabel: { fontFamily: 'Cinzel', fontSize: 7, letterSpacing: 4, color: '#777777', textTransform: 'uppercase', marginBottom: 8 },
+  epTitle: { fontFamily: 'Cinzel', fontSize: 17, fontWeight: '400', color: '#F5F0E8', letterSpacing: 0.5, lineHeight: 24, marginBottom: 8 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  authorAvatar: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  authorInitials: { fontFamily: 'Cinzel', fontSize: 8, fontWeight: '600' },
+  authorName: { fontFamily: 'EBGaramond', fontSize: 13, fontStyle: 'italic', color: '#C9A84C' },
+
   // Player
-  playerSection: { marginBottom: spacing.xl },
-  seekBarContainer: { paddingVertical: 12 },
-  seekTrack: { height: 4, backgroundColor: colors.border.default, borderRadius: 2 },
-  seekFill: { height: 4, backgroundColor: colors.brand.primary, borderRadius: 2, position: 'absolute' },
-  seekThumb: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.text.primary, position: 'absolute', top: -5, marginLeft: -7 },
-  timeRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, marginBottom: spacing.lg },
-  timeText: { fontFamily: 'Inter-Medium', fontSize: 12, color: colors.text.secondary },
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  speedBtn: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center' },
-  speedText: { fontFamily: 'Inter-Bold', fontSize: 14, color: colors.text.secondary },
-  skipBtn: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-  skipLabel: { fontFamily: 'Inter-Bold', fontSize: 10, color: colors.text.secondary, position: 'absolute', bottom: 2 },
-  playBtn: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.brand.primary, alignItems: 'center', justifyContent: 'center' },
+  player: { paddingTop: 24, paddingHorizontal: 20 },
+  waveform: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 32, marginBottom: 8 },
+
+  // Scrubber
+  scrubberWrap: { paddingVertical: 8 },
+  scrubberTrack: { height: 3, backgroundColor: '#222222', borderRadius: 2, overflow: 'visible' },
+  scrubberFill: { height: 3, position: 'absolute', borderRadius: 2 },
+  scrubberThumb: {
+    width: 10, height: 10, borderRadius: 5,
+    position: 'absolute', top: -3.5, marginLeft: -5,
+  },
+  timeRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  timeElapsed: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 1, color: '#F5F0E8' },
+  timeDuration: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 1, color: '#777777' },
+
+  // Controls
+  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16 },
+  ctrlBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  skipNum: { fontFamily: 'Cinzel', fontSize: 6, fontWeight: '600', color: '#F5F0E8', position: 'absolute', textAlign: 'center', alignSelf: 'center' },
+  playBtn: {
+    width: 60, height: 60, borderRadius: 30,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Extras
+  extras: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 18 },
+  speedBtn: { borderWidth: 1, borderColor: '#222222', paddingHorizontal: 10, paddingVertical: 5 },
+  speedText: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 2, color: '#777777' },
+  actionsRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+
+  // Separator
+  sep: { height: 1, backgroundColor: '#222222', marginHorizontal: 20, marginTop: 22 },
+
   // Description
-  descSection: { backgroundColor: colors.background.card, borderRadius: radius.xl, padding: spacing.lg },
-  descTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: colors.text.primary, marginBottom: spacing.sm },
-  descText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary, lineHeight: 22 },
+  descSection: { paddingTop: 18, paddingHorizontal: 20 },
+  sectionLabel: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 4, textTransform: 'uppercase', marginBottom: 12 },
+  descText: { fontFamily: 'EBGaramond', fontSize: 14, color: 'rgba(245,240,232,0.60)', lineHeight: 24 },
+  readMore: { fontFamily: 'EBGaramond', fontSize: 13, fontStyle: 'italic', color: '#C9A84C', marginTop: 8 },
+
+  // Chapters
+  chaptersSection: { paddingTop: 22, paddingHorizontal: 20 },
+  chapterSectionLabel: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 4, color: '#777777', textTransform: 'uppercase', marginBottom: 12 },
+  chapterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#222222',
+  },
+  chapterTs: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 1, width: 36, flexShrink: 0 },
+  chapterTitle: { fontFamily: 'EBGaramond', fontSize: 13, flex: 1 },
+  chapterDot: { width: 5, height: 5, borderRadius: 2.5, flexShrink: 0 },
+
+  // Next episode
+  nextSection: { marginTop: 22, marginHorizontal: 20, marginBottom: 24 },
+  nextEpCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: '#1A1A1A', padding: 14,
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  nextEpThumb: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  nextEpThumbLetter: { fontFamily: 'Cinzel', fontSize: 14, fontWeight: '600' },
+  nextEpInfo: { flex: 1, minWidth: 0 },
+  nextEpCursus: { fontFamily: 'Cinzel', fontSize: 7, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 },
+  nextEpTitle: { fontFamily: 'EBGaramond', fontSize: 13, color: '#F5F0E8', marginBottom: 4 },
+  nextEpMeta: { fontFamily: 'Cinzel', fontSize: 7, letterSpacing: 1, color: '#777777', textTransform: 'uppercase' },
+
   // Auto-next overlay
-  nextOverlay: {
-    position: 'absolute', bottom: 120, left: spacing.lg, right: spacing.lg, zIndex: 100,
-  },
+  nextOverlay: { position: 'absolute', bottom: 120, left: 20, right: 20, zIndex: 100 },
   nextCard: {
-    backgroundColor: 'rgba(20,20,20,0.97)', borderRadius: radius.xl, padding: spacing.lg,
-    borderWidth: 1, borderColor: 'rgba(4,209,130,0.3)',
+    backgroundColor: 'rgba(20,20,20,0.97)', padding: 20,
+    borderWidth: 1,
   },
-  nextLabel: {
-    fontFamily: 'Inter-SemiBold', fontSize: 12, color: colors.brand.primary,
-    marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5,
-  },
-  nextTitle: {
-    fontFamily: 'Inter-Bold', fontSize: 15, color: colors.text.primary,
-    lineHeight: 22, marginBottom: spacing.md,
-  },
+  nextLabel: { fontFamily: 'Cinzel', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
+  nextTitle: { fontFamily: 'Cinzel', fontSize: 14, color: '#F5F0E8', lineHeight: 22, marginBottom: 16 },
   nextBtns: { flexDirection: 'row', gap: 10 },
   nextBtnCancel: {
-    flex: 1, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.border.default,
+    flex: 1, paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: '#333333',
   },
-  nextBtnCancelText: { fontFamily: 'Inter-SemiBold', fontSize: 13, color: colors.text.secondary },
+  nextBtnCancelText: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 2, color: '#777777' },
   nextBtnPlay: {
-    flex: 2, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center',
-    backgroundColor: colors.brand.primary, flexDirection: 'row', justifyContent: 'center', gap: 6,
+    flex: 2, paddingVertical: 10, alignItems: 'center',
+    flexDirection: 'row', justifyContent: 'center', gap: 6,
   },
-  nextBtnPlayText: { fontFamily: 'Inter-Bold', fontSize: 13, color: '#000' },
+  nextBtnPlayText: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 2, color: '#0A0A0A' },
 });
