@@ -37,7 +37,8 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 ├── frontend/              # React Native (Expo for Web)
 │   ├── app/
 │   │   ├── (tabs)/
-│   │   │   └── index.tsx      # Homepage Netflix-style (REFONTE COMPLÈTE)
+│   │   │   ├── index.tsx      # Homepage text-only prestige (REFONTE FINALE ✅ 2025-02)
+│   │   │   └── _layout.tsx    # Tab bar 5 onglets (bug double-export corrigé ✅)
 │   │   ├── audio/[id].tsx     # Player audio avec playlist auto-play
 │   │   ├── course/[id].tsx    # Page cours avec "Commencer le cours"
 │   │   ├── search.tsx         # Écran de recherche (NOUVEAU)
