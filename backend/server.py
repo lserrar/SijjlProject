@@ -648,7 +648,7 @@ async def get_audio_stream_url(audio_id: str, request: Request):
         'expires_in': None,
     }
 
-@api_router.get("/audios/{audio_id}/stream")
+@api_router.api_route("/audios/{audio_id}/stream", methods=["GET", "HEAD"])
 async def stream_audio(audio_id: str, request: Request):
     """Proxy the audio file from R2 to the client, supporting Range requests."""
     import httpx
