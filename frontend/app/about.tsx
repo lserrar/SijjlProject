@@ -42,7 +42,7 @@ export default function AboutScreen() {
         {/* Logo & Brand */}
         <View style={styles.brandSection}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoLe Sijill}>Le Sijill</Text>
+            <Text style={styles.logoMain}>Le Sijill</Text>
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
           <Text style={styles.tagline}>La sagesse à portée de main</Text>

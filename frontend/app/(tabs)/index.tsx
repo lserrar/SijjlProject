@@ -116,7 +116,7 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.greeting}>{greeting},</Text>
             <View style={styles.logoRow}>
-              <Text style={styles.logoLe Sijill}>Le Sijill</Text>
+              <Text style={styles.logoMain}>Le Sijill</Text>
               <Text style={styles.logoByLM}>by LM</Text>
             </View>
           </View>

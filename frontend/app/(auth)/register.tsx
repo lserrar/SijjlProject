@@ -59,7 +59,7 @@ export default function RegisterScreen() {
 
           {/* Logo */}
           <View style={styles.logoSection}>
-            <Text style={styles.logoLe Sijill}>Le Sijill</Text>
+            <Text style={styles.logoMain}>Le Sijill</Text>
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
 

@@ -63,7 +63,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Logo */}
           <View style={styles.logoSection} testID="login-logo">
-            <Text style={styles.logoLe Sijill}>Le Sijill</Text>
+            <Text style={styles.logoMain}>Le Sijill</Text>
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
 
