@@ -273,8 +273,28 @@ function SectionHeader({ title, link, onLink }: { title: string; link: string; o
 }
 
 function EpisodeCard({ testID, color, label, title, meta, onPress }: any) {
+  const [hovered, setHovered] = useState(false);
+  const hoverProps = Platform.OS === 'web' ? {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  } : {};
+
   return (
-    <TouchableOpacity testID={testID} style={s.epCard} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      testID={testID}
+      style={[
+        s.epCard,
+        Platform.OS === 'web' ? {
+          borderBottomWidth: 2,
+          borderBottomColor: hovered ? color : 'transparent',
+          backgroundColor: hovered ? '#222222' : '#1A1A1A',
+          transition: 'background-color 0.2s ease, border-color 0.2s ease',
+        } as any : {},
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+      {...hoverProps}
+    >
       <Text style={[s.epLabel, { color }]}>{label}</Text>
       <Text style={s.epTitle} numberOfLines={4}>{title}</Text>
       {meta ? (
