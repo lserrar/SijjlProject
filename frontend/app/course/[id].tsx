@@ -97,13 +97,10 @@ export default function CourseDetailScreen() {
   if (loading || accessLoading) return <View style={styles.loading}><ActivityIndicator size="large" color={colors.brand.primary} /></View>;
   if (!course) return null;
 
-  // All modules are locked if user doesn't have access
-  const SAMPLE_MODULES = Array.from({ length: course.modules_count || 5 }, (_, i) => ({
-    id: i + 1,
-    title: `Module ${i + 1}`,
-    duration: Math.floor(Math.random() * 30) + 20,
-    isLocked: !hasAccess || i > 0, // Only first module is preview if no access
-    isPreview: !hasAccess && i === 0,
+  const displayModules = modules.length > 0 ? modules : Array.from({ length: course.modules_count || 5 }, (_, i) => ({
+    id: `placeholder-${i}`,
+    name: `Module ${i + 1}`,
+    order: i + 1,
   }));
 
   return (
