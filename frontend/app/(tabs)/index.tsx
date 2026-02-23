@@ -234,7 +234,7 @@ export default function HomeScreen() {
                   onPress={() => router.push(`/scholar/${scholar.id}` as any)}
                 >
                   <Image
-                    source={{ uri: scholar.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name || 'S')}&background=04D182&color=000&bold=true&size=128` }}
+                    source={{ uri: scholar.photo_url || scholar.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name || 'S')}&background=04D182&color=000&bold=true&size=128` }}
                     style={styles.scholarAvatar}
                   />
                   <Text style={styles.scholarName} numberOfLines={2}>{scholar.name}</Text>
