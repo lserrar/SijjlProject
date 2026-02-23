@@ -617,20 +617,77 @@ async def get_audio(audio_id: str):
     return a
 
 @api_router.get("/audios/{audio_id}/stream-url")
-async def get_audio_stream_url(audio_id: str):
-    """Get a fresh presigned streaming URL for an audio file from R2."""
+async def get_audio_stream_url(audio_id: str, request: Request):
+    """Return a proxy streaming URL (avoids R2 CORS restrictions)."""
     a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
     if not a:
         raise HTTPException(404, "Audio non trouvé")
-    stream_url = resolve_audio_url(a)
     file_key = a.get('file_key')
+    if file_key and r2_client:
+        # Build the external base URL from forwarded headers (set by Cloudflare/ingress)
+        scheme = request.headers.get('x-forwarded-proto', 'https')
+        host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
+        proxy_url = f"{scheme}://{host}/api/audios/{audio_id}/stream"
+        return {
+            'audio_id': audio_id,
+            'stream_url': proxy_url,
+            'file_key': file_key,
+            'source': 'proxy',
+            'expires_in': None,
+        }
+    # Fallback: presigned R2 URL if R2 unavailable
+    stream_url = resolve_audio_url(a)
     return {
         'audio_id': audio_id,
         'stream_url': stream_url,
-        'file_key': file_key,
-        'source': 'r2' if (r2_client and file_key) else 'fallback',
-        'expires_in': PRESIGNED_URL_EXPIRY if (r2_client and file_key) else None,
+        'file_key': a.get('file_key'),
+        'source': 'fallback',
+        'expires_in': None,
     }
+
+@api_router.get("/audios/{audio_id}/stream")
+async def stream_audio(audio_id: str, request: Request):
+    """Proxy the audio file from R2 to the client, supporting Range requests."""
+    import httpx
+    a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    if not a:
+        raise HTTPException(404, "Audio non trouvé")
+    file_key = a.get('file_key')
+    if not file_key or not r2_client:
+        # Fallback: redirect to audio_url if set
+        fallback = a.get('audio_url')
+        if fallback:
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=fallback)
+        raise HTTPException(404, "Fichier audio non disponible")
+
+    range_header = request.headers.get('Range')
+    try:
+        get_kwargs: dict = {'Bucket': R2_BUCKET, 'Key': file_key}
+        if range_header:
+            get_kwargs['Range'] = range_header
+
+        resp = r2_client.get_object(**get_kwargs)
+        content_type = resp.get('ContentType', 'audio/mp4')
+        body = resp['Body'].read()
+
+        headers: dict = {
+            'Content-Type': content_type,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'no-cache',
+            'Access-Control-Allow-Origin': '*',
+        }
+        if 'ContentLength' in resp:
+            headers['Content-Length'] = str(resp['ContentLength'])
+        if 'ContentRange' in resp:
+            headers['Content-Range'] = resp['ContentRange']
+
+        status_code = 206 if range_header else 200
+        from fastapi.responses import Response
+        return Response(content=body, status_code=status_code, headers=headers, media_type=content_type)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Stream error for {audio_id}: {e}")
+        raise HTTPException(500, "Erreur de lecture du fichier audio")
 
 class UploadUrlRequest(BaseModel):
     file_key: str
