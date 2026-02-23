@@ -175,7 +175,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.hList}
             >
-              {recommendations.map((c: any, i: number) => (
+              {recommendations.slice(0, 4).map((c: any, i: number) => (
                 <RecoCard
                   key={c.id || i}
                   testID={`home-rec-${c.id}`}
