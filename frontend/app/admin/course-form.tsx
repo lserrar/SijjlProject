@@ -226,6 +226,8 @@ export default function CourseForm() {
         thumbnail: thumbnail.trim() || 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&q=80',
         tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
         r2_folder: r2Folder,
+        hero_title: heroTitle.trim() || null,
+        hero_description: heroDescription.trim() || null,
       };
 
       const endpoint = isEdit ? `/admin/courses/${id}` : '/admin/courses';
