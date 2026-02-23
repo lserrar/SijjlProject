@@ -106,12 +106,6 @@ export default function TabLayout() {
             href: null, // Hide from tab bar
           }}
         />
-        <Tabs.Screen
-          name="ma-bibliotheque"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
       </Tabs>
 
       {/* Mini Player positioned above tab bar */}
