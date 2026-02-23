@@ -662,6 +662,34 @@ async def get_audio(audio_id: str):
     if not a:
         raise HTTPException(404, "Audio non trouvé")
     a['stream_url'] = resolve_audio_url(a)
+
+    # Enrich with course + cursus data
+    course = await db.courses.find_one({'id': a.get('course_id', '')}, {'_id': 0}) if a.get('course_id') else None
+    if course:
+        a['scholar_name'] = course.get('scholar_name', '')
+        a['scholar_id'] = course.get('scholar_id', '')
+        a['description'] = a.get('description') or course.get('description', '')
+        a['course_title'] = course.get('title', '')
+        a['total_episodes'] = course.get('modules_count', 0)
+
+        # Enrich cursus color/letter
+        CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+        CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
+        cursus = await db.cursus.find_one({'id': course.get('cursus_id', '')}, {'_id': 0}) if course.get('cursus_id') else None
+        if cursus:
+            order = max(0, min(cursus.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
+            a['cursus_id'] = cursus['id']
+            a['cursus_name'] = cursus.get('name', '')
+            a['cursus_letter'] = CURSUS_LETTERS[order]
+            a['cursus_color'] = CURSUS_COLORS[order]
+        else:
+            a['cursus_letter'] = 'A'
+            a['cursus_color'] = '#04D182'
+    else:
+        a['scholar_name'] = ''
+        a['cursus_letter'] = 'A'
+        a['cursus_color'] = '#04D182'
+
     return a
 
 @api_router.get("/search")
