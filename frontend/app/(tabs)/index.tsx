@@ -367,9 +367,9 @@ function formatSeconds(seconds: number): string {
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#080808' },
+  safe: { flex: 1, backgroundColor: '#0A0A0A' },
   scroll: { flex: 1 },
-  loadingContainer: { flex: 1, backgroundColor: '#080808', alignItems: 'center', justifyContent: 'center' },
+  loadingContainer: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
 
   // Header
   header: {
