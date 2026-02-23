@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timezone
 
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'hikma')
+DB_NAME = os.environ.get('DB_NAME', 'test_database')
 
 # New Cursus Structure from the document
 CURSUS_DATA = [
