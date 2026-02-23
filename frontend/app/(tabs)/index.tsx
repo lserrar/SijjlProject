@@ -431,8 +431,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  sectionTitle: { fontFamily: 'Inter-Bold', fontSize: 16, color: colors.text.primary },
-  seeAll: { fontFamily: 'Inter-Medium', fontSize: 12, color: colors.brand.primary },
+  sectionTitle: { fontFamily: 'Cinzel', fontSize: 11, color: '#F5F0E8', letterSpacing: 3, textTransform: 'uppercase' },
+  seeAll: { fontFamily: 'EB Garamond', fontStyle: 'italic', fontSize: 13, color: '#C9A84C' },
   hList: { paddingHorizontal: spacing.lg, gap: spacing.md },
 
   // Continue Watching
