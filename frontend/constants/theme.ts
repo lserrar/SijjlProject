@@ -1,30 +1,45 @@
 export const colors = {
   background: {
-    primary: '#121212',
-    secondary: '#000000',
-    card: '#282828',
-    modal: '#1E1E1E',
-    overlay: 'rgba(0, 0, 0, 0.7)',
-    elevated: '#181818',
+    primary: '#0A0A0A',
+    secondary: '#111111',
+    card: '#1A1A1A',
+    modal: '#111111',
+    overlay: 'rgba(0, 0, 0, 0.85)',
+    elevated: '#111111',
+    surface: '#111111',
   },
   text: {
-    primary: '#FFFFFF',
-    secondary: '#B3B3B3',
-    tertiary: '#777777',
+    primary: '#F5F0E8',
+    secondary: '#888888',
+    tertiary: '#444444',
     accent: '#04D182',
-    inverse: '#000000',
+    inverse: '#0A0A0A',
+    gold: '#C9A84C',
   },
   brand: {
     primary: '#04D182',
-    secondary: '#C9A8C0',
+    gold: '#C9A84C',
+    goldDim: 'rgba(201,168,76,0.3)',
+    goldGlow: 'rgba(201,168,76,0.5)',
+    greenDim: 'rgba(4,209,130,0.2)',
+    greenGlow: 'rgba(4,209,130,0.3)',
     error: '#CF6679',
     success: '#04D182',
-    warning: '#FFC107',
+    warning: '#F59E0B',
+    secondary: '#8B5CF6',
   },
   border: {
-    default: '#333333',
+    default: '#222222',
     active: '#04D182',
-    subtle: '#2A2A2A',
+    subtle: '#1A1A1A',
+    gold: 'rgba(201,168,76,0.4)',
+  },
+  cursus: {
+    a: '#04D182',
+    b: '#8B5CF6',
+    c: '#F59E0B',
+    d: '#EC4899',
+    e: '#06B6D4',
   },
 };
 
@@ -38,21 +53,26 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 20,
+  sm: 0,
+  md: 2,
+  lg: 2,
+  xl: 4,
   full: 999,
 };
 
 export const typography = {
   family: {
+    heading: 'Cinzel',
+    display: 'Cinzel',
+    nav: 'Cinzel',
+    label: 'Cinzel',
+    body: 'EB Garamond',
+    bodyMedium: 'EB Garamond',
     bold: 'Inter-Bold',
     semibold: 'Inter-SemiBold',
     medium: 'Inter-Medium',
     regular: 'Inter-Regular',
-    body: 'DMSans-Regular',
-    bodyMedium: 'DMSans-Medium',
+    dmSans: 'DMSans-Regular',
   },
   size: {
     xs: 11,
