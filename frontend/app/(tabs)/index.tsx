@@ -216,6 +216,37 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Scholars */}
+        {scholars.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Professeurs</Text>
+              <TouchableOpacity testID="home-see-all-scholars" onPress={() => router.push('/(tabs)/explorer' as any)}>
+                <Text style={styles.seeAll}>Voir tout</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+              {scholars.map((scholar: any) => (
+                <TouchableOpacity
+                  key={scholar.id}
+                  testID={`home-scholar-${scholar.id}`}
+                  style={styles.scholarCard}
+                  onPress={() => router.push(`/scholar/${scholar.id}` as any)}
+                >
+                  <Image
+                    source={{ uri: scholar.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(scholar.name || 'S')}&background=04D182&color=000&bold=true&size=128` }}
+                    style={styles.scholarAvatar}
+                  />
+                  <Text style={styles.scholarName} numberOfLines={2}>{scholar.name}</Text>
+                  {scholar.speciality && (
+                    <Text style={styles.scholarSpeciality} numberOfLines={1}>{scholar.speciality}</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* Recent Courses */}
         {recentCourses.length > 0 && (
           <View style={styles.section}>
