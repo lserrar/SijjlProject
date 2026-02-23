@@ -117,9 +117,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   };
 
   const seekTo = async (positionSeconds: number) => {
-    if (!soundRef.current) return;
-    await soundRef.current.setPositionAsync(positionSeconds * 1000);
-    setPosition(positionSeconds);
+    if (!soundRef.current || isNaN(positionSeconds) || positionSeconds < 0) return;
+    try {
+      await soundRef.current.setPositionAsync(Math.floor(positionSeconds * 1000));
+      setPosition(positionSeconds);
+    } catch (e) {
+      console.warn('seekTo error:', e);
+    }
   };
 
   const skipForward = async (seconds = 15) => {
