@@ -51,6 +51,7 @@ export default function RootLayout() {
           <Stack.Screen name="course/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="article/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="scholar/[id]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="search" options={{ animation: 'slide_from_right' }} />
         </Stack>
       </PlayerProvider>
     </AuthProvider>
