@@ -137,7 +137,7 @@ class TestAudioEndpointForPlaylist:
         resp = requests.get(f"{BASE_URL}/api/audios/aud_cours-falsafa-grands-mod-1")
         data = resp.json()
         assert 'module_id' in data, "Audio should have module_id"
-        assert data['module_id'] == 'mod-cours-falsafa-grands-1', \
+        assert data['module_id'] == 'cours-falsafa-grands-mod-1', \
             f"Unexpected module_id: {data.get('module_id')}"
 
     def test_audio_no_mongodb_id(self):
