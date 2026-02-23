@@ -1,0 +1,106 @@
+{
+  "summary": "Iteration 10: Full testing of new homepage redesign (Netflix-style) and search screen. 27/27 backend tests pass (100%). All 12 frontend features verified. One critical issue found and fixed: /search route was broken (Unmatched Route) because search.tsx was added after the Expo server started - fixed by restarting the expo server.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Hero Card - Level chip",
+        "issue": "Level chip shows 'Debutant' (no accent). The code uses level.toLowerCase() === 'débutant' for color styling, but if DB stores 'Debutant' without accent, the chip renders without correct color. Minor cosmetic issue.",
+        "selector": "hero card level chip",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Search route /search",
+        "issue": "FIXED: /search route showed 'Unmatched Route' because search.tsx was added after expo server started (CI mode disables hot reload for new files). Fixed by restarting expo server. In production deployments, file is present at startup so this won't recur.",
+        "affected_selectors": ["[data-testid='search-input']"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Homepage",
+        "issues": [
+          "Scholar names show only last name (code: scholar.name?.split(' ').slice(-1)[0]). 'Ksiks' and 'Sebti' visible - correct per code intent, but shows just last name only.",
+          "Level chip 'Debutant' lacks French accent - should be 'Débutant' for correct CSS color match"
+        ]
+      }
+    ]
+  },
+  "test_results_detail": {
+    "backend_home_200_no_auth": "PASS",
+    "backend_home_featured_course": "PASS: id, title fields present",
+    "backend_home_continue_watching": "PASS: list returned",
+    "backend_home_recommendations": "PASS: 6 active courses",
+    "backend_home_scholars": "PASS: scholars with name/id",
+    "backend_home_top10": "PASS: up to 10 courses",
+    "backend_home_course_bandeaux": "PASS: courses with episodes",
+    "backend_home_bandeaux_have_episodes": "PASS: episodes present",
+    "backend_home_with_auth": "PASS: continue_watching field accessible",
+    "backend_search_200": "PASS",
+    "backend_search_audios_courses": "PASS: both fields present",
+    "backend_search_total": "PASS: total = audios+courses",
+    "backend_search_short_query_empty": "PASS: q='a' returns empty",
+    "backend_search_philosophie": "PASS",
+    "backend_play_200": "PASS",
+    "backend_play_ok_true": "PASS: {ok: true}",
+    "backend_play_no_auth": "PASS: no auth required",
+    "backend_admin_top10_get_requires_auth": "PASS: 403 without auth",
+    "backend_admin_top10_get_with_auth": "PASS: manual_ids + all_courses",
+    "backend_admin_top10_put_requires_auth": "PASS: 403 without auth",
+    "backend_admin_top10_put_with_auth": "PASS: updates + persists",
+    "frontend_greeting": "PASS: 'Bonsoir, Test' - first name only, no Sijill logo",
+    "frontend_search_icon": "PASS: [data-testid='home-search-btn'] visible",
+    "frontend_hero_card": "PASS: 'À LA UNE' badge + 'Commencer' button",
+    "frontend_recommendations": "PASS: 6 course cards",
+    "frontend_scholars": "PASS: 2 circular avatar cards",
+    "frontend_top10": "PASS: 10 cards visible",
+    "frontend_bandeaux": "PASS: 21 bandeau sections, 70 episode cards",
+    "frontend_search_navigation": "PASS: search icon → /search",
+    "frontend_search_input": "PASS: input visible + autofocused",
+    "frontend_search_empty_state": "PASS: 'Rechercher dans le catalogue' shown",
+    "frontend_search_results_philosophie": "PASS: 3 audios + 2 courses",
+    "frontend_search_clear_btn": "PASS: clears input",
+    "frontend_search_back_btn": "PASS: navigates back to home"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_homepage_search.py",
+    "/app/test_reports/pytest/homepage_search_results.xml"
+  ],
+  "action_items": [
+    "LOW: Ensure course 'level' field in DB uses French accents ('Débutant', 'Intermédiaire', 'Avancé') to match the level chip color logic in index.tsx",
+    "INFO: The /search route fix was done by restarting expo. In future if new route files are added and Expo runs in CI mode, server restart is needed to pick them up."
+  ],
+  "critical_code_review_comments": [
+    "search.tsx missing from Stack.Screen list in _layout.tsx - while Expo Router auto-discovers it, explicitly adding '<Stack.Screen name=\"search\" />' would be defensive and improve clarity",
+    "Home API fetches all courses for bandeaux (up to 50) with individual episode queries - could be slow with many courses; consider pagination or caching for production scale",
+    "Search endpoint has no auth requirement - correct for public search, but rate limiting should be considered for production",
+    "POST /api/audios/{id}/play returns 200 even for non-existent audio IDs (silent update) - consider adding 404 check for invalid IDs"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_homepage_search.py"
+  ],
+  "success_rate": {
+    "backend": "100% (27/27)",
+    "frontend": "100% (all 12 features verified - 1 issue found & fixed)"
+  },
+  "test_credentials": {
+    "test_user": "testuser@hikma.com / TestUser123!",
+    "admin": "admin@hikma-admin.com / Admin123!"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Homepage redesign fully verified: greeting, hero card (À LA UNE + Commencer), recommendations, scholars, top10, bandeaux all working. Search screen (/search) now works after expo restart - was broken initially because search.tsx was added after CI-mode Metro started. All backend APIs pass: GET /api/home, GET /api/search, POST /api/audios/{id}/play, GET/PUT /api/admin/top10. Note: login returns 'token' field (not 'access_token') - use resp.json().get('token') in test fixtures.",
+  "rca_of_issues": {
+    "search_route_unmatched": {
+      "root_cause": "Metro bundler runs in CI mode (CI=true env var), which disables file watching / hot reload. When search.tsx was added after the server started, Metro didn't discover the new route file.",
+      "reproduction": "Add a new route file to app/ directory → navigate to that route → 'Unmatched Route' error",
+      "fix": "Restart expo server: sudo supervisorctl restart expo",
+      "prevention": "Add '<Stack.Screen name=\"search\" />' to _layout.tsx (though this doesn't help in CI mode) OR ensure new route files are present before server start"
+    }
+  }
+}
