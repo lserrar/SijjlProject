@@ -117,6 +117,15 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - ✅ Intégration Stripe (paiement)
 - ✅ Auth JWT + Google OAuth
 
+### 2026-02 — Session actuelle
+- ✅ Homepage prestige text-only (Cinzel/EB Garamond, badges Top 5, hover cards)
+- ✅ Hero "À la une" dynamique : cursus ET cours, hero_title/hero_description personnalisables
+- ✅ Effet hover cards épisodes (fond + bordure bas colorée, transition 0.2s)
+- ✅ Page Cursus Detail (/cursus/[id]) : badge couleur, liste cours, stats
+- ✅ Player audio redesign complet : artwork géométrique, waveform 30 barres, scrubber thumb, contrôles, vitesse, bookmark/share/download, description, épisode suivant
+- ✅ Backend GET /api/audios/{id} enrichi : cursus_color, cursus_letter, scholar_name, total_episodes
+- ✅ Admin : page Cursus (étoile featured + hero text), bouton étoile dans liste cours, champs hero dans formulaire cours
+
 ---
 
 ## Backlog Priorisé
