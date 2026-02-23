@@ -956,6 +956,24 @@ async def get_home(request: Request):
     if not featured_course:
         featured_course = await db.courses.find_one({'is_active': True}, {'_id': 0})
 
+    # Pre-load all cursus for fast lookup
+    CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+    CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
+    all_cursus_list = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(20)
+    cursus_map = {c['id']: c for c in all_cursus_list}
+
+    def enrich_cursus(item: dict) -> dict:
+        cid = item.get('cursus_id', '')
+        c = cursus_map.get(cid, {})
+        order = max(0, min(c.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
+        item['cursus_name'] = c.get('name', '')
+        item['cursus_letter'] = CURSUS_LETTERS[order]
+        item['cursus_color'] = CURSUS_COLORS[order]
+        return item
+
+    if featured_course:
+        featured_course = enrich_cursus(featured_course)
+
     # 2. Continue watching (last 3 in-progress audios)
     continue_watching = []
     if user_id:
@@ -967,73 +985,61 @@ async def get_home(request: Request):
             audio = await db.audios.find_one({'id': p['content_id']}, {'_id': 0})
             if audio:
                 audio['stream_url'] = resolve_audio_url(audio)
-                course_info = None
                 if audio.get('course_id'):
                     course_info = await db.courses.find_one(
-                        {'id': audio['course_id']}, {'_id': 0, 'title': 1, 'thumbnail': 1, 'id': 1}
+                        {'id': audio['course_id']}, {'_id': 0, 'title': 1, 'cursus_id': 1, 'id': 1}
                     )
+                    if course_info:
+                        audio['cursus_id'] = course_info.get('cursus_id', '')
+                        audio = enrich_cursus(audio)
                 continue_watching.append({
                     'audio': audio,
-                    'course': course_info,
                     'progress': p.get('progress', 0),
                     'position': p.get('position', 0),
                 })
 
-    # 3. Recommendations (6 active courses)
-    recommendations = await db.courses.find({'is_active': True}, {'_id': 0}).limit(6).to_list(6)
+    # 3. Recent episodes (last 8 audios, enriched with cursus)
+    recent_audios_raw = await db.audios.find({'is_active': True}, {'_id': 0}).sort('published_at', -1).limit(8).to_list(8)
+    recent_episodes = []
+    for audio in recent_audios_raw:
+        audio['stream_url'] = resolve_audio_url(audio)
+        if audio.get('course_id'):
+            course_info = await db.courses.find_one({'id': audio['course_id']}, {'_id': 0, 'cursus_id': 1})
+            if course_info:
+                audio['cursus_id'] = course_info.get('cursus_id', '')
+        audio = enrich_cursus(audio)
+        recent_episodes.append(audio)
 
-    # 4. Scholars
+    # 4. Recommendations (6 active courses, enriched with cursus)
+    recommendations_raw = await db.courses.find({'is_active': True}, {'_id': 0}).limit(6).to_list(6)
+    recommendations = [enrich_cursus(c) for c in recommendations_raw]
+
+    # 5. Scholars
     scholars_list = await db.scholars.find({'is_active': True}, {'_id': 0}).to_list(10)
 
-    # 5. Top 10 courses (admin config + auto fill by play_count)
-    top10_courses = []
+    # 6. Top 5 courses (admin config + auto fill by play_count), enriched with cursus
+    top5_courses = []
     config = await db.config.find_one({'key': 'top10_courses'}, {'_id': 0})
     if config and config.get('course_ids'):
-        for cid in config['course_ids'][:10]:
+        for cid in config['course_ids'][:5]:
             c = await db.courses.find_one({'id': cid, 'is_active': True}, {'_id': 0})
             if c:
-                top10_courses.append(c)
-    if len(top10_courses) < 10:
-        existing_ids = [c['id'] for c in top10_courses]
+                top5_courses.append(enrich_cursus(c))
+    if len(top5_courses) < 5:
+        existing_ids = [c['id'] for c in top5_courses]
         extra = await db.courses.find(
             {'is_active': True, 'id': {'$nin': existing_ids}},
             {'_id': 0}
-        ).sort('play_count', -1).limit(10 - len(top10_courses)).to_list(10)
-        top10_courses.extend(extra)
-
-    # 6. Course bandeaux (all courses with their episodes — parallel fetch)
-    all_courses = await db.courses.find({'is_active': True}, {'_id': 0}).to_list(50)
-
-    async def _get_course_with_episodes(course: dict) -> Optional[dict]:
-        # Try direct course_id link first (synced R2 audios)
-        episodes = await db.audios.find(
-            {'course_id': course['id'], 'is_active': True}, {'_id': 0}
-        ).sort('episode_number', 1).limit(10).to_list(10)
-        if not episodes:
-            # Fallback: try via modules
-            modules = await db.modules.find(
-                {'course_id': course['id'], 'is_active': True}, {'_id': 0}
-            ).sort('order', 1).limit(10).to_list(10)
-            for mod in modules:
-                audio = await db.audios.find_one({'module_id': mod['id']}, {'_id': 0})
-                if audio:
-                    episodes.append(audio)
-        if not episodes:
-            return None
-        for ep in episodes:
-            ep['stream_url'] = resolve_audio_url(ep)
-        return {**course, 'episodes': episodes}
-
-    bandeaux_results = await asyncio.gather(*[_get_course_with_episodes(c) for c in all_courses])
-    course_bandeaux = [b for b in bandeaux_results if b is not None]
+        ).sort('play_count', -1).limit(5 - len(top5_courses)).to_list(5)
+        top5_courses.extend([enrich_cursus(c) for c in extra])
 
     return {
         'featured_course': featured_course,
         'continue_watching': continue_watching,
+        'recent_episodes': recent_episodes,
         'recommendations': recommendations,
         'scholars': scholars_list,
-        'top10_courses': top10_courses,
-        'course_bandeaux': course_bandeaux,
+        'top5_courses': top5_courses,
     }
 
 # ─── User Progress Routes ────────────────────────────────────────────────────
