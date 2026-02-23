@@ -95,7 +95,6 @@ export default function HomeScreen() {
             <View style={styles.heroCursusTag}>
               <Text style={[styles.cursusTagText, { color: featured_course.cursus_color || '#04D182' }]}>
                 À LA UNE · CURSUS {featured_course.cursus_letter || 'A'}
-                {featured_course.cursus_name ? ` · ${featured_course.cursus_name.toUpperCase()}` : ''}
               </Text>
             </View>
             <Text style={styles.heroTitle} testID="home-featured-title">
