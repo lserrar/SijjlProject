@@ -1,4 +1,4 @@
-// Types for the HikmabyLM app
+// Types for the Le Sijill app
 
 export interface Scholar {
   id: string;

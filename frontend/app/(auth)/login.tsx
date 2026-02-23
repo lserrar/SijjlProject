@@ -63,7 +63,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Logo */}
           <View style={styles.logoSection} testID="login-logo">
-            <Text style={styles.logoHikma}>Hikma</Text>
+            <Text style={styles.logoLe Sijill}>Le Sijill</Text>
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
 
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginBottom: spacing.sm,
   },
-  logoHikma: {
+  logoLe Sijill: {
     fontFamily: 'Inter-Bold',
     fontSize: 40,
     color: colors.text.primary,

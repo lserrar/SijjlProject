@@ -42,7 +42,7 @@ export default function ProfilScreen() {
     { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
     { icon: 'language-outline', label: 'Langue : Français', action: () => {} },
     { icon: 'help-circle-outline', label: 'Aide et support', action: () => {} },
-    { icon: 'information-circle-outline', label: 'À propos de HikmabyLM', action: () => router.push('/about') },
+    { icon: 'information-circle-outline', label: 'À propos de Le Sijill', action: () => router.push('/about') },
   ];
 
   return (
@@ -156,7 +156,7 @@ export default function ProfilScreen() {
 
         {/* Brand footer */}
         <View style={styles.brandFooter}>
-          <Text style={styles.brandHikma}>Hikma</Text>
+          <Text style={styles.brandLe Sijill}>Le Sijill</Text>
           <Text style={styles.brandByLM}>by LM</Text>
           <Text style={styles.brandVersion}>v1.0.0 · Prototype</Text>
         </View>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: spacing.lg, borderWidth: 1, borderColor: colors.brand.error, borderRadius: radius.full, padding: 14, gap: spacing.sm, marginBottom: spacing.lg },
   logoutText: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.brand.error },
   brandFooter: { alignItems: 'center', paddingBottom: spacing.lg },
-  brandHikma: { fontFamily: 'Inter-Bold', fontSize: 20, color: colors.text.secondary },
+  brandLe Sijill: { fontFamily: 'Inter-Bold', fontSize: 20, color: colors.text.secondary },
   brandByLM: { fontFamily: 'Inter-Regular', fontSize: 12, color: colors.brand.primary },
   brandVersion: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.tertiary, marginTop: 4 },
 });

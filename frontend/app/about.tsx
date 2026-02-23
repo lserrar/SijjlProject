@@ -42,7 +42,7 @@ export default function AboutScreen() {
         {/* Logo & Brand */}
         <View style={styles.brandSection}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoHikma}>Hikma</Text>
+            <Text style={styles.logoLe Sijill}>Le Sijill</Text>
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
           <Text style={styles.tagline}>La sagesse à portée de main</Text>
@@ -54,7 +54,7 @@ export default function AboutScreen() {
           <Text style={styles.sectionTitle}>Notre mission</Text>
           <View style={styles.card}>
             <Text style={styles.missionText}>
-              HikmabyLM est une plateforme d'e-learning dédiée aux études islamiques académiques. 
+              Le Sijill est une plateforme d'e-learning dédiée aux études islamiques académiques. 
               Notre mission est de rendre accessible un savoir rigoureux et authentique, 
               transmis par des professeurs reconnus dans leur domaine.
             </Text>
@@ -151,7 +151,7 @@ export default function AboutScreen() {
 
         {/* Copyright */}
         <View style={styles.copyright}>
-          <Text style={styles.copyrightText}>© 2025 HikmabyLM. Tous droits réservés.</Text>
+          <Text style={styles.copyrightText}>© 2025 Le Sijill. Tous droits réservés.</Text>
           <Text style={styles.copyrightSubtext}>Fait avec ❤️ pour la communauté</Text>
         </View>
 
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   logoContainer: { flexDirection: 'row', alignItems: 'baseline', marginBottom: spacing.sm },
-  logoHikma: { fontFamily: 'Inter-Bold', fontSize: 42, color: colors.text.primary, letterSpacing: -1 },
+  logoLe Sijill: { fontFamily: 'Inter-Bold', fontSize: 42, color: colors.text.primary, letterSpacing: -1 },
   logoByLM: { fontFamily: 'Inter-Regular', fontSize: 16, color: colors.brand.primary, marginLeft: 4 },
   tagline: { fontFamily: 'DMSans-Regular', fontSize: 16, color: colors.text.secondary, marginBottom: spacing.xs },
   version: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.tertiary },

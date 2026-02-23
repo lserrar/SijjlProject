@@ -96,7 +96,7 @@ export default function AdminDashboard() {
           </View>
           <Text style={styles.welcomeTitle}>Bienvenue, Administrateur</Text>
           <Text style={styles.welcomeSubtitle}>
-            Gérez le contenu de HikmabyLM depuis votre appareil mobile.
+            Gérez le contenu de Le Sijill depuis votre appareil mobile.
           </Text>
         </View>
 

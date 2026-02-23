@@ -59,7 +59,7 @@ export default function RegisterScreen() {
 
           {/* Logo */}
           <View style={styles.logoSection}>
-            <Text style={styles.logoHikma}>Hikma</Text>
+            <Text style={styles.logoLe Sijill}>Le Sijill</Text>
             <Text style={styles.logoByLM}>by LM</Text>
           </View>
 
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: spacing.lg },
   backBtn: { marginBottom: spacing.lg, width: 44, height: 44, justifyContent: 'center' },
   logoSection: { flexDirection: 'row', alignItems: 'baseline', marginBottom: spacing.xs },
-  logoHikma: { fontFamily: 'Inter-Bold', fontSize: 36, color: colors.text.primary, letterSpacing: -1 },
+  logoLe Sijill: { fontFamily: 'Inter-Bold', fontSize: 36, color: colors.text.primary, letterSpacing: -1 },
   logoByLM: { fontFamily: 'Inter-Regular', fontSize: 16, color: colors.brand.primary, marginLeft: 4 },
   subtitle: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary, marginBottom: spacing.xl },
   form: { gap: spacing.md },
