@@ -1775,6 +1775,37 @@ async def get_course_episodes(course_id: str, request: Request):
     
     return {'course_id': course_id, 'episodes': episodes, 'count': len(episodes)}
 
+
+# ─── Admin: Top 10 Courses Management ─────────────────────────────────────────
+
+@api_router.get("/admin/top10")
+async def get_admin_top10(request: Request):
+    """Get Top 10 config and auto-ranked courses by play_count."""
+    await require_admin(request)
+    config = await db.config.find_one({'key': 'top10_courses'}, {'_id': 0})
+    manual_ids = config.get('course_ids', []) if config else []
+    all_courses = await db.courses.find({'is_active': True}, {'_id': 0}).sort('play_count', -1).limit(20).to_list(20)
+    return {
+        'manual_ids': manual_ids,
+        'all_courses': all_courses,
+    }
+
+
+@api_router.put("/admin/top10")
+async def update_admin_top10(body: Top10UpdateRequest, request: Request):
+    """Set the Top 10 courses manually."""
+    await require_admin(request)
+    await db.config.update_one(
+        {'key': 'top10_courses'},
+        {'$set': {
+            'key': 'top10_courses',
+            'course_ids': body.course_ids,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    return {'message': 'Top 10 mis à jour', 'course_ids': body.course_ids}
+
 # ─── Admin: Scholar Toggle ─────────────────────────────────────────────────────
 
 @api_router.patch("/admin/scholars/{scholar_id}/toggle")
