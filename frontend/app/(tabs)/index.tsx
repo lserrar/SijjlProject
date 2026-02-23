@@ -370,5 +370,33 @@ const styles = StyleSheet.create({
   courseInfo: { flex: 1 },
   courseTopic: { fontFamily: 'Inter-Medium', fontSize: 10, color: colors.brand.primary, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.5 },
   courseTitle: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.text.primary, lineHeight: 19, marginBottom: 3 },
+
+  // Scholar Cards
+  scholarCard: {
+    alignItems: 'center',
+    width: 90,
+    gap: 8,
+  },
+  scholarAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.background.card,
+    borderWidth: 2,
+    borderColor: 'rgba(4,209,130,0.3)',
+  },
+  scholarName: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 12,
+    color: colors.text.primary,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  scholarSpeciality: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 10,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
   courseMeta: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary },
 });
