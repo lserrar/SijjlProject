@@ -51,6 +51,13 @@ export default function HomeScreen() {
   const goAudio = (id: string) => router.push(`/audio/${id}` as any);
   const goCourse = (id: string) => router.push(`/course/${id}` as any);
   const goSearch = () => router.push('/search' as any);
+  const goHero = (hero: any) => {
+    if (hero?.hero_type === 'cursus') {
+      router.push('/(tabs)/cursus' as any);
+    } else {
+      goCourse(hero?.id);
+    }
+  };
 
   if (loading) {
     return <View style={s.loadWrap}><ActivityIndicator size="large" color="#04D182" /></View>;
