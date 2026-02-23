@@ -15,7 +15,7 @@ export default function AboutScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logoText}>Le <Text style={styles.logoAccent}>Sijill</Text></Text>
+          <Text style={styles.logoText}><Text style={styles.logoAccent}>Sijill</Text></Text>
           <Text style={styles.tagline}>Comprendre, transmettre, penser la pluralité des savoirs islamiques</Text>
         </View>
 
