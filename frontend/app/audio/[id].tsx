@@ -26,15 +26,18 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SPEEDS = [0.75, 1.0, 1.25, 1.5, 2.0];
 
 export default function AudioDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, course_id, autoplay } = useLocalSearchParams<{ id: string; course_id?: string; autoplay?: string }>();
   const router = useRouter();
   const { token } = useAuth();
-  const { currentTrack, isPlaying, position, duration, togglePlayPause, seekTo, skipForward, skipBackward, setSpeed, speed } = usePlayer();
+  const { currentTrack, isPlaying, position, duration, togglePlayPause, seekTo, skipForward, skipBackward, setSpeed, speed, setOnFinish } = usePlayer();
   const { play } = useAudioPlayer();
   const [audio, setAudio] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [savingProgress, setSavingProgress] = useState(false);
+  const [playlist, setPlaylist] = useState<any[]>([]);
+  const [showNextOverlay, setShowNextOverlay] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastSavedProgress = useRef(0);
 
   const isCurrentTrack = currentTrack?.id === id;
@@ -42,9 +45,55 @@ export default function AudioDetailScreen() {
   const displayDuration = isCurrentTrack ? duration : (audio?.duration || 0);
   const progress = displayDuration > 0 ? displayPosition / displayDuration : 0;
 
+  const currentIndex = playlist.findIndex(p => p.audio_id === id);
+  const nextItem = currentIndex >= 0 && currentIndex < playlist.length - 1 ? playlist[currentIndex + 1] : null;
+
   useEffect(() => {
     loadAudio();
+    if (course_id) loadPlaylist();
   }, [id]);
+
+  // Auto-play when arriving from "Commencer le cours"
+  useEffect(() => {
+    if (!loading && audio && autoplay === '1' && !isCurrentTrack) {
+      play(audio);
+    }
+  }, [loading, audio]);
+
+  // Register auto-next callback
+  useEffect(() => {
+    setOnFinish(() => {
+      if (nextItem) {
+        setShowNextOverlay(true);
+        setCountdown(5);
+        let count = 5;
+        countdownRef.current = setInterval(() => {
+          count -= 1;
+          setCountdown(count);
+          if (count <= 0) {
+            clearInterval(countdownRef.current!);
+            navigateToNext();
+          }
+        }, 1000);
+      }
+    });
+    return () => {
+      setOnFinish(null);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [nextItem, id]);
+
+  const navigateToNext = () => {
+    if (!nextItem) return;
+    setShowNextOverlay(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    router.replace(`/audio/${nextItem.audio_id}?course_id=${course_id}&autoplay=1` as any);
+  };
+
+  const cancelNext = () => {
+    setShowNextOverlay(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  };
 
   // Auto-save progress every 30s
   useEffect(() => {
