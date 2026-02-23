@@ -1,757 +1,240 @@
-<analysis>**original_problem_statement**: The user is building HikmabyLM, an Islamic studies e-learning platform. The initial goal was to manage content like courses, audios, and a special Conferences type. However, the project's scope has significantly evolved based on user feedback.
+<analysis>**original_problem_statement**: The user wants to build an Islamic studies e-learning platform, now named Sijill. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains audio episodes.
 
-The core requirement is now to build a platform with a three-level content hierarchy: **Cursus -> Cours -> Modules**. Each module contains audio episodes. The platform must support 7 distinct Cursus, each with its own set of courses and modules, as detailed in a user-provided document.
-
-Additionally, the web-based admin panel needs robust management features, including:
-1.  A flexible system for categorizing audios (e.g., Conferences, Music, Quran Recitation), where each category can be linked to a specific Cloudflare R2 folder.
-2.  The ability to link an audio episode to a course and module directly from the audio management page.
-3.  The ability to perform bulk actions, such as activating or deactivating multiple Cursus or Cours at once.
-
-A critical unresolved issue is that the Expo-based mobile app is non-functional and crashes on launch, blocking all mobile-side development and testing.
+The latest user requests are:
+1.  **Rename the app**: Change the name from Le Sijill to Sijill everywhere in the app and admin panel, and remove the by LM suffix.
+2.  **Update Content**: Align the app's content with the latest provided document (), which outlines a new 5-cursus structure. This involves removing any old, outdated course data that is still visible (e.g., Henry Corbin).
+3.  **Synchronize Audios**: Link audio files from a Cloudflare R2 bucket to their corresponding modules in the database. The user has specified that each course has a corresponding folder in R2, containing subfolders for modules, and each module subfolder has one audio episode that needs to be synced.
 
 **PRODUCT REQUIREMENTS**:
--   **App Name**: HikmabyLM
+-   **App Name**: Sijill
 -   **Language**: French
--   **Platform**: Expo (iOS/Android) + Web Admin Panel (FastAPI).
+-   **Platform**: Expo (running as a web app) + Web Admin Panel (FastAPI).
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
--   **Monetization**: Subscriptions, promo codes, and free trials. All premium content must be behind a paywall.
--   **Admin System**: A web admin panel for full content management, including the 3-level hierarchy, audio categories, and bulk status changes.
+-   **Admin System**: A web admin panel for full content management.
+-   **Content Storage**: Audio files are stored in a Cloudflare R2 bucket.
 
 **User's preferred language**: French. The next agent MUST respond in French.
 
 **what currently exists?**
-A full-stack application with a FastAPI backend and MongoDB database.
--   **Backend**:  has been heavily modified to support the new 3-level content hierarchy. The database schema now includes , , and  collections. The old  logic has been replaced with a flexible  system. Endpoints for managing modules and performing bulk status updates on cursus and courses have been created. The database has been successfully populated with the 7 Cursus and their corresponding content from the user's latest document. The persistent data-seeding issue on server startup has been resolved.
--   **Web Admin Panel**: The UI was updated to replace the Conferences tab with a fully functional Catégories Audio management page. The Audios page now allows linking an audio to a course directly. **However, the admin panel UI does NOT yet reflect the new 3-level Cursus->Cours->Module architecture.**
--   **Frontend (Mobile App)**: The app is still in a broken state and cannot be launched due to fatal errors, likely related to an unstable ngrok tunnel in the preview environment.
+A full-stack application with a FastAPI backend, MongoDB database, and a React Native frontend currently running as a web app (Expo Web).
+-   **Backend**:  contains the logic for the 3-level hierarchy and the admin panel. Endpoints for managing cursus, courses, and modules, including bulk actions, are implemented. A critical bug related to data being seeded into the wrong database ( instead of ) has been identified and fixed.
+-   **Web Admin Panel**: The admin UI has been completely updated to manage the Cursus -> Cours -> Modules hierarchy. It includes pages for each level and supports bulk activation/deactivation. The name has been updated to Le Sijill (pending change to Sijill).
+-   **Frontend (Mobile App)**: The native mobile app tunnel () is broken. The agent successfully implemented a workaround by running the app in **web mode** ([15:27:23] Starting project at /app/frontend). The web app is functional, displays the new content structure with course images, and allows user login.
 
 **Last working item**:
--   **Last item agent was working**: The agent just completed a major data migration. It created and executed a Python script to populate the MongoDB database with the complete 3-level content structure (7 Cursus, with all their Courses and Modules) based on the user's  file.
--   **Status**: IN PROGRESS (Backend/Data layer is complete, but UI/Admin changes are pending).
--   **Agent Testing Done**: Y (for the data script execution and backend endpoints).
--   **Which testing method agent to use?**: both. First, use the  to verify the new admin panel UI changes (Modules page, bulk actions). Then, once the admin work is done, focus on debugging the mobile app crash using CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1..
+-   **Last item agent was working**: The agent began addressing the user's latest requests from message #367. It started renaming the app to Sijill and explored the Cloudflare R2 directory structure to prepare for the audio synchronization task.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N (for the new requests)
+-   **Which testing method agent to use?**: both.
+    1.  **Backend**: Use a Python script to perform the audio synchronization. Verify the  collection in the database is correctly populated using .
+    2.  **Frontend**: Use the  to verify the name change to Sijill is reflected everywhere and to test audio playback in the app after synchronization.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Mobile App is Unusable Due to Fatal Errors (P0 - BLOCKER)
-    -   **Description**: The Expo mobile app crashes on launch, preventing any testing or development on the frontend. The agent previously encountered , indicating an unstable connection tunnel. This has been a persistent problem.
+-   **Issue 1**: Audio Playback is Broken (P0 - BLOCKER)
+    -   **Description**: Users cannot play any audio lessons because the audio files stored in Cloudflare R2 are not linked to the modules in the database.
+    -   **Attempted fixes**: The agent has listed the R2 directory structure to understand the layout.
     -   **Next debug checklist**:
-        1.  Restart the Expo service: expo: ERROR (not running)
-expo: started.
-        2.  Check the logs immediately for connection errors: Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-λ Bundled 1360ms node_modules/expo-router/node/render.js (1105 modules)
-
-Metro error: Cannot read properties of undefined (reading 'success')
-
-Code: subscription-choice.tsx
-[0m [90m 294 |[39m     top[33m:[39m [33m-[39m[35m10[39m[33m,[39m
- [90m 295 |[39m     right[33m:[39m [33m-[39m[35m10[39m[33m,[39m
-[31m[1m>[22m[39m[90m 296 |[39m     backgroundColor[33m:[39m colors[33m.[39mstatus[33m.[39msuccess[33m,[39m
- [90m     |[39m                                    [31m[1m^[22m[39m
- [90m 297 |[39m     paddingHorizontal[33m:[39m spacing[33m.[39msm[33m,[39m
- [90m 298 |[39m     paddingVertical[33m:[39m [35m4[39m[33m,[39m
- [90m 299 |[39m     borderRadius[33m:[39m radius[33m.[39mfull[33m,[39m[0m
-Call Stack
-  factory (app/subscription-choice.tsx:296:36)
-  Object.get [as ./subscription-choice.tsx] (app:32:67)
-  contextModule (app:36:15)
-Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 89.5% (849/909)
-Web Bundled 2244ms node_modules/expo-router/entry.js (909 modules)
-λ Bundled 24ms node_modules/expo-router/node/render.js (1 module)
-
-Metro error: Cannot read properties of undefined (reading 'success')
-
-Code: subscription-choice.tsx
-[0m [90m 294 |[39m     top[33m:[39m [33m-[39m[35m10[39m[33m,[39m
- [90m 295 |[39m     right[33m:[39m [33m-[39m[35m10[39m[33m,[39m
-[31m[1m>[22m[39m[90m 296 |[39m     backgroundColor[33m:[39m colors[33m.[39mstatus[33m.[39msuccess[33m,[39m
- [90m     |[39m                                    [31m[1m^[22m[39m
- [90m 297 |[39m     paddingHorizontal[33m:[39m spacing[33m.[39msm[33m,[39m
- [90m 298 |[39m     paddingVertical[33m:[39m [35m4[39m[33m,[39m
- [90m 299 |[39m     borderRadius[33m:[39m radius[33m.[39mfull[33m,[39m[0m
-Call Stack
-  factory (app/subscription-choice.tsx:296:36)
-  Object.get [as ./subscription-choice.tsx] (app:32:67)
-  contextModule (app:36:15)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 347ms node_modules/expo-router/entry.js (1 module)
-λ Bundled 21ms node_modules/expo-router/node/render.js (1 module)
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-λ Bundled 1245ms node_modules/expo-router/node/render.js (1104 modules)
-
-Metro error: Cannot read properties of undefined (reading 'success')
-
-Code: subscription-choice.tsx
-[0m [90m 294 |[39m     top[33m:[39m [33m-[39m[35m10[39m[33m,[39m
- [90m 295 |[39m     right[33m:[39m [33m-[39m[35m10[39m[33m,[39m
-[31m[1m>[22m[39m[90m 296 |[39m     backgroundColor[33m:[39m colors[33m.[39mstatus[33m.[39msuccess[33m,[39m
- [90m     |[39m                                    [31m[1m^[22m[39m
- [90m 297 |[39m     paddingHorizontal[33m:[39m spacing[33m.[39msm[33m,[39m
- [90m 298 |[39m     paddingVertical[33m:[39m [35m4[39m[33m,[39m
- [90m 299 |[39m     borderRadius[33m:[39m radius[33m.[39mfull[33m,[39m[0m
-Call Stack
-  factory (app/subscription-choice.tsx:296:36)
-  Object.get [as ./subscription-choice.tsx] (app:32:67)
-  contextModule (app:36:15)
-Web node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 86.7% (812/872)
-Web Bundled 2144ms node_modules/expo-router/entry.js (872 modules)
-λ Bundled 23ms node_modules/expo-router/node/render.js (1 module)
-
-Metro error: Cannot read properties of undefined (reading 'success')
-
-Code: subscription-choice.tsx
-[0m [90m 294 |[39m     top[33m:[39m [33m-[39m[35m10[39m[33m,[39m
- [90m 295 |[39m     right[33m:[39m [33m-[39m[35m10[39m[33m,[39m
-[31m[1m>[22m[39m[90m 296 |[39m     backgroundColor[33m:[39m colors[33m.[39mstatus[33m.[39msuccess[33m,[39m
- [90m     |[39m                                    [31m[1m^[22m[39m
- [90m 297 |[39m     paddingHorizontal[33m:[39m spacing[33m.[39msm[33m,[39m
- [90m 298 |[39m     paddingVertical[33m:[39m [35m4[39m[33m,[39m
- [90m 299 |[39m     borderRadius[33m:[39m radius[33m.[39mfull[33m,[39m[0m
-Call Stack
-  factory (app/subscription-choice.tsx:296:36)
-  Object.get [as ./subscription-choice.tsx] (app:32:67)
-  contextModule (app:36:15)
-Web node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
-Web Bundled 333ms node_modules/expo-router/entry.js (1 module)
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled.
-Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
-Starting Metro Bundler
-yarn run v1.22.22
-$ /app/frontend/node_modules/.bin/expo start --tunnel --port 3000
-env: load .env
-env: export EXPO_TUNNEL_SUBDOMAIN EXPO_PACKAGER_HOSTNAME EXPO_PUBLIC_BACKEND_URL EXPO_USE_FAST_RESOLVER METRO_CACHE_ROOT EXPO_PACKAGER_PROXY_URL
-Starting project at /app/frontend
-Fast resolver is enabled. and CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1.
-CommandError: ngrok tunnel took too long to connect.
-error Command failed with exit code 1..
-        3.  If it's a code error, identify the file and fix it. If it's a persistent ngrok error, acknowledge the infrastructure instability.
-    -   **Why fix this issue and what will be achieved with the fix?**: The entire mobile application is inaccessible. Fixing it is critical to proceed with any user-facing features.
-    -   **Status**: NOT STARTED (in this session)
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None. This is the main blocker.
--   **Issue 2**: Inconsistent User Data (Pierre Marchal Mystery) (P2)
-    -   **Description**: A user named Pierre Marchal is visible to the client but cannot be found in the database by the agent. This suggests a potential data integrity or DB connection issue. This was deferred from the previous session.
+        1.  Create and execute a Python script () that connects to the .
+        2.  The script should scan the  directory recursively.
+        3.  For each  file found, parse its path to determine the Cursus, Cours, and Module it belongs to.
+        4.  Find the corresponding  in the database based on the parsed names.
+        5.  Create a new document in the  collection linking the  to the audio file's R2 path. Clear the  collection before starting to avoid duplicates.
+        6.  Handle potential name mismatches between R2 folders and database entries (e.g., A-Falsafa... vs A. La Falsafa...).
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the app's core functionality. Fixing it will make the e-learning content playable.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+-   **Issue 2**: Outdated Course Data Still Visible (P1)
+    -   **Description**: The user reports seeing old courses (e.g., Henry Corbin) that are not in the new curriculum. This is likely due to stale data from previous failed migration attempts or the  function.
+    -   **Next debug checklist**:
+        1.  Create a script to completely clear the , , and  collections in the .
+        2.  Re-run the  script to ensure a clean slate with only the correct data from .
+    -   **Why fix this issue and what will be achieved with the fix?**: Ensures data integrity and prevents user confusion.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Should Test frontend/backend/both after fix?**: both
 
 **In progress Task List**:
--   **Task 1**: Implement 3-Level Hierarchy in Admin Panel (P0)
-    -   **Description**: The backend and database now support Cursus -> Cours -> Modules, but the admin UI does not. This is the highest priority feature task.
-    -   **Where to resume**:
-        1.  Create a new admin template  for CRUD operations on modules.
-        2.  Update  and  to link to their children (courses and modules, respectively).
-        3.  Modify  so that audios are linked to a  instead of a .
-    -   **What will be achieved with this?**: The admin will be able to manage the full 3-level content structure.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: frontend (admin panel)
-    -   **Blocked on something**: None.
--   **Task 2**: Implement Bulk Actions in Admin Panel (P1)
-    -   **Description**: Add checkboxes to the Cursus and Cours list pages to allow the admin to select multiple items and change their  status with a single action.
-    -   **Where to resume**:
-        1.  Modify  and  to add checkboxes and action buttons.
-        2.  Implement the JavaScript to call the existing bulk-toggle API endpoints.
-    -   **What will be achieved with this?**: Fulfills a direct user request for more efficient content management.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: frontend (admin panel)
-    -   **Blocked on something**: Can be done in parallel with or after Task 1.
+-   **Task 1**: Finalize App Renaming to Sijill (P1)
+    -   **Description**: The user requested the app be renamed from Le Sijill to just Sijill, with the by LM suffix removed.
+    -   **Where to resume**: The agent ran  commands. The next step is to perform a global search for Le Sijill and Hikma to catch any remaining instances. Also, fix any broken CSS class names or variable names caused by the replacement (e.g.,  should be ).
+    -   **What will be achieved with this?**: Fulfills a direct branding request from the user.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: frontend
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Update Mobile App UI for 3-Level Hierarchy**: Once the app is working, update the UI to navigate through Cursus -> Cours -> Modules.
-    -   **(P1) Apply Paywall to All Protected Content**: The  hook must be implemented on all screens showing premium content.
-    -   **(P2) Implement Backend Logic for Homepage**: Implement Continue Watching and Recommendations for you.
-    -   **(P2) Implement Push Notifications**.
+    -   **(P1) Implement Ressources Tab Features**:
+        -   Create an Autres sub-tab to display audio categories (e.g., Quran recitations, music).
+        -   Add a Ressources liées section to the course detail page to show related content.
 -   **Future Tasks:**
-    -   **(P3) Refactor Monolithic Backend**: Break down  into a modular structure using FastAPI routers.
+    -   **(P2) Refactor Monolithic Backend**: Break down  into a modular structure.
+    -   **(P2) Implement Homepage Logic**: Continue Watching and Recommendations for you.
+    -   **(P2) Implement Push Notifications**.
+    -   **(P1) Apply Paywall**: Ensure the  hook is implemented on all premium content screens.
 
 **Completed work in this session**
--   **Refactored Conferences into Audio Categories**: Replaced the rigid Conferences feature with a dynamic system allowing the admin to create audio categories, each with a custom name and Cloudflare R2 folder path.
--   **Fixed R2 Browser Path Bug**: The R2 browser now correctly uses the path defined in the selected audio category.
--   **Enhanced Audio Management**: Added a feature to link an audio directly to a course from the audio creation/edit form in the admin panel.
--   **Resolved Database Seeding Bug**: Investigated and fixed a critical issue where server restarts would overwrite new data with old demo content by correcting a misconfigured database name ( vs. ).
--   **Implemented 3-Level Data Architecture**: Successfully restructured the backend and MongoDB database to support a Cursus -> Cours -> Module hierarchy.
--   **Populated All Content**: Created and ran a script to populate the database with all 7 Cursus and their associated courses/modules from the user's provided document.
+-   **Fixed Mobile App**: Successfully migrated the broken mobile app from an unstable  tunnel to a functional **Expo Web** instance, fixing JavaScript crashes along the way.
+-   **Implemented Admin Panel Hierarchy**: Built out the complete 3-level (Cursus, Cours, Modules) management interface in the admin panel, including bulk actions. The changes were verified by the testing agent.
+-   **Updated App Content & Name**: Renamed the app from Hikma by LM to Le Sijill and updated the database content based on the user's  file.
+-   **Fixed Critical Database Bug**: Identified and resolved a major issue where update scripts were writing to the wrong database () while the server was reading from , causing persistent data inconsistencies.
+-   **Added Course Images**: Implemented a feature to display thematic images for each course in the app.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1**: Inconsistent User Data (Pierre Marchal Mystery). This was deferred from a previous session and is low priority.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Frontend environment instability (Expo/Ngrok tunnel).
 -   **Recurrence count**: 4+
--   **Status**: IN PROGRESS. The mobile app is currently unusable because of this.
+-   **Status**: RESOLVED (Workaround). The issue is bypassed by running the app in Expo Web mode. A permanent fix to the supervisor config is not possible as it's read-only.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React Native, Expo (Currently non-functional)
--   **Backend**: FastAPI, Python
--   **Database**: MongoDB
--   **Content Hierarchy**: A new 3-level structure (Cursus -> Cours -> Modules) is the core of the application logic.
+-   **Frontend**: React Native, Expo (running in Web Mode).
+-   **Backend**: FastAPI, Python.
+-   **Database**: MongoDB.
+-   **File Storage**: Cloudflare R2 (mounted at ).
 
 **key DB schema**
--   : (Formerly ) 
 -   : 
--   : (NEW) 
--   : (NEW) 
+-   : 
+-   : 
+-   : 
 -   : 
 
 **All files of reference**
--   : Heavily modified to add models and endpoints for ,  (replacing ), and . Bulk action endpoints were also added. The  function was fixed.
--   : New file for managing audio categories.
--   : Modified to include category and course selectors. Needs further modification to link to modules.
--   : The script used for the final, successful data migration.
+-   : Contains all backend logic. Key endpoints to check are , , , and the admin routes.
+-   : The script used to populate the database from the user's  file. It must target .
+-   : Contains API fetching logic for the frontend.
+-   : Main screen for displaying the cursus list.
+-   : The user-provided source of truth for all content. Located in .
 
 **Areas that need refactoring**:
--    has grown even larger and is now critical to refactor into smaller, manageable router files.
--   The  model and admin UI need to be cleaned up to link strictly to  instead of having a legacy .
+-   The  function within  contains outdated demo data and logic. It should be disabled or cleaned up to prevent conflicts with the  script.
 
 **key api endpoints**
--    (NEW)
--    (NEW)
--    (NEW)
--    (NEW)
--    (Replaces )
+-   : Public endpoint to fetch all active cursus.
+-   : Public endpoint to fetch courses.
+-   : Admin endpoint for bulk actions.
+-   All admin CRUD endpoints under 
 
 **Critical Info for New Agent**
--   **The data structure has fundamentally changed**. You are now working with a 3-level hierarchy:  ->  -> . The database is already populated with this structure.
--   **Your first priority for features is the admin panel**. It needs to be updated to manage the new 3-level hierarchy and the requested bulk actions. The backend for this is already done.
--   **The mobile app is the biggest blocker**. Once the admin panel work is complete, you must address the mobile app crash. It is unusable and preventing any further progress on the user-facing application.
+-   **The app is Sijill**. The rename from Le Sijill is the first pending task.
+-   **The mobile app is only functional in web mode**. Do not try to fix the  tunnel. Use expo-web: ERROR (no such process)
+expo-web: ERROR (no such process) to run the app. If that fails, manually run [15:27:24] Starting project at /app/frontend from the  directory.
+-   **Your top priority is to sync the audio files**. The app's core functionality is broken without it. Create a script to map files in  to the  in the .
+-   **Ensure all database operations target **. A previous critical bug was caused by scripts writing to the wrong DB. The  in  points to the correct instance, but scripts must explicitly use .
+
+**documents and test reports created in this job**
+-    (updated)
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User (Msg 244)**: Confirms the 3-level architecture. Asks for  collection rename. Confirms audios are always linked to modules. Requests to implement all 7 cursus. **Crucially, requests a new feature: bulk activate/deactivate for cursus and courses.** **(IN PROGRESS)**
--   **User (Msg 242)**: Asks if the app architecture needs to be reviewed for the new 3-level structure. **(Answered: Yes, major changes needed)**
--   **User (Msg 238)**: Provides a new, improved document () and asks the agent to analyze the Cursus -> Cours -> Module structure. **(Done)**
--   **User (Msg 141)**: Clarifies that the previous data structure was wrong; it should be one Cursus with 20 courses inside. **(Resolved, but then superseded by the 3-level structure)**
--   **User (Msg 122)**: Uploads the first document () and asks to update the app's content. **(Done, but data was restructured later)**
--   **User (Msg 90)**: Requests the ability to link an audio to a course directly from the audio edit form. **(Completed)**
--   **User (Msg 82)**: Reports , indicating the mobile app tunnel is down. **(Unresolved)**
--   **User (Msg 11, 8, 5)**: Provides clarifications and the initial request to change Conferences into a manageable Audio Categories system. **(Completed)**
+-   **#367**: Rename to Sijill (from Le Sijill), remove by LM. Old courses are still visible. Audios are empty, need to sync with Cloudflare R2 folders. (IN PROGRESS)
+-   **#250**: Provided new document  for content update. Requested app name change to Le Sijill. (DONE, but new rename requested)
+-   **#238**: Reported being unable to connect to the app/admin panel. (RESOLVED)
+-   **#185**: Requested UI improvements: course images, Autres tab for resources, and related resources on course pages. (PARTIALLY DONE)
+-   **#183**: Asked for the admin panel link. (RESOLVED)
+-   **#179**: Expressed frustration with the  error. (RESOLVED with workaround)
 
 **Project Health Check:**
--   **Broken**: The frontend mobile app is non-functional due to fatal errors/tunnel instability.
+-   **Broken**:
+    -   Core audio playback functionality.
+    -   The  process for the frontend (
+  Usage: expo [command] [options]
+
+  Options:
+  
+    -V, --version                     output the version number
+    --non-interactive                 Fail, if an interactive prompt would be required to continue.
+    -h, --help                        output usage information
+  
+  Commands:
+
+    init [name]                       Create a new Expo project
+    start [path]                      Start a local dev server for the app
+    start:web [path]                  Start a Webpack dev server for the web app
+    export [path]                     Export the static files of the app for hosting it on a web server
+    install [packages...]             Install a module or other package to a project
+    run:android [path]                Run the Android app binary locally
+    run:ios [path]                    Run the iOS app binary locally
+    send [path]                       Share the project's URL to an email address
+
+    login                             Login to an Expo account
+    logout                            Logout of an Expo account
+    register                          Sign up for a new Expo account
+    whoami                            Return the currently authenticated account
+
+    client:install:ios                Install Expo Go for iOS on the simulator
+    client:install:android            Install Expo Go for Android on a connected device or emulator
+
+    config [path]                     Show the project config
+    doctor [path]                     Diagnose issues with the project
+    upgrade [sdk-version]             Upgrade the project packages and config for the given SDK version
+
+    customize:web [path]              Eject the default web files for customization
+    prebuild [path]                   Create native iOS and Android project files before building natively.
+                                      Learn more: https://docs.expo.dev/workflow/customizing/
+
+    build:web [path]                  Build the web app for production
+
+    credentials:manager [path]        Superseded by eas credentials in eas-cli
+
+    url [path]                        Log a URL for opening the project in Expo Go
+    url:ipa [path]                    Log the download URL for the standalone iOS binary
+    url:apk [path]                    Log the download URL for the standalone Android binary
+
+    webhooks [path]                   List all webhooks for a project
+    webhooks:add [path]               Add a webhook to a project
+    webhooks:remove [path]            Delete a webhook
+    webhooks:update [path]            Update an existing webhook
+
+    build:ios [path]                  Superseded by eas build in eas-cli
+    build:android [path]              Superseded by eas build in eas-cli
+    build:status [path]               Superseded by eas build:list in eas-cli
+    eject [path]                      Superseded by expo prebuild
+    fetch:ios:certs [path]            Superseded by eas credentials in eas-cli
+    fetch:android:keystore [path]     Superseded by eas credentials in eas-cli
+    fetch:android:hashes [path]       Superseded by eas credentials in eas-cli
+    fetch:android:upload-cert [path]  Superseded by eas credentials in eas-cli
+    publish [path]                    Superseded by eas update in eas-cli
+    publish:set [path]                Superseded by eas update:republish in eas-cli
+    publish:rollback [path]           Superseded by eas update:republish in eas-cli
+    publish:history [path]            Superseded by eas update:list in eas-cli
+    publish:details [path]            Superseded by eas update:view in eas-cli
+    push:android:upload [path]        Superseded by eas credentials in eas-cli
+    push:android:show [path]          Superseded by eas credentials in eas-cli
+    push:android:clear [path]         Superseded by eas credentials in eas-cli
+    upload:android [path]             Superseded by eas submit in eas-cli
+    upload:ios [path]                 Superseded by eas submit in eas-cli
+    client:ios [path]                 Superseded by Expo Dev Clients
+
+[15:27:24]   Run a command with --help for more info 💡
+[15:27:24]     $ expo start --help
+[15:27:24]), which tries to use a broken  tunnel. A workaround () is in place.
 -   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **Cloudflare R2**: Used for audio file storage.
--   **Stripe**: Integrated for payments, subscriptions, and promo codes.
+-   **Cloudflare R2**: For audio file storage.
+-   **Stripe**: For payments, subscriptions, and promo codes (integrated in a previous session).
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES (for admin panel implementation).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Yes, in , but likely outdated.
--   **Known regressions**: The entire mobile app is broken.
+-   **Test files created**: 
+-   **Known regressions**: None.
 
 **Credentials to test flow:**
 -   **Admin Panel Route**: 
 -   **Admin Email**: 
--   **Admin Password**: </analysis>
+-   **Admin Password**: 
+-   **Test User Email**: 
+-   **Test User Password**: 
+
+**What agent forgot to execute**
+-   The agent started the rename from Le Sijill to Sijill but did not fully verify all instances or check for broken variable/style names.
+-   The agent did not yet implement a script to clear old data before re-populating, which is necessary to fix the Henry Corbin issue.</analysis>
