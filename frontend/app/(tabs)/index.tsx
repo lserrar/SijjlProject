@@ -160,6 +160,14 @@ export default function HomeScreen() {
                   <Text style={[styles.levelText, { color: getLevelColor(featuredCourse.level) }]}>{featuredCourse.level}</Text>
                 </View>
               </View>
+              <TouchableOpacity
+                testID="home-featured-start-btn"
+                style={styles.heroStartBtn}
+                onPress={() => navigateToContent({ id: featuredCourse.id, type: 'course' })}
+              >
+                <Ionicons name="play" size={14} color="#000" />
+                <Text style={styles.heroStartBtnText}>Commencer</Text>
+              </TouchableOpacity>
             </LinearGradient>
           </TouchableOpacity>
         )}
