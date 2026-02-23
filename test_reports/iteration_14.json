@@ -1,0 +1,60 @@
+{
+  "summary": "Iteration 14 - Full testing of Hero Cursus + Admin Cursus + Hover Effects features. All 9 required features verified working. Backend: 19/19 tests passing. Frontend: all features confirmed via Playwright.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "PUT /api/admin/cursus/{id}",
+        "issue": "Cannot clear hero_title/hero_description by setting to null: `update = {k: v for k, v in body.model_dump().items() if v is not None}` filters out None values. Minor: can't erase hero text once set via API."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration14_features.py",
+    "/app/test_reports/pytest/iteration14_results.xml"
+  ],
+  "action_items": [
+    "Minor: Fix CursusUpdate endpoint to allow clearing hero_title/hero_description (set to null). Change filter from `if v is not None` to allow explicit null values for these optional fields.",
+    "Minor: The PUT /admin/cursus/{id} endpoint also has the same issue for other optional fields, but hero_title/hero_description are the most likely to need clearing."
+  ],
+  "critical_code_review_comments": [
+    "PUT /api/admin/cursus/{id}: `update = {k: v for k, v in body.model_dump().items() if v is not None}` - Cannot reset hero_title/hero_description to null once set. Should use `body.model_dump(exclude_unset=True)` or handle explicit None clearing separately.",
+    "The admin /admin route (React app) redirects to /profil for admin users - this is expected since there's no dedicated /admin landing page in the React app. Admin features are accessed via /admin/cursus, /admin/courses etc. directly."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration14_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 tests passing)",
+    "frontend": "100% (9/9 features verified)"
+  },
+  "test_credentials": {
+    "user_email": "testuser@hikma.com",
+    "user_password": "TestUser123!",
+    "admin_email": "admin@hikma-admin.com",
+    "admin_password": "Admin123!"
+  },
+  "seed_data_creation": "No seed data created. cursus-falsafa already featured with hero_title set in DB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 9 features from iteration 14 pass. Key verified items: (1) Login testuser@hikma.com works; (2) Homepage hero shows cursus-falsafa with hero_title 'La Falsafa — Philosophie de l'Islam classique'; (3) Eyebrow shows 'À la une · Cursus A'; (4) Hover on episode cards: bg #1A1A1A→#222222, border-bottom 2px colored (cursus color green); (5) COMMENCER navigates to /cursus tab; (6) /admin/cursus shows star icons, gold star (★) for featured cursus; (7) /admin/courses shows star-outline for all courses (no course featured, cursus is); (8) /admin/course-form has 'Texte À la une' section with titre/description héro fields; (9) Homepage has 5 sections: hero, 5 episode cards, 4 rec cards, 5 top5 rows, bottom nav. Backend 19 tests all pass.",
+  "passing_verifications": {
+    "feature1_login": "PASS: testuser@hikma.com / TestUser123! logs in, redirects to homepage",
+    "feature2_hero_cursus_title": "PASS: Hero title = 'La Falsafa — Philosophie de l'Islam classique' (hero_title from cursus)",
+    "feature2_hero_cursus_description": "PASS: Hero description shows 'D'Al-Kindī à Averroès...' (hero_description from cursus)",
+    "feature3_hero_label": "PASS: Eyebrow text = 'À la une · Cursus A' (cursus_letter, not full name)",
+    "feature4_hover_bg": "PASS: Hover changes episode card bg from rgb(26,26,26)=#1A1A1A to rgb(34,34,34)=#222222",
+    "feature4_hover_border": "PASS: Hover shows borderBottomWidth=2px with cursus color (rgb(4,209,130)=#04D182)",
+    "feature4_hover_revert": "PASS: Background reverts to #1A1A1A when mouse leaves",
+    "feature5_commencer_btn": "PASS: COMMENCER button navigates to /cursus (not /course) when cursus is featured",
+    "feature6_admin_cursus": "PASS: /admin/cursus shows 5 cursus with star icons, gold star for cursus-falsafa (is_featured=True)",
+    "feature7_admin_courses_star": "PASS: /admin/courses shows star-outline for all 24 courses (correct: cursus featured, not course)",
+    "feature8_course_form_hero": "PASS: /admin/course-form has 'Texte À la une' section with titre héro + description héro fields",
+    "feature9_regression_sections": "PASS: Homepage 5 sections: hero (testid home-hero-title), 5 episode cards, 4 rec cards, 5 top5 rows, bottom nav (Accueil/Cursus/Épisodes/Profs/Biblio)"
+  }
+}
