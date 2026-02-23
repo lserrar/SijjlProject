@@ -963,11 +963,6 @@ async def get_home(request: Request):
     user = await get_current_user(request)
     user_id = user['user_id'] if user else None
 
-    # 1. Featured course
-    featured_course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
-    if not featured_course:
-        featured_course = await db.courses.find_one({'is_active': True}, {'_id': 0})
-
     # Pre-load all cursus for fast lookup
     CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
     CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
@@ -983,8 +978,33 @@ async def get_home(request: Request):
         item['cursus_color'] = CURSUS_COLORS[order]
         return item
 
-    if featured_course:
-        featured_course = enrich_cursus(featured_course)
+    # 1. Featured hero: check cursus first, then course
+    featured_hero = None
+    featured_cursus_doc = await db.cursus.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+    if featured_cursus_doc:
+        order = max(0, min(featured_cursus_doc.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
+        featured_hero = {
+            'id': featured_cursus_doc['id'],
+            'hero_type': 'cursus',
+            'title': featured_cursus_doc.get('hero_title') or featured_cursus_doc.get('name', ''),
+            'description': featured_cursus_doc.get('hero_description') or featured_cursus_doc.get('description', ''),
+            'cursus_id': featured_cursus_doc['id'],
+            'cursus_letter': CURSUS_LETTERS[order],
+            'cursus_color': CURSUS_COLORS[order],
+            'cursus_name': featured_cursus_doc.get('name', ''),
+        }
+    else:
+        featured_course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+        if not featured_course:
+            featured_course = await db.courses.find_one({'is_active': True}, {'_id': 0})
+        if featured_course:
+            featured_course = enrich_cursus(featured_course)
+            featured_course['hero_type'] = 'course'
+            if featured_course.get('hero_title'):
+                featured_course['title'] = featured_course['hero_title']
+            if featured_course.get('hero_description'):
+                featured_course['description'] = featured_course['hero_description']
+            featured_hero = featured_course
 
     # 2. Continue watching (last 3 in-progress audios)
     continue_watching = []
