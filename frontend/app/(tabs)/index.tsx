@@ -100,8 +100,9 @@ export default function HomeScreen() {
     );
   }
 
-  const hero = homeData?.hero; // Last watched content
+  const hero = homeData?.hero;
   const recommendations = homeData?.recommendations || [];
+  const scholars = homeData?.scholars || [];
   const greeting = new Date().getHours() < 12 ? 'Bonjour' : new Date().getHours() < 18 ? 'Bon après-midi' : 'Bonsoir';
 
   return (
