@@ -596,13 +596,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     color: '#777777',
   },
-  top5Strip: {
-    width: 3,
-    alignSelf: 'stretch',
-    opacity: 0.6,
-    flexShrink: 0,
-  },
-
   // ── BADGE ────────────────────────────────────────────────────────────
   badge: {
     paddingHorizontal: 6,
