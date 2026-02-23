@@ -1,0 +1,88 @@
+{
+  "summary": "Iteration 8: Full test of audio proxy stream endpoint, Henry Corbin removal, and frontend course/audio player flow. All 18 backend tests passed (100%). All 3 frontend scenarios passed. Expo service is intermittently unstable (ngrok tunnel crashes every ~30-60s) but app works correctly in stable windows.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AudioDetailScreen - play button initial state",
+        "issue": "Play button shows ActivityIndicator (loading spinner) instead of play icon in the initial state when navigating to audio page (before pressing play). Condition `!isCurrentTrack && !isPlaying` triggers spinner for initial unplayed state, which is confusing UX. Should show play icon; spinner should only appear during actual buffering/loading.",
+        "selector": "[data-testid='audio-play-pause']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "AudioDetailScreen - cover thumbnail",
+        "issue": "Thumbnail/cover art shows as gray square for sync-created audios because thumbnail field is empty in DB. Sync script does not populate thumbnail for module audios.",
+        "selector": "Image coverArt",
+        "priority": "LOW"
+      },
+      {
+        "component": "CourseDetailScreen - modules count in meta row",
+        "issue": "Shows ' modules' (blank number) instead of '10 modules' because course.modules_count is 0/null for sync-created courses. The programme section correctly shows 10 real modules, so the meta row count mismatch is misleading.",
+        "selector": "metaText for modules count",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Audio player initial state",
+        "issues": ["Green play button with spinner inside instead of play icon creates confusion - user may think audio is loading when app is just in initial state"]
+      }
+    ]
+  },
+  "test_results_detail": {
+    "backend_test_1": "PASS: GET /api/audios/aud_cours-falsafa-grands-mod-1 → stream_url is proxy URL ending in /api/audios/.../stream (not R2 presigned)",
+    "backend_test_2": "PASS: stream_url starts with https:// (PUBLIC_URL used)",
+    "backend_test_3": "PASS: GET /api/audios/aud_cours-falsafa-grands-mod-1/stream-url → source='proxy' (not 'r2')",
+    "backend_test_4": "PASS: stream-url endpoint returns proxy path /api/audios/.../stream",
+    "backend_test_5": "PASS: audio_id matches in stream-url response",
+    "backend_test_6": "PASS: GET /api/audios/.../stream → 200 OK",
+    "backend_test_7": "PASS: content-type is audio (audio/mp4)",
+    "backend_test_8": "PASS: content-length > 0",
+    "backend_test_9": "PASS: stream body non-empty (at least 1024 bytes received)",
+    "backend_test_10": "PASS: Range request GET /stream with Range: bytes=0-4095 → 206 Partial Content",
+    "backend_test_11": "PASS: Range request returns exactly 4096 bytes",
+    "backend_test_12": "PASS: Content-Range header present in 206 response",
+    "backend_test_13": "PASS: Accept-Ranges: bytes header present",
+    "backend_test_14": "PASS: GET /api/masterclasses → Henry Corbin absent from all masterclasses (title/speaker/description checked)",
+    "backend_test_15": "PASS: GET /api/audios/aud_cours-kalam-mod-1 → 200, audio exists",
+    "backend_test_16": "PASS: Kalam audio has proxy stream_url (not R2 presigned)",
+    "backend_test_17": "PASS: GET /api/audios/aud_cours-kalam-mod-1/stream → 200, audio content-type",
+    "backend_test_18": "PASS: HEAD /api/audios/.../stream → 200 (HEAD method supported)",
+    "frontend_test_1": "PASS: Login with testuser@hikma.com/TestUser123! → redirected to home page",
+    "frontend_test_2": "PASS: Course detail page cours-falsafa-grands shows 10 real modules (Al-Kindī, Al-Fārābī, Avicenne...) with 'Aperçu gratuit' badge on first module",
+    "frontend_test_3": "PASS: Click on course-module-cours-falsafa-grands-mod-1 → navigates to /audio/aud_cours-falsafa-grands-mod-1",
+    "frontend_test_4": "PASS: Audio player page has play button (data-testid='audio-play-pause', visible=True)"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_proxy_stream_iteration8.py",
+    "/app/test_reports/pytest/proxy_stream_iteration8.xml"
+  ],
+  "action_items": [
+    "MEDIUM: Fix AudioDetailScreen play button logic - initial state (!isCurrentTrack && !isPlaying) should show play icon not spinner. Spinner should only show during active buffering/loading.",
+    "LOW: Populate thumbnail field for sync-created audio docs (or provide a default placeholder thumbnail)",
+    "LOW: Set modules_count correctly for sync-created course documents to avoid blank count in course meta row",
+    "INFO: Expo ngrok tunnel keeps crashing every ~30-60s (environment issue) - not a code issue"
+  ],
+  "critical_code_review_comments": [
+    "Play button logic in AudioDetailScreen is inverted: `!isCurrentTrack && !isPlaying` shows spinner (should be 'initial/ready to play' state showing play icon, not spinner). The spinner implies loading which confuses users on first visit.",
+    "resolve_audio_url() correctly uses PUBLIC_URL from .env to generate proxy URLs - this is the right approach to avoid CORS issues with direct R2 access.",
+    "api_route with methods=['GET','HEAD'] on /stream endpoint correctly handles HEAD requests for audio preloading.",
+    "stream_audio() reads entire file body with resp['Body'].read() - for large files this could be memory-intensive. Consider streaming in chunks using StreamingResponse for production."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_proxy_stream_iteration8.py"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18)",
+    "frontend": "100% (4/4 verified flows)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All proxy stream features verified. Backend proxy endpoint works: GET /api/audios/{id}/stream returns 200 with audio content; Range requests return 206 with correct bytes; stream-url returns source='proxy'. Henry Corbin removed from masterclasses. Frontend course page shows real modules, first module click navigates to audio player. Known issues: (1) Expo ngrok tunnel is unstable - wait for HTTP 200 before testing frontend; (2) Play button shows spinner in initial state (bug); (3) Sync-created audio docs lack thumbnails; (4) Courses missing modules_count field for meta row.",
+  "rca_of_issue": "Previous CORS issue: R2 was refusing browser CORS requests (403). Fix: backend now proxies R2 audio via /api/audios/{id}/stream endpoint. resolve_audio_url() uses PUBLIC_URL env var to build proxy URLs instead of R2 presigned URLs. stream_audio() uses boto3 synchronous get_object() to fetch from R2 and returns the content with proper headers including Accept-Ranges: bytes for media player compatibility."
+}
