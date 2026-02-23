@@ -29,18 +29,20 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: 'rgba(18, 18, 18, 0.98)',
-            borderTopColor: colors.border.subtle,
+            backgroundColor: '#0A0A0A',
+            borderTopColor: '#222222',
             borderTopWidth: 1,
             height: tabBarHeight,
             paddingBottom: insets.bottom,
-            paddingTop: 6,
+            paddingTop: 8,
           },
-          tabBarActiveTintColor: colors.brand.primary,
-          tabBarInactiveTintColor: colors.text.secondary,
+          tabBarActiveTintColor: '#F5F0E8',
+          tabBarInactiveTintColor: '#888888',
           tabBarLabelStyle: {
-            fontFamily: 'Inter-Medium',
-            fontSize: 9,
+            fontFamily: 'Cinzel',
+            fontSize: 7,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
             marginTop: 2,
           },
         }}
