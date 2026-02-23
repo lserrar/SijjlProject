@@ -19,6 +19,7 @@ export default function AdminLayout() {
       <Stack.Screen name="audio-form" options={{ title: 'Formulaire Audio' }} />
       <Stack.Screen name="scholar-form" options={{ title: 'Formulaire Érudit' }} />
       <Stack.Screen name="course-form" options={{ title: 'Formulaire Cours' }} />
+      <Stack.Screen name="cursus" options={{ title: 'Cursus — À la une' }} />
     </Stack>
   );
 }
