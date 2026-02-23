@@ -937,6 +937,7 @@ async def get_home(request: Request):
         'hero': hero,
         'recommendations': recommendations,
         'featured_scholar': featured_scholar,
+        'scholars': scholars_list,
         'daily_pick': daily_pick,
         'recent_publications': recent_articles
     }
