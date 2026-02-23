@@ -319,7 +319,10 @@ class CourseCreate(BaseModel):
     thumbnail: str = ""
     modules_count: int = 0
     tags: List[str] = []
-    is_featured: bool = False  # Cours mis en avant sur la page d'accueil
+    is_featured: bool = False
+    r2_folder: Optional[str] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
@@ -336,6 +339,9 @@ class CourseUpdate(BaseModel):
     tags: Optional[List[str]] = None
     is_active: Optional[bool] = None
     is_featured: Optional[bool] = None
+    r2_folder: Optional[str] = None
+    hero_title: Optional[str] = None
+    hero_description: Optional[str] = None
 
 # ─── Conference Models ─────────────────────────────────────────────────────────
 
