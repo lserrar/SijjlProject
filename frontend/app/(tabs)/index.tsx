@@ -53,7 +53,7 @@ export default function HomeScreen() {
   const goSearch = () => router.push('/search' as any);
   const goHero = (hero: any) => {
     if (hero?.hero_type === 'cursus') {
-      router.push('/(tabs)/cursus' as any);
+      router.push(`/cursus/${hero.cursus_id}` as any);
     } else {
       goCourse(hero?.id);
     }
