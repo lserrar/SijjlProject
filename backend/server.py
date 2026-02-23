@@ -709,32 +709,22 @@ async def get_article(article_id: str):
 
 @api_router.get("/thematiques")
 async def get_thematiques():
-    """Get all thematiques (cursus themes) ordered by position.
-    First checks the new 'cursus' collection, falls back to 'thematiques' for backward compatibility.
-    """
-    # Try new cursus collection first
+    """Get all cursus (themes) ordered by position."""
+    # Use only the cursus collection
     cursus = await db.cursus.find({'is_active': {'$ne': False}}, {'_id': 0}).sort('order', 1).to_list(100)
-    if cursus:
-        # Add course count for each cursus
-        for c in cursus:
-            c['course_count'] = await db.courses.count_documents({
-                '$or': [{'cursus_id': c['id']}, {'thematique_id': c['id']}],
-                'is_active': {'$ne': False}
-            })
-        return cursus
-    # Fall back to old thematiques collection
-    thematiques = await db.thematiques.find({'is_active': {'$ne': False}}, {'_id': 0}).sort('order', 1).to_list(100)
-    return thematiques
+    # Add course count for each cursus
+    for c in cursus:
+        c['course_count'] = await db.courses.count_documents({
+            'cursus_id': c['id'],
+            'is_active': {'$ne': False}
+        })
+    return cursus
 
 @api_router.get("/thematiques/{thematique_id}")
 async def get_thematique(thematique_id: str):
-    # Try new cursus collection first
     t = await db.cursus.find_one({'id': thematique_id}, {'_id': 0})
     if not t:
-        # Fall back to old thematiques collection
-        t = await db.thematiques.find_one({'id': thematique_id}, {'_id': 0})
-    if not t:
-        raise HTTPException(404, "Thématique non trouvée")
+        raise HTTPException(404, "Cursus non trouvé")
     return t
 
 # ─── Bibliography Routes ─────────────────────────────────────────────────────
