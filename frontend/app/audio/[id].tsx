@@ -197,6 +197,25 @@ export default function AudioDetailScreen() {
         style={StyleSheet.absoluteFillObject}
       />
 
+      {/* Auto-next overlay */}
+      {showNextOverlay && nextItem && (
+        <View style={styles.nextOverlay}>
+          <View style={styles.nextCard}>
+            <Text style={styles.nextLabel}>Prochain épisode dans {countdown}s</Text>
+            <Text style={styles.nextTitle} numberOfLines={2}>{nextItem.module_name}</Text>
+            <View style={styles.nextBtns}>
+              <TouchableOpacity style={styles.nextBtnCancel} onPress={cancelNext}>
+                <Text style={styles.nextBtnCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.nextBtnPlay} onPress={navigateToNext}>
+                <Ionicons name="play" size={14} color="#000" />
+                <Text style={styles.nextBtnPlayText}>Lancer maintenant</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={styles.header}>
@@ -204,7 +223,11 @@ export default function AudioDetailScreen() {
             <Ionicons name="chevron-down" size={26} color={colors.text.primary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerLabel}>{getTypeLabel(audio.type).toUpperCase()}</Text>
+            {playlist.length > 0 && currentIndex >= 0 ? (
+              <Text style={styles.headerLabel}>ÉPISODE {currentIndex + 1}/{playlist.length}</Text>
+            ) : (
+              <Text style={styles.headerLabel}>{getTypeLabel(audio.type).toUpperCase()}</Text>
+            )}
           </View>
           <TouchableOpacity
             testID="audio-favorite-btn"
