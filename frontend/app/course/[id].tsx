@@ -155,7 +155,13 @@ export default function CourseDetailScreen() {
             <TouchableOpacity
               testID="course-start-btn"
               style={styles.startBtn}
-              onPress={() => {}}
+              onPress={() => {
+                const firstMod = displayModules.find((m: any) => moduleAudios[m.id]);
+                const firstAudio = firstMod ? moduleAudios[firstMod.id] : null;
+                if (firstAudio) {
+                  router.push(`/audio/${firstAudio.id}?course_id=${id}&autoplay=1` as any);
+                }
+              }}
             >
               <Ionicons name="play" size={18} color="#000" />
               <Text style={styles.startBtnText}>Commencer le cours</Text>
