@@ -2403,30 +2403,47 @@ async def get_audios_by_category(cat_id: str):
 
 @api_router.patch("/admin/courses/{course_id}/set-featured")
 async def admin_set_featured_course(course_id: str, request: Request):
-    """Set a course as the featured course (only one can be featured at a time)."""
+    """Set a course as the featured hero (unfeatures all cursus and other courses)."""
     await require_admin(request)
-    
-    # First, unfeature all courses
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
     await db.courses.update_many({}, {'$set': {'is_featured': False}})
-    
-    # Then feature the selected course
     result = await db.courses.update_one(
-        {'id': course_id}, 
+        {'id': course_id},
         {'$set': {'is_featured': True}}
     )
-    
     if result.matched_count == 0:
         raise HTTPException(404, "Cours non trouvé")
-    
     logger.info(f"Course {course_id} set as featured")
     return {'message': 'Cours mis en avant', 'id': course_id}
 
 @api_router.delete("/admin/courses/featured")
 async def admin_remove_featured_course(request: Request):
-    """Remove the featured status from all courses."""
+    """Remove featured status from all courses."""
     await require_admin(request)
     await db.courses.update_many({}, {'$set': {'is_featured': False}})
     return {'message': 'Aucun cours mis en avant'}
+
+@api_router.patch("/admin/cursus/{cursus_id}/set-featured")
+async def admin_set_featured_cursus(cursus_id: str, request: Request):
+    """Set a cursus as the featured hero (unfeatures all courses and other cursus)."""
+    await require_admin(request)
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
+    result = await db.cursus.update_one(
+        {'id': cursus_id},
+        {'$set': {'is_featured': True}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Cursus non trouvé")
+    logger.info(f"Cursus {cursus_id} set as featured")
+    return {'message': 'Cursus mis en avant', 'id': cursus_id}
+
+@api_router.delete("/admin/cursus/featured")
+async def admin_remove_featured_cursus(request: Request):
+    """Remove featured status from all cursus."""
+    await require_admin(request)
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
+    return {'message': 'Aucun cursus mis en avant'}
 
 # ─── Admin Panel Web Routes ────────────────────────────────────────────────────
 
