@@ -112,4 +112,4 @@ E. Philosophies et spiritualités connexes (4 cours)
 - Password: `TestUser123!`
 
 ## API Base URL
-- Preview: `https://audio-sync-preview.preview.emergentagent.com`
+- Preview: `https://audio-playlist-5.preview.emergentagent.com`
