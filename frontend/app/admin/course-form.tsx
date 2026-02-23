@@ -118,6 +118,8 @@ export default function CourseForm() {
         setThumbnail(data.thumbnail || '');
         setTags((data.tags || []).join(', '));
         setR2Folder(data.r2_folder || '');
+        setHeroTitle(data.hero_title || '');
+        setHeroDescription(data.hero_description || '');
         if (data.r2_folder) {
           loadR2FolderFiles(data.r2_folder);
         }
