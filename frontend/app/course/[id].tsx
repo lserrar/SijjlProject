@@ -255,55 +255,27 @@ export default function CourseDetailScreen() {
           </View>
 
           {/* Related Resources Section */}
-          {(relatedResources.bibliographies.length > 0 || relatedResources.audios.length > 0) && (
+          {relatedResources.bibliographies.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ressources liées</Text>
-              
-              {/* Bibliographies */}
-              {relatedResources.bibliographies.length > 0 && (
-                <View style={styles.resourceCategory}>
-                  <View style={styles.resourceHeader}>
-                    <Ionicons name="book-outline" size={18} color={colors.brand.primary} />
-                    <Text style={styles.resourceLabel}>Bibliographie</Text>
-                  </View>
-                  {relatedResources.bibliographies.map((biblio: any) => (
-                    <TouchableOpacity key={biblio.id} style={styles.resourceItem}>
-                      <View style={styles.resourceIcon}>
-                        <Ionicons name="document-text" size={16} color={colors.text.secondary} />
-                      </View>
-                      <View style={styles.resourceInfo}>
-                        <Text style={styles.resourceTitle} numberOfLines={1}>{biblio.title}</Text>
-                        <Text style={styles.resourceMeta}>{biblio.author}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
-                    </TouchableOpacity>
-                  ))}
+              <View style={styles.resourceCategory}>
+                <View style={styles.resourceHeader}>
+                  <Ionicons name="book-outline" size={18} color={colors.brand.primary} />
+                  <Text style={styles.resourceLabel}>Bibliographie</Text>
                 </View>
-              )}
-
-              {/* Audios */}
-              {relatedResources.audios.length > 0 && (
-                <View style={styles.resourceCategory}>
-                  <View style={styles.resourceHeader}>
-                    <Ionicons name="musical-notes-outline" size={18} color={colors.brand.primary} />
-                    <Text style={styles.resourceLabel}>Audios & Récitations</Text>
-                  </View>
-                  {relatedResources.audios.map((audio: any) => (
-                    <TouchableOpacity key={audio.id} style={styles.resourceItem}>
-                      <View style={[styles.resourceIcon, { backgroundColor: 'rgba(4, 209, 130, 0.1)' }]}>
-                        <Ionicons name="musical-note" size={16} color={colors.brand.primary} />
-                      </View>
-                      <View style={styles.resourceInfo}>
-                        <Text style={styles.resourceTitle} numberOfLines={1}>{audio.title}</Text>
-                        <Text style={styles.resourceMeta}>{audio.scholar_name || 'Récitation'}</Text>
-                      </View>
-                      <View style={styles.playBtnSmall}>
-                        <Ionicons name="play" size={12} color="#000" />
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+                {relatedResources.bibliographies.map((biblio: any) => (
+                  <TouchableOpacity key={biblio.id} style={styles.resourceItem}>
+                    <View style={styles.resourceIcon}>
+                      <Ionicons name="document-text" size={16} color={colors.text.secondary} />
+                    </View>
+                    <View style={styles.resourceInfo}>
+                      <Text style={styles.resourceTitle} numberOfLines={1}>{biblio.title}</Text>
+                      <Text style={styles.resourceMeta}>{biblio.author}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
         </View>
