@@ -55,8 +55,8 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 
 ## Schéma DB (MongoDB)
 
-- `cursus`: `{id, name, description, icon, order, is_active}`
-- `courses`: `{id, title, cursus_id, scholar_id, scholar_name, thumbnail, duration, modules_count, is_active, is_featured, play_count}`
+- `cursus`: `{id, name, description, icon, order, is_active, is_featured, hero_title, hero_description}`
+- `courses`: `{id, title, cursus_id, scholar_id, scholar_name, thumbnail, duration, modules_count, is_active, is_featured, play_count, r2_folder, hero_title, hero_description}`
 - `modules`: `{id, title, course_id, is_active, order}`
 - `audios`: `{id, title, audio_url, file_key, module_id, course_id, episode_number, order, play_count, is_active}`
 - `scholars`: `{id, name, photo, bio, specializations, is_active}`
