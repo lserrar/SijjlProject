@@ -54,13 +54,16 @@ export default function RegisterScreen() {
 
           {/* Back button */}
           <TouchableOpacity testID="register-back-btn" style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
+            <Ionicons name="arrow-back" size={22} color="#F5F0E8" />
           </TouchableOpacity>
 
           {/* Logo */}
           <View style={styles.logoSection}>
-            <Text style={styles.logoMain}>Sijill</Text>
-            <Text style={styles.logoByLM}></Text>
+            <View style={styles.logoRow}>
+              <Text style={styles.logoText}>SIJILL</Text>
+              <View style={styles.logoDot} />
+            </View>
+            <View style={styles.goldLine} />
           </View>
 
           <Text style={styles.subtitle}>Créer votre compte académique</Text>
