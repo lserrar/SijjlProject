@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginBottom: spacing.sm,
   },
-  logoLe Sijill: {
+  logoMain: {
     fontFamily: 'Inter-Bold',
     fontSize: 40,
     color: colors.text.primary,
