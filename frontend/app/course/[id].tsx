@@ -151,29 +151,28 @@ export default function CourseDetailScreen() {
           </TouchableOpacity>
 
           {/* CTA */}
-          {hasAccess ? (
-            <TouchableOpacity
-              testID="course-start-btn"
-              style={styles.startBtn}
-              onPress={() => {
-                const firstMod = displayModules.find((m: any) => moduleAudios[m.id]);
-                const firstAudio = firstMod ? moduleAudios[firstMod.id] : null;
-                if (firstAudio) {
-                  router.push(`/audio/${firstAudio.id}?course_id=${id}&autoplay=1` as any);
-                }
-              }}
-            >
-              <Ionicons name="play" size={18} color="#000" />
-              <Text style={styles.startBtnText}>Commencer le cours</Text>
-            </TouchableOpacity>
-          ) : (
+          <TouchableOpacity
+            testID="course-start-btn"
+            style={styles.startBtn}
+            onPress={() => {
+              const firstMod = displayModules.find((m: any) => moduleAudios[m.id]);
+              const firstAudio = firstMod ? moduleAudios[firstMod.id] : null;
+              if (firstAudio) {
+                router.push(`/audio/${firstAudio.id}?course_id=${id}&autoplay=1` as any);
+              }
+            }}
+          >
+            <Ionicons name="play" size={18} color="#000" />
+            <Text style={styles.startBtnText}>Commencer le cours</Text>
+          </TouchableOpacity>
+          {!hasAccess && (
             <TouchableOpacity
               testID="course-subscribe-btn"
-              style={styles.startBtn}
+              style={[styles.startBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border.default, marginTop: 10 }]}
               onPress={() => router.push('/subscription-choice' as any)}
             >
-              <Ionicons name="lock-closed" size={18} color="#000" />
-              <Text style={styles.startBtnText}>S'abonner pour accéder</Text>
+              <Ionicons name="lock-closed" size={16} color={colors.text.secondary} />
+              <Text style={[styles.startBtnText, { color: colors.text.secondary }]}>S'abonner pour accès complet</Text>
             </TouchableOpacity>
           )}
 
