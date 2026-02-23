@@ -139,7 +139,9 @@ export default function AdminDashboard() {
             <View style={styles.sectionInfo}>
               <Text style={styles.sectionLabel}>{section.label}</Text>
               <Text style={styles.sectionCount}>
-                {section.count} total · {section.active} actif{section.active > 1 ? 's' : ''}
+                {section.count !== null
+                  ? `${section.count} total · ${section.active} actif${(section.active ?? 0) > 1 ? 's' : ''}`
+                  : 'Gérer les textes hero'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
