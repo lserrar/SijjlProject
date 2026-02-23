@@ -652,6 +652,35 @@ async def get_audio(audio_id: str):
     a['stream_url'] = resolve_audio_url(a)
     return a
 
+@api_router.get("/search")
+async def search_content(q: str, limit: int = 20):
+    """Search episodes and courses by keyword."""
+    if not q or len(q.strip()) < 2:
+        return {'audios': [], 'courses': [], 'total': 0}
+    regex = {'$regex': q.strip(), '$options': 'i'}
+    audios = await db.audios.find(
+        {'$or': [{'title': regex}, {'scholar_name': regex}, {'description': regex}], 'is_active': True},
+        {'_id': 0}
+    ).limit(limit).to_list(limit)
+    for a in audios:
+        a['stream_url'] = resolve_audio_url(a)
+    courses = await db.courses.find(
+        {'$or': [{'title': regex}, {'scholar_name': regex}, {'description': regex}], 'is_active': True},
+        {'_id': 0}
+    ).limit(10).to_list(10)
+    return {'audios': audios, 'courses': courses, 'total': len(audios) + len(courses)}
+
+
+@api_router.post("/audios/{audio_id}/play")
+async def track_play(audio_id: str):
+    """Increment play count for an audio and its parent course."""
+    await db.audios.update_one({'id': audio_id}, {'$inc': {'play_count': 1}})
+    audio = await db.audios.find_one({'id': audio_id}, {'_id': 0, 'course_id': 1})
+    if audio and audio.get('course_id'):
+        await db.courses.update_one({'id': audio['course_id']}, {'$inc': {'play_count': 1}})
+    return {'ok': True}
+
+
 @api_router.get("/audios/{audio_id}/stream-url")
 async def get_audio_stream_url(audio_id: str, request: Request):
     """Return a proxy streaming URL (avoids R2 CORS restrictions)."""
