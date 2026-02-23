@@ -530,7 +530,7 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
     return courses
 
 @api_router.get("/courses/{course_id}/playlist")
-async def get_course_playlist(course_id: str, token: Optional[str] = Depends(oauth2_scheme)):
+async def get_course_playlist(course_id: str):
     """Return ordered list of audios for a course (only modules with an audio episode)."""
     modules = await db.modules.find(
         {'course_id': course_id, 'is_active': True}, {'_id': 0}
