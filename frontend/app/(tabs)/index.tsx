@@ -237,13 +237,12 @@ export default function HomeScreen() {
                   {/* Right col: badge + duration */}
                   <View style={s.top5Right}>
                     {i === 0 && <Badge label="Nº1" />}
+                    {i === 1 && <Badge label="↑ 3" />}
+                    {i === 4 && <Badge label="Nouveau" />}
                     {c.duration > 0 && (
                       <Text style={s.top5Duration}>{fmtDur(c.duration)}</Text>
                     )}
                   </View>
-
-                  {/* Cursus color strip */}
-                  <View style={[s.top5Strip, { backgroundColor: c.cursus_color || '#04D182' }]} />
                 </TouchableOpacity>
               ))}
             </View>
