@@ -529,6 +529,30 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
     courses = await db.courses.find(query, {'_id': 0}).to_list(100)
     return courses
 
+@api_router.get("/courses/{course_id}/playlist")
+async def get_course_playlist(course_id: str, token: Optional[str] = Depends(oauth2_scheme)):
+    """Return ordered list of audios for a course (only modules with an audio episode)."""
+    modules = await db.modules.find(
+        {'course_id': course_id, 'is_active': True}, {'_id': 0}
+    ).sort('order', 1).to_list(200)
+
+    playlist = []
+    for mod in modules:
+        audio = await db.audios.find_one({'module_id': mod['id']}, {'_id': 0})
+        if audio:
+            audio['stream_url'] = resolve_audio_url(audio)
+            playlist.append({
+                'module_id': mod['id'],
+                'module_name': mod.get('name', ''),
+                'module_order': mod.get('order', 0),
+                'audio_id': audio['id'],
+                'audio_title': audio.get('title', ''),
+                'stream_url': audio.get('stream_url', ''),
+                'thumbnail': audio.get('thumbnail', ''),
+                'duration': audio.get('duration', 0),
+            })
+    return playlist
+
 @api_router.get("/courses/featured")
 async def get_featured_course():
     """Get the featured course for homepage highlight."""
