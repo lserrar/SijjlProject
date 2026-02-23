@@ -156,7 +156,7 @@ export default function ProfilScreen() {
 
         {/* Brand footer */}
         <View style={styles.brandFooter}>
-          <Text style={styles.brandLe Sijill}>Le Sijill</Text>
+          <Text style={styles.brandName}>Le Sijill</Text>
           <Text style={styles.brandByLM}>by LM</Text>
           <Text style={styles.brandVersion}>v1.0.0 · Prototype</Text>
         </View>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: spacing.lg, borderWidth: 1, borderColor: colors.brand.error, borderRadius: radius.full, padding: 14, gap: spacing.sm, marginBottom: spacing.lg },
   logoutText: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.brand.error },
   brandFooter: { alignItems: 'center', paddingBottom: spacing.lg },
-  brandLe Sijill: { fontFamily: 'Inter-Bold', fontSize: 20, color: colors.text.secondary },
+  brandName: { fontFamily: 'Inter-Bold', fontSize: 20, color: colors.text.secondary },
   brandByLM: { fontFamily: 'Inter-Regular', fontSize: 12, color: colors.brand.primary },
   brandVersion: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.tertiary, marginTop: 4 },
 });
