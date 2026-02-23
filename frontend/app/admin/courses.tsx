@@ -142,6 +142,16 @@ export default function AdminCourses() {
       <View style={styles.cardActions}>
         <TouchableOpacity
           style={styles.actionBtn}
+          onPress={() => handleSetFeatured(item.id)}
+        >
+          <Ionicons
+            name={item.is_featured ? 'star' : 'star-outline'}
+            size={20}
+            color={item.is_featured ? '#C9A84C' : colors.text.tertiary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionBtn}
           onPress={() => router.push({ pathname: '/admin/course-form', params: { id: item.id } })}
         >
           <Ionicons name="create-outline" size={20} color={colors.brand.primary} />
