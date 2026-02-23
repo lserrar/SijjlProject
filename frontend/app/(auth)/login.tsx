@@ -61,13 +61,15 @@ export default function LoginScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          {/* Logo */}
+          {/* Logo SIJILL */}
           <View style={styles.logoSection} testID="login-logo">
-            <Text style={styles.logoMain}>Sijill</Text>
-            <Text style={styles.logoByLM}></Text>
+            <View style={styles.logoRow}>
+              <Text style={styles.logoText}>SIJILL</Text>
+              <View style={styles.logoDot} />
+            </View>
+            <View style={styles.goldLine} />
           </View>
-
-          <Text style={styles.tagline}>La connaissance académique, à portée de main</Text>
+          <Text style={styles.tagline}>Études islamiques · Plateforme académique</Text>
 
           {/* Form */}
           <View style={styles.form}>
