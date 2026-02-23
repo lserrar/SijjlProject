@@ -201,7 +201,7 @@ export default function CourseDetailScreen() {
 
           {/* Modules */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Programme ({course.modules_count} modules)</Text>
+            <Text style={styles.sectionTitle}>Programme ({displayModules.length} module{displayModules.length > 1 ? 's' : ''})</Text>
             {!hasAccess && (
               <View style={styles.accessWarning}>
                 <Ionicons name="information-circle" size={16} color={colors.brand.primary} />
@@ -210,28 +210,48 @@ export default function CourseDetailScreen() {
                 </Text>
               </View>
             )}
-            {SAMPLE_MODULES.map((mod) => (
-              <View key={mod.id} testID={`course-module-${mod.id}`} style={styles.moduleRow}>
-                <View style={[styles.moduleIcon, mod.isLocked && styles.moduleIconLocked]}>
-                  <Ionicons
-                    name={mod.isLocked ? 'lock-closed' : 'play'}
-                    size={14}
-                    color={mod.isLocked ? colors.text.tertiary : '#000'}
-                  />
-                </View>
-                <View style={styles.moduleInfo}>
-                  <Text style={[styles.moduleTitle, mod.isLocked && styles.moduleTitleLocked]}>
-                    {mod.id}. {mod.title}
-                  </Text>
-                  <Text style={styles.moduleDuration}>{mod.duration} min</Text>
-                </View>
-                {mod.isPreview && (
-                  <View style={styles.freeBadge}>
-                    <Text style={styles.freeBadgeText}>Aperçu gratuit</Text>
+            {displayModules.map((mod: any, idx: number) => {
+              const audio = moduleAudios[mod.id];
+              const isLocked = !hasAccess && idx > 0;
+              const isPreview = !hasAccess && idx === 0;
+              return (
+                <TouchableOpacity
+                  key={mod.id}
+                  testID={`course-module-${mod.id}`}
+                  style={styles.moduleRow}
+                  disabled={isLocked}
+                  onPress={() => {
+                    if (audio && !isLocked) {
+                      router.push(`/audio/${audio.id}` as any);
+                    }
+                  }}
+                >
+                  <View style={[styles.moduleIcon, isLocked && styles.moduleIconLocked]}>
+                    <Ionicons
+                      name={isLocked ? 'lock-closed' : (audio ? 'play' : 'headset')}
+                      size={14}
+                      color={isLocked ? colors.text.tertiary : '#000'}
+                    />
                   </View>
-                )}
-              </View>
-            ))}
+                  <View style={styles.moduleInfo}>
+                    <Text style={[styles.moduleTitle, isLocked && styles.moduleTitleLocked]} numberOfLines={2}>
+                      {mod.name || mod.title}
+                    </Text>
+                    {audio && (
+                      <Text style={styles.moduleDuration}>Épisode 1</Text>
+                    )}
+                  </View>
+                  {isPreview && (
+                    <View style={styles.freeBadge}>
+                      <Text style={styles.freeBadgeText}>Aperçu gratuit</Text>
+                    </View>
+                  )}
+                  {audio && !isLocked && (
+                    <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {/* Related Resources Section */}
