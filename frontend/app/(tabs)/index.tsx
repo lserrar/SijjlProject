@@ -333,9 +333,15 @@ function MetaChip({ icon, label }: any) {
   );
 }
 
+function normLevel(s: string) {
+  return (s || '').toLowerCase()
+    .replace(/é|è|ê/g, 'e')
+    .replace(/â|à/g, 'a');
+}
+
 function LevelChip({ level }: any) {
-  const color = level?.toLowerCase() === 'débutant' ? '#22c55e'
-    : level?.toLowerCase() === 'intermédiaire' ? '#f59e0b' : '#ef4444';
+  const n = normLevel(level);
+  const color = n === 'debutant' ? '#22c55e' : n === 'intermediaire' ? '#f59e0b' : '#ef4444';
   return (
     <View style={[styles.levelChip, { borderColor: color }]}>
       <Text style={[styles.levelChipText, { color }]}>{level}</Text>
@@ -344,12 +350,11 @@ function LevelChip({ level }: any) {
 }
 
 function getLevelColor(level: string) {
-  switch (level?.toLowerCase()) {
-    case 'débutant': return '#22c55e';
-    case 'intermédiaire': return '#f59e0b';
-    case 'avancé': return '#ef4444';
-    default: return colors.brand.primary;
-  }
+  const n = normLevel(level);
+  if (n === 'debutant') return '#22c55e';
+  if (n === 'intermediaire') return '#f59e0b';
+  if (n === 'avance') return '#ef4444';
+  return colors.brand.primary;
 }
 
 function formatSeconds(seconds: number): string {
