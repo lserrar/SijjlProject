@@ -415,6 +415,9 @@ class PromoCodeUpdate(BaseModel):
 class StartTrialRequest(BaseModel):
     plan_id: str
 
+class Top10UpdateRequest(BaseModel):
+    course_ids: List[str]
+
 # ─── Auth Routes ────────────────────────────────────────────────────────────
 
 @api_router.post("/auth/register")
