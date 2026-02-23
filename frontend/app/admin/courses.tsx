@@ -27,6 +27,7 @@ interface Course {
   modules_count: number;
   thumbnail: string;
   is_active: boolean;
+  is_featured: boolean;
 }
 
 export default function AdminCourses() {
