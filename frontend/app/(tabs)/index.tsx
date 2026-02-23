@@ -217,7 +217,11 @@ export default function HomeScreen() {
                   activeOpacity={0.75}
                 >
                   {/* Rank */}
-                  <Text style={[s.top5Rank, { color: RANK_COLOR[i] || '#444444' }]}>
+                  <Text style={[
+                    s.top5Rank,
+                    { color: RANK_COLOR[i] || '#444444' },
+                    i === 0 && Platform.OS === 'web' ? { textShadow: '0 0 16px rgba(201,168,76,0.35)' } as any : {},
+                  ]}>
                     {i + 1}
                   </Text>
 
