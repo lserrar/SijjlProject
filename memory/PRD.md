@@ -57,8 +57,9 @@ E. Philosophies et spiritualités connexes (4 cours)
 - 70 audio files from R2 bucket synced to database
 - R2 path structure: `Audio/cursus-{x}/{course-num}/{module-slug}/episode-01.m4a`
 - Each audio linked to its module via `module_id` + `file_key`
-- Streaming via R2 presigned URLs (1h expiry)
-- Script: `/app/backend/sync_r2_audios.py`
+- **Audio proxy streaming** via `/api/audios/{id}/stream` (backend proxies R2 to avoid CORS)
+- `PUBLIC_URL` env var in backend .env controls proxy base URL
+- HEAD + GET + Range requests fully supported on proxy endpoint
 
 #### Data ✅
 - 5 Cursus (A-E)
