@@ -2070,7 +2070,15 @@ async def admin_create_cursus(body: CursusCreate, request: Request):
 @api_router.put("/admin/cursus/{cursus_id}")
 async def admin_update_cursus(cursus_id: str, body: CursusUpdate, request: Request):
     await require_admin(request)
-    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    # Use exclude_unset to only update provided fields; allows explicit null to clear hero_title/hero_description
+    raw = body.model_dump(exclude_unset=True)
+    update = {}
+    for k, v in raw.items():
+        if v is not None:
+            update[k] = v
+        elif k in ('hero_title', 'hero_description'):
+            # Allow explicit null to clear hero text
+            update[k] = None
     if update:
         update['updated_at'] = datetime.now(timezone.utc).isoformat()
         result = await db.cursus.update_one({'id': cursus_id}, {'$set': update})
