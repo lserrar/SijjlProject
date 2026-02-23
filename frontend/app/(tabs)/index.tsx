@@ -83,9 +83,9 @@ export default function HomeScreen() {
   };
 
   const navigateToContent = (item: any) => {
-    if (item.type === 'course' || item.id?.startsWith('crs-')) {
+    if (item.type === 'course' || item.id?.startsWith('cours-') || item.id?.startsWith('crs-')) {
       router.push(`/course/${item.id}` as any);
-    } else if (['podcast', 'lecture', 'quran', 'documentary'].includes(item.type)) {
+    } else if (item.type === 'audio' || item.type === 'episode' || ['podcast', 'lecture', 'quran', 'documentary'].includes(item.type)) {
       router.push(`/audio/${item.id}` as any);
     } else if (item.type === 'article') {
       router.push(`/article/${item.id}` as any);

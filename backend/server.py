@@ -915,8 +915,9 @@ async def get_home(request: Request):
     rec_audios = await db.audios.find({'type': 'podcast'}, {'_id': 0}).limit(3).to_list(3)
     recommendations = recommendations + rec_audios
 
-    # Featured scholar
-    featured_scholar = await db.scholars.find_one({}, {'_id': 0})
+    # Featured scholar + scholars list
+    featured_scholar = await db.scholars.find_one({'id': {'$not': {'$regex': 'test', '$options': 'i'}}}, {'_id': 0})
+    scholars_list = await db.scholars.find({}, {'_id': 0}).to_list(10)
 
     # Daily pick
     daily_pick = await db.audios.find_one({'type': 'quran'}, {'_id': 0})
