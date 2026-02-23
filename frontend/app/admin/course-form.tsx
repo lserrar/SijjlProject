@@ -62,6 +62,9 @@ export default function CourseForm() {
   const [tags, setTags] = useState('');
   const [r2Folder, setR2Folder] = useState('');
 
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroDescription, setHeroDescription] = useState('');
+
   const TOPICS = ['Philosophie islamique', 'Tasawwuf', 'Fiqh', 'Histoire de l\'Islam', 'Sciences coraniques', 'Kalam'];
   const LEVELS = ['Débutant', 'Intermédiaire', 'Avancé'];
   const LANGUAGES = ['Français', 'Arabe', 'Anglais'];
