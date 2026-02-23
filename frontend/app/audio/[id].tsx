@@ -119,6 +119,18 @@ export default function AudioDetailScreen() {
     }
   };
 
+  const loadPlaylist = async () => {
+    try {
+      const resp = await apiRequest(`/courses/${course_id}/playlist`, token);
+      if (resp.ok) {
+        const data = await resp.json();
+        setPlaylist(data);
+      }
+    } catch (e) {
+      console.error('Playlist load error:', e);
+    }
+  };
+
   const saveProgress = async () => {
     if (!token || !id || progress <= 0) return;
     try {
