@@ -446,6 +446,36 @@ export default function CourseForm() {
             )}
           </View>
 
+          {/* Hero "À la une" Section */}
+          <View style={[styles.r2Section, { marginTop: 8 }]}>
+            <Text style={styles.r2Title}>
+              <Ionicons name="star-outline" size={18} color="#C9A84C" /> Texte "À la une" (optionnel)
+            </Text>
+            <Text style={styles.r2Hint}>
+              Si ce cours est mis en avant sur la page d'accueil, vous pouvez définir un titre et une description personnalisés qui remplaceront le titre et la description par défaut.
+            </Text>
+
+            <Text style={styles.label}>Titre héro (ex : "La Falsafa — Philosophie de l'Islam classique")</Text>
+            <TextInput
+              style={styles.input}
+              value={heroTitle}
+              onChangeText={setHeroTitle}
+              placeholder="Titre personnalisé pour la page d'accueil"
+              placeholderTextColor={colors.text.tertiary}
+            />
+
+            <Text style={styles.label}>Description héro (ex : "D'Al-Kindī à Averroès, sept siècles...")</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={heroDescription}
+              onChangeText={setHeroDescription}
+              placeholder="Description personnalisée pour la page d'accueil"
+              placeholderTextColor={colors.text.tertiary}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
           <TouchableOpacity
             style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
             onPress={handleSave}
