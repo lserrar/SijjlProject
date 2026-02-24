@@ -41,10 +41,13 @@ export default function ProfilScreen() {
   };
 
   const MENU_ITEMS = [
+    { icon: 'card-outline', label: 'Mon abonnement', action: () => router.push('/subscription-choice') },
     { icon: 'settings-outline', label: 'Paramètres', action: () => router.push('/settings') },
     { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
     { icon: 'language-outline', label: 'Langue : Français', action: () => {} },
     { icon: 'help-circle-outline', label: 'Aide et support', action: () => {} },
+    { icon: 'shield-checkmark-outline', label: 'Confidentialité', action: () => router.push('/legal/privacy') },
+    { icon: 'document-text-outline', label: "Conditions d'utilisation", action: () => router.push('/legal/terms') },
     { icon: 'information-circle-outline', label: 'À propos de Sijill', action: () => router.push('/about') },
   ];
 
