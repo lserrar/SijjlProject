@@ -132,7 +132,28 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - ✅ MiniPlayer redesign prestige (sans image, contrôles simplifiés)
 - ✅ Effet hover "halo blanc" sur Top 5 du mois
 
-### 2026-02-24 — Session actuelle (NOUVEAU)
+### 2026-02-24 — Session actuelle
+- ✅ **Connexion Bibliothèque aux vraies données** (`/app/(tabs)/bibliotheque.tsx`) :
+  - Nouvel endpoint `GET /api/user/library` : retourne in_progress, favorites, completed, global_progress
+  - Affichage dynamique des épisodes en cours avec progression
+  - Affichage des favoris avec date relative ("Aujourd'hui", "Il y a 2j", etc.)
+  - Affichage des épisodes terminés
+  - États vides élégants avec icônes
+  - Pull-to-refresh fonctionnel
+- ✅ **Connexion Profil aux vraies données** (`/app/(tabs)/profil.tsx`) :
+  - Nouvel endpoint `GET /api/user/stats` : retourne courses_followed, listening_hours, favorites_count, completed_count, in_progress_count
+  - Stats dynamiques : "X Cours suivis", "Xh Temps d'écoute", "X Contenus sauvegardés"
+  - Niveau académique calculé dynamiquement (Débutant → Initié → Intermédiaire → Avancé → Expert)
+  - Barre de progression du niveau
+  - Pull-to-refresh fonctionnel
+- ✅ **Admin Pages Légales** (déjà fonctionnel) :
+  - Page `/api/admin-panel/legal` pour éditer Politique de confidentialité et CGU
+  - Endpoints `GET /api/legal/{type}` et `PUT /api/admin/legal/{type}`
+- ✅ **Amélioration Google Auth Mobile** :
+  - Ajout des options `showInRecents` et `preferEphemeralSession` pour meilleure UX mobile
+- ✅ **Bug fix datetime timezone** : Correction comparaison datetime naive vs aware dans `/api/user/library`
+
+### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
   - Hero avec dégradé sombre verdâtre (#0D1F17 → #090F0C → #0A0A0A)
   - Radial glow effect + bordure gauche gradient vert
