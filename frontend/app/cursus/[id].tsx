@@ -139,6 +139,7 @@ export default function CursusCoursesScreen() {
 
   const [cursus, setCursus] = useState<any>(null);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [scholars, setScholars] = useState<any[]>([]);
   const [userProgress, setUserProgress] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -154,16 +155,22 @@ export default function CursusCoursesScreen() {
   // ─── Load Data ──────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
-      const [cursusRes, coursesRes, progressRes] = await Promise.all([
+      const [cursusRes, coursesRes, progressRes, scholarsRes] = await Promise.all([
         apiRequest('/cursus', token),
         apiRequest(`/courses?cursus_id=${id}`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
+        apiRequest(`/cursus/${id}/scholars`, token),
       ]);
 
       if (cursusRes.ok) {
         const allCursus = await cursusRes.json();
         const found = allCursus.find((c: any) => c.id === id);
         setCursus(found || null);
+      }
+
+      if (scholarsRes.ok) {
+        const scholarsData = await scholarsRes.json();
+        setScholars(scholarsData || []);
       }
 
       // Build progress map
