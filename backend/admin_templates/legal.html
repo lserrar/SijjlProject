@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script>
+    setActiveNav('legal');
+
+    // Load legal pages
+    async function loadLegalPages() {
+        try {
+            const [privacy, terms] = await Promise.all([
+                fetch('/api/legal/privacy').then(r => r.json()),
+                fetch('/api/legal/terms').then(r => r.json())
+            ]);
+            
+            document.getElementById('privacyTitle').value = privacy.title || '';
+            document.getElementById('privacyContent').value = privacy.content || '';
+            document.getElementById('termsTitle').value = terms.title || '';
+            document.getElementById('termsContent').value = terms.content || '';
+        } catch (e) {
+            showToast('Erreur lors du chargement', 'error');
+        }
+    }
+
+    // Save legal page
+    async function saveLegalPage(type) {
+        const title = document.getElementById(`${type}Title`).value;
+        const content = document.getElementById(`${type}Content`).value;
+        
+        try {
+            await apiRequest(`/admin/legal/${type}`, 'PUT', { title, content });
+            showToast('Page sauvegardée avec succès', 'success');
+        } catch (e) {
+            showToast('Erreur lors de la sauvegarde: ' + e.message, 'error');
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadLegalPages);
+</script>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pages légales</h1>
+        <p class="page-description">Gérez les textes de confidentialité et conditions d'utilisation</p>
+    </div>
+</div>
+
+<!-- Privacy Policy Card -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-shield-alt" style="color: var(--brand-primary); margin-right: 10px;"></i>Politique de confidentialité</h3>
+        <button class="btn btn-primary" onclick="saveLegalPage('privacy')">
+            <i class="fas fa-save"></i> Sauvegarder
+        </button>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Titre</label>
+        <input type="text" class="form-input" id="privacyTitle" placeholder="Titre de la page">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Contenu (Markdown supporté)</label>
+        <textarea class="form-textarea" id="privacyContent" rows="15" placeholder="## Section 1&#10;Contenu..."></textarea>
+    </div>
+</div>
+
+<!-- Terms Card -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-file-contract" style="color: var(--warning); margin-right: 10px;"></i>Conditions d'utilisation</h3>
+        <button class="btn btn-primary" onclick="saveLegalPage('terms')">
+            <i class="fas fa-save"></i> Sauvegarder
+        </button>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Titre</label>
+        <input type="text" class="form-input" id="termsTitle" placeholder="Titre de la page">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Contenu (Markdown supporté)</label>
+        <textarea class="form-textarea" id="termsContent" rows="15" placeholder="## Section 1&#10;Contenu..."></textarea>
+    </div>
+</div>
+
+<style>
+    .form-textarea {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        min-height: 300px;
+    }
+</style>
+{% endblock %}
