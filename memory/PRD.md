@@ -133,6 +133,18 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - ✅ Effet hover "halo blanc" sur Top 5 du mois
 
 ### 2026-02-24 — Session actuelle
+- ✅ **Page "Qui sommes-nous"** (manifeste intellectuel) :
+  - Renommage de "À propos" vers "Qui sommes-nous"
+  - Hero avec gradient verdâtre (#0C1A12 → #0A0A0A), cercles décoratifs, ligne dorée verticale
+  - Eyebrow or "NOTRE IDENTITÉ" + titre Cinzel + sous-titre EB Garamond italique
+  - Introduction académique
+  - Section "Pourquoi Sijill Project ?" avec emphases en gras
+  - Citation Shlomo Pines avec bloc doré et guillemet typographique
+  - 4 Principes (cartes avec numéros et chiffres fantômes, hover vert)
+  - Mosaïque de 15 domaines (tags colorés : Falsafa, Kalām, Soufisme, etc.)
+  - Bloc "Notre ambition" avec gradient doré
+  - Footer SIJILL PROJECT avec devise "Rigueur · Pluralité · Transmission"
+  - 3 séparateurs diamant or entre sections
 - ✅ **Connexion Bibliothèque aux vraies données** (`/app/(tabs)/bibliotheque.tsx`) :
   - Nouvel endpoint `GET /api/user/library` : retourne in_progress, favorites, completed, global_progress
   - Affichage dynamique des épisodes en cours avec progression
