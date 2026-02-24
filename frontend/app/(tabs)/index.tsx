@@ -216,45 +216,13 @@ export default function HomeScreen() {
 
             <View>
               {top5_courses.map((c: any, i: number) => (
-                <TouchableOpacity
+                <Top5Row
                   key={c.id || i}
-                  testID={`home-top5-${c.id}`}
-                  style={[s.top5Row, i < top5_courses.length - 1 && s.top5RowBorder]}
+                  item={c}
+                  index={i}
+                  isLast={i === top5_courses.length - 1}
                   onPress={() => goCourse(c.id)}
-                  activeOpacity={0.75}
-                >
-                  {/* Rank */}
-                  <Text style={[
-                    s.top5Rank,
-                    { color: RANK_COLOR[i] || '#444444' },
-                    i === 0 && Platform.OS === 'web' ? { textShadow: '0 0 16px rgba(201,168,76,0.35)' } as any : {},
-                  ]}>
-                    {i + 1}
-                  </Text>
-
-                  {/* Info */}
-                  <View style={s.top5Info}>
-                    <Text style={[s.top5Label, { color: c.cursus_color || '#04D182' }]}>
-                      {`CURSUS ${c.cursus_letter || 'A'}`}
-                    </Text>
-                    <Text style={s.top5Title} numberOfLines={2}>{c.title}</Text>
-                    {c.scholar_name ? (
-                      <Text style={s.top5Author} numberOfLines={1}>
-                        Prof. {c.scholar_name}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  {/* Right col: badge + duration */}
-                  <View style={s.top5Right}>
-                    {i === 0 && <Badge label="Nº1" />}
-                    {i === 1 && <Badge label="↑ 3" />}
-                    {i === 4 && <Badge label="Nouveau" />}
-                    {c.duration > 0 && (
-                      <Text style={s.top5Duration}>{fmtDur(c.duration)}</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           </View>
