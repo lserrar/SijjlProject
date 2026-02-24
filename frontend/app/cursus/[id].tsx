@@ -511,14 +511,71 @@ export default function CursusCoursesScreen() {
         )}
 
         {activeTab === 'professeurs' && (
-          <View style={styles.placeholderTab}>
-            <Text style={styles.placeholderText}>Section Professeurs à venir</Text>
+          <View style={styles.scholarsTab}>
+            {scholars.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="school-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Aucun professeur</Text>
+                <Text style={styles.emptyText}>Les professeurs de ce cursus apparaîtront ici.</Text>
+              </View>
+            ) : (
+              scholars.map((scholar, idx) => (
+                <TouchableOpacity
+                  key={scholar.id}
+                  style={[styles.scholarCard, idx !== scholars.length - 1 && styles.scholarCardBorder]}
+                  onPress={() => router.push(`/scholar/${scholar.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  {scholar.photo ? (
+                    <View style={styles.scholarPhoto}>
+                      <View style={[styles.scholarPhotoInner, { borderColor: cursusColor }]}>
+                        <Text style={styles.scholarInitial}>{scholar.name.charAt(0)}</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.scholarPhoto}>
+                      <View style={[styles.scholarPhotoInner, { borderColor: cursusColor }]}>
+                        <Text style={styles.scholarInitial}>{scholar.name.charAt(0)}</Text>
+                      </View>
+                    </View>
+                  )}
+                  <View style={styles.scholarInfo}>
+                    <Text style={styles.scholarName}>{scholar.name}</Text>
+                    {scholar.title ? (
+                      <Text style={styles.scholarTitle}>{scholar.title}</Text>
+                    ) : null}
+                    <Text style={styles.scholarCoursesCount}>
+                      {scholar.courses_count} cours dans ce cursus
+                    </Text>
+                    {scholar.courses && scholar.courses.length > 0 && (
+                      <View style={styles.scholarCoursesList}>
+                        {scholar.courses.slice(0, 3).map((c: any) => (
+                          <Text key={c.id} style={styles.scholarCourseItem}>• {c.title}</Text>
+                        ))}
+                        {scholar.courses.length > 3 && (
+                          <Text style={[styles.scholarCourseItem, { color: cursusColor }]}>
+                            + {scholar.courses.length - 3} autre{scholar.courses.length - 3 > 1 ? 's' : ''}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#777" />
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         )}
 
         {activeTab === 'ressources' && (
-          <View style={styles.placeholderTab}>
-            <Text style={styles.placeholderText}>Section Ressources à venir</Text>
+          <View style={styles.resourcesTab}>
+            <View style={styles.emptyState}>
+              <Ionicons name="library-outline" size={40} color="#333" />
+              <Text style={styles.emptyTitle}>Ressources à venir</Text>
+              <Text style={styles.emptyText}>
+                Bibliographies, articles et liens complémentaires seront disponibles prochainement.
+              </Text>
+            </View>
           </View>
         )}
 
