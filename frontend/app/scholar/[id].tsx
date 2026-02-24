@@ -1,201 +1,441 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  ActivityIndicator, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, useAuth } from '../../context/AuthContext';
-import { ContentCard } from '../../components/ContentCard';
-import { useAudioPlayer } from '../../hooks/useAudioPlayer';
-import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+
+const CURSUS_COLORS: Record<string, string> = {
+  A: '#04D182',
+  B: '#8B5CF6',
+  C: '#F59E0B',
+  D: '#EC4899',
+  E: '#06B6D4',
+};
+
+function formatDuration(seconds: number): string {
+  if (!seconds) return '';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0) return `${h}h`;
+  return `${m} min`;
+}
 
 export default function ScholarDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { token } = useAuth();
-  const { play } = useAudioPlayer();
   const [scholar, setScholar] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
   const [audios, setAudios] = useState<any[]>([]);
-  const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadScholar(); }, [id]);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [schResp, coursesResp, audiosResp] = await Promise.all([
+          apiRequest(`/scholars/${id}`, token),
+          apiRequest(`/courses?scholar_id=${id}`, token),
+          apiRequest(`/audios?scholar_id=${id}`, token),
+        ]);
+        if (schResp.ok) setScholar(await schResp.json());
+        if (coursesResp.ok) setCourses(await coursesResp.json());
+        if (audiosResp.ok) setAudios(await audiosResp.json());
+      } catch (e) {
+        console.error('Error loading scholar:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [id]);
 
-  const loadScholar = async () => {
-    try {
-      const [schResp, coursesResp, audiosResp, articlesResp] = await Promise.all([
-        apiRequest(`/scholars/${id}`, token),
-        apiRequest(`/courses?scholar_id=${id}`, token),
-        apiRequest(`/audios?scholar_id=${id}`, token),
-        apiRequest(`/articles`, token),
-      ]);
-      const schData = await schResp.json();
-      const coursesData = await coursesResp.json();
-      const audiosData = await audiosResp.json();
-      const articlesData = await articlesResp.json();
-      setScholar(schData);
-      setCourses(coursesData);
-      setAudios(audiosData);
-      setArticles(articlesData.filter((a: any) => a.scholar_id === id));
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
+  if (loading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color="#04D182" />
+      </View>
+    );
+  }
 
-  const navigateContent = (item: any) => {
-    if (item.type === 'course') router.push(`/course/${item.id}` as any);
-    else if (['podcast', 'lecture', 'quran', 'documentary'].includes(item.type)) router.push(`/audio/${item.id}` as any);
-    else if (item.type === 'article') router.push(`/article/${item.id}` as any);
-  };
-
-  if (loading) return <View style={styles.loading}><ActivityIndicator size="large" color={colors.brand.primary} /></View>;
   if (!scholar) return null;
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <View style={styles.hero}>
-          <Image source={{ uri: scholar.photo }} style={styles.heroImage} />
-          <LinearGradient colors={['rgba(0,0,0,0.4)', '#121212']} style={styles.heroGradient}>
-            <TouchableOpacity testID="scholar-back-btn" style={styles.backBtn} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
-            </TouchableOpacity>
-            <View style={styles.heroInfo}>
-              <Text style={styles.name}>{scholar.name}</Text>
-              <Text style={styles.university}>{scholar.university}</Text>
-              <View style={styles.specs}>
-                {scholar.specializations?.map((spec: string) => (
-                  <View key={spec} style={styles.specChip}>
-                    <Text style={styles.specText}>{spec}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
+  // Get initials
+  const initials = scholar.name
+    ? scholar.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+    : 'XX';
 
-        <View style={styles.content}>
+  // Primary color (from first cursus if available)
+  const primaryColor = '#04D182';
+
+  return (
+    <View style={styles.root}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* ═══════════════════════════════════════════════════════════════════════
+            HERO
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.hero}>
+          {/* Back button */}
+          <TouchableOpacity
+            testID="scholar-back-btn"
+            style={styles.backBtn}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={20} color="rgba(245,240,232,0.6)" />
+            <Text style={styles.backLabel}>Professeurs</Text>
+          </TouchableOpacity>
+
+          {/* Avatar */}
+          <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
+            <Text style={[styles.avatarText, { color: primaryColor }]}>{initials}</Text>
+          </View>
+
+          {/* Name */}
+          <Text style={styles.name}>{scholar.name}</Text>
+
+          {/* University */}
+          {scholar.university && (
+            <Text style={styles.university}>{scholar.university}</Text>
+          )}
+
+          {/* Bio/Specialty */}
+          {scholar.bio && (
+            <Text style={styles.bio} numberOfLines={3}>{scholar.bio}</Text>
+          )}
+
           {/* Stats */}
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{courses.length}</Text>
+            <View style={styles.statBlock}>
+              <Text style={[styles.statValue, { color: primaryColor }]}>{courses.length}</Text>
               <Text style={styles.statLabel}>Cours</Text>
             </View>
             <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{audios.length}</Text>
-              <Text style={styles.statLabel}>Audios</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{articles.length}</Text>
-              <Text style={styles.statLabel}>Articles</Text>
+            <View style={styles.statBlock}>
+              <Text style={[styles.statValue, { color: primaryColor }]}>{audios.length}</Text>
+              <Text style={styles.statLabel}>Épisodes</Text>
             </View>
           </View>
-
-          {/* Bio */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Biographie</Text>
-            <Text style={styles.bioText}>{scholar.bio}</Text>
-          </View>
-
-          {/* Courses */}
-          {courses.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Cours</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {courses.map((item: any) => (
-                  <ContentCard key={item.id} item={item} onPress={() => navigateContent(item)} testID={`scholar-course-${item.id}`} />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Audios */}
-          {audios.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Podcasts & Conférences</Text>
-              {audios.map((item: any) => (
-                <TouchableOpacity
-                  key={item.id}
-                  testID={`scholar-audio-${item.id}`}
-                  style={styles.audioRow}
-                  onPress={() => router.push(`/audio/${item.id}` as any)}
-                >
-                  <Image source={{ uri: item.thumbnail }} style={styles.audioThumb} />
-                  <View style={styles.audioInfo}>
-                    <Text style={styles.audioTitle} numberOfLines={2}>{item.title}</Text>
-                    <Text style={styles.audioType}>{item.type}</Text>
-                  </View>
-                  <Ionicons name="play-circle" size={28} color={colors.brand.primary} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* Articles */}
-          {articles.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Articles</Text>
-              {articles.map((item: any) => (
-                <TouchableOpacity
-                  key={item.id}
-                  testID={`scholar-article-${item.id}`}
-                  style={styles.audioRow}
-                  onPress={() => router.push(`/article/${item.id}` as any)}
-                >
-                  <Image source={{ uri: item.thumbnail }} style={styles.audioThumb} />
-                  <View style={styles.audioInfo}>
-                    <Text style={styles.audioTitle} numberOfLines={2}>{item.title}</Text>
-                    <Text style={styles.audioType}>{item.reading_time} min de lecture</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            COURS
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {courses.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Cours</Text>
+            {courses.map((course, idx) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                onPress={() => router.push(`/course/${course.id}` as any)}
+                isLast={idx === courses.length - 1}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            ÉPISODES
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {audios.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Épisodes récents</Text>
+            {audios.slice(0, 5).map((audio, idx) => (
+              <AudioRow
+                key={audio.id}
+                audio={audio}
+                onPress={() => router.push(`/audio/${audio.id}` as any)}
+                isLast={idx === Math.min(4, audios.length - 1)}
+              />
+            ))}
+          </View>
+        )}
+
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Course Card Component ────────────────────────────────────────────────────
+function CourseCard({ course, onPress, isLast }: { course: any; onPress: () => void; isLast: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  const hoverProps = Platform.OS === 'web' ? {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  } : {};
+
+  const cursusLetter = course.cursus_letter || 'A';
+  const color = CURSUS_COLORS[cursusLetter] || '#04D182';
+
+  return (
+    <TouchableOpacity
+      testID={`scholar-course-${course.id}`}
+      style={[
+        styles.courseCard,
+        hovered && styles.courseCardHover,
+        { borderLeftColor: color },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      {...hoverProps}
+    >
+      <View style={styles.courseInfo}>
+        <Text style={[styles.courseTag, { color }]}>
+          Cursus {cursusLetter}
+        </Text>
+        <Text style={styles.courseTitle}>{course.title}</Text>
+        <Text style={styles.courseMeta}>
+          {course.modules_count || 0} épisodes · {formatDuration(course.duration || 0)}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color="#444444" />
+    </TouchableOpacity>
+  );
+}
+
+// ─── Audio Row Component ──────────────────────────────────────────────────────
+function AudioRow({ audio, onPress, isLast }: { audio: any; onPress: () => void; isLast: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  const hoverProps = Platform.OS === 'web' ? {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  } : {};
+
+  const cursusLetter = audio.cursus_letter || 'A';
+  const color = CURSUS_COLORS[cursusLetter] || '#04D182';
+
+  return (
+    <TouchableOpacity
+      testID={`scholar-audio-${audio.id}`}
+      style={[
+        styles.audioRow,
+        !isLast && styles.audioRowBorder,
+        hovered && styles.audioRowHover,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      {...hoverProps}
+    >
+      <View style={[styles.audioDot, { backgroundColor: color }]} />
+      <View style={styles.audioInfo}>
+        <Text style={styles.audioTitle} numberOfLines={1}>{audio.title}</Text>
+        <Text style={styles.audioMeta}>
+          {formatDuration(audio.duration || 0)}
+        </Text>
+      </View>
+      <View style={[styles.playBtn, { backgroundColor: color }]}>
+        <Ionicons name="play" size={12} color="#0A0A0A" style={{ marginLeft: 1 }} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background.primary },
-  scroll: { flex: 1 },
-  loading: { flex: 1, backgroundColor: colors.background.primary, alignItems: 'center', justifyContent: 'center' },
-  hero: { height: 320, position: 'relative' },
-  heroImage: { width: '100%', height: '100%', position: 'absolute' },
-  heroGradient: { flex: 1, justifyContent: 'space-between', padding: spacing.lg, paddingTop: spacing.md },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  heroInfo: { },
-  name: { fontFamily: 'Inter-Bold', fontSize: 24, color: colors.text.primary, marginBottom: 4 },
-  university: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.brand.secondary, marginBottom: 10 },
-  specs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  specChip: { backgroundColor: 'rgba(4,209,130,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
-  specText: { fontFamily: 'Inter-Medium', fontSize: 11, color: colors.brand.primary },
-  content: { padding: spacing.lg },
-  statsRow: { flexDirection: 'row', backgroundColor: colors.background.card, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.xl, alignItems: 'center' },
-  statCard: { flex: 1, alignItems: 'center' },
-  statValue: { fontFamily: 'Inter-Bold', fontSize: 22, color: colors.brand.primary, marginBottom: 3 },
-  statLabel: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.secondary },
-  statDivider: { width: 1, height: 36, backgroundColor: colors.border.default },
-  section: { marginBottom: spacing.xl },
-  sectionTitle: { fontFamily: 'Inter-Bold', fontSize: 17, color: colors.text.primary, marginBottom: spacing.md },
-  bioText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary, lineHeight: 22 },
-  audioRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border.subtle, gap: spacing.md },
-  audioThumb: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.background.card },
-  audioInfo: { flex: 1 },
-  audioTitle: { fontFamily: 'Inter-Medium', fontSize: 13, color: colors.text.primary, lineHeight: 18, marginBottom: 3 },
-  audioType: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.secondary },
+  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
+
+  // Hero
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: 24,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    ...(Platform.OS === 'web' ? {
+      background: 'linear-gradient(160deg, #111111 0%, #0A0A0A 100%)',
+    } as any : { backgroundColor: '#0F0F0F' }),
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginBottom: 20,
+  },
+  backLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 2,
+    color: 'rgba(245,240,232,0.5)',
+    textTransform: 'uppercase',
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  avatarText: {
+    fontFamily: 'Cinzel',
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  name: {
+    fontFamily: 'Cinzel',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#F5F0E8',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  university: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#C9A84C',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  bio: {
+    fontFamily: 'EBGaramond',
+    fontSize: 13,
+    color: 'rgba(245,240,232,0.6)',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0,
+  },
+  statBlock: {
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  statValue: {
+    fontFamily: 'Cinzel',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  statLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#333333',
+  },
+
+  // Sections
+  section: {
+    paddingTop: 18,
+  },
+  sectionLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 4,
+    color: '#04D182',
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+
+  // Course Card
+  courseCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: '#111111',
+    padding: 16,
+    borderLeftWidth: 3,
+    ...(Platform.OS === 'web' ? { 
+      transition: 'background-color 0.2s ease',
+      cursor: 'pointer',
+    } as any : {}),
+  },
+  courseCardHover: {
+    backgroundColor: '#1A1A1A',
+  },
+  courseInfo: {
+    flex: 1,
+  },
+  courseTag: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  courseTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F5F0E8',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  courseMeta: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 1,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+
+  // Audio Row
+  audioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    ...(Platform.OS === 'web' ? { 
+      transition: 'background-color 0.2s ease',
+      cursor: 'pointer',
+    } as any : {}),
+  },
+  audioRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+  },
+  audioRowHover: {
+    backgroundColor: '#1A1A1A',
+  },
+  audioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  audioInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  audioTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#F5F0E8',
+    marginBottom: 2,
+  },
+  audioMeta: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 1,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+  playBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
 });
