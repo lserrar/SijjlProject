@@ -13,6 +13,7 @@ export default function AdminLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Panel Admin' }} />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="audios" options={{ title: 'Gestion Audios' }} />
       <Stack.Screen name="scholars" options={{ title: 'Gestion Érudits' }} />
       <Stack.Screen name="courses" options={{ title: 'Gestion Cours' }} />
