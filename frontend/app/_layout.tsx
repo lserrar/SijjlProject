@@ -61,6 +61,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="auth-callback" />
+          <Stack.Screen name="cursus/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="audio/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
           <Stack.Screen name="course/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="article/[id]" options={{ animation: 'slide_from_right' }} />
