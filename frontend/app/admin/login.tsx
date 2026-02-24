@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -8,12 +8,24 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AdminLogin() {
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Once authenticated, check role and redirect
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'admin') {
+        router.replace('/admin' as any);
+      } else {
+        setError('Accès refusé. Ce compte n\'a pas les droits administrateur.');
+        setLoading(false);
+      }
+    }
+  }, [isAuthenticated, user]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -23,17 +35,10 @@ export default function AdminLogin() {
     setLoading(true);
     setError('');
     try {
-      const result = await login(email.trim(), password.trim());
-      if (result?.role === 'admin') {
-        router.replace('/admin' as any);
-      } else if (result) {
-        setError('Accès refusé. Ce compte n\'a pas les droits administrateur.');
-      } else {
-        setError('Email ou mot de passe incorrect.');
-      }
-    } catch (e) {
-      setError('Erreur de connexion. Réessayez.');
-    } finally {
+      await login(email.trim(), password.trim());
+      // Redirect is handled by the useEffect above
+    } catch (e: any) {
+      setError(e.message || 'Email ou mot de passe incorrect.');
       setLoading(false);
     }
   };
