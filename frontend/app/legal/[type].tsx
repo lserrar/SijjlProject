@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { apiRequest } from '../context/AuthContext';
+import { apiRequest } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
 const DEFAULT_CONTENT: Record<string, { title: string; content: string }> = {
