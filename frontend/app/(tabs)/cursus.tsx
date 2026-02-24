@@ -306,12 +306,22 @@ function CursusCard({
           <Ionicons name="time-outline" size={10} color="#777777" />
           <Text style={styles.cardStatText}>{fmtDur(durationMinutes)}</Text>
         </View>
+        {progress > 0 && (
+          <View style={[styles.cardProgressBadge, { backgroundColor: `${color}1A` }]}>
+            <Text style={[styles.cardProgressBadgeText, { color }]}>{progress}% complété</Text>
+          </View>
+        )}
       </View>
 
       {/* Ligne 5: Barre de progression */}
       <View style={styles.cardProgressTrack}>
         <View style={[styles.cardProgressFill, { width: `${progress}%`, backgroundColor: color }]} />
       </View>
+      {progress > 0 && (
+        <Text style={[styles.cardProgressLabel, { color }]}>
+          {progress}% — Continuer votre progression
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }
