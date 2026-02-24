@@ -145,8 +145,6 @@ export default function CursusScreen() {
         );
         setCursus(enriched.sort((a: Cursus, b: Cursus) => a.order - b.order));
       }
-        // TODO: Calculate cursus progress from individual audio progress
-      }
     } catch (e) {
       console.error('Failed to load cursus data', e);
     } finally {
