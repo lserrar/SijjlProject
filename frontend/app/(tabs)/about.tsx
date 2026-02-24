@@ -83,16 +83,12 @@ export default function AboutScreen() {
           {/* Ligne verticale dorée */}
           <View style={styles.heroGoldLine} />
 
-          {/* Navigation retour */}
+          {/* Logo SIJILL en haut */}
           <View style={styles.navRow}>
-            <TouchableOpacity 
-              style={styles.backBtn} 
-              onPress={() => router.back()}
-              testID="about-back-btn"
-            >
-              <Ionicons name="chevron-back" size={18} color="rgba(245,240,232,0.50)" />
-              <Text style={styles.backText}>Profil</Text>
-            </TouchableOpacity>
+            <View style={styles.logoRow}>
+              <Text style={styles.logoText}>SIJILL</Text>
+              <View style={styles.logoDot} />
+            </View>
             <TouchableOpacity style={styles.moreBtn}>
               <Ionicons name="ellipsis-horizontal" size={20} color="rgba(245,240,232,0.50)" />
             </TouchableOpacity>
