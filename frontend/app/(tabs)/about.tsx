@@ -697,8 +697,10 @@ const styles = StyleSheet.create({
   footerDot: {
     width: 5,
     height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#04D182',
     marginTop: -8,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 0 8px rgba(4,209,130,0.5)' } as any : {}),
   },
   footerDevise: {
     fontFamily: 'EBGaramond',
