@@ -162,9 +162,8 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - Vérifier le nouveau design de la Page Cours
 
 ### P1 — Prochain sprint
-- Améliorer le logo Sijill
+- Implémenter les onglets "Professeurs" et "Ressources" sur la Page Cours
 - Synchroniser le nouveau cursus "Géographes" depuis R2
-- Implémenter l'onglet "Ressources" (sous-onglet "Autres" + "Ressources liées")
 - Appliquer le Paywall sur tout le contenu premium (useAccessCheck hook)
 - Ajouter play_count tracking dans le player audio (appel POST /audios/{id}/play au démarrage)
 
@@ -174,3 +173,4 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - "Recommandations pour vous" basées sur historique
 - Notifications push
 - Pagination des bandeaux sur homepage (lazy loading)
+- Améliorer le logo Sijill
