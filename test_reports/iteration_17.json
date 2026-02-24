@@ -1,0 +1,75 @@
+{
+  "summary": "Iteration 17 - Tested new endpoints /api/user/stats and /api/user/library. Found and FIXED a datetime bug in /api/user/library. All 8 backend tests pass. Frontend pages (Bibliothèque and Profil) correctly call the APIs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_user_library_stats.py",
+    "/app/test_reports/pytest/user_library_stats_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed datetime timezone bug in /api/user/library (line 1318-1319): MongoDB stores naive datetimes, but code was comparing with timezone-aware datetime. Added timezone.utc to naive datetimes."
+  ],
+  "updated_files": [
+    "/app/backend/server.py (line 1318: added timezone handling for saved_at datetime)",
+    "/app/backend/tests/test_user_library_stats.py (new test file)"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (pages load and call APIs correctly)"
+  },
+  "test_credentials": {
+    "test_user_email": "testuser@hikma.com",
+    "test_user_password": "TestUser123!"
+  },
+  "seed_data_creation": "Created test data for testuser@hikma.com: 2 in_progress audios, 1 completed audio, 2 favorites",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "User stats and library endpoints fully tested and working. Endpoints require authentication. Stats returns: courses_followed, listening_hours, favorites_count, completed_count, in_progress_count. Library returns: in_progress[], favorites[], completed[], global_progress. Both Bibliothèque (/tabs/bibliotheque) and Profil (/tabs/profil) pages correctly integrate with these APIs. Test data exists for testuser@hikma.com with progress and favorites.",
+  "bug_fix_applied": {
+    "file": "/app/backend/server.py",
+    "line": "1318-1321",
+    "issue": "TypeError: can't subtract offset-naive and offset-aware datetimes",
+    "fix": "Added timezone.utc to naive datetime: if saved_at.tzinfo is None: saved_at = saved_at.replace(tzinfo=timezone.utc)"
+  },
+  "api_verification_results": {
+    "GET /api/user/stats": {
+      "status": "200 OK",
+      "requires_auth": true,
+      "response_structure": {
+        "courses_followed": "int - count of unique courses user has progress on",
+        "listening_hours": "float - total hours listened based on progress * duration",
+        "favorites_count": "int - count of user favorites",
+        "completed_count": "int - count of completed episodes (progress >= 95%)",
+        "in_progress_count": "int - count of episodes with 1-95% progress"
+      }
+    },
+    "GET /api/user/library": {
+      "status": "200 OK (after fix)",
+      "requires_auth": true,
+      "response_structure": {
+        "in_progress": "array of audio items with progress data",
+        "favorites": "array of favorited audio items with saved_date",
+        "completed": "array of completed audio items",
+        "global_progress": "int 0-100 - average progress across all items"
+      }
+    }
+  },
+  "frontend_pages_tested": {
+    "/bibliotheque": {
+      "api_used": "/api/user/library",
+      "displays": "User profile, global progress %, tabs (En cours/Favoris/Terminés), episode cards with progress bars"
+    },
+    "/profil": {
+      "api_used": "/api/user/stats",
+      "displays": "User info, stats row (Cours suivis, Temps d'écoute, Contenus sauvegardés), academic level badge"
+    }
+  }
+}
