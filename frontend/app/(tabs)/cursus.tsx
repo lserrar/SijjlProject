@@ -456,6 +456,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    flexWrap: 'wrap',
   },
   cardStat: {
     flexDirection: 'row',
@@ -469,6 +470,17 @@ const styles = StyleSheet.create({
     color: '#777777',
     textTransform: 'uppercase',
   },
+  cardProgressBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginLeft: 'auto',
+  },
+  cardProgressBadgeText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
   cardProgressTrack: {
     marginTop: 12,
     height: 2,
@@ -477,5 +489,12 @@ const styles = StyleSheet.create({
   },
   cardProgressFill: {
     height: 2,
+  },
+  cardProgressLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 6,
   },
 });
