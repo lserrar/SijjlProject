@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (Platform.OS === 'web') {
         redirectUrl = window.location.origin + '/auth-callback';
       } else {
+        // Use the app's custom scheme for deep linking back to the app
         redirectUrl = Linking.createURL('auth-callback');
       }
 
@@ -133,9 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      // On mobile, use openAuthSessionAsync with the redirect URL
+      // This opens an in-app browser (SFSafariViewController on iOS, Custom Tabs on Android)
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl, {
+        showInRecents: true,
+        preferEphemeralSession: false,
+      });
+
       if (result.type === 'success' && result.url) {
         const url = result.url;
+        // Parse session_id from hash fragment
         const hash = url.includes('#') ? url.split('#')[1] : '';
         const params = new URLSearchParams(hash);
         const sessionId = params.get('session_id');
@@ -144,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           throw new Error("Session ID non trouvé dans la réponse");
         }
+      } else if (result.type === 'cancel') {
+        throw new Error("Authentification annulée");
       }
     } catch (e: any) {
       throw new Error(e.message || 'Connexion Google échouée');
