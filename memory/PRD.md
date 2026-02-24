@@ -33,21 +33,26 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 ├── backend/
 │   ├── server.py          # FastAPI monolithique (proxy R2, playlist, home, search, top10)
 │   ├── sync_r2_audios.py  # Script de sync R2 → MongoDB
+│   ├── static/            # Web Admin Panel HTML/CSS/JS
+│   ├── templates/         # Jinja2 templates for web admin
 │   └── tests/             # Tests pytest
 ├── frontend/              # React Native (Expo for Web)
 │   ├── app/
 │   │   ├── (tabs)/
-│   │   │   ├── index.tsx      # Homepage text-only prestige (REFONTE FINALE ✅ 2025-02)
-│   │   │   └── _layout.tsx    # Tab bar 5 onglets (bug double-export corrigé ✅)
-│   │   ├── audio/[id].tsx     # Player audio avec playlist auto-play
+│   │   │   ├── index.tsx      # Homepage text-only prestige (✅ 2025-02)
+│   │   │   ├── profil.tsx     # Profil utilisateur (admin button ouvre web panel)
+│   │   │   └── _layout.tsx    # Tab bar 5 onglets
+│   │   ├── cursus/[id].tsx    # Page Cours - REFONTE COMPLÈTE ✅ 2026-02-24
+│   │   ├── audio/[id].tsx     # Player audio redesign prestige (✅ 2026-02)
 │   │   ├── course/[id].tsx    # Page cours avec "Commencer le cours"
-│   │   ├── search.tsx         # Écran de recherche (NOUVEAU)
+│   │   ├── search.tsx         # Écran de recherche
 │   │   └── ...
+│   │   # NOTE: admin/ supprimé (2026-02-24) - admin web uniquement
 │   ├── context/
 │   │   ├── AuthContext.tsx
 │   │   └── PlayerContext.tsx  # Gestion audio global + callback onFinish
 │   └── components/
-│       └── MiniPlayer.tsx
+│       └── MiniPlayer.tsx     # MiniPlayer redesign prestige (✅ 2026-02)
 └── r2-assets/                 # Mount Cloudflare R2
 ```
 
