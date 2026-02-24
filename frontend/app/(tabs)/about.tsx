@@ -336,6 +336,22 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 10,
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  logoText: {
+    fontFamily: 'Cinzel',
+    fontSize: 16,
+    letterSpacing: 4,
+    color: '#F5F0E8',
+  },
+  logoDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#04D182',
+  },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
