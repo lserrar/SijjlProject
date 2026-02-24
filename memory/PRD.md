@@ -151,6 +151,15 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
     - Description
     - Liste mini des épisodes avec boutons play (3 états)
     - Boutons action "COMMENCER/Continuer" + "SAUVEGARDER"
+- ✅ **REFONTE COMPLÈTE Page Cours individuel** (`/course/[id].tsx`) :
+  - Même design prestige que Page Cursus
+  - Hero avec dégradé, eyebrow Cursus, titre Cinzel
+  - Info professeur avec avatar initiales
+  - Stats (Épisodes, Durée, % Complété) + barre de progression
+  - Boutons action "COMMENCER" + "SAUVEGARDER"
+  - Liste des épisodes avec 3 états visuels
+  - Badge "Aperçu gratuit" pour premier épisode non-abonné
+  - Section "À propos de ce cours"
 - ✅ **Suppression Admin Mobile** : Dossier `/app/frontend/app/admin/` supprimé
   - Le bouton admin dans profil.tsx ouvre maintenant le web panel (`/api/admin-panel/login`) via Linking
 
