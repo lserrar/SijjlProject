@@ -201,14 +201,18 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 
 ## Backlog Priorisé
 
-### P0 — Vérification utilisateur
-- Vérifier le nouveau design de la Page Cours
+### P0 — Terminé ✅
+- ✅ Connecter "Ma Bibliothèque" aux vraies données
+- ✅ Connecter "Profil" aux vraies données
+- ✅ Interface admin pour pages légales
 
 ### P1 — Prochain sprint
-- Implémenter les onglets "Professeurs" et "Ressources" sur la Page Cours
+- 🔄 Vérifier le design du MiniPlayer (feedback utilisateur en attente)
+- Implémenter les onglets "Professeurs" et "Ressources" sur la Page Cursus
 - Synchroniser le nouveau cursus "Géographes" depuis R2
 - Appliquer le Paywall sur tout le contenu premium (useAccessCheck hook)
 - Ajouter play_count tracking dans le player audio (appel POST /audios/{id}/play au démarrage)
+- Implémenter l'authentification Apple (nécessite configuration développeur Apple)
 
 ### P2 — Futur
 - Refactoriser backend/server.py en routers modulaires
