@@ -10,35 +10,14 @@ const CURSUS_COLORS: Record<string, string> = {
   A: '#04D182', B: '#8B5CF6', C: '#F59E0B', D: '#EC4899', E: '#06B6D4',
 };
 
-// Mini waveform bar heights (12 bars for compact display)
-const MINI_WF_HEIGHTS = [40, 70, 50, 85, 60, 95, 55, 75, 45, 80, 60, 70];
+// Mini waveform - 15 barres rectangulaires
+const MINI_WF_HEIGHTS = [35, 55, 40, 70, 50, 85, 60, 95, 55, 75, 45, 80, 60, 50, 40];
 
 function formatTime(s: number) {
   if (!s || s < 0) return '0:00';
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
   return `${m}:${sec.toString().padStart(2, '0')}`;
-}
-
-// ─── Mini Waveform Component ──────────────────────────────────────────────────
-function MiniWaveform({ progress, color }: { progress: number; color: string }) {
-  const playedCount = Math.floor(progress * MINI_WF_HEIGHTS.length);
-  
-  return (
-    <View style={styles.waveformContainer}>
-      {MINI_WF_HEIGHTS.map((h, i) => (
-        <View
-          key={i}
-          style={{
-            width: 3,
-            height: Math.max(3, Math.round(h / 100 * 16)),
-            backgroundColor: i < playedCount ? color : '#333333',
-            marginHorizontal: 1,
-          }}
-        />
-      ))}
-    </View>
-  );
 }
 
 export default function MiniPlayer() {
@@ -51,6 +30,9 @@ export default function MiniPlayer() {
   const cursusLetter: string = (currentTrack as any).cursus_letter || 'A';
   const cursusColor: string = (currentTrack as any).cursus_color || CURSUS_COLORS[cursusLetter] || '#04D182';
   const scholarName: string = (currentTrack as any).scholar_name || '';
+  
+  // Nombre de barres allumées selon la progression
+  const playedBars = Math.floor(progress * MINI_WF_HEIGHTS.length);
 
   const handlePress = () => {
     router.push(`/audio/${currentTrack.id}` as any);
@@ -66,61 +48,79 @@ export default function MiniPlayer() {
       onPress={handlePress}
       activeOpacity={0.95}
     >
-      {/* Top progress bar — cursus color */}
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` as any, backgroundColor: cursusColor }]} />
-      </View>
-
       <View style={styles.content}>
-        {/* Left: Cursus letter badge */}
+        {/* Gauche: Badge cursus */}
         <View style={[styles.badge, { backgroundColor: `${cursusColor}1A` }]}>
           <Text style={[styles.badgeLetter, { color: cursusColor }]}>{cursusLetter}</Text>
         </View>
 
-        {/* Middle: Info + Timer */}
+        {/* Centre: Titre + Professeur */}
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={1}>{currentTrack.title}</Text>
-          <View style={styles.metaRow}>
-            {scholarName ? (
-              <Text style={styles.scholar} numberOfLines={1}>{scholarName}</Text>
-            ) : null}
-            {scholarName ? <View style={styles.metaDot} /> : null}
-            <Text style={[styles.timer, { color: cursusColor }]}>
-              {formatTime(position)} / {formatTime(duration)}
+          {scholarName ? (
+            <Text style={styles.scholar} numberOfLines={1}>{scholarName}</Text>
+          ) : null}
+        </View>
+
+        {/* Droite: Waveform rectangles + Timer + Contrôles */}
+        <View style={styles.rightSection}>
+          {/* Mini Waveform - barres rectangulaires */}
+          <View style={styles.waveformContainer}>
+            {MINI_WF_HEIGHTS.map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.waveformBar,
+                  {
+                    height: Math.max(4, Math.round(h / 100 * 20)),
+                    backgroundColor: i < playedBars ? cursusColor : '#333333',
+                  },
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Timer en chiffres */}
+          <View style={styles.timerContainer}>
+            <Text style={[styles.timerCurrent, { color: cursusColor }]}>
+              {formatTime(position)}
+            </Text>
+            <Text style={styles.timerSeparator}>/</Text>
+            <Text style={styles.timerTotal}>
+              {formatTime(duration)}
             </Text>
           </View>
-        </View>
 
-        {/* Right: Mini Waveform + Controls */}
-        <View style={styles.rightSection}>
-          {/* Mini Waveform */}
-          <MiniWaveform progress={progress} color={cursusColor} />
+          {/* Bouton Play/Pause */}
+          <TouchableOpacity
+            testID="mini-player-play-pause"
+            style={[styles.playBtn, { backgroundColor: cursusColor }]}
+            onPress={(e) => { e.stopPropagation(); togglePlayPause(); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons
+              name={isPlaying ? 'pause' : 'play'}
+              size={14}
+              color="#0A0A0A"
+              style={!isPlaying ? { marginLeft: 1 } : {}}
+            />
+          </TouchableOpacity>
 
-          {/* Controls */}
-          <View style={styles.controls}>
-            <TouchableOpacity
-              testID="mini-player-play-pause"
-              style={[styles.playBtn, { backgroundColor: cursusColor }]}
-              onPress={togglePlayPause}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons
-                name={isPlaying ? 'pause' : 'play'}
-                size={15}
-                color="#0A0A0A"
-                style={!isPlaying ? { marginLeft: 1 } : {}}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              testID="mini-player-close"
-              style={styles.closeBtn}
-              onPress={stopTrack}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={18} color="#777777" />
-            </TouchableOpacity>
-          </View>
+          {/* Bouton Fermer */}
+          <TouchableOpacity
+            testID="mini-player-close"
+            style={styles.closeBtn}
+            onPress={(e) => { e.stopPropagation(); stopTrack(); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={16} color="#555555" />
+          </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Barre de progression fine en bas */}
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: cursusColor }]} />
       </View>
     </TouchableOpacity>
   );
@@ -128,46 +128,34 @@ export default function MiniPlayer() {
 
 const styles = StyleSheet.create({
   container: {
-    height: 68,
-    backgroundColor: 'rgba(17,17,17,0.97)',
+    height: 64,
+    backgroundColor: 'rgba(17,17,17,0.98)',
     borderTopWidth: 1,
     borderTopColor: '#222222',
-    overflow: 'hidden',
-  },
-  progressTrack: {
-    height: 2,
-    backgroundColor: '#1E1E1E',
-    width: '100%',
-  },
-  progressFill: {
-    height: 2,
-    position: 'absolute',
-    top: 0,
-    left: 0,
   },
   content: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     gap: 10,
   },
 
-  // Cursus letter badge
+  // Badge cursus
   badge: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   badgeLetter: {
     fontFamily: 'Cinzel',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
 
-  // Info
+  // Info (titre + prof)
   info: {
     flex: 1,
     minWidth: 0,
@@ -175,15 +163,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Cinzel',
-    fontSize: 10,
-    letterSpacing: 0.5,
+    fontSize: 9,
+    letterSpacing: 0.3,
     color: '#F5F0E8',
-    marginBottom: 3,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 0,
+    marginBottom: 2,
   },
   scholar: {
     fontFamily: 'EBGaramond',
@@ -191,52 +174,77 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#C9A84C',
   },
-  metaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#444444',
-    marginHorizontal: 6,
-  },
-  timer: {
-    fontFamily: 'Cinzel',
-    fontSize: 8,
-    letterSpacing: 1,
-  },
 
-  // Right section (waveform + controls)
+  // Section droite
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     flexShrink: 0,
   },
 
-  // Mini Waveform
+  // Waveform rectangles
   waveformContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 20,
+    gap: 2,
+    height: 24,
+  },
+  waveformBar: {
+    width: 3,
+    // height défini dynamiquement
+    // backgroundColor défini dynamiquement
   },
 
-  // Controls
-  controls: {
+  // Timer
+  timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
+    minWidth: 65,
   },
+  timerCurrent: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  timerSeparator: {
+    fontFamily: 'Cinzel',
+    fontSize: 9,
+    color: '#555555',
+    marginHorizontal: 2,
+  },
+  timerTotal: {
+    fontFamily: 'Cinzel',
+    fontSize: 9,
+    color: '#666666',
+    letterSpacing: 0.5,
+  },
+
+  // Bouton Play
   playBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Bouton Fermer
   closeBtn: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Barre de progression en bas
+  progressTrack: {
+    height: 2,
+    backgroundColor: '#1A1A1A',
+    width: '100%',
+  },
+  progressFill: {
+    height: 2,
   },
 });
