@@ -1,151 +1,162 @@
 <analysis>**original_problem_statement**: The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-The project has evolved through several phases:
-1.  **Initial Setup & Core Features**: Syncing audio from Cloudflare R2 and implementing a playlist system.
-2.  **Netflix-Style Homepage**: A UI overhaul to create a content-rich homepage with carousels.
-3.  **Prestige Design System**: A rebranding with specific fonts (Cinzel, EB Garamond) and a new color palette.
-4.  **Final Text-Only UI (Current)**: A second, more refined homepage redesign based on a new, highly detailed user specification. This version removes all images in favor of a text-centric, minimalist, and academic aesthetic. The work has since expanded to redesigning the audio player and now the course list page to match this new style.
+The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system based on detailed user specifications. The agent's work in this session has been to continue this redesign across all remaining pages of the application (course lists, course details, professor pages, user library, etc.) and address various functional bugs and improvements reported by the user.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill
 -   **Language**: French
--   **Platform**: Expo (running as a web app) + Web Admin Panel (FastAPI).
+-   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend.
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
 -   **Content Storage**: Audio files are stored in a Cloudflare R2 bucket.
--   **Design**: A highly specific, text-only, dark-mode UI following detailed design briefs provided by the user for each major screen.
+-   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts, a specific color palette ( green,  gold), and a zero border-radius policy.
 
 **User's preferred language**: French
 
 **what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database.
--   **Backend**: The  monolith handles all API logic. It serves data for the dynamic homepage, manages featured content (for both Cursus and Cours), and provides endpoints for the web-based admin panel. A critical bug preventing saves from the web admin panel was recently fixed by adding a missing  endpoint.
--   **Frontend**: The app has undergone a significant redesign. Key pages like the homepage () and the full-screen audio player () have been completely rewritten to match a new, text-only prestige design system. The mini audio player component has also been redesigned. The admin workflow is split between a full-featured web panel served by FastAPI and a limited in-app mobile panel, which has caused recurring user confusion.
--   **Design System**: Custom fonts (Cinzel, EB Garamond) are loaded globally. A theme file () defines the strict color palette and typography rules. The core design principle is no border-radius.
+A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend. The entire application has been progressively refactored to a consistent, high-end prestige design system.
+
+-   **Frontend**: All major user-facing screens have been rewritten to match the new design: Homepage, Cursus List (Tab), Cursus Detail Page, Course Detail Page, Professor List (Tab), Professor Detail Page, and the User Library (Tab). The mobile-specific admin panel has been removed to avoid confusion with the main web admin panel.
+-   **Backend**: A monolithic  handles all API logic and serves a web-based admin panel for content management. New endpoints have been added to serve and manage content for dynamic legal pages (Privacy Policy, Terms of Use). A data migration was attempted to update course data.
 
 **Last working item**:
--   **Last item agent was working**: The user has provided a new, highly-detailed design specification for the Page Cours (the page that lists all courses within a selected Cursus). The agent had just acknowledged this new, major task and was formulating a plan to rewrite the corresponding file, .
--   **Status**: NOT STARTED
+-   **Last item agent was working**: Implementing an admin interface to allow the user to edit the content of the legal pages (Privacy Policy, Terms of Use) from the web admin panel. The agent created the HTML template (), added a link in the admin sidebar (), and created the corresponding FastAPI route in  to serve the new editor page. The save/update functionality has not been implemented yet.
+-   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent. The specification is extremely detailed, covering layout, multiple component states (accordion, progress), and dynamic data, which requires precise validation.
+-   **Which testing method agent to use?**: manual testing by curl. The agent needs to log into the admin panel (), navigate to the new Pages Légales section, and verify the editor loads. Then, implement and test the form submission.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Admin Panel Confusion (P0)
-    -   **Description**: The user is frequently confused between the full-featured web admin panel () and the limited, in-app mobile admin panel (). They repeatedly try to use the wrong link, leading to frustration.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
+-   **Issue 1**: MiniPlayer UI feedback (P1)
+    -   **Description**: The user requested a redesign of the  to include rectangular waveform bars and a numerical timer. An initial implementation was not satisfactory. A second version was created, but the conversation moved on before the user could validate it.
+    -   **Attempted fixes**: The agent updated the  component twice. The first attempt used a progress bar, which the user rejected. The second attempt implemented distinct rectangular bars and a separate numerical timer.
     -   **Next debug checklist**:
-        1.  Discuss a permanent solution with the user. Options include:
-            -   Removing the mobile admin panel entirely.
-            -   Making the  route in the React Native app automatically redirect to the external web panel URL.
-    -   **Why fix this issue and what will be achieved with the fix?**: To eliminate a recurring point of user friction and streamline the content management workflow.
-    -   **Should Test frontend/backend/both after fix?**: frontend
--   **Issue 2**: Top 5 List Hover Effect (P1)
-    -   **Description**: The user requested a white halo box-shadow effect on hover for items in the Top 5 du mois list. This was implemented in .
+        1.  Ask the user for verification on the latest MiniPlayer design.
+        2.  If needed, take a screenshot of the app with an audio playing to show the MiniPlayer in action.
+        3.  Adjust the styling of the waveform bars (size, spacing) or the timer format based on user feedback.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the last core UI component that needs to meet the user's specific design requirements, ensuring full app consistency.
     -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: N
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a direct user request to complete the homepage design.
-    -   **Should Test frontend/backend/both after fix?**: frontend
--   **Issue 3**: MiniPlayer Redesign (P1)
-    -   **Description**: The user requested a redesign of the  component to remove the image and align it with the new text-only aesthetic. This was implemented.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: N
-    -   **Why fix this issue and what will be achieved with the fix?**: This brings a core, persistent UI element in line with the new app-wide design system.
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
-None. The main focus is the upcoming task.
+-   **Task 1**: Finish Admin UI for Legal Pages (P0)
+    -   **Description**: This is the continuation of the . The UI is served, but the form doesn't save data.
+    -   **Where to resume**:
+        1.  In , enhance the  endpoint to handle  requests.
+        2.  The  logic should retrieve the  and  from the form data.
+        3.  Update the corresponding document in the  MongoDB collection using  with upsert=True.
+        4.  In , ensure the form  and  are correctly set up to submit the data.
+    -   **What will be achieved with this?**: The user will be able to manage the content of the Privacy Policy and Terms of Use pages without needing developer intervention.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) Redesign Page Cours**: The highest priority task. Completely rewrite  to implement the new, highly detailed design for the course list page. The specification is in message #328 of the previous session.
-    -   **(P1) Sync New Géographes Cursus**: Sync the new cursus audios from the R2 bucket.
-    -   **(P1) Implement Ressources and Profs Tabs**: Implement the content for the other tabs on the newly designed Page Cours.
-    -   **(P2) Apply Paywall**: Implement the  hook on all premium content screens.
+    -   **(P0) Connect Ma Bibliothèque to Real Data**: The Ma Bibliothèque page currently shows static, hardcoded data. This task involves fetching the user's actual in-progress and saved episodes from the backend and displaying them. This was requested by the user in message #333.
+    -   **(P0) Connect Profil Page to Real Data**: The user profile page also shows static data. This involves fetching and displaying real user statistics (courses followed, listening time, etc.). This was also requested in message #333.
+    -   **(P1) Implement Ressources and Profs Tabs**: Implement the content for the Ressources and Professeurs tabs on the  page.
+    -   **(P1) Sync New Géographes Cursus**: Sync new audio content for a Géographes cursus from the R2 bucket.
+    -   **(P2) Apply Paywall**: Implement the  hook on all premium content screens to restrict access for non-subscribed users.
 -   **Future Tasks:**
-    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure (routers, services).
-    -   **(P2) Implement Continue Watching Section**: Properly implement a Continue Watching feature on the homepage.
+    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure (e.g., routers, services, models).
     -   **(P2) Implement Push Notifications**.
 
 **Completed work in this session**
--   **Homepage Finalization**: Implemented the final text-only homepage design, including a customizable hero section, horizontal carousels, and a vertical Top 5 list.
--   **Audio Player Redesign**: Completely rewrote the full-screen audio player page () based on a detailed design spec, including a custom waveform visualizer.
--   **Admin Content Management**:
-    -   Enabled setting a Cursus (not just a Cours) as the featured hero item.
-    -   Unified the  and  fields so edits in the admin panel are correctly displayed.
-    -   **Fixed critical web admin panel bug** where edits were being sent to a non-existent endpoint () and silently failing.
--   **MiniPlayer Redesign**: Rewrote the persistent mini audio player to match the new text-only design system, removing the image and updating controls.
--   **UI Polish**: Added requested hover effects for the Top 5 list and episode cards.
--   **Navigation Fixes**: Corrected navigation logic for clicking on the featured hero item.
+-   **Page Redesigns (Prestige Style)**:
+    -   **Cursus Detail Page** (): Implemented the complex, multi-section page with a hero, sticky tabs, and an accordion for course listings. Validated with the testing agent.
+    -   **Course Detail Page** (): Rewrote the page to match the prestige design, ensuring consistent navigation from the homepage.
+    -   **Cursus List Tab** (): Redesigned the main tab for browsing all Cursus, including dynamic progress bars.
+    -   **Professors Tab & Detail Page** (, ): Redesigned the professor list with search functionality and the individual professor detail page.
+    -   **User Library Tab** (): Redesigned the user's personal library page with sections for in-progress and saved items (using static data for now).
+-   **UI/UX Fixes**:
+    -   **Tab Renaming**: Renamed Profs to Professeurs and Biblio to Bibliothèque in the main navigation.
+    -   **Missing Back Button**: Added a back button to the Mon abonnement page.
+    -   **Profile Tab**: Reinstated the Profile tab in the bottom navigation after it was accidentally hidden.
+-   **Admin & Backend**:
+    -   **Mobile Admin Removal**: Deleted the confusing in-app mobile admin panel.
+    -   **Legal Pages**: Created dynamic pages () and started building the backend admin interface to manage their content.
+-   **Data**:
+    -   Assigned Prof. Meryem Sebti to all courses in Cursus A as requested.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue deferred from a previous session.
+-   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue deferred from a previous session where this name appeared unexpectedly.
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Frontend environment instability (Metro bundler cache).
--   **Recurrence count**: 4+
--   **Status**: RESOLVED (Workaround). Using Expo Web and manually clearing the bundler cache when necessary has proven to be a stable solution.
+-   None. The agent successfully managed cache issues by restarting the bundler.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React Native, Expo (Web Mode),  for file-based routing.
--   **Backend**: FastAPI, Python, Jinja2 for HTML templates.
+-   **Frontend**: React Native (Expo Web),  for file-based routing.
+-   **Backend**: FastAPI, Python.
 -   **Database**: MongoDB.
--   **Styling**: Centralized theme object defining a strict design system (specific fonts, colors, no ).
+-   **Styling**: A strict, custom prestige design system enforced via a global theme and inline styles (Cinzel/EB Garamond fonts, dark theme, specific colors, no ).
 
 **key DB schema**
--   : Contains fields like , , and color codes.
--   : Contains fields like ,  (, , ).
--   : Contains  and other metadata.
-
-**changes in tech stack**
--   None.
+-   : Contains , , , etc.
+-   : Contains , , .
+-   : Contains  and metadata.
+-   : **(New)**  to store editable legal text.
 
 **All files of reference**
--   ** (from message #328)**: **CRITICAL**. This is the source of truth for the immediate next task.
--   : The file that must be completely rewritten.
--   : A good reference for the completed homepage implementation.
--   : A good reference for the completed player page implementation.
--   : Contains all supporting API endpoints.
+-   **Core Frontend Pages (Redesigned)**:
+    -   
+    -   
+    -   
+    -   
+    -   
+    -   
+-   **Core Backend File**:
+    -   
+-   **Admin Panel Files (Modified/New)**:
+    -   
+    -   
+-   **Component for Verification**:
+    -   
 
 **Areas that need refactoring**:
--    is a large monolith that would benefit from being split into separate routers.
--   The dual admin panel setup is a source of user confusion and should be unified.
+-   The Ma Bibliothèque () and Profil () pages are using hardcoded static data and need to be connected to backend APIs.
+-    remains a large monolith.
 
 **key api endpoints**
--   : **(FIX)** An alias for  created to fix the web admin panel save bug.
--   : Returns data for the homepage hero, carousels, and Top 5 list.
--   : (Implicitly needed) Endpoint to fetch all data for the Cursus detail page, including all its courses and their statuses. This may need to be created or enhanced.
+-   : **(NEW)** Fetches content for the legal pages.
+-   : **(NEW)** Serves the admin editor for legal pages.
+-   : **(NEEDS IMPLEMENTATION)** Endpoint to save updates to legal page content.
+-   : Returns data for the homepage.
+-   : Returns list of all cursus.
+-   : Returns list of all professors.
 
 **Critical Info for New Agent**
--   Your **first and only priority** is to implement the user's latest request: a complete redesign of the **Page Cours**. The extremely detailed specification for this is in message #328 from the previous chat. This page () is complex, involving an accordion layout, multiple states for each course, and a custom hero header that overlays the status bar.
--   All new development must strictly adhere to the established prestige design system: Cinzel/EB Garamond fonts, the specific color palette, and **no border-radius** on any elements except circular icons/buttons.
--   Be aware of the **admin panel confusion**. The user should be directed to  for the full-featured web panel. The in-app  is limited and has caused problems. A permanent fix should be considered.
--   Before starting the major redesign, it would be beneficial to quickly confirm with the user that the two recently completed but unverified items (**MiniPlayer redesign** and **Top 5 hover effect**) meet their expectations.
+-   Your immediate priorities are based on the user's message #333:
+    1.  **Finish the admin UI for legal pages**: Implement the  handler in  to save the content from the editor.
+    2.  **Connect Ma Bibliothèque to real data**: Replace the static content with data fetched from the backend (in-progress and saved episodes).
+    3.  **Connect Profil page to real data**: Replace static stats with dynamic user data.
+-   After completing these, seek user verification for the latest  design. It's a recurring point of feedback.
+-   The user is extremely detail-oriented and provides comprehensive design briefs. Adhere to them with precision. The prestige design system (Cinzel/EB Garamond, dark theme, specific colors, no border-radius) is non-negotiable.
 
 **documents and test reports created in this job**
--    (updated)
--   Multiple test reports in , with the latest likely being  or higher.
+-    (updated multiple times)
+-    (from testing the Page Cours redesign)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports the admin panel link is wrong and sends him to the mobile app.
-2.  **Agent**: Provides the correct link for the web admin panel ().
-3.  **User**: Reports that edits to a Cursus description in the admin panel are not appearing on the homepage hero section.
-4.  **Agent**: Investigates, finds two separate bugs (a non-existent save endpoint and the frontend using the wrong data field), and fixes them.
-5.  **Agent**: Confirms the fix is working and explains the resolution.
-6.  **User**: Happy with the fix. Requests two new UI tweaks: a white halo hover effect for the Top 5 list and a redesign of the mini audio player to match the new text-only aesthetic.
-7.  **Agent**: Implements both UI tweaks.
-8.  **Agent**: Confirms completion of the two tweaks.
-9.  **User**: Provides a new, multi-page, highly detailed design specification for the Page Cours (the page that lists courses within a Cursus).
-10. **Agent**: Acknowledges the new major task and creates a plan to implement it.
+1.  **User**: Asks to rename the episode tab to ma bibliotheque and provides a detailed design spec for it.
+2.  **Agent**: Implements the new Ma Bibliothèque design.
+3.  **User**: Asks where the profile/settings tab went.
+4.  **Agent**: Explains options and restores the Profil tab as the 5th icon in the navigation bar.
+5.  **Agent**: Asks if the user wants to redesign the Profile page as well.
+6.  **User**: Reports several issues: legal links in profile do nothing, Mon abonnement page has no back button, course pages linked from a professor's page use the old design, and asks to set Prof. Sebti as the default for a Cursus. Also requests renaming tabs to full words (Professeurs, Bibliothèque).
+7.  **Agent**: Acknowledges all points and begins work.
+8.  **Agent**: Implements all fixes: adds back button, redesigns professor/scholar page, creates dynamic legal pages, renames tabs, and confirms professor data is already correct.
+9.  **Agent**: Presents a summary of all fixes and asks for next steps, referencing the user's 3-point request from a previous message.
+10. **User**: oui poursuis avec les points 1, 2 et 3 (Yes, continue with points 1, 2, and 3), referring to: 1) Admin for legal pages, 2) Dynamic data for Library, 3) Dynamic data for Profile.
 
 **Project Health Check:**
--   **Broken**:
-    -   The cursus detail page () is not implemented according to the user's requirements and needs a complete rewrite.
-    -   The admin panel workflow remains a point of recurring confusion for the user.
--   **Mocked**: N/A
+-   **Broken**: Nothing is critically broken, but key features are incomplete.
+-   **Mocked**:
+    -   The Ma Bibliothèque page is displaying static, hardcoded data instead of real user data.
+    -   The Profil page is also displaying static user statistics.
 
 **3rd Party Integrations**
 -   Cloudflare R2 (Audio storage)
@@ -153,9 +164,9 @@ None. The main focus is the upcoming task.
 -   Google Fonts (via  packages)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. Multiple test reports exist from validating the homepage and player page.
+-   **Testing agent used after significant changes**: YES, for the  page redesign.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Yes, in .
+-   **Test files created**: No new test files were created.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -166,5 +177,5 @@ None. The main focus is the upcoming task.
 -   **Test User Password**: 
 
 **What agent forgot to execute**
--   The agent has not yet implemented the user's latest and most critical request: the complete redesign of the Page Cours as specified in the last user message (#328).
--   The agent did not get explicit user verification for the two most recently completed UI tweaks (Top 5 hover effect and MiniPlayer redesign) before the session ended.</analysis>
+-   The agent correctly identified the user's next priorities (the 3 points) but only started the first one (admin UI for legal pages) before the session ended. The other two (connecting Library and Profile to real data) were acknowledged but not started.
+-   The agent did not get final, explicit user verification for the latest  redesign after the user's initial negative feedback. This remains an open loop.</analysis>

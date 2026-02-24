@@ -15,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://cursus-detail-ui.preview.emergentagent.com';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://sijill-preview.preview.emergentagent.com';
 
 export default function ProfilScreen() {
   const { user, logout } = useAuth();
