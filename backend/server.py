@@ -3245,6 +3245,89 @@ async def admin_panel_promos():
         raise HTTPException(404, "Template promos non trouve")
     return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
 
+# ─── Legal Pages API ──────────────────────────────────────────────────────────
+
+DEFAULT_LEGAL = {
+    "privacy": {
+        "title": "Politique de confidentialité",
+        "content": """**Dernière mise à jour : Février 2025**
+
+## 1. Introduction
+
+Sijill s'engage à protéger la confidentialité de vos données personnelles.
+
+## 2. Données collectées
+
+- Données d'identification : nom, prénom, adresse email
+- Données d'utilisation : historique d'écoute, progression, favoris
+- Données techniques : type d'appareil, système d'exploitation
+
+## 3. Utilisation des données
+
+Vos données sont utilisées pour personnaliser votre expérience d'apprentissage.
+
+## 4. Vos droits
+
+Conformément au RGPD, vous avez le droit d'accéder, rectifier et supprimer vos données.
+
+## 5. Contact
+
+Email : privacy@sijill.com"""
+    },
+    "terms": {
+        "title": "Conditions d'utilisation",
+        "content": """**Dernière mise à jour : Février 2025**
+
+## 1. Acceptation des conditions
+
+En utilisant l'application Sijill, vous acceptez les présentes conditions.
+
+## 2. Description du service
+
+Sijill est une plateforme d'apprentissage dédiée aux études islamiques.
+
+## 3. Propriété intellectuelle
+
+Tous les contenus sont protégés par le droit d'auteur.
+
+## 4. Contact
+
+Email : support@sijill.com"""
+    }
+}
+
+@api_router.get("/legal/{page_type}")
+async def get_legal_page(page_type: str):
+    """Get legal page content (privacy or terms)"""
+    if page_type not in ["privacy", "terms"]:
+        raise HTTPException(400, "Invalid page type")
+    
+    # Try to get from database
+    doc = await db.legal_pages.find_one({"type": page_type}, {"_id": 0})
+    if doc:
+        return {"title": doc.get("title", ""), "content": doc.get("content", "")}
+    
+    # Return default
+    return DEFAULT_LEGAL.get(page_type, DEFAULT_LEGAL["privacy"])
+
+@api_router.put("/admin/legal/{page_type}")
+async def update_legal_page(page_type: str, request: Request):
+    """Update legal page content (admin only)"""
+    if page_type not in ["privacy", "terms"]:
+        raise HTTPException(400, "Invalid page type")
+    
+    body = await request.json()
+    title = body.get("title", "")
+    content = body.get("content", "")
+    
+    await db.legal_pages.update_one(
+        {"type": page_type},
+        {"$set": {"type": page_type, "title": title, "content": content, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"success": True, "message": f"Page '{page_type}' mise à jour"}
+
 # ─── Health Check ──────────────────────────────────────────────────────────────
 
 @api_router.get("/health")
