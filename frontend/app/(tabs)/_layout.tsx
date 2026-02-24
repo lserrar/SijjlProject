@@ -58,13 +58,6 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="live"
-          options={{
-            title: 'Professeurs',
-            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'people' : 'people-outline'} focused={focused} />,
-          }}
-        />
-        <Tabs.Screen
           name="bibliotheque"
           options={{
             title: 'Bibliothèque',
@@ -72,10 +65,10 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="profil"
+          name="live"
           options={{
-            title: 'Profil',
-            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
+            title: 'Professeurs',
+            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'people' : 'people-outline'} focused={focused} />,
           }}
         />
         <Tabs.Screen
@@ -85,6 +78,8 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'information-circle' : 'information-circle-outline'} focused={focused} />,
           }}
         />
+        {/* Hidden screens - profil accessible via avatar en haut */}
+        <Tabs.Screen name="profil" options={{ href: null }} />
         {/* Hidden screens */}
         <Tabs.Screen name="explorer" options={{ href: null }} />
       </Tabs>
