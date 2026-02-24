@@ -60,14 +60,14 @@ export default function TabLayout() {
         <Tabs.Screen
           name="live"
           options={{
-            title: 'Profs',
+            title: 'Professeurs',
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'people' : 'people-outline'} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="bibliotheque"
           options={{
-            title: 'Biblio',
+            title: 'Bibliothèque',
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bookmark' : 'bookmark-outline'} focused={focused} />,
           }}
         />
