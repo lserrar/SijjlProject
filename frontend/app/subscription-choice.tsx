@@ -242,6 +242,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background.primary },
   container: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: 4,
+  },
+  backText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+
   header: { marginBottom: spacing.xl },
   logoSection: { flexDirection: 'row', alignItems: 'baseline', marginBottom: spacing.sm },
   logoMain: { fontFamily: 'Inter-Bold', fontSize: 32, color: colors.text.primary, letterSpacing: -1 },
