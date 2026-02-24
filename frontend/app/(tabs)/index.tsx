@@ -305,6 +305,53 @@ function Badge({ label }: { label: string }) {
   );
 }
 
+function Top5Row({ item: c, index: i, isLast, onPress }: { item: any; index: number; isLast: boolean; onPress: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const hoverProps = Platform.OS === 'web' ? {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  } : {};
+  return (
+    <TouchableOpacity
+      testID={`home-top5-${c.id}`}
+      style={[
+        s.top5Row,
+        !isLast && s.top5RowBorder,
+        Platform.OS === 'web' && hovered ? {
+          backgroundColor: '#1E1E1E',
+          boxShadow: '0 0 0 1px rgba(245,240,232,0.08), 0 4px 24px rgba(245,240,232,0.04)',
+        } as any : {},
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+      {...hoverProps}
+    >
+      <Text style={[
+        s.top5Rank,
+        { color: RANK_COLOR[i] || '#444444' },
+        i === 0 && Platform.OS === 'web' ? { textShadow: '0 0 16px rgba(201,168,76,0.35)' } as any : {},
+      ]}>
+        {i + 1}
+      </Text>
+      <View style={s.top5Info}>
+        <Text style={[s.top5Label, { color: c.cursus_color || '#04D182' }]}>
+          {`CURSUS ${c.cursus_letter || 'A'}`}
+        </Text>
+        <Text style={s.top5Title} numberOfLines={2}>{c.title}</Text>
+        {c.scholar_name ? (
+          <Text style={s.top5Author} numberOfLines={1}>Prof. {c.scholar_name}</Text>
+        ) : null}
+      </View>
+      <View style={s.top5Right}>
+        {i === 0 && <Badge label="Nº1" />}
+        {i === 1 && <Badge label="↑ 3" />}
+        {i === 4 && <Badge label="Nouveau" />}
+        {c.duration > 0 && <Text style={s.top5Duration}>{fmtDur(c.duration)}</Text>}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const EP_W = Math.max(150, Math.min(SW * 0.42, 180));
 const RECO_W = Math.max(170, Math.min(SW * 0.48, 200));
