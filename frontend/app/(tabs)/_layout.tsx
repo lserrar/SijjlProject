@@ -60,8 +60,8 @@ export default function TabLayout() {
         <Tabs.Screen
           name="bibliotheque"
           options={{
-            title: 'Épisodes',
-            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'play-circle' : 'play-circle-outline'} focused={focused} />,
+            title: 'Biblio',
+            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bookmark' : 'bookmark-outline'} focused={focused} />,
           }}
         />
         <Tabs.Screen
