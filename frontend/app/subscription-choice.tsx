@@ -100,6 +100,15 @@ export default function SubscriptionChoiceScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
+        {/* Back button */}
+        <TouchableOpacity 
+          style={styles.backBtn}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.text.secondary} />
+          <Text style={styles.backText}>Retour</Text>
+        </TouchableOpacity>
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
