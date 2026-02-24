@@ -78,6 +78,13 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
           }}
         />
+        <Tabs.Screen
+          name="about"
+          options={{
+            title: 'À propos',
+            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'information-circle' : 'information-circle-outline'} focused={focused} />,
+          }}
+        />
         {/* Hidden screens */}
         <Tabs.Screen name="explorer" options={{ href: null }} />
       </Tabs>
