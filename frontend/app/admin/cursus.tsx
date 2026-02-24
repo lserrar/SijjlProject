@@ -162,23 +162,29 @@ export default function AdminCursus() {
 
           {isCurrentlyEditing && (
             <View style={styles.editSection}>
-              <Text style={styles.editLabel}>Titre hero (affiché en grand sur la page d'accueil)</Text>
+              <Text style={styles.editLabel}>Titre personnalisé (optionnel)</Text>
+              <Text style={[styles.editLabel, { color: '#555', marginTop: -4, marginBottom: 6, fontSize: 10, letterSpacing: 0.5 }]}>
+                Affiché à la place du nom dans le bandeau héro uniquement
+              </Text>
               <TextInput
                 style={styles.input}
                 value={heroTitle}
                 onChangeText={setHeroTitle}
-                placeholder="Ex: La Falsafa — Philosophie de l'Islam classique"
+                placeholder="Laissez vide pour utiliser le nom du cursus"
                 placeholderTextColor={colors.text.tertiary}
               />
-              <Text style={styles.editLabel}>Description hero (paragraphe descriptif)</Text>
+              <Text style={styles.editLabel}>Description</Text>
+              <Text style={[styles.editLabel, { color: '#555', marginTop: -4, marginBottom: 6, fontSize: 10, letterSpacing: 0.5 }]}>
+                S'affiche dans le héro ET sur la page du cursus
+              </Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={heroDescription}
                 onChangeText={setHeroDescription}
-                placeholder="Ex: D'Al-Kindī à Averroès, sept siècles de pensée..."
+                placeholder="Décrivez ce cursus en quelques phrases..."
                 placeholderTextColor={colors.text.tertiary}
                 multiline
-                numberOfLines={3}
+                numberOfLines={4}
               />
               <TouchableOpacity
                 style={[styles.saveBtn, saving && { opacity: 0.6 }]}
