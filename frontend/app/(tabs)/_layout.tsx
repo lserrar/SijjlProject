@@ -58,13 +58,6 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="bibliotheque"
-          options={{
-            title: 'Biblio',
-            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bookmark' : 'bookmark-outline'} focused={focused} />,
-          }}
-        />
-        <Tabs.Screen
           name="live"
           options={{
             title: 'Profs',
@@ -72,13 +65,14 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="about"
+          name="bibliotheque"
           options={{
             title: 'Biblio',
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bookmark' : 'bookmark-outline'} focused={focused} />,
           }}
         />
         {/* Hidden screens */}
+        <Tabs.Screen name="about" options={{ href: null }} />
         <Tabs.Screen name="profil" options={{ href: null }} />
         <Tabs.Screen name="explorer" options={{ href: null }} />
       </Tabs>
