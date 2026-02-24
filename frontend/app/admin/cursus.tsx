@@ -70,7 +70,7 @@ export default function AdminCursus() {
   const handleStartEdit = (c: Cursus) => {
     setEditing(c.id);
     setHeroTitle(c.hero_title || '');
-    setHeroDescription(c.hero_description || '');
+    setHeroDescription(c.hero_description || c.description || '');
   };
 
   const handleSaveHeroText = async (cursusId: string) => {
@@ -80,6 +80,8 @@ export default function AdminCursus() {
         method: 'PUT',
         body: JSON.stringify({
           hero_title: heroTitle.trim() || null,
+          // Save to both description (visible everywhere) and hero_description for compat
+          description: heroDescription.trim() || null,
           hero_description: heroDescription.trim() || null,
         }),
       });
