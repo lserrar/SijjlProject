@@ -1316,6 +1316,9 @@ async def get_user_library(request: Request):
                 if saved_at:
                     if isinstance(saved_at, str):
                         saved_at = datetime.fromisoformat(saved_at.replace('Z', '+00:00'))
+                    # Ensure saved_at is timezone-aware
+                    if saved_at.tzinfo is None:
+                        saved_at = saved_at.replace(tzinfo=timezone.utc)
                     days_ago = (datetime.now(timezone.utc) - saved_at).days
                     if days_ago == 0:
                         saved_date = "Aujourd'hui"
