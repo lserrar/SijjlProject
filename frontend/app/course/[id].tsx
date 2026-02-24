@@ -1,85 +1,187 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Dimensions, Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, useAuth } from '../../context/AuthContext';
-import { colors, spacing, radius } from '../../constants/theme';
-import { formatCourseDuration, getLevelColor } from '../../constants/mockData';
 import { Ionicons } from '@expo/vector-icons';
 import { useAccessCheck } from '../../hooks/useAccessCheck';
-import { PaywallOverlay } from '../../components/PaywallOverlay';
 
+const { width: SW } = Dimensions.get('window');
+const STATUS_BAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
+
+const CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const CURSUS_COLORS: Record<string, string> = {
+  A: '#04D182',
+  B: '#8B5CF6',
+  C: '#F59E0B',
+  D: '#EC4899',
+  E: '#06B6D4',
+  F: '#C9A84C',
+};
+
+type EpisodeStatus = 'todo' | 'active' | 'done';
+
+interface Episode {
+  id: string;
+  number: number;
+  title: string;
+  duration: number;
+  status: EpisodeStatus;
+}
+
+function fmtDur(s: number): string {
+  if (!s) return '';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h}h ${m > 0 ? m + 'min' : ''}`.trim();
+  return `${m} min`;
+}
+
+function fmtDurShort(s: number): string {
+  if (!s) return '';
+  const m = Math.floor(s / 60);
+  return `${m} min`;
+}
+
+// ─── Episode Play Button Component ────────────────────────────────────────────
+function EpisodePlayBtn({ status, color, size = 28, isLocked = false }: { status: EpisodeStatus; color: string; size?: number; isLocked?: boolean }) {
+  if (isLocked) {
+    return (
+      <View style={[styles.epPlayBtn, { width: size, height: size, backgroundColor: '#222222' }]}>
+        <Ionicons name="lock-closed" size={10} color="#555555" />
+      </View>
+    );
+  }
+  if (status === 'todo') {
+    return (
+      <View style={[styles.epPlayBtn, { width: size, height: size, backgroundColor: '#222222' }]}>
+        <Ionicons name="play" size={10} color="#777777" style={{ marginLeft: 1 }} />
+      </View>
+    );
+  }
+  if (status === 'active') {
+    return (
+      <View style={[styles.epPlayBtn, { width: size, height: size, backgroundColor: color }]}>
+        <Ionicons name="pause" size={10} color="#0A0A0A" />
+      </View>
+    );
+  }
+  // done
+  return (
+    <View style={[
+      styles.epPlayBtn,
+      { width: size, height: size, backgroundColor: `${color}1F`, borderWidth: 1, borderColor: `${color}4D` },
+    ]}>
+      <Ionicons name="checkmark" size={12} color={color} />
+    </View>
+  );
+}
+
+// ─── Progress Bar Component ───────────────────────────────────────────────────
+function ProgressBar({ progress, color, height = 2 }: { progress: number; color: string; height?: number }) {
+  return (
+    <View style={[styles.progressTrack, { height }]}>
+      <View style={[styles.progressFill, { width: `${Math.min(100, progress)}%`, backgroundColor: color }]} />
+    </View>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+
   const [course, setCourse] = useState<any>(null);
+  const [cursus, setCursus] = useState<any>(null);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [userProgress, setUserProgress] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [modules, setModules] = useState<any[]>([]);
-  const [moduleAudios, setModuleAudios] = useState<{ [moduleId: string]: any }>({});
-  const [relatedResources, setRelatedResources] = useState<{
-    bibliographies: any[];
-  }>({ bibliographies: [] });
-  
-  // Check if user has access to this course
-  const { hasAccess, reason, loading: accessLoading } = useAccessCheck('course', id);
 
-  useEffect(() => {
-    loadCourse();
-    loadModules();
-    loadRelatedResources();
-  }, [id]);
+  const { hasAccess, loading: accessLoading } = useAccessCheck('course', id);
 
-  const loadCourse = async () => {
+  // Derive cursus letter and color
+  const cursusOrder = cursus?.order || 1;
+  const cursusLetter = CURSUS_LETTERS[Math.max(0, Math.min(cursusOrder - 1, CURSUS_LETTERS.length - 1))];
+  const cursusColor = CURSUS_COLORS[cursusLetter] || '#04D182';
+
+  // ─── Load Data ──────────────────────────────────────────────────────────────
+  const loadData = useCallback(async () => {
     try {
-      const resp = await apiRequest(`/courses/${id}`, token);
-      const data = await resp.json();
-      setCourse(data);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
+      const [courseRes, playlistRes, progressRes, allCursusRes] = await Promise.all([
+        apiRequest(`/courses/${id}`, token),
+        apiRequest(`/courses/${id}/playlist`, token),
+        token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
+        apiRequest('/cursus', token),
+      ]);
 
-  const loadModules = async () => {
-    try {
-      const resp = await apiRequest(`/modules?course_id=${id}`, token);
-      if (!resp.ok) return;
-      const mods = await resp.json();
-      setModules(mods);
-      // Fetch audios for each module in parallel
-      const audioEntries = await Promise.all(
-        mods.map(async (m: any) => {
-          try {
-            const ar = await apiRequest(`/audios?module_id=${m.id}`, token);
-            if (!ar.ok) return [m.id, null];
-            const audios = await ar.json();
-            return [m.id, audios.length > 0 ? audios[0] : null];
-          } catch { return [m.id, null]; }
-        })
-      );
-      setModuleAudios(Object.fromEntries(audioEntries));
-    } catch (e) { console.error('Error loading modules:', e); }
-  };
+      if (courseRes.ok) {
+        const courseData = await courseRes.json();
+        setCourse(courseData);
 
-  const loadRelatedResources = async () => {
-    try {
-      const biblioResp = await apiRequest('/bibliographies', token).catch(() => ({ ok: false }));
-      if (biblioResp.ok) {
-        const biblios = await biblioResp.json();
-        setRelatedResources({ bibliographies: biblios.slice(0, 3) });
+        // Find the cursus for this course
+        if (allCursusRes.ok) {
+          const allCursus = await allCursusRes.json();
+          const foundCursus = allCursus.find((c: any) => 
+            c.id === courseData.cursus_id || c.id === courseData.thematique_id
+          );
+          setCursus(foundCursus);
+        }
       }
-    } catch (e) { console.error('Error loading related resources:', e); }
-  };
 
+      // Build progress map
+      const progressMap: Record<string, any> = {};
+      if (progressRes.ok) {
+        const progressData = await progressRes.json();
+        (progressData || []).forEach((p: any) => {
+          progressMap[p.content_id] = p;
+        });
+      }
+      setUserProgress(progressMap);
+
+      // Process playlist into episodes
+      if (playlistRes.ok) {
+        const playlist = await playlistRes.json();
+        const eps: Episode[] = playlist.map((ep: any, idx: number) => {
+          const epProgress = progressMap[ep.audio_id];
+          let epStatus: EpisodeStatus = 'todo';
+          
+          if (epProgress) {
+            if (epProgress.completed || epProgress.progress >= 0.9) {
+              epStatus = 'done';
+            } else if (epProgress.progress > 0) {
+              epStatus = 'active';
+            }
+          }
+          
+          return {
+            id: ep.audio_id,
+            number: idx + 1,
+            title: ep.module_name || ep.audio_title || `Épisode ${idx + 1}`,
+            duration: ep.duration || 0,
+            status: epStatus,
+          };
+        });
+        setEpisodes(eps);
+      }
+    } catch (e) {
+      console.error('Load course detail error:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [id, token]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleRefresh = () => { setRefreshing(true); loadData(); };
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleFavorite = async () => {
     if (!token) return;
     if (isFavorite) {
@@ -94,306 +196,592 @@ export default function CourseDetailScreen() {
     }
   };
 
-  if (loading || accessLoading) return <View style={styles.loading}><ActivityIndicator size="large" color={colors.brand.primary} /></View>;
+  const goToEpisode = (episodeId: string, autoplay: boolean = true) => {
+    router.push(`/audio/${episodeId}?course_id=${id}&autoplay=${autoplay ? '1' : '0'}` as any);
+  };
+
+  const handleStart = () => {
+    // Find first non-completed episode, or first episode
+    const currentEp = episodes.find(e => e.status === 'active') || 
+                      episodes.find(e => e.status === 'todo') || 
+                      episodes[0];
+    if (currentEp) {
+      goToEpisode(currentEp.id, true);
+    }
+  };
+
+  // ─── Computed Stats ─────────────────────────────────────────────────────────
+  const completedEpisodes = episodes.filter(e => e.status === 'done').length;
+  const totalDuration = episodes.reduce((sum, e) => sum + e.duration, 0);
+  const courseProgress = episodes.length > 0 ? Math.round((completedEpisodes / episodes.length) * 100) : 0;
+  const currentEpisodeNum = episodes.findIndex(e => e.status === 'active') + 1 || 
+                           (completedEpisodes < episodes.length ? completedEpisodes + 1 : episodes.length);
+  const remainingDuration = totalDuration * (1 - courseProgress / 100);
+
+  // Scholar initials
+  const scholarInitials = course?.scholar_name
+    ? course.scholar_name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+    : '';
+
+  // ─── Loading State ──────────────────────────────────────────────────────────
+  if (loading || accessLoading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color="#04D182" />
+      </View>
+    );
+  }
+
   if (!course) return null;
 
-  const displayModules = modules.length > 0 ? modules : Array.from({ length: course.modules_count || 5 }, (_, i) => ({
-    id: `placeholder-${i}`,
-    name: `Module ${i + 1}`,
-    order: i + 1,
-  }));
-
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <View style={styles.hero}>
-          <Image source={{ uri: course.thumbnail }} style={styles.heroImage} />
-          <LinearGradient colors={['transparent', '#121212']} style={styles.heroGradient}>
-            <TouchableOpacity testID="course-back-btn" style={styles.backBtn} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-        <View style={styles.content}>
-          {/* Metadata */}
-          <View style={styles.metaRow}>
-            <View style={[styles.levelBadge, { borderColor: getLevelColor(course.level) }]}>
-              <Text style={[styles.levelText, { color: getLevelColor(course.level) }]}>{course.level}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color={colors.text.secondary} />
-              <Text style={styles.metaText}>{formatCourseDuration(course.duration)}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="list-outline" size={14} color={colors.text.secondary} />
-              <Text style={styles.metaText}>{course.modules_count} modules</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={cursusColor} />
+        }
+      >
+        {/* ═══════════════════════════════════════════════════════════════════════
+            1. HERO COURSE
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.hero}>
+          {/* Radial glow effect */}
+          <View style={[styles.heroGlow, { backgroundColor: `${cursusColor}12` }]} pointerEvents="none" />
+          
+          {/* Left border gradient */}
+          <View style={[styles.heroLeftBorder, { backgroundColor: cursusColor }]} />
+
+          {/* Navigation */}
+          <View style={[styles.heroNav, { paddingTop: STATUS_BAR_HEIGHT + 10 }]}>
+            <TouchableOpacity
+              testID="course-back-btn"
+              style={styles.backBtn}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="chevron-back" size={18} color="rgba(245,240,232,0.6)" />
+              <Text style={styles.backLabel}>Cours</Text>
+            </TouchableOpacity>
+            <View style={styles.heroNavRight}>
+              <TouchableOpacity style={styles.navIconBtn} onPress={handleFavorite}>
+                <Ionicons 
+                  name={isFavorite ? 'bookmark' : 'bookmark-outline'} 
+                  size={18} 
+                  color={isFavorite ? '#C9A84C' : 'rgba(245,240,232,0.6)'} 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.navIconBtn}>
+                <Ionicons name="ellipsis-horizontal" size={18} color="rgba(245,240,232,0.6)" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <Text style={styles.title}>{course.title}</Text>
+          {/* Eyebrow */}
+          <View style={styles.heroEyebrow}>
+            <View style={[styles.heroEyebrowLine, { backgroundColor: cursusColor }]} />
+            <Text style={[styles.heroEyebrowText, { color: cursusColor }]}>
+              Cursus {cursusLetter} · {cursus?.name?.split(' ')[0] || 'Cours'}
+            </Text>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.heroTitle} testID="course-title">
+            {course.title}
+          </Text>
 
           {/* Scholar */}
-          <TouchableOpacity
-            testID="course-scholar-btn"
-            style={styles.scholarRow}
-            onPress={() => router.push(`/scholar/${course.scholar_id}` as any)}
-          >
-            <View style={styles.scholarAvatar}>
-              <Text style={styles.scholarInitial}>{course.scholar_name?.[0] || 'S'}</Text>
-            </View>
-            <View>
-              <Text style={styles.scholarLabel}>Enseignant</Text>
-              <Text style={styles.scholarName}>{course.scholar_name}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} style={{ marginLeft: 'auto' }} />
-          </TouchableOpacity>
-
-          {/* CTA */}
-          <TouchableOpacity
-            testID="course-start-btn"
-            style={styles.startBtn}
-            onPress={() => {
-              const firstMod = displayModules.find((m: any) => moduleAudios[m.id]);
-              const firstAudio = firstMod ? moduleAudios[firstMod.id] : null;
-              if (firstAudio) {
-                router.push(`/audio/${firstAudio.id}?course_id=${id}&autoplay=1` as any);
-              }
-            }}
-          >
-            <Ionicons name="play" size={18} color="#000" />
-            <Text style={styles.startBtnText}>Commencer le cours</Text>
-          </TouchableOpacity>
-          {!hasAccess && (
-            <TouchableOpacity
-              testID="course-subscribe-btn"
-              style={[styles.startBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border.default, marginTop: 10 }]}
-              onPress={() => router.push('/subscription-choice' as any)}
+          {course.scholar_name && (
+            <TouchableOpacity 
+              style={styles.scholarRow}
+              onPress={() => router.push(`/scholar/${course.scholar_id}` as any)}
             >
-              <Ionicons name="lock-closed" size={16} color={colors.text.secondary} />
-              <Text style={[styles.startBtnText, { color: colors.text.secondary }]}>S'abonner pour accès complet</Text>
+              <View style={[styles.scholarAvatar, { backgroundColor: `${cursusColor}1A` }]}>
+                <Text style={[styles.scholarInitials, { color: cursusColor }]}>{scholarInitials}</Text>
+              </View>
+              <Text style={styles.scholarName}>{course.scholar_name}</Text>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            testID="course-favorite-btn"
-            style={[styles.favoriteBtn, isFavorite && styles.favoriteBtnActive]}
-            onPress={handleFavorite}
-          >
-            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={18} color={isFavorite ? '#000' : colors.brand.primary} />
-            <Text style={[styles.favoriteBtnText, isFavorite && { color: '#000' }]}>
-              {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
-            </Text>
-          </TouchableOpacity>
+          {/* Description */}
+          {course.description && (
+            <Text style={styles.heroDesc} numberOfLines={3}>{course.description}</Text>
+          )}
 
-          {/* About */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>À propos de ce cours</Text>
-            <Text style={styles.descText}>{course.description}</Text>
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>{episodes.length}</Text>
+              <Text style={styles.statLabel}>Épisodes</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>{fmtDur(totalDuration)}</Text>
+              <Text style={styles.statLabel}>Durée</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBlock}>
+              <Text style={[styles.statValue, { color: cursusColor }]}>{courseProgress}%</Text>
+              <Text style={styles.statLabel}>Complété</Text>
+            </View>
           </View>
 
-          {/* Tags */}
-          {course.tags?.length > 0 && (
-            <View style={styles.tagsRow}>
-              {course.tags.map((tag: string) => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
+          {/* Course Progress Bar */}
+          {courseProgress > 0 && (
+            <View style={styles.courseProgressWrap}>
+              <ProgressBar progress={courseProgress} color={cursusColor} height={2} />
+              <Text style={[styles.courseProgressText, { color: cursusColor }]}>
+                {courseProgress}% complété · {fmtDur(remainingDuration)} restantes
+              </Text>
             </View>
           )}
 
-          {/* Modules */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Programme ({displayModules.length} module{displayModules.length > 1 ? 's' : ''})</Text>
-            {!hasAccess && (
-              <View style={styles.accessWarning}>
-                <Ionicons name="information-circle" size={16} color={colors.brand.primary} />
-                <Text style={styles.accessWarningText}>
-                  Abonnez-vous pour accéder à l'intégralité du cours
+          {/* Action Buttons */}
+          <View style={styles.heroBtns}>
+            <TouchableOpacity
+              testID="course-start-btn"
+              style={[styles.btnPrimary, { backgroundColor: cursusColor }]}
+              onPress={handleStart}
+            >
+              <Ionicons name="play" size={14} color="#0A0A0A" />
+              <Text style={styles.btnPrimaryText}>
+                {courseProgress > 0 ? 'Continuer' : 'Commencer'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.btnSecondary}
+              onPress={handleFavorite}
+            >
+              <Ionicons name={isFavorite ? 'bookmark' : 'bookmark-outline'} size={14} color="#C9A84C" />
+              <Text style={styles.btnSecondaryText}>
+                {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            2. EPISODES LIST
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.episodesContainer}>
+          <Text style={styles.sectionLabel}>{episodes.length} Épisodes</Text>
+
+          {!hasAccess && (
+            <View style={styles.accessWarning}>
+              <Ionicons name="lock-closed" size={14} color={cursusColor} />
+              <Text style={[styles.accessWarningText, { color: cursusColor }]}>
+                Abonnez-vous pour accéder à l'intégralité du cours
+              </Text>
+            </View>
+          )}
+
+          {episodes.map((ep, idx) => {
+            const isLocked = !hasAccess && idx > 0;
+            const isPreview = !hasAccess && idx === 0;
+            
+            return (
+              <TouchableOpacity
+                key={ep.id}
+                testID={`course-episode-${ep.id}`}
+                style={[
+                  styles.episodeRow,
+                  idx < episodes.length - 1 && styles.episodeRowBorder,
+                  ep.status === 'active' && styles.episodeRowActive,
+                ]}
+                onPress={() => !isLocked && goToEpisode(ep.id)}
+                disabled={isLocked}
+                activeOpacity={isLocked ? 1 : 0.7}
+              >
+                <Text style={[
+                  styles.episodeNum,
+                  { color: ep.status === 'active' ? cursusColor : isLocked ? '#333' : '#444444' },
+                ]}>
+                  {String(ep.number).padStart(2, '0')}
                 </Text>
-              </View>
-            )}
-            {displayModules.map((mod: any, idx: number) => {
-              const audio = moduleAudios[mod.id];
-              const isLocked = !hasAccess && idx > 0;
-              const isPreview = !hasAccess && idx === 0;
-              return (
-                <TouchableOpacity
-                  key={mod.id}
-                  testID={`course-module-${mod.id}`}
-                  style={styles.moduleRow}
-                  disabled={isLocked}
-                  onPress={() => {
-                    if (audio && !isLocked) {
-                      router.push(`/audio/${audio.id}` as any);
-                    }
-                  }}
-                >
-                  <View style={[styles.moduleIcon, isLocked && styles.moduleIconLocked]}>
-                    <Ionicons
-                      name={isLocked ? 'lock-closed' : (audio ? 'play' : 'headset')}
-                      size={14}
-                      color={isLocked ? colors.text.tertiary : '#000'}
-                    />
-                  </View>
-                  <View style={styles.moduleInfo}>
-                    <Text style={[styles.moduleTitle, isLocked && styles.moduleTitleLocked]} numberOfLines={2}>
-                      {mod.name || mod.title}
+                <View style={styles.episodeInfo}>
+                  <Text style={[
+                    styles.episodeTitle,
+                    { color: isLocked ? 'rgba(245,240,232,0.35)' : ep.status === 'active' ? '#F5F0E8' : 'rgba(245,240,232,0.75)' },
+                  ]} numberOfLines={2}>
+                    {ep.title}
+                  </Text>
+                  <View style={styles.episodeMeta}>
+                    <Text style={[
+                      styles.episodeDuration,
+                      { color: ep.status === 'active' ? cursusColor : '#777777' },
+                    ]}>
+                      {fmtDurShort(ep.duration)}
                     </Text>
-                    {audio && (
-                      <Text style={styles.moduleDuration}>Épisode 1</Text>
+                    {isPreview && (
+                      <View style={[styles.freeBadge, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Text style={[styles.freeBadgeText, { color: cursusColor }]}>Aperçu gratuit</Text>
+                      </View>
+                    )}
+                    {ep.status === 'active' && (
+                      <View style={[styles.activeBadge, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Text style={[styles.activeBadgeText, { color: cursusColor }]}>En cours</Text>
+                      </View>
                     )}
                   </View>
-                  {isPreview && (
-                    <View style={styles.freeBadge}>
-                      <Text style={styles.freeBadgeText}>Aperçu gratuit</Text>
-                    </View>
-                  )}
-                  {audio && !isLocked && (
-                    <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Related Resources Section */}
-          {relatedResources.bibliographies.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Ressources liées</Text>
-              <View style={styles.resourceCategory}>
-                <View style={styles.resourceHeader}>
-                  <Ionicons name="book-outline" size={18} color={colors.brand.primary} />
-                  <Text style={styles.resourceLabel}>Bibliographie</Text>
                 </View>
-                {relatedResources.bibliographies.map((biblio: any) => (
-                  <TouchableOpacity key={biblio.id} style={styles.resourceItem}>
-                    <View style={styles.resourceIcon}>
-                      <Ionicons name="document-text" size={16} color={colors.text.secondary} />
-                    </View>
-                    <View style={styles.resourceInfo}>
-                      <Text style={styles.resourceTitle} numberOfLines={1}>{biblio.title}</Text>
-                      <Text style={styles.resourceMeta}>{biblio.author}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+                <EpisodePlayBtn status={ep.status} color={cursusColor} size={28} isLocked={isLocked} />
+              </TouchableOpacity>
+            );
+          })}
+
+          {episodes.length === 0 && (
+            <Text style={styles.emptyText}>Aucun épisode disponible pour ce cours.</Text>
           )}
         </View>
 
-        <View style={{ height: 80 }} />
+        {/* ═══════════════════════════════════════════════════════════════════════
+            3. ABOUT SECTION
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {course.description && (
+          <View style={styles.aboutSection}>
+            <Text style={[styles.sectionLabel, { color: cursusColor }]}>À propos de ce cours</Text>
+            <Text style={styles.aboutText}>{course.description}</Text>
+          </View>
+        )}
+
+        <View style={{ height: 60 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background.primary },
-  scroll: { flex: 1 },
-  loading: { flex: 1, backgroundColor: colors.background.primary, alignItems: 'center', justifyContent: 'center' },
-  hero: { height: 280, position: 'relative' },
-  heroImage: { width: '100%', height: '100%' },
-  heroGradient: { position: 'absolute', inset: 0, justifyContent: 'flex-start', padding: spacing.lg },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  content: { padding: spacing.lg },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md, flexWrap: 'wrap' },
-  levelBadge: { borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full },
-  levelText: { fontFamily: 'Inter-SemiBold', fontSize: 12 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary },
-  title: { fontFamily: 'Inter-Bold', fontSize: 22, color: colors.text.primary, lineHeight: 30, marginBottom: spacing.lg },
-  scholarRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background.card, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md, marginBottom: spacing.lg },
-  scholarAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand.primary, alignItems: 'center', justifyContent: 'center' },
-  scholarInitial: { fontFamily: 'Inter-Bold', fontSize: 18, color: '#000' },
-  scholarLabel: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.secondary },
-  scholarName: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.text.primary },
-  startBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.brand.primary, borderRadius: radius.full, padding: 16, marginBottom: spacing.sm },
-  startBtnText: { fontFamily: 'Inter-Bold', fontSize: 16, color: '#000' },
-  favoriteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.brand.primary, borderRadius: radius.full, padding: 14, marginBottom: spacing.xl },
-  favoriteBtnActive: { backgroundColor: colors.brand.primary },
-  favoriteBtnText: { fontFamily: 'Inter-SemiBold', fontSize: 14, color: colors.brand.primary },
-  section: { marginBottom: spacing.xl },
-  sectionTitle: { fontFamily: 'Inter-Bold', fontSize: 17, color: colors.text.primary, marginBottom: spacing.md },
-  descText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary, lineHeight: 22 },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.xl },
-  tag: { backgroundColor: colors.background.card, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.full },
-  tagText: { fontFamily: 'Inter-Medium', fontSize: 12, color: colors.text.secondary },
-  moduleRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border.subtle, gap: spacing.md },
-  moduleIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.brand.primary, alignItems: 'center', justifyContent: 'center' },
-  moduleIconLocked: { backgroundColor: colors.background.card },
-  moduleInfo: { flex: 1 },
-  moduleTitle: { fontFamily: 'Inter-Medium', fontSize: 14, color: colors.text.primary, marginBottom: 2 },
-  moduleTitleLocked: { color: colors.text.secondary },
-  moduleDuration: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.tertiary },
-  freeBadge: { backgroundColor: 'rgba(4,209,130,0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3 },
-  freeBadgeText: { fontFamily: 'Inter-Medium', fontSize: 9, color: colors.brand.primary },
-  accessWarning: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: spacing.sm, 
-    backgroundColor: 'rgba(217, 255, 0, 0.1)', 
-    padding: spacing.md, 
-    borderRadius: radius.md, 
-    marginBottom: spacing.md 
+  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
+
+  // ─── HERO ─────────────────────────────────────────────────────────────────
+  hero: {
+    paddingBottom: 24,
+    position: 'relative',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? {
+      background: 'linear-gradient(160deg, #0D1F17 0%, #090F0C 60%, #0A0A0A 100%)',
+    } as any : { backgroundColor: '#0D1F17' }),
   },
-  accessWarningText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.brand.primary, flex: 1 },
-  
-  // Related Resources
-  resourceCategory: {
-    marginBottom: spacing.lg,
+  heroGlow: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    opacity: 0.7,
   },
-  resourceHeader: {
+  heroLeftBorder: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    ...(Platform.OS === 'web' ? {
+      background: 'linear-gradient(180deg, #04D182 0%, transparent 100%)',
+    } as any : {}),
+  },
+  heroNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  resourceLabel: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text.primary,
-  },
-  resourceItem: {
+  backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
+    gap: 8,
   },
-  resourceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: colors.background.secondary,
+  backLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: 'rgba(245,240,232,0.5)',
+    textTransform: 'uppercase',
+  },
+  heroNavRight: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  navIconBtn: {
+    padding: 4,
+  },
+  heroEyebrow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  heroEyebrowLine: {
+    width: 18,
+    height: 1,
+  },
+  heroEyebrowText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 18,
+    fontWeight: '400',
+    color: '#F5F0E8',
+    letterSpacing: 0.5,
+    lineHeight: 26,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  scholarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  scholarAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  resourceInfo: {
+  scholarInitials: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    fontWeight: '600',
+  },
+  scholarName: {
+    fontFamily: 'EBGaramond',
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: '#C9A84C',
+  },
+  heroDesc: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: 'rgba(245,240,232,0.50)',
+    lineHeight: 22,
+    paddingHorizontal: 20,
+    marginBottom: 18,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 14,
+    gap: 0,
+  },
+  statBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  statValue: {
+    fontFamily: 'Cinzel',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F5F0E8',
+  },
+  statLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 6,
+    letterSpacing: 3,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#222222',
+    marginHorizontal: 12,
+  },
+  courseProgressWrap: {
+    paddingHorizontal: 20,
+    marginBottom: 18,
+  },
+  progressTrack: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+  },
+  courseProgressText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+  },
+  heroBtns: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+  },
+  btnPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  btnPrimaryText: {
+    fontFamily: 'Cinzel',
+    fontSize: 9,
+    letterSpacing: 3,
+    color: '#0A0A0A',
+    textTransform: 'uppercase',
+  },
+  btnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.3)',
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+  },
+  btnSecondaryText: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 2,
+    color: '#C9A84C',
+    textTransform: 'uppercase',
+  },
+
+  // ─── EPISODES CONTAINER ───────────────────────────────────────────────────
+  episodesContainer: {
+    paddingTop: 18,
+  },
+  sectionLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 4,
+    color: '#777777',
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    marginBottom: 14,
+  },
+  accessWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 14,
+    padding: 12,
+    backgroundColor: 'rgba(4,209,130,0.08)',
+  },
+  accessWarningText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
     flex: 1,
   },
-  resourceTitle: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: colors.text.primary,
+  emptyText: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#777777',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 40,
+  },
+
+  // ─── EPISODE ROW ──────────────────────────────────────────────────────────
+  episodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#111111',
     marginBottom: 2,
   },
-  resourceMeta: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 11,
-    color: colors.text.secondary,
+  episodeRowBorder: {},
+  episodeRowActive: {
+    backgroundColor: '#1A1A1A',
+    borderLeftWidth: 3,
+    borderLeftColor: '#04D182',
+    paddingLeft: 17,
   },
-  playBtnSmall: {
-    width: 28,
-    height: 28,
+  episodeNum: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+    width: 26,
+    textAlign: 'center',
+    flexShrink: 0,
+  },
+  episodeInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  episodeTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  episodeMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  episodeDuration: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    flexShrink: 0,
+  },
+  freeBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  freeBadgeText: {
+    fontFamily: 'Cinzel',
+    fontSize: 6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  activeBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  activeBadgeText: {
+    fontFamily: 'Cinzel',
+    fontSize: 6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  epPlayBtn: {
     borderRadius: 14,
-    backgroundColor: colors.brand.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+
+  // ─── ABOUT SECTION ────────────────────────────────────────────────────────
+  aboutSection: {
+    paddingTop: 22,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#222222',
+    marginTop: 18,
+  },
+  aboutText: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: 'rgba(245,240,232,0.55)',
+    lineHeight: 24,
   },
 });
