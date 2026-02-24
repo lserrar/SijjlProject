@@ -22,72 +22,31 @@ interface InProgressItem {
   id: string;
   title: string;
   cursus_letter: string;
+  cursus_color: string;
+  course_title: string;
   episode_num: number;
   listened_minutes: number;
   total_minutes: number;
   progress: number;
+  position: number;
 }
 
 interface FavoriteItem {
   id: string;
   title: string;
   cursus_letter: string;
+  cursus_color: string;
   duration_minutes: number;
   saved_date: string;
 }
 
-// Données statiques pour la démo
-const STATIC_IN_PROGRESS: InProgressItem[] = [
-  {
-    id: 'aud_kindi-001',
-    title: 'Al-Kindī — Le premier philosophe arabe',
-    cursus_letter: 'A',
-    episode_num: 2,
-    listened_minutes: 24,
-    total_minutes: 48,
-    progress: 50,
-  },
-  {
-    id: 'aud_coran-001',
-    title: 'Transmission du Coran — Histoire critique',
-    cursus_letter: 'C',
-    episode_num: 1,
-    listened_minutes: 12,
-    total_minutes: 55,
-    progress: 22,
-  },
-];
-
-const STATIC_FAVORITES: FavoriteItem[] = [
-  {
-    id: 'fav_1',
-    title: "Averroès — Le commentateur d'Aristote",
-    cursus_letter: 'A',
-    duration_minutes: 62,
-    saved_date: 'Il y a 2j',
-  },
-  {
-    id: 'fav_2',
-    title: "La poésie soufie — De Rūmī à Ibn ʿArabī",
-    cursus_letter: 'D',
-    duration_minutes: 55,
-    saved_date: 'Il y a 5j',
-  },
-  {
-    id: 'fav_3',
-    title: "Maimonide et la tradition juive en Islam",
-    cursus_letter: 'E',
-    duration_minutes: 44,
-    saved_date: 'Il y a 1s',
-  },
-  {
-    id: 'fav_4',
-    title: "Al-Ghazālī et la critique des philosophes",
-    cursus_letter: 'B',
-    duration_minutes: 51,
-    saved_date: 'Il y a 2s',
-  },
-];
+interface CompletedItem {
+  id: string;
+  title: string;
+  cursus_letter: string;
+  cursus_color: string;
+  total_minutes: number;
+}
 
 function formatDuration(minutes: number): string {
   if (!minutes) return '0 min';
@@ -101,37 +60,29 @@ function formatDuration(minutes: number): string {
 export default function BibliothequeScreen() {
   const { token, user } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<LibraryTab>('en_cours');
-  const [inProgress, setInProgress] = useState<InProgressItem[]>(STATIC_IN_PROGRESS);
-  const [favorites, setFavorites] = useState<FavoriteItem[]>(STATIC_FAVORITES);
-  const [completed, setCompleted] = useState<any[]>([]);
+  const [inProgress, setInProgress] = useState<InProgressItem[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [completed, setCompleted] = useState<CompletedItem[]>([]);
+  const [globalProgress, setGlobalProgress] = useState(0);
 
   // User info
   const userName = user?.name || user?.email?.split('@')[0] || 'Utilisateur';
   const userInitial = userName.charAt(0).toUpperCase();
   const isSubscribed = user?.subscription_status === 'active';
 
-  // Global progress (mock)
-  const globalProgress = 35;
-
   const loadData = useCallback(async () => {
     try {
-      // Load user progress from API
       if (token) {
-        const progressRes = await apiRequest('/user/progress', token);
-        if (progressRes.ok) {
-          const progressData = await progressRes.json();
-          // TODO: Process progress data into in_progress and completed lists
-        }
-
-        const favRes = await apiRequest('/user/favorites', token);
-        if (favRes.ok) {
-          const favData = await favRes.json();
-          if (favData && favData.length > 0) {
-            // TODO: Map favorites to FavoriteItem format
-          }
+        const res = await apiRequest('/user/library', token);
+        if (res.ok) {
+          const data = await res.json();
+          setInProgress(data.in_progress || []);
+          setFavorites(data.favorites || []);
+          setCompleted(data.completed || []);
+          setGlobalProgress(data.global_progress || 0);
         }
       }
     } catch (e) {
@@ -206,6 +157,7 @@ export default function BibliothequeScreen() {
           {(['en_cours', 'favoris', 'termines'] as LibraryTab[]).map((tab) => {
             const isActive = activeTab === tab;
             const label = tab === 'en_cours' ? 'En cours' : tab === 'favoris' ? 'Favoris' : 'Terminés';
+            const count = tab === 'en_cours' ? inProgress.length : tab === 'favoris' ? favorites.length : completed.length;
             return (
               <TouchableOpacity
                 key={tab}
@@ -213,7 +165,9 @@ export default function BibliothequeScreen() {
                 style={[styles.tab, isActive && styles.tabActive]}
                 onPress={() => setActiveTab(tab)}
               >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{label}</Text>
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {label} {count > 0 ? `(${count})` : ''}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -228,7 +182,7 @@ export default function BibliothequeScreen() {
             <Text style={styles.sectionLabelGreen}>Reprendre où vous en étiez</Text>
             
             {inProgress.map((item) => {
-              const color = CURSUS_COLORS[item.cursus_letter] || '#04D182';
+              const color = item.cursus_color || CURSUS_COLORS[item.cursus_letter] || '#04D182';
               const remainingMinutes = item.total_minutes - item.listened_minutes;
               
               return (
@@ -237,7 +191,7 @@ export default function BibliothequeScreen() {
                     <View style={styles.progressCardInfo}>
                       <Text style={styles.progressCardTitle}>{item.title}</Text>
                       <Text style={styles.progressCardMeta}>
-                        Cursus {item.cursus_letter} · Épisode {item.episode_num} · {item.listened_minutes} min écoutées
+                        Cursus {item.cursus_letter} · Épisode {item.episode_num || 1} · {item.listened_minutes} min écoutées
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -251,38 +205,46 @@ export default function BibliothequeScreen() {
                     <View style={[styles.progressFill, { width: `${item.progress}%`, backgroundColor: color }]} />
                   </View>
                   <Text style={[styles.progressText, { color }]}>
-                    {item.progress}% · {remainingMinutes} min restantes
+                    {item.progress}% · {remainingMinutes > 0 ? `${remainingMinutes} min restantes` : 'Presque terminé'}
                   </Text>
                 </View>
               );
             })}
 
             {inProgress.length === 0 && (
-              <Text style={styles.emptyText}>Aucun épisode en cours.</Text>
+              <View style={styles.emptyState}>
+                <Ionicons name="headset-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Aucun épisode en cours</Text>
+                <Text style={styles.emptyText}>Commencez à écouter un cours pour le retrouver ici.</Text>
+              </View>
             )}
 
             {/* Section: Épisodes sauvegardés */}
-            <Text style={[styles.sectionLabelGray, { marginTop: 16 }]}>Épisodes sauvegardés</Text>
-
-            {favorites.map((item, idx) => {
-              const color = CURSUS_COLORS[item.cursus_letter] || '#04D182';
-              
-              return (
-                <FavoriteRow
-                  key={item.id}
-                  color={color}
-                  title={item.title}
-                  cursusLetter={item.cursus_letter}
-                  durationMinutes={item.duration_minutes}
-                  savedDate={item.saved_date}
-                  isLast={idx === favorites.length - 1}
-                  onPress={() => router.push(`/audio/${item.id}` as any)}
-                />
-              );
-            })}
-
-            {favorites.length === 0 && (
-              <Text style={styles.emptyText}>Aucun épisode sauvegardé.</Text>
+            {favorites.length > 0 && (
+              <>
+                <Text style={[styles.sectionLabelGray, { marginTop: 16 }]}>Épisodes sauvegardés</Text>
+                {favorites.slice(0, 3).map((item, idx) => {
+                  const color = item.cursus_color || CURSUS_COLORS[item.cursus_letter] || '#04D182';
+                  
+                  return (
+                    <FavoriteRow
+                      key={item.id}
+                      color={color}
+                      title={item.title}
+                      cursusLetter={item.cursus_letter}
+                      durationMinutes={item.duration_minutes}
+                      savedDate={item.saved_date}
+                      isLast={idx === Math.min(favorites.length, 3) - 1}
+                      onPress={() => router.push(`/audio/${item.id}` as any)}
+                    />
+                  );
+                })}
+                {favorites.length > 3 && (
+                  <TouchableOpacity style={styles.viewAllBtn} onPress={() => setActiveTab('favoris')}>
+                    <Text style={styles.viewAllText}>Voir tous les favoris ({favorites.length})</Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         )}
@@ -295,7 +257,7 @@ export default function BibliothequeScreen() {
             <Text style={styles.sectionLabelGreen}>Vos favoris</Text>
             
             {favorites.map((item, idx) => {
-              const color = CURSUS_COLORS[item.cursus_letter] || '#04D182';
+              const color = item.cursus_color || CURSUS_COLORS[item.cursus_letter] || '#04D182';
               
               return (
                 <FavoriteRow
@@ -312,7 +274,11 @@ export default function BibliothequeScreen() {
             })}
 
             {favorites.length === 0 && (
-              <Text style={styles.emptyText}>Aucun favori enregistré.</Text>
+              <View style={styles.emptyState}>
+                <Ionicons name="heart-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Aucun favori</Text>
+                <Text style={styles.emptyText}>Sauvegardez vos épisodes préférés pour les retrouver ici.</Text>
+              </View>
             )}
           </View>
         )}
@@ -324,8 +290,34 @@ export default function BibliothequeScreen() {
           <View style={styles.tabContent}>
             <Text style={styles.sectionLabelGreen}>Épisodes terminés</Text>
             
+            {completed.map((item, idx) => {
+              const color = item.cursus_color || CURSUS_COLORS[item.cursus_letter] || '#04D182';
+              
+              return (
+                <View
+                  key={item.id}
+                  style={[styles.completedRow, idx !== completed.length - 1 && styles.completedRowBorder]}
+                >
+                  <Ionicons name="checkmark-circle" size={20} color={color} />
+                  <View style={styles.completedInfo}>
+                    <Text style={styles.completedTitle}>{item.title}</Text>
+                    <Text style={styles.completedMeta}>
+                      Cursus {item.cursus_letter} · {formatDuration(item.total_minutes)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => router.push(`/audio/${item.id}` as any)}>
+                    <Ionicons name="play-circle-outline" size={24} color="#777" />
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+
             {completed.length === 0 && (
-              <Text style={styles.emptyText}>Aucun épisode terminé pour l'instant.</Text>
+              <View style={styles.emptyState}>
+                <Ionicons name="trophy-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Aucun épisode terminé</Text>
+                <Text style={styles.emptyText}>Terminez vos premiers épisodes pour débloquer cette section.</Text>
+              </View>
             )}
           </View>
         )}
@@ -521,14 +513,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    letterSpacing: 2,
+    color: '#F5F0E8',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyText: {
     fontFamily: 'EBGaramond',
     fontSize: 14,
     color: '#777777',
     fontStyle: 'italic',
     textAlign: 'center',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
+    lineHeight: 20,
   },
 
   // Carte de progression
@@ -641,5 +645,48 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#777777',
     flexShrink: 0,
+  },
+
+  // Voir tout
+  viewAllBtn: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  viewAllText: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 2,
+    color: '#C9A84C',
+    textTransform: 'uppercase',
+  },
+
+  // Ligne terminée
+  completedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  completedRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+  },
+  completedInfo: {
+    flex: 1,
+  },
+  completedTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#F5F0E8',
+    marginBottom: 3,
+  },
+  completedMeta: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
   },
 });
