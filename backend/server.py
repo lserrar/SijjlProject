@@ -576,10 +576,10 @@ async def get_course_playlist(course_id: str):
             audio['stream_url'] = resolve_audio_url(audio)
             playlist.append({
                 'module_id': mod['id'],
-                'module_name': mod.get('name', ''),
+                'module_name': clean_title(mod.get('name', '')),
                 'module_order': mod.get('order', 0),
                 'audio_id': audio['id'],
-                'audio_title': audio.get('title', ''),
+                'audio_title': clean_title(audio.get('title', '')),
                 'stream_url': audio.get('stream_url', ''),
                 'thumbnail': audio.get('thumbnail', ''),
                 'duration': audio.get('duration', 0),
@@ -590,6 +590,8 @@ async def get_course_playlist(course_id: str):
 async def get_featured_course():
     """Get the featured course for homepage highlight."""
     course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+    if course and course.get('title'):
+        course['title'] = clean_title(course['title'])
     return course
 
 @api_router.get("/courses/{course_id}")
@@ -597,6 +599,8 @@ async def get_course(course_id: str):
     c = await db.courses.find_one({'id': course_id}, {'_id': 0})
     if not c:
         raise HTTPException(404, "Cours non trouvé")
+    if c.get('title'):
+        c['title'] = clean_title(c['title'])
     return c
 
 @api_router.get("/courses/{course_id}/suggestions")
