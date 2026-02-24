@@ -1,358 +1,483 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-  Image,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Platform, TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth, apiRequest } from '../../context/AuthContext';
-import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-interface Masterclass {
-  id: string;
-  title: string;
-  description: string;
-  thematique_id: string;
-  scholar_name: string;
-  date: string | null;
-  duration: number;
-  price: number;
-  price_type: 'free' | 'paid';
-  max_participants: number;
-  current_participants: number;
-  thumbnail: string;
-  is_active: boolean;
-}
+const CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const CURSUS_COLORS: Record<string, string> = {
+  A: '#04D182',
+  B: '#8B5CF6',
+  C: '#F59E0B',
+  D: '#EC4899',
+  E: '#06B6D4',
+  F: '#C9A84C',
+};
 
-interface Thematique {
+const CURSUS_SHORT_NAMES: Record<string, string> = {
+  A: 'Falsafa',
+  B: 'Kalām',
+  C: 'Sciences',
+  D: 'Arts',
+  E: 'Connexions',
+};
+
+// Données statiques des professeurs (à remplacer par API)
+const STATIC_PROFESSORS = [
+  {
+    id: 'prof-maroun-aouad',
+    initials: 'MA',
+    name: 'Prof. Maroun Aouad',
+    university: 'Université Paris-Sorbonne',
+    specialty: "Spécialiste d'Averroès et de la logique arabe médiévale",
+    cursus: ['A'],
+    courses_count: 3,
+    episodes_count: 8,
+  },
+  {
+    id: 'prof-daniel-de-smet',
+    initials: 'DS',
+    name: 'Prof. Daniel De Smet',
+    university: 'CNRS · Paris',
+    specialty: 'Philosophie arabe médiévale, ismaélisme, néoplatonisme',
+    cursus: ['B', 'E'],
+    courses_count: 2,
+    episodes_count: 0,
+  },
+  {
+    id: 'prof-eric-geoffroy',
+    initials: 'EG',
+    name: 'Prof. Éric Geoffroy',
+    university: 'Université de Strasbourg',
+    specialty: 'Soufisme, spiritualité islamique, Ibn ʿArabī',
+    cursus: ['D', 'E'],
+    courses_count: 2,
+    episodes_count: 0,
+  },
+  {
+    id: 'prof-roshdi-rashed',
+    initials: 'RR',
+    name: 'Prof. Roshdi Rashed',
+    university: 'CNRS · Directeur émérite',
+    specialty: 'Histoire des sciences arabes, mathématiques, optique',
+    cursus: ['C'],
+    courses_count: 2,
+    episodes_count: 6,
+  },
+  {
+    id: 'prof-colette-sirat',
+    initials: 'CS',
+    name: 'Prof. Colette Sirat',
+    university: 'EPHE · Paris',
+    specialty: "Philosophie juive médiévale en terre d'Islam",
+    cursus: ['E'],
+    courses_count: 1,
+    episodes_count: 4,
+  },
+  {
+    id: 'prof-marc-geoffroy',
+    initials: 'MG',
+    name: 'Prof. Marc Geoffroy',
+    university: 'CNRS · UMR Orientale',
+    specialty: 'Averroès, traductions latines, philosophie arabe',
+    cursus: ['A'],
+    courses_count: 1,
+    episodes_count: 3,
+  },
+];
+
+interface Professor {
   id: string;
+  initials: string;
   name: string;
-  order: number;
+  university: string;
+  specialty: string;
+  cursus: string[];
+  courses_count: number;
+  episodes_count: number;
 }
 
-export default function LiveScreen() {
-  const { token, user } = useAuth();
-  const [masterclasses, setMasterclasses] = useState<Masterclass[]>([]);
-  const [thematiques, setThematiques] = useState<Thematique[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ProfesseursScreen() {
+  const { token } = useAuth();
+  const router = useRouter();
+  const [professors, setProfessors] = useState<Professor[]>(STATIC_PROFESSORS);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [mcRes, themRes] = await Promise.all([
-        apiRequest('/masterclasses', token),
-        apiRequest('/thematiques', token),
-      ]);
-      
-      if (mcRes.ok) {
-        const data = await mcRes.json();
-        setMasterclasses(data);
-      }
-      if (themRes.ok) {
-        const data = await themRes.json();
-        setThematiques(data.sort((a: Thematique, b: Thematique) => a.order - b.order));
+      // Try to load from API, fallback to static data
+      const res = await apiRequest('/scholars', token);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const mapped = data.map((s: any) => ({
+            id: s.id,
+            initials: s.name?.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() || 'XX',
+            name: s.name || 'Professeur',
+            university: s.university || s.institution || '',
+            specialty: s.bio || s.specialty || '',
+            cursus: s.cursus_letters || ['A'],
+            courses_count: s.courses_count || 0,
+            episodes_count: s.episodes_count || 0,
+          }));
+          setProfessors(mapped.length > 0 ? mapped : STATIC_PROFESSORS);
+        }
       }
     } catch (e) {
-      console.error('Failed to load data', e);
+      console.error('Failed to load professors', e);
+      // Keep static data
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [token]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  const handleRefresh = () => { setRefreshing(true); loadData(); };
 
-  const handleRegister = async (mc: Masterclass) => {
-    if (!user) {
-      Alert.alert('Connexion requise', 'Veuillez vous connecter pour vous inscrire.');
-      return;
-    }
-
-    if (registeredIds.includes(mc.id)) {
-      Alert.alert('Déjà inscrit', 'Vous êtes déjà inscrit à cette masterclass.');
-      return;
-    }
-
-    try {
-      const resp = await apiRequest(`/masterclasses/${mc.id}/register`, token, {
-        method: 'POST',
-      });
-
-      if (resp.ok) {
-        setRegisteredIds([...registeredIds, mc.id]);
-        Alert.alert(
-          'Inscription réussie !',
-          `Vous êtes inscrit à la masterclass "${mc.title.replace('Masterclass : ', '')}".`
-        );
-      } else {
-        const err = await resp.json();
-        Alert.alert('Erreur', err.detail || 'Inscription échouée');
-      }
-    } catch (e) {
-      Alert.alert('Erreur', 'Une erreur est survenue');
-    }
-  };
-
-  const getThemeName = (themeId: string) => {
-    const theme = thematiques.find(t => t.id === themeId);
-    return theme?.name || '';
-  };
+  // Filter professors by search query
+  const filteredProfessors = useMemo(() => {
+    if (!searchQuery.trim()) return professors;
+    const q = searchQuery.toLowerCase();
+    return professors.filter(p => 
+      p.name.toLowerCase().includes(q) ||
+      p.university.toLowerCase().includes(q) ||
+      p.specialty.toLowerCase().includes(q)
+    );
+  }, [professors, searchQuery]);
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.brand.primary} />
-          <Text style={styles.loadingText}>Chargement des masterclasses...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color="#04D182" />
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.root}>
       <ScrollView
-        style={styles.scroll}
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[0]}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.brand.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#04D182" />
         }
       >
-        {/* Header */}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            BARRE DE NAVIGATION HAUTE (sticky)
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.navBar}>
+          <View style={styles.navLogo}>
+            <Text style={styles.navLogoText}>SIJILL</Text>
+            <View style={styles.navLogoDot} />
+          </View>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            EN-TÊTE DE PAGE
+        ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Masterclasses</Text>
-          <Text style={styles.headerSubtitle}>
-            Sessions live approfondies avec nos experts
-          </Text>
+          <Text style={styles.headerEyebrow}>{professors.length} professeurs</Text>
+          <Text style={styles.headerTitle}>Les enseignants</Text>
+          <Text style={styles.headerSubtitle}>Chercheurs et universitaires internationaux</Text>
         </View>
 
-        {/* Info Banner */}
-        <View style={styles.infoBanner}>
-          <Ionicons name="information-circle" size={20} color={colors.brand.primary} />
-          <Text style={styles.infoText}>
-            Les masterclasses sont actuellement gratuites. Inscrivez-vous pour être notifié des prochaines dates.
-          </Text>
+        {/* ═══════════════════════════════════════════════════════════════════════
+            BARRE DE RECHERCHE
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={[
+          styles.searchBar,
+          searchFocused && styles.searchBarFocused,
+        ]}>
+          <Ionicons name="search-outline" size={16} color="#777777" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher un professeur…"
+            placeholderTextColor="#444444"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color="#555555" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Masterclasses List */}
-        <View style={styles.mcList}>
-          {masterclasses.map((mc) => {
-            const isRegistered = registeredIds.includes(mc.id);
-            const themeName = getThemeName(mc.thematique_id);
+        {/* ═══════════════════════════════════════════════════════════════════════
+            LISTE DES PROFESSEURS
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.professorsList}>
+          {filteredProfessors.map((prof) => (
+            <ProfessorCard
+              key={prof.id}
+              professor={prof}
+              onPress={() => router.push(`/scholar/${prof.id}` as any)}
+            />
+          ))}
 
-            return (
-              <View key={mc.id} style={styles.mcCard}>
-                <Image
-                  source={{ uri: mc.thumbnail }}
-                  style={styles.mcThumbnail}
-                />
-                <View style={styles.mcContent}>
-                  <Text style={styles.mcTheme}>{themeName}</Text>
-                  <Text style={styles.mcTitle} numberOfLines={2}>
-                    {mc.title.replace('Masterclass : ', '')}
-                  </Text>
-                  <Text style={styles.mcScholar}>{mc.scholar_name}</Text>
-                  
-                  <View style={styles.mcMeta}>
-                    <View style={styles.mcMetaItem}>
-                      <Ionicons name="time-outline" size={14} color={colors.text.tertiary} />
-                      <Text style={styles.mcMetaText}>{mc.duration} min</Text>
-                    </View>
-                    <View style={[
-                      styles.mcPriceBadge,
-                      mc.price_type === 'free' ? styles.priceFree : styles.pricePaid
-                    ]}>
-                      <Text style={[
-                        styles.mcPriceText,
-                        mc.price_type === 'free' ? styles.priceTextFree : styles.priceTextPaid
-                      ]}>
-                        {mc.price_type === 'free' ? 'Gratuit' : `${mc.price}€`}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.registerBtn,
-                      isRegistered && styles.registerBtnDisabled
-                    ]}
-                    onPress={() => handleRegister(mc)}
-                    disabled={isRegistered}
-                  >
-                    <Ionicons
-                      name={isRegistered ? 'checkmark-circle' : 'add-circle'}
-                      size={18}
-                      color={isRegistered ? colors.text.secondary : '#000'}
-                    />
-                    <Text style={[
-                      styles.registerBtnText,
-                      isRegistered && styles.registerBtnTextDisabled
-                    ]}>
-                      {isRegistered ? 'Inscrit' : "S'inscrire"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
+          {filteredProfessors.length === 0 && (
+            <Text style={styles.emptyText}>Aucun professeur trouvé.</Text>
+          )}
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Professor Card Component ─────────────────────────────────────────────────
+interface ProfessorCardProps {
+  professor: Professor;
+  onPress: () => void;
+}
+
+function ProfessorCard({ professor, onPress }: ProfessorCardProps) {
+  const [hovered, setHovered] = useState(false);
+  const hoverProps = Platform.OS === 'web' ? {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  } : {};
+
+  // Primary cursus color (first in list)
+  const primaryCursus = professor.cursus[0] || 'A';
+  const primaryColor = CURSUS_COLORS[primaryCursus] || '#04D182';
+
+  // Build stats string
+  const statsText = professor.episodes_count > 0
+    ? `${professor.courses_count} cours · ${professor.episodes_count} épisodes`
+    : `${professor.courses_count} cours`;
+
+  return (
+    <TouchableOpacity
+      testID={`professor-card-${professor.id}`}
+      style={[styles.card, hovered && styles.cardHover]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      {...hoverProps}
+    >
+      {/* Avatar */}
+      <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
+        <Text style={[styles.avatarText, { color: primaryColor }]}>{professor.initials}</Text>
+      </View>
+
+      {/* Info */}
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardName}>{professor.name}</Text>
+        <Text style={styles.cardUniversity}>{professor.university}</Text>
+        <Text style={styles.cardSpecialty} numberOfLines={2}>{professor.specialty}</Text>
+
+        {/* Tags */}
+        <View style={styles.tagsRow}>
+          {professor.cursus.map((c) => {
+            const color = CURSUS_COLORS[c] || '#04D182';
+            const name = CURSUS_SHORT_NAMES[c] || c;
+            return (
+              <View key={c} style={[styles.tag, { backgroundColor: `${color}1A` }]}>
+                <Text style={[styles.tagText, { color }]}>Cursus {c}</Text>
+              </View>
+            );
+          })}
+          <Text style={styles.statsText}>{statsText}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background.primary },
-  scroll: { flex: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md },
-  loadingText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary },
+  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
+
+  // Navigation haute
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(10,10,10,0.95)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}),
+  },
+  navLogo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  navLogoText: {
+    fontFamily: 'Cinzel',
+    fontSize: 16,
+    letterSpacing: 4,
+    color: '#F5F0E8',
+  },
+  navLogoDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#04D182',
+  },
+
+  // En-tête
   header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 4,
+  },
+  headerEyebrow: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 4,
+    color: '#04D182',
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   headerTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 28,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
+    fontFamily: 'Cinzel',
+    fontSize: 20,
+    fontWeight: '400',
+    letterSpacing: 2,
+    color: '#F5F0E8',
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 20,
+    fontFamily: 'EBGaramond',
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: '#777777',
   },
-  infoBanner: {
+
+  // Barre de recherche
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  searchBarFocused: {
+    borderColor: 'rgba(4,209,130,0.4)',
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#F5F0E8',
+    paddingVertical: 0,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}),
+  },
+
+  // Liste
+  professorsList: {
+    paddingBottom: 20,
+  },
+  emptyText: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#777777',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 40,
+  },
+
+  // Carte professeur
+  card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.brand.primary + '15',
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    ...(Platform.OS === 'web' ? { 
+      transition: 'background-color 0.2s ease',
+      cursor: 'pointer',
+    } as any : {}),
   },
-  infoText: {
-    flex: 1,
-    fontFamily: 'DMSans-Regular',
-    fontSize: 13,
-    color: colors.text.secondary,
-    lineHeight: 18,
+  cardHover: {
+    backgroundColor: '#1A1A1A',
   },
-  mcList: {
-    paddingHorizontal: spacing.md,
-  },
-  mcCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: radius.xl,
-    marginBottom: spacing.md,
-    overflow: 'hidden',
-  },
-  mcThumbnail: {
-    width: '100%',
-    height: 140,
-    backgroundColor: colors.background.elevated,
-  },
-  mcContent: {
-    padding: spacing.md,
-  },
-  mcTheme: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 11,
-    color: colors.brand.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.xs,
-  },
-  mcTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 16,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  mcScholar: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginBottom: spacing.sm,
-  },
-  mcMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  mcMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  mcMetaText: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  mcPriceBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-  },
-  priceFree: {
-    backgroundColor: colors.brand.primary + '20',
-  },
-  pricePaid: {
-    backgroundColor: '#FFD700' + '30',
-  },
-  mcPriceText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 11,
-  },
-  priceTextFree: {
-    color: colors.brand.primary,
-  },
-  priceTextPaid: {
-    color: '#B8860B',
-  },
-  registerBtn: {
-    flexDirection: 'row',
+
+  // Avatar
+  avatar: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brand.primary,
-    borderRadius: radius.full,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
+    flexShrink: 0,
   },
-  registerBtnDisabled: {
-    backgroundColor: colors.background.elevated,
+  avatarText: {
+    fontFamily: 'Cinzel',
+    fontSize: 15,
+    fontWeight: '600',
   },
-  registerBtnText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: '#000',
+
+  // Info
+  cardInfo: {
+    flex: 1,
+    minWidth: 0,
   },
-  registerBtnTextDisabled: {
-    color: colors.text.secondary,
+  cardName: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: '#F5F0E8',
+    marginBottom: 3,
+  },
+  cardUniversity: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#C9A84C',
+    marginBottom: 5,
+  },
+  cardSpecialty: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    color: '#777777',
+    lineHeight: 17,
+  },
+
+  // Tags
+  tagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginTop: 6,
+  },
+  tag: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  tagText: {
+    fontFamily: 'Cinzel',
+    fontSize: 6,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  statsText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
   },
 });
