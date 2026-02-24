@@ -160,6 +160,19 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Liste des épisodes avec 3 états visuels
   - Badge "Aperçu gratuit" pour premier épisode non-abonné
   - Section "À propos de ce cours"
+- ✅ **REFONTE Onglet Cursus** (`/app/(tabs)/cursus.tsx`) :
+  - Barre navigation haute sticky (SIJILL + point vert + recherche)
+  - Hero avec gradient : eyebrow "5 Cursus disponibles", titre, sous-titre
+  - Liste de 5 cartes cursus avec :
+    - Bordure gauche colorée (vert, violet, orange, rose, cyan)
+    - Tag "Cursus X · Nom" en couleur
+    - Stats "N cours · Xh" à droite
+    - Titre Cinzel + Description EB Garamond
+    - Footer stats avec icônes (épisodes, durée)
+    - Barre de progression en bas
+- ✅ **MiniPlayer amélioré** :
+  - Mini waveform : 15 barres rectangulaires qui s'allument progressivement
+  - Timer en chiffres : "1:45 / 3:20" (position actuelle en vert)
 - ✅ **Suppression Admin Mobile** : Dossier `/app/frontend/app/admin/` supprimé
   - Le bouton admin dans profil.tsx ouvre maintenant le web panel (`/api/admin-panel/login`) via Linking
 
