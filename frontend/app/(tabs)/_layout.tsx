@@ -79,7 +79,6 @@ export default function TabLayout() {
           }}
         />
         {/* Hidden screens */}
-        <Tabs.Screen name="about" options={{ href: null }} />
         <Tabs.Screen name="explorer" options={{ href: null }} />
       </Tabs>
 
