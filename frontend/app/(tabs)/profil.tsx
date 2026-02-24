@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,19 +8,58 @@ import {
   Image,
   Alert,
   Linking,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, apiRequest } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://sijill-preview.preview.emergentagent.com';
 
+interface UserStats {
+  courses_followed: number;
+  listening_hours: number;
+  favorites_count: number;
+  completed_count: number;
+  in_progress_count: number;
+}
+
 export default function ProfilScreen() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const router = useRouter();
   const isAdmin = user?.role === 'admin';
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadStats = useCallback(async () => {
+    if (!token) {
+      setLoadingStats(false);
+      return;
+    }
+    try {
+      const res = await apiRequest('/user/stats', token);
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+      }
+    } catch (e) {
+      console.error('Failed to load user stats', e);
+    } finally {
+      setLoadingStats(false);
+      setRefreshing(false);
+    }
+  }, [token]);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadStats();
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -51,9 +90,28 @@ export default function ProfilScreen() {
     { icon: 'information-circle-outline', label: 'À propos de Sijill', action: () => router.push('/about') },
   ];
 
+  // Calculate academic level based on completed count
+  const getAcademicLevel = () => {
+    if (!stats) return { level: 'Débutant', progress: 10, hint: 'Complétez des cours pour progresser' };
+    const completed = stats.completed_count;
+    if (completed >= 50) return { level: 'Expert', progress: 100, hint: 'Vous avez atteint le niveau maximum !' };
+    if (completed >= 30) return { level: 'Avancé', progress: 85, hint: 'Encore quelques cours pour devenir Expert' };
+    if (completed >= 15) return { level: 'Intermédiaire', progress: 60, hint: 'Continuez pour atteindre le niveau Avancé' };
+    if (completed >= 5) return { level: 'Initié', progress: 35, hint: 'Complétez plus de cours pour progresser' };
+    return { level: 'Débutant', progress: Math.max(10, completed * 7), hint: 'Complétez des cours pour progresser au niveau Initié' };
+  };
+
+  const academicLevel = getAcademicLevel();
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scroll} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.primary} />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Profil</Text>
@@ -85,20 +143,28 @@ export default function ProfilScreen() {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View testID="profile-stat-courses" style={styles.statCard}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Cours{'\n'}suivis</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View testID="profile-stat-time" style={styles.statCard}>
-            <Text style={styles.statValue}>0h</Text>
-            <Text style={styles.statLabel}>Temps{'\n'}d'écoute</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View testID="profile-stat-favorites" style={styles.statCard}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Contenus{'\n'}sauvegardés</Text>
-          </View>
+          {loadingStats ? (
+            <View style={styles.statsLoading}>
+              <ActivityIndicator size="small" color={colors.brand.primary} />
+            </View>
+          ) : (
+            <>
+              <View testID="profile-stat-courses" style={styles.statCard}>
+                <Text style={styles.statValue}>{stats?.courses_followed || 0}</Text>
+                <Text style={styles.statLabel}>Cours{'\n'}suivis</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View testID="profile-stat-time" style={styles.statCard}>
+                <Text style={styles.statValue}>{stats?.listening_hours || 0}h</Text>
+                <Text style={styles.statLabel}>Temps{'\n'}d'écoute</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View testID="profile-stat-favorites" style={styles.statCard}>
+                <Text style={styles.statValue}>{stats?.favorites_count || 0}</Text>
+                <Text style={styles.statLabel}>Contenus{'\n'}sauvegardés</Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Academic Level */}
@@ -106,13 +172,18 @@ export default function ProfilScreen() {
           <View style={styles.levelHeader}>
             <Text style={styles.levelTitle}>Niveau académique</Text>
             <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>Débutant</Text>
+              <Text style={styles.levelBadgeText}>{academicLevel.level}</Text>
             </View>
           </View>
           <View style={styles.levelBar}>
-            <View style={styles.levelFill} />
+            <View style={[styles.levelFill, { width: `${academicLevel.progress}%` }]} />
           </View>
-          <Text style={styles.levelHint}>Complétez des cours pour progresser au niveau Intermédiaire</Text>
+          <Text style={styles.levelHint}>{academicLevel.hint}</Text>
+          {stats && stats.completed_count > 0 && (
+            <Text style={styles.levelStats}>
+              {stats.completed_count} épisode{stats.completed_count > 1 ? 's' : ''} terminé{stats.completed_count > 1 ? 's' : ''} · {stats.in_progress_count} en cours
+            </Text>
+          )}
         </View>
 
         {/* Admin Panel Button - Only visible for admins */}
@@ -185,7 +256,8 @@ const styles = StyleSheet.create({
   userEmail: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.secondary, marginBottom: 6 },
   providerBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   providerText: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.tertiary },
-  statsRow: { flexDirection: 'row', marginHorizontal: spacing.lg, backgroundColor: colors.background.card, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.md, alignItems: 'center' },
+  statsRow: { flexDirection: 'row', marginHorizontal: spacing.lg, backgroundColor: colors.background.card, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.md, alignItems: 'center', minHeight: 90 },
+  statsLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   statCard: { flex: 1, alignItems: 'center' },
   statValue: { fontFamily: 'Inter-Bold', fontSize: 22, color: colors.brand.primary, marginBottom: 4 },
   statLabel: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.secondary, textAlign: 'center', lineHeight: 15 },
@@ -196,8 +268,9 @@ const styles = StyleSheet.create({
   levelBadge: { backgroundColor: 'rgba(4, 209, 130, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, borderWidth: 1, borderColor: colors.brand.primary },
   levelBadgeText: { fontFamily: 'Inter-SemiBold', fontSize: 12, color: colors.brand.primary },
   levelBar: { height: 4, backgroundColor: colors.border.default, borderRadius: 2, marginBottom: spacing.sm },
-  levelFill: { width: '10%', height: 4, backgroundColor: colors.brand.primary, borderRadius: 2 },
+  levelFill: { height: 4, backgroundColor: colors.brand.primary, borderRadius: 2 },
   levelHint: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.tertiary },
+  levelStats: { fontFamily: 'DMSans-Regular', fontSize: 11, color: colors.text.secondary, marginTop: 6 },
   adminBtn: {
     flexDirection: 'row',
     alignItems: 'center',
