@@ -71,9 +71,15 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bookmark' : 'bookmark-outline'} focused={focused} />,
           }}
         />
+        <Tabs.Screen
+          name="profil"
+          options={{
+            title: 'Profil',
+            tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
+          }}
+        />
         {/* Hidden screens */}
         <Tabs.Screen name="about" options={{ href: null }} />
-        <Tabs.Screen name="profil" options={{ href: null }} />
         <Tabs.Screen name="explorer" options={{ href: null }} />
       </Tabs>
 
