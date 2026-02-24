@@ -1326,6 +1326,20 @@ async def seed_data():
         # Also check old thematiques collection for backward compatibility
         custom_cursus = await db.thematiques.find_one({'id': 'cursus-falsafa'})
     logger.info(f"DEBUG: Checking for cursus-falsafa, found: {custom_cursus is not None}")
+    
+    # Migration: Set Meryem Sebti as default professor for all Cursus A courses
+    sebti_update = await db.courses.update_many(
+        {'$or': [{'cursus_id': 'cursus-falsafa'}, {'thematique_id': 'cursus-falsafa'}], 'scholar_id': {'$exists': False}},
+        {'$set': {'scholar_id': 'sch-sebti', 'scholar_name': 'Meryem Sebti'}}
+    )
+    # Also update courses with "Divers auteurs"
+    sebti_update2 = await db.courses.update_many(
+        {'$or': [{'cursus_id': 'cursus-falsafa'}, {'thematique_id': 'cursus-falsafa'}], 'scholar_name': 'Divers auteurs'},
+        {'$set': {'scholar_id': 'sch-sebti', 'scholar_name': 'Meryem Sebti'}}
+    )
+    if sebti_update.modified_count > 0 or sebti_update2.modified_count > 0:
+        logger.info(f"Migration: Set Meryem Sebti as professor for Cursus A courses ({sebti_update.modified_count + sebti_update2.modified_count} updated)")
+    
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
         logger.info("Database seeding complete")
