@@ -126,17 +126,40 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - ✅ Homepage prestige text-only (Cinzel/EB Garamond, badges Top 5, hover cards)
 - ✅ Hero "À la une" dynamique : cursus ET cours, hero_title/hero_description personnalisables
 - ✅ Effet hover cards épisodes (fond + bordure bas colorée, transition 0.2s)
-- ✅ Page Cursus Detail (/cursus/[id]) : badge couleur, liste cours, stats
 - ✅ Player audio redesign complet : artwork géométrique, waveform 30 barres, scrubber thumb, contrôles, vitesse, bookmark/share/download, description, épisode suivant
 - ✅ Backend GET /api/audios/{id} enrichi : cursus_color, cursus_letter, scholar_name, total_episodes
 - ✅ Admin : page Cursus (étoile featured + hero text), bouton étoile dans liste cours, champs hero dans formulaire cours
+- ✅ MiniPlayer redesign prestige (sans image, contrôles simplifiés)
+- ✅ Effet hover "halo blanc" sur Top 5 du mois
+
+### 2026-02-24 — Session actuelle (NOUVEAU)
+- ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
+  - Hero avec dégradé sombre verdâtre (#0D1F17 → #090F0C → #0A0A0A)
+  - Radial glow effect + bordure gauche gradient vert
+  - Navigation retour avec icônes recherche/more
+  - Eyebrow "Cursus A · Falsafa" avec ligne décorative
+  - 4 statistiques : Cours, Épisodes, Durée totale, % Complété
+  - Barre de progression globale avec labels
+  - **Onglets sticky** : COURS (actif) / PROFESSEURS / RESSOURCES
+  - **Système d'accordéon** pour les cours :
+    - Sections "En cours", "À venir", "Terminés"
+    - Cards avec 3 états (todo/active/done)
+    - Icône statut circulaire (cercle gris / vert play / check)
+    - Un seul cours déplié à la fois
+  - **Contenu déplié** :
+    - Barre de progression du cours
+    - Description
+    - Liste mini des épisodes avec boutons play (3 états)
+    - Boutons action "COMMENCER/Continuer" + "SAUVEGARDER"
+- ✅ **Suppression Admin Mobile** : Dossier `/app/frontend/app/admin/` supprimé
+  - Le bouton admin dans profil.tsx ouvre maintenant le web panel (`/api/admin-panel/login`) via Linking
 
 ---
 
 ## Backlog Priorisé
 
-### P0 — En cours / Vérification
-- Vérification utilisateur des dernières corrections (playlist, seeking audio, bouton "Commencer")
+### P0 — Vérification utilisateur
+- Vérifier le nouveau design de la Page Cours
 
 ### P1 — Prochain sprint
 - Améliorer le logo Sijill
