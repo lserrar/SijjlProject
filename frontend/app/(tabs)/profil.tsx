@@ -117,16 +117,16 @@ export default function ProfilScreen() {
           <TouchableOpacity
             testID="profile-admin-btn"
             style={styles.adminBtn}
-            onPress={() => router.push('/admin')}
+            onPress={() => Linking.openURL(`${API_URL}/api/admin-panel/login`)}
           >
             <View style={styles.adminIconContainer}>
               <Ionicons name="shield-checkmark" size={24} color={colors.brand.primary} />
             </View>
             <View style={styles.adminTextContainer}>
               <Text style={styles.adminTitle}>Panel Administrateur</Text>
-              <Text style={styles.adminSubtitle}>Gérer le contenu de l'application</Text>
+              <Text style={styles.adminSubtitle}>Ouvre le panneau web admin</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.tertiary} />
+            <Ionicons name="open-outline" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
         )}
 
