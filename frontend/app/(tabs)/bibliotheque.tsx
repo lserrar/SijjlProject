@@ -398,9 +398,13 @@ const styles = StyleSheet.create({
     color: '#F5F0E8',
   },
   navLogoDot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#04D182',
+    marginLeft: 3,
+    marginBottom: 3,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 0 8px rgba(4,209,130,0.5)' } as any : {}),
   },
   navMoreBtn: {
     padding: 6,
