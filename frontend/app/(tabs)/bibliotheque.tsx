@@ -1,804 +1,645 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth, apiRequest } from '../../context/AuthContext';
-import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { formatDuration } from '../../constants/mockData';
 
-interface Course {
+const CURSUS_COLORS: Record<string, string> = {
+  A: '#04D182',
+  B: '#8B5CF6',
+  C: '#F59E0B',
+  D: '#EC4899',
+  E: '#06B6D4',
+  F: '#C9A84C',
+};
+
+type LibraryTab = 'en_cours' | 'favoris' | 'termines';
+
+interface InProgressItem {
   id: string;
   title: string;
-  scholar_name: string;
-  thumbnail: string;
-  thematique_id: string;
-  modules_count: number;
+  cursus_letter: string;
+  episode_num: number;
+  listened_minutes: number;
+  total_minutes: number;
+  progress: number;
 }
 
-interface Bibliography {
+interface FavoriteItem {
   id: string;
   title: string;
-  thematique_id: string;
-  content_fr: string;
-  content_en: string;
+  cursus_letter: string;
+  duration_minutes: number;
+  saved_date: string;
 }
 
-interface Conference {
-  id: string;
-  title: string;
-  speaker_name: string;
-  duration: number;
-  thumbnail: string;
-  thematique_id: string;
+// Données statiques pour la démo
+const STATIC_IN_PROGRESS: InProgressItem[] = [
+  {
+    id: 'aud_kindi-001',
+    title: 'Al-Kindī — Le premier philosophe arabe',
+    cursus_letter: 'A',
+    episode_num: 2,
+    listened_minutes: 24,
+    total_minutes: 48,
+    progress: 50,
+  },
+  {
+    id: 'aud_coran-001',
+    title: 'Transmission du Coran — Histoire critique',
+    cursus_letter: 'C',
+    episode_num: 1,
+    listened_minutes: 12,
+    total_minutes: 55,
+    progress: 22,
+  },
+];
+
+const STATIC_FAVORITES: FavoriteItem[] = [
+  {
+    id: 'fav_1',
+    title: "Averroès — Le commentateur d'Aristote",
+    cursus_letter: 'A',
+    duration_minutes: 62,
+    saved_date: 'Il y a 2j',
+  },
+  {
+    id: 'fav_2',
+    title: "La poésie soufie — De Rūmī à Ibn ʿArabī",
+    cursus_letter: 'D',
+    duration_minutes: 55,
+    saved_date: 'Il y a 5j',
+  },
+  {
+    id: 'fav_3',
+    title: "Maimonide et la tradition juive en Islam",
+    cursus_letter: 'E',
+    duration_minutes: 44,
+    saved_date: 'Il y a 1s',
+  },
+  {
+    id: 'fav_4',
+    title: "Al-Ghazālī et la critique des philosophes",
+    cursus_letter: 'B',
+    duration_minutes: 51,
+    saved_date: 'Il y a 2s',
+  },
+];
+
+function formatDuration(minutes: number): string {
+  if (!minutes) return '0 min';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0 && m > 0) return `${h}h ${m.toString().padStart(2, '0')}min`;
+  if (h > 0) return `${h}h`;
+  return `${m} min`;
 }
 
-interface AudioCategory {
-  id: string;
-  name: string;
-  r2_folder: string;
-  is_active: boolean;
-}
-
-interface Audio {
-  id: string;
-  title: string;
-  scholar_name: string;
-  duration: number;
-  file_key: string;
-  category_id: string;
-  module_id: string;
-}
-
-type TabType = 'cursus' | 'favoris' | 'biblio' | 'conferences' | 'autres';
-
-export default function RessourcesScreen() {
+export default function BibliothequeScreen() {
   const { token, user } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>('cursus');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Data states
-  const [userCourses, setUserCourses] = useState<Course[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
-  const [conferences, setConferences] = useState<Conference[]>([]);
-  const [thematiques, setThematiques] = useState<any[]>([]);
-  const [userAccess, setUserAccess] = useState<any>(null);
-  const [selectedBiblio, setSelectedBiblio] = useState<Bibliography | null>(null);
-  const [audioCategories, setAudioCategories] = useState<AudioCategory[]>([]);
-  const [audios, setAudios] = useState<Audio[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<LibraryTab>('en_cours');
+  const [inProgress, setInProgress] = useState<InProgressItem[]>(STATIC_IN_PROGRESS);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>(STATIC_FAVORITES);
+  const [completed, setCompleted] = useState<any[]>([]);
+
+  // User info
+  const userName = user?.name || user?.email?.split('@')[0] || 'Utilisateur';
+  const userInitial = userName.charAt(0).toUpperCase();
+  const isSubscribed = user?.subscription_status === 'active';
+
+  // Global progress (mock)
+  const globalProgress = 35;
 
   const loadData = useCallback(async () => {
     try {
-      // Get user access info to filter by subscribed thematiques
-      const accessResp = await apiRequest('/user/access', token);
-      if (accessResp.ok) {
-        const accessData = await accessResp.json();
-        setUserAccess(accessData);
-      }
+      // Load user progress from API
+      if (token) {
+        const progressRes = await apiRequest('/user/progress', token);
+        if (progressRes.ok) {
+          const progressData = await progressRes.json();
+          // TODO: Process progress data into in_progress and completed lists
+        }
 
-      // Load all data in parallel
-      const [themRes, coursesRes, biblioRes, confRes, favRes, audioCatRes, audiosRes] = await Promise.all([
-        apiRequest('/thematiques', token),
-        apiRequest('/courses', token),
-        apiRequest('/bibliographies', token),
-        apiRequest('/conferences', token),
-        apiRequest('/user/favorites', token).catch(() => ({ ok: false })),
-        apiRequest('/audio-categories', token).catch(() => ({ ok: false })),
-        apiRequest('/audios', token).catch(() => ({ ok: false })),
-      ]);
-
-      if (themRes.ok) {
-        const data = await themRes.json();
-        setThematiques(data);
-      }
-
-      if (coursesRes.ok) {
-        const data = await coursesRes.json();
-        // Filter to show courses the user has started (in progress)
-        setUserCourses(data.filter((c: Course) => c.is_active !== false).slice(0, 10));
-      }
-
-      if (biblioRes.ok) {
-        const data = await biblioRes.json();
-        setBibliographies(data);
-      }
-
-      if (confRes.ok) {
-        const data = await confRes.json();
-        setConferences(data);
-      }
-
-      if (favRes.ok) {
-        const data = await favRes.json();
-        setFavorites(data);
-      }
-
-      if (audioCatRes.ok) {
-        const data = await audioCatRes.json();
-        setAudioCategories(data);
-      }
-
-      if (audiosRes.ok) {
-        const data = await audiosRes.json();
-        setAudios(data);
+        const favRes = await apiRequest('/user/favorites', token);
+        if (favRes.ok) {
+          const favData = await favRes.json();
+          if (favData && favData.length > 0) {
+            // TODO: Map favorites to FavoriteItem format
+          }
+        }
       }
     } catch (e) {
-      console.error('Failed to load data', e);
+      console.error('Failed to load library data', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [token]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  const handleRefresh = () => { setRefreshing(true); loadData(); };
 
-  const getThematiqueName = (id: string) => {
-    const t = thematiques.find(t => t.id === id);
-    return t?.name || '';
+  const handleResumeEpisode = (id: string) => {
+    router.push(`/audio/${id}?autoplay=1` as any);
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.brand.primary} />
-          <Text style={styles.loadingText}>Chargement des ressources...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color="#04D182" />
+      </View>
     );
   }
-
-  // Bibliography detail view
-  if (selectedBiblio) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.detailHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={() => setSelectedBiblio(null)}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.detailTitle} numberOfLines={1}>
-            {selectedBiblio.title.replace('Bibliographie : ', '')}
-          </Text>
-        </View>
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.articleContent}>
-            <View style={styles.articleSection}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="book" size={20} color={colors.brand.primary} />
-                <Text style={styles.sectionTitleDetail}>Ouvrages en français</Text>
-              </View>
-              <Text style={styles.articleText}>{selectedBiblio.content_fr}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.articleSection}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="globe" size={20} color={colors.brand.primary} />
-                <Text style={styles.sectionTitleDetail}>Essential readings (English)</Text>
-              </View>
-              <Text style={styles.articleText}>{selectedBiblio.content_en}</Text>
-            </View>
-          </View>
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  const TABS = [
-    { key: 'cursus', label: 'Mes cursus', icon: 'school-outline' },
-    { key: 'favoris', label: 'Favoris', icon: 'heart-outline' },
-    { key: 'biblio', label: 'Bibliographie', icon: 'book-outline' },
-    { key: 'conferences', label: 'Conférences', icon: 'mic-outline' },
-    { key: 'autres', label: 'Autres', icon: 'musical-notes-outline' },
-  ] as const;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.root}>
       <ScrollView
-        style={styles.scroll}
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[0]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#04D182" />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Ressources</Text>
-          <Text style={styles.headerSubtitle}>
-            Vos cursus, favoris et ressources complémentaires
-          </Text>
+        {/* ═══════════════════════════════════════════════════════════════════════
+            BARRE DE NAVIGATION HAUTE (sticky)
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.navBar}>
+          <View style={styles.navLogo}>
+            <Text style={styles.navLogoText}>SIJILL</Text>
+            <View style={styles.navLogoDot} />
+          </View>
+          <TouchableOpacity style={styles.navMoreBtn}>
+            <Ionicons name="ellipsis-horizontal" size={20} color="rgba(245,240,232,0.6)" />
+          </TouchableOpacity>
         </View>
 
-        {/* Tabs */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.tabsContainer}
-          contentContainerStyle={styles.tabsContent}
-        >
-          {TABS.map(tab => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key as TabType)}
-            >
-              <Ionicons 
-                name={tab.icon as any} 
-                size={18} 
-                color={activeTab === tab.key ? '#000' : colors.text.secondary} 
-              />
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Tab Content */}
-        <View style={styles.content}>
-          {activeTab === 'cursus' && (
-            <View>
-              {userCourses.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="school-outline" size={48} color={colors.text.tertiary} />
-                  <Text style={styles.emptyTitle}>Aucun cursus en cours</Text>
-                  <Text style={styles.emptySubtitle}>Commencez un cours pour le voir ici</Text>
-                  <TouchableOpacity 
-                    style={styles.emptyButton}
-                    onPress={() => router.push('/(tabs)/cursus')}
-                  >
-                    <Text style={styles.emptyButtonText}>Explorer les cursus</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                userCourses.map(course => (
-                  <TouchableOpacity
-                    key={course.id}
-                    style={styles.courseCard}
-                    onPress={() => router.push(`/course/${course.id}` as any)}
-                  >
-                    <Image 
-                      source={{ uri: course.thumbnail || 'https://via.placeholder.com/80' }} 
-                      style={styles.courseThumb} 
-                    />
-                    <View style={styles.courseInfo}>
-                      <Text style={styles.courseTopic}>{getThematiqueName(course.thematique_id)}</Text>
-                      <Text style={styles.courseTitle} numberOfLines={2}>{course.title}</Text>
-                      <Text style={styles.courseMeta}>{course.scholar_name} · {course.modules_count} modules</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-          )}
-
-          {activeTab === 'favoris' && (
-            <View>
-              {favorites.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="heart-outline" size={48} color={colors.text.tertiary} />
-                  <Text style={styles.emptyTitle}>Aucun favori</Text>
-                  <Text style={styles.emptySubtitle}>Ajoutez des cours à vos favoris pour y accéder rapidement</Text>
-                </View>
-              ) : (
-                favorites.map((fav: any) => (
-                  <TouchableOpacity
-                    key={fav.content_id}
-                    style={styles.courseCard}
-                    onPress={() => router.push(`/course/${fav.content_id}` as any)}
-                  >
-                    <View style={styles.favIcon}>
-                      <Ionicons name="heart" size={20} color={colors.brand.primary} />
-                    </View>
-                    <View style={styles.courseInfo}>
-                      <Text style={styles.courseTitle}>{fav.content_title || fav.content_id}</Text>
-                      <Text style={styles.courseMeta}>{fav.content_type}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-          )}
-
-          {activeTab === 'biblio' && (
-            <View>
-              {bibliographies.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="book-outline" size={48} color={colors.text.tertiary} />
-                  <Text style={styles.emptyTitle}>Aucune bibliographie</Text>
-                  <Text style={styles.emptySubtitle}>Les bibliographies seront disponibles prochainement</Text>
-                </View>
-              ) : (
-                bibliographies.map((biblio, index) => (
-                  <TouchableOpacity
-                    key={biblio.id}
-                    style={styles.biblioCard}
-                    onPress={() => setSelectedBiblio(biblio)}
-                  >
-                    <View style={styles.biblioNumber}>
-                      <Text style={styles.biblioNumberText}>{index + 1}</Text>
-                    </View>
-                    <View style={styles.courseInfo}>
-                      <Text style={styles.biblioTitle}>{biblio.title.replace('Bibliographie : ', '')}</Text>
-                      <Text style={styles.biblioHint}>Voir les ouvrages recommandés</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-          )}
-
-          {activeTab === 'conferences' && (
-            <View>
-              {conferences.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="mic-outline" size={48} color={colors.text.tertiary} />
-                  <Text style={styles.emptyTitle}>Aucune conférence</Text>
-                  <Text style={styles.emptySubtitle}>Les conférences et interventions externes seront ajoutées prochainement</Text>
-                </View>
-              ) : (
-                conferences.map(conf => (
-                  <TouchableOpacity
-                    key={conf.id}
-                    style={styles.confCard}
-                    onPress={() => {/* TODO: Open conference detail */}}
-                  >
-                    <Image 
-                      source={{ uri: conf.thumbnail || 'https://via.placeholder.com/80' }} 
-                      style={styles.confThumb} 
-                    />
-                    <View style={styles.courseInfo}>
-                      <Text style={styles.confTitle} numberOfLines={2}>{conf.title}</Text>
-                      <Text style={styles.confSpeaker}>{conf.speaker_name}</Text>
-                      <View style={styles.confMeta}>
-                        <Ionicons name="time-outline" size={12} color={colors.text.tertiary} />
-                        <Text style={styles.confDuration}>{formatDuration(conf.duration)}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.playButton}>
-                      <Ionicons name="play" size={16} color="#000" />
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-          )}
-
-          {activeTab === 'autres' && (
-            <View>
-              {/* Audio Categories */}
-              <Text style={styles.sectionLabel}>Catégories Audio</Text>
-              {audioCategories.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="musical-notes-outline" size={48} color={colors.text.tertiary} />
-                  <Text style={styles.emptyTitle}>Aucune catégorie</Text>
-                  <Text style={styles.emptySubtitle}>Les récitations du Coran, musique et autres audios seront ajoutés prochainement</Text>
-                </View>
-              ) : (
-                <>
-                  {/* Category Pills */}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryPills}>
-                    {audioCategories.map(cat => (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[styles.categoryPill, selectedCategory === cat.id && styles.categoryPillActive]}
-                        onPress={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                      >
-                        <Ionicons 
-                          name={cat.name.toLowerCase().includes('coran') ? 'book' : cat.name.toLowerCase().includes('musique') ? 'musical-notes' : 'headset'} 
-                          size={16} 
-                          color={selectedCategory === cat.id ? '#000' : colors.text.secondary} 
-                        />
-                        <Text style={[styles.categoryPillText, selectedCategory === cat.id && styles.categoryPillTextActive]}>
-                          {cat.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-
-                  {/* Audios list */}
-                  {audios
-                    .filter(a => !selectedCategory || a.category_id === selectedCategory)
-                    .map(audio => (
-                      <TouchableOpacity
-                        key={audio.id}
-                        style={styles.audioCard}
-                        onPress={() => {/* TODO: Play audio */}}
-                      >
-                        <View style={styles.audioIcon}>
-                          <Ionicons name="musical-note" size={20} color={colors.brand.primary} />
-                        </View>
-                        <View style={styles.courseInfo}>
-                          <Text style={styles.audioTitle} numberOfLines={2}>{audio.title}</Text>
-                          <Text style={styles.audioMeta}>
-                            {audio.scholar_name || 'Inconnu'} · {formatDuration(audio.duration)}
-                          </Text>
-                        </View>
-                        <View style={styles.playButton}>
-                          <Ionicons name="play" size={16} color="#000" />
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-
-                  {audios.filter(a => !selectedCategory || a.category_id === selectedCategory).length === 0 && (
-                    <View style={styles.emptyState}>
-                      <Ionicons name="musical-notes-outline" size={32} color={colors.text.tertiary} />
-                      <Text style={styles.emptySubtitle}>Aucun audio dans cette catégorie</Text>
-                    </View>
-                  )}
-                </>
-              )}
-            </View>
-          )}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            BLOC PROFIL UTILISATEUR
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.profileBlock}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileAvatarText}>{userInitial}</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{userName}</Text>
+            <Text style={styles.profileStatus}>
+              {isSubscribed ? 'Abonnée Pro' : 'Compte gratuit'}
+            </Text>
+          </View>
+          <View style={styles.profileProgress}>
+            <Text style={styles.profileProgressValue}>{globalProgress}%</Text>
+            <Text style={styles.profileProgressLabel}>Progression</Text>
+          </View>
         </View>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            ONGLETS INTERNES
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.tabsWrap}>
+          {(['en_cours', 'favoris', 'termines'] as LibraryTab[]).map((tab) => {
+            const isActive = activeTab === tab;
+            const label = tab === 'en_cours' ? 'En cours' : tab === 'favoris' ? 'Favoris' : 'Terminés';
+            return (
+              <TouchableOpacity
+                key={tab}
+                testID={`biblio-tab-${tab}`}
+                style={[styles.tab, isActive && styles.tabActive]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            CONTENU — ONGLET "EN COURS"
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'en_cours' && (
+          <View style={styles.tabContent}>
+            {/* Section: Reprendre où vous en étiez */}
+            <Text style={styles.sectionLabelGreen}>Reprendre où vous en étiez</Text>
+            
+            {inProgress.map((item) => {
+              const color = CURSUS_COLORS[item.cursus_letter] || '#04D182';
+              const remainingMinutes = item.total_minutes - item.listened_minutes;
+              
+              return (
+                <View key={item.id} style={styles.progressCard}>
+                  <View style={styles.progressCardHeader}>
+                    <View style={styles.progressCardInfo}>
+                      <Text style={styles.progressCardTitle}>{item.title}</Text>
+                      <Text style={styles.progressCardMeta}>
+                        Cursus {item.cursus_letter} · Épisode {item.episode_num} · {item.listened_minutes} min écoutées
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.resumeBtn}
+                      onPress={() => handleResumeEpisode(item.id)}
+                    >
+                      <Text style={styles.resumeBtnText}>Reprendre</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${item.progress}%`, backgroundColor: color }]} />
+                  </View>
+                  <Text style={[styles.progressText, { color }]}>
+                    {item.progress}% · {remainingMinutes} min restantes
+                  </Text>
+                </View>
+              );
+            })}
+
+            {inProgress.length === 0 && (
+              <Text style={styles.emptyText}>Aucun épisode en cours.</Text>
+            )}
+
+            {/* Section: Épisodes sauvegardés */}
+            <Text style={[styles.sectionLabelGray, { marginTop: 16 }]}>Épisodes sauvegardés</Text>
+
+            {favorites.map((item, idx) => {
+              const color = CURSUS_COLORS[item.cursus_letter] || '#04D182';
+              
+              return (
+                <FavoriteRow
+                  key={item.id}
+                  color={color}
+                  title={item.title}
+                  cursusLetter={item.cursus_letter}
+                  durationMinutes={item.duration_minutes}
+                  savedDate={item.saved_date}
+                  isLast={idx === favorites.length - 1}
+                  onPress={() => router.push(`/audio/${item.id}` as any)}
+                />
+              );
+            })}
+
+            {favorites.length === 0 && (
+              <Text style={styles.emptyText}>Aucun épisode sauvegardé.</Text>
+            )}
+          </View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            CONTENU — ONGLET "FAVORIS"
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'favoris' && (
+          <View style={styles.tabContent}>
+            <Text style={styles.sectionLabelGreen}>Vos favoris</Text>
+            
+            {favorites.map((item, idx) => {
+              const color = CURSUS_COLORS[item.cursus_letter] || '#04D182';
+              
+              return (
+                <FavoriteRow
+                  key={item.id}
+                  color={color}
+                  title={item.title}
+                  cursusLetter={item.cursus_letter}
+                  durationMinutes={item.duration_minutes}
+                  savedDate={item.saved_date}
+                  isLast={idx === favorites.length - 1}
+                  onPress={() => router.push(`/audio/${item.id}` as any)}
+                />
+              );
+            })}
+
+            {favorites.length === 0 && (
+              <Text style={styles.emptyText}>Aucun favori enregistré.</Text>
+            )}
+          </View>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            CONTENU — ONGLET "TERMINÉS"
+        ═══════════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'termines' && (
+          <View style={styles.tabContent}>
+            <Text style={styles.sectionLabelGreen}>Épisodes terminés</Text>
+            
+            {completed.length === 0 && (
+              <Text style={styles.emptyText}>Aucun épisode terminé pour l'instant.</Text>
+            )}
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Favorite Row Component ───────────────────────────────────────────────────
+interface FavoriteRowProps {
+  color: string;
+  title: string;
+  cursusLetter: string;
+  durationMinutes: number;
+  savedDate: string;
+  isLast: boolean;
+  onPress: () => void;
+}
+
+function FavoriteRow({ color, title, cursusLetter, durationMinutes, savedDate, isLast, onPress }: FavoriteRowProps) {
+  const [hovered, setHovered] = useState(false);
+  const hoverProps = Platform.OS === 'web' ? {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  } : {};
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.favoriteRow,
+        !isLast && styles.favoriteRowBorder,
+        hovered && styles.favoriteRowHover,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      {...hoverProps}
+    >
+      <View style={[styles.favoriteDot, { backgroundColor: color }]} />
+      <View style={styles.favoriteInfo}>
+        <Text style={styles.favoriteTitle}>{title}</Text>
+        <Text style={styles.favoriteMeta}>
+          Cursus {cursusLetter} · {formatDuration(durationMinutes)}
+        </Text>
+      </View>
+      <Text style={styles.favoriteDate}>{savedDate}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background.primary },
-  scroll: { flex: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md },
-  loadingText: { fontFamily: 'DMSans-Regular', fontSize: 14, color: colors.text.secondary },
-  
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  headerTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 28,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  headerSubtitle: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 20,
-  },
+  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
 
-  // Tabs
-  tabsContainer: {
-    marginBottom: spacing.lg,
-  },
-  tabsContent: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  tab: {
+  // Navigation haute
+  navBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.background.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  tabActive: {
-    backgroundColor: colors.brand.primary,
-    borderColor: colors.brand.primary,
-  },
-  tabText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  tabTextActive: {
-    color: '#000',
-  },
-
-  content: {
-    paddingHorizontal: spacing.lg,
-  },
-
-  // Empty State
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xl * 2,
-    gap: spacing.md,
-  },
-  emptyTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 18,
-    color: colors.text.primary,
-  },
-  emptySubtitle: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 14,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  emptyButton: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.brand.primary,
-    borderRadius: radius.full,
-  },
-  emptyButtonText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: '#000',
-  },
-
-  // Course Card
-  courseCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
-  },
-  courseThumb: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.md,
-    backgroundColor: colors.background.elevated,
-  },
-  courseInfo: {
-    flex: 1,
-  },
-  courseTopic: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 10,
-    color: colors.brand.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  courseTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text.primary,
-    marginBottom: 4,
-    lineHeight: 19,
-  },
-  courseMeta: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-
-  // Favorite
-  favIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(217, 255, 0, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Bibliography
-  biblioCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
-  },
-  biblioNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(217, 255, 0, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  biblioNumberText: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 14,
-    color: colors.brand.primary,
-  },
-  biblioTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text.primary,
-    marginBottom: 2,
-  },
-  biblioHint: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-
-  // Conference
-  confCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
-  },
-  confThumb: {
-    width: 70,
-    height: 70,
-    borderRadius: radius.md,
-    backgroundColor: colors.background.elevated,
-  },
-  confTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text.primary,
-    marginBottom: 4,
-    lineHeight: 19,
-  },
-  confSpeaker: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 13,
-    color: colors.brand.primary,
-    marginBottom: 6,
-  },
-  confMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  confDuration: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.brand.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Detail view
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(10,10,10,0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
-    gap: spacing.sm,
+    borderBottomColor: '#1A1A1A',
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}),
   },
-  backButton: {
-    padding: spacing.xs,
+  navLogo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  detailTitle: {
-    flex: 1,
-    fontFamily: 'Inter-SemiBold',
+  navLogoText: {
+    fontFamily: 'Cinzel',
     fontSize: 16,
-    color: colors.text.primary,
+    letterSpacing: 4,
+    color: '#F5F0E8',
   },
-  articleContent: {
-    padding: spacing.lg,
+  navLogoDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#04D182',
   },
-  articleSection: {
-    marginBottom: spacing.lg,
+  navMoreBtn: {
+    padding: 6,
   },
-  sectionHeader: {
+
+  // Profil utilisateur
+  profileBlock: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
   },
-  sectionTitleDetail: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  articleText: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 22,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.subtle,
-    marginVertical: spacing.lg,
-  },
-  
-  // Autres (Audio Categories) Tab
-  sectionLabel: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  categoryPills: {
-    marginBottom: spacing.lg,
-    marginHorizontal: -spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  categoryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.background.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-    marginRight: spacing.sm,
-  },
-  categoryPillActive: {
-    backgroundColor: colors.brand.primary,
-    borderColor: colors.brand.primary,
-  },
-  categoryPillText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  categoryPillTextActive: {
-    color: '#000',
-  },
-  audioCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
-  },
-  audioIcon: {
+  profileAvatar: {
     width: 48,
     height: 48,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(4, 209, 130, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(4,209,130,0.15)',
   },
-  audioTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text.primary,
-    marginBottom: 4,
-    lineHeight: 19,
+  profileAvatarText: {
+    fontFamily: 'Cinzel',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#04D182',
   },
-  audioMeta: {
-    fontFamily: 'DMSans-Regular',
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontFamily: 'Cinzel',
     fontSize: 12,
-    color: colors.text.secondary,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: '#F5F0E8',
+    marginBottom: 3,
+  },
+  profileStatus: {
+    fontFamily: 'EBGaramond',
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: '#C9A84C',
+  },
+  profileProgress: {
+    alignItems: 'flex-end',
+  },
+  profileProgressValue: {
+    fontFamily: 'Cinzel',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#04D182',
+  },
+  profileProgressLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+
+  // Onglets internes
+  tabsWrap: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    paddingHorizontal: 20,
+  },
+  tab: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#04D182',
+  },
+  tabText: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+  tabTextActive: {
+    color: '#F5F0E8',
+  },
+
+  // Contenu des tabs
+  tabContent: {
+    paddingTop: 14,
+  },
+  sectionLabelGreen: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: '#04D182',
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  sectionLabelGray: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: '#777777',
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#777777',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+
+  // Carte de progression
+  progressCard: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: '#1A1A1A',
+    padding: 16,
+  },
+  progressCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  progressCardInfo: {
+    flex: 1,
+  },
+  progressCardTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#F5F0E8',
+    lineHeight: 20,
+    marginBottom: 3,
+  },
+  progressCardMeta: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+  resumeBtn: {
+    backgroundColor: '#04D182',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    flexShrink: 0,
+  },
+  resumeBtnText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#0A0A0A',
+    textTransform: 'uppercase',
+  },
+  progressBar: {
+    marginTop: 12,
+    marginBottom: 6,
+    height: 2,
+    backgroundColor: '#222222',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 2,
+  },
+  progressText: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+
+  // Ligne de favori
+  favoriteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    ...(Platform.OS === 'web' ? { 
+      transition: 'background-color 0.2s ease',
+      cursor: 'pointer',
+    } as any : {}),
+  },
+  favoriteRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+  },
+  favoriteRowHover: {
+    backgroundColor: '#1A1A1A',
+  },
+  favoriteDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  favoriteInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  favoriteTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    color: '#F5F0E8',
+    marginBottom: 3,
+  },
+  favoriteMeta: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+  favoriteDate: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#777777',
+    flexShrink: 0,
   },
 });
