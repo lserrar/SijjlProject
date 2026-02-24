@@ -1014,8 +1014,10 @@ async def get_home(request: Request):
         featured_hero = {
             'id': featured_cursus_doc['id'],
             'hero_type': 'cursus',
+            # hero_title = optional custom promo title; falls back to cursus name
             'title': featured_cursus_doc.get('hero_title') or featured_cursus_doc.get('name', ''),
-            'description': featured_cursus_doc.get('hero_description') or featured_cursus_doc.get('description', ''),
+            # description = the ONE editable description (no separate hero_description override)
+            'description': featured_cursus_doc.get('description', ''),
             'cursus_id': featured_cursus_doc['id'],
             'cursus_letter': CURSUS_LETTERS[order],
             'cursus_color': CURSUS_COLORS[order],
@@ -1028,10 +1030,11 @@ async def get_home(request: Request):
         if featured_course:
             featured_course = enrich_cursus(featured_course)
             featured_course['hero_type'] = 'course'
+            # hero_title = optional custom promo title; falls back to course title
             if featured_course.get('hero_title'):
                 featured_course['title'] = featured_course['hero_title']
-            if featured_course.get('hero_description'):
-                featured_course['description'] = featured_course['hero_description']
+            # description = the regular description field (editable in admin panel)
+            # no hero_description override — what you edit in admin IS what you see
             featured_hero = featured_course
 
     # 2. Continue watching (last 3 in-progress audios)
