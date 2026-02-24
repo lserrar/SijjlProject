@@ -1178,6 +1178,179 @@ async def remove_favorite(content_type: str, content_id: str, request: Request):
     await db.user_favorites.delete_one({'user_id': user['user_id'], 'content_id': content_id})
     return {'message': 'Retiré de votre bibliothèque'}
 
+# ─── User Stats & Library ─────────────────────────────────────────────────────
+
+@api_router.get("/user/stats")
+async def get_user_stats(request: Request):
+    """Get user statistics for profile page."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    user_id = user['user_id']
+    
+    # Count favorites
+    favorites_count = await db.user_favorites.count_documents({'user_id': user_id})
+    
+    # Get progress data and calculate stats
+    progress_items = await db.user_progress.find({'user_id': user_id}, {'_id': 0}).to_list(500)
+    
+    courses_followed = set()
+    total_listening_seconds = 0
+    completed_count = 0
+    
+    for p in progress_items:
+        if p.get('content_type') == 'audio':
+            # Get audio to find its duration and course
+            audio = await db.audios.find_one({'id': p.get('content_id')}, {'_id': 0, 'duration': 1, 'course_id': 1})
+            if audio:
+                duration = audio.get('duration', 0)  # in seconds
+                progress_pct = p.get('progress', 0)
+                total_listening_seconds += int(duration * progress_pct)
+                
+                if audio.get('course_id'):
+                    courses_followed.add(audio['course_id'])
+                
+                if p.get('completed'):
+                    completed_count += 1
+    
+    # Convert seconds to hours
+    total_listening_hours = round(total_listening_seconds / 3600, 1)
+    
+    return {
+        'courses_followed': len(courses_followed),
+        'listening_hours': total_listening_hours,
+        'favorites_count': favorites_count,
+        'completed_count': completed_count,
+        'in_progress_count': len([p for p in progress_items if not p.get('completed') and p.get('progress', 0) > 0.01]),
+    }
+
+@api_router.get("/user/library")
+async def get_user_library(request: Request):
+    """Get user library data (in-progress, favorites, completed)."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    user_id = user['user_id']
+    CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+    CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
+    
+    # Pre-load cursus for enrichment
+    all_cursus = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(20)
+    cursus_map = {c['id']: c for c in all_cursus}
+    
+    def get_cursus_info(cursus_id: str):
+        c = cursus_map.get(cursus_id, {})
+        order = max(0, min(c.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
+        return {
+            'cursus_letter': CURSUS_LETTERS[order],
+            'cursus_color': CURSUS_COLORS[order],
+            'cursus_name': c.get('name', ''),
+        }
+    
+    # Get progress items
+    progress_items = await db.user_progress.find(
+        {'user_id': user_id, 'content_type': 'audio'},
+        {'_id': 0}
+    ).sort('updated_at', -1).to_list(100)
+    
+    in_progress = []
+    completed = []
+    
+    for p in progress_items:
+        audio = await db.audios.find_one({'id': p.get('content_id')}, {'_id': 0})
+        if not audio:
+            continue
+        
+        # Get course info for cursus enrichment
+        course = None
+        if audio.get('course_id'):
+            course = await db.courses.find_one({'id': audio['course_id']}, {'_id': 0, 'title': 1, 'cursus_id': 1})
+        
+        cursus_info = get_cursus_info(course.get('cursus_id', '') if course else '')
+        duration_seconds = audio.get('duration', 0)
+        duration_minutes = round(duration_seconds / 60)
+        progress_pct = p.get('progress', 0)
+        listened_minutes = round(duration_minutes * progress_pct)
+        
+        item = {
+            'id': audio['id'],
+            'title': audio.get('title', ''),
+            'cursus_letter': cursus_info['cursus_letter'],
+            'cursus_color': cursus_info['cursus_color'],
+            'cursus_name': cursus_info['cursus_name'],
+            'course_title': course.get('title', '') if course else '',
+            'episode_num': audio.get('episode_number', 1),
+            'listened_minutes': listened_minutes,
+            'total_minutes': duration_minutes,
+            'progress': round(progress_pct * 100),
+            'position': p.get('position', 0),
+            'updated_at': p.get('updated_at', ''),
+        }
+        
+        if p.get('completed'):
+            completed.append(item)
+        elif progress_pct > 0.01:
+            in_progress.append(item)
+    
+    # Get favorites
+    favs = await db.user_favorites.find({'user_id': user_id}, {'_id': 0}).sort('saved_at', -1).to_list(100)
+    favorites = []
+    
+    for fav in favs:
+        content_type = fav.get('content_type', 'audio')
+        if content_type == 'audio':
+            audio = await db.audios.find_one({'id': fav.get('content_id')}, {'_id': 0})
+            if audio:
+                course = None
+                if audio.get('course_id'):
+                    course = await db.courses.find_one({'id': audio['course_id']}, {'_id': 0, 'cursus_id': 1})
+                
+                cursus_info = get_cursus_info(course.get('cursus_id', '') if course else '')
+                duration_minutes = round(audio.get('duration', 0) / 60)
+                
+                # Format saved_at as relative time
+                saved_at = fav.get('saved_at')
+                saved_date = 'Récemment'
+                if saved_at:
+                    if isinstance(saved_at, str):
+                        saved_at = datetime.fromisoformat(saved_at.replace('Z', '+00:00'))
+                    days_ago = (datetime.now(timezone.utc) - saved_at).days
+                    if days_ago == 0:
+                        saved_date = "Aujourd'hui"
+                    elif days_ago == 1:
+                        saved_date = 'Hier'
+                    elif days_ago < 7:
+                        saved_date = f'Il y a {days_ago}j'
+                    elif days_ago < 30:
+                        weeks = days_ago // 7
+                        saved_date = f'Il y a {weeks}s'
+                    else:
+                        saved_date = f'Il y a {days_ago // 30}m'
+                
+                favorites.append({
+                    'id': audio['id'],
+                    'title': audio.get('title', ''),
+                    'cursus_letter': cursus_info['cursus_letter'],
+                    'cursus_color': cursus_info['cursus_color'],
+                    'duration_minutes': duration_minutes,
+                    'saved_date': saved_date,
+                })
+    
+    # Calculate global progress
+    total_progress = 0
+    if in_progress or completed:
+        all_items = in_progress + completed
+        total_progress = round(sum(i['progress'] for i in all_items) / len(all_items)) if all_items else 0
+    
+    return {
+        'in_progress': in_progress,
+        'favorites': favorites,
+        'completed': completed,
+        'global_progress': total_progress,
+    }
+
 # ─── Recommendations ─────────────────────────────────────────────────────────
 
 @api_router.get("/recommendations")
