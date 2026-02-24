@@ -1227,15 +1227,103 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // ─── PLACEHOLDER TABS ─────────────────────────────────────────────────────
-  placeholderTab: {
-    padding: 40,
-    alignItems: 'center',
+  // ─── SCHOLARS TAB ────────────────────────────────────────────────────────────
+  scholarsTab: {
+    paddingBottom: 20,
   },
-  placeholderText: {
+  scholarCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  scholarCardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+  },
+  scholarPhoto: {
+    width: 56,
+    height: 56,
+    flexShrink: 0,
+  },
+  scholarPhotoInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scholarInitial: {
+    fontFamily: 'Cinzel',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#F5F0E8',
+  },
+  scholarInfo: {
+    flex: 1,
+  },
+  scholarName: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: '#F5F0E8',
+    marginBottom: 3,
+  },
+  scholarTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#C9A84C',
+    marginBottom: 4,
+  },
+  scholarCoursesCount: {
+    fontFamily: 'Cinzel',
+    fontSize: 7,
+    letterSpacing: 2,
+    color: '#777777',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  scholarCoursesList: {
+    marginTop: 4,
+  },
+  scholarCourseItem: {
+    fontFamily: 'EBGaramond',
+    fontSize: 11,
+    color: 'rgba(245,240,232,0.55)',
+    lineHeight: 16,
+  },
+
+  // ─── RESOURCES TAB ───────────────────────────────────────────────────────────
+  resourcesTab: {
+    paddingBottom: 20,
+  },
+
+  // ─── EMPTY STATE ─────────────────────────────────────────────────────────────
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    letterSpacing: 2,
+    color: '#F5F0E8',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
     fontFamily: 'EBGaramond',
     fontSize: 14,
     color: '#777777',
     fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
