@@ -1289,11 +1289,11 @@ async def get_user_library(request: Request):
         
         item = {
             'id': audio['id'],
-            'title': audio.get('title', ''),
+            'title': clean_title(audio.get('title', '')),
             'cursus_letter': cursus_info['cursus_letter'],
             'cursus_color': cursus_info['cursus_color'],
             'cursus_name': cursus_info['cursus_name'],
-            'course_title': course.get('title', '') if course else '',
+            'course_title': clean_title(course.get('title', '') if course else ''),
             'episode_num': audio.get('episode_number', 1),
             'listened_minutes': listened_minutes,
             'total_minutes': duration_minutes,
@@ -1347,7 +1347,7 @@ async def get_user_library(request: Request):
                 
                 favorites.append({
                     'id': audio['id'],
-                    'title': audio.get('title', ''),
+                    'title': clean_title(audio.get('title', '')),
                     'cursus_letter': cursus_info['cursus_letter'],
                     'cursus_color': cursus_info['cursus_color'],
                     'duration_minutes': duration_minutes,
