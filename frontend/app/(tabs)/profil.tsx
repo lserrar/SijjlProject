@@ -87,7 +87,7 @@ export default function ProfilScreen() {
     { icon: 'help-circle-outline', label: 'Aide et support', action: () => {} },
     { icon: 'shield-checkmark-outline', label: 'Confidentialité', action: () => router.push('/legal/privacy') },
     { icon: 'document-text-outline', label: "Conditions d'utilisation", action: () => router.push('/legal/terms') },
-    { icon: 'information-circle-outline', label: 'À propos de Sijill', action: () => router.push('/about') },
+    { icon: 'information-circle-outline', label: 'Qui sommes-nous', action: () => router.push('/about') },
   ];
 
   // Calculate academic level based on completed count
