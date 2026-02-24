@@ -397,6 +397,28 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.95)',
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}),
   },
+  profileBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#333333',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#04D182',
+  },
+  profileAvatarText: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F5F0E8',
+  },
   logoRow: { flexDirection: 'row', alignItems: 'flex-end' },
   logoText: {
     fontFamily: 'Cinzel',
