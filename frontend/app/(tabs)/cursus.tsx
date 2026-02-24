@@ -73,7 +73,6 @@ export default function CursusScreen() {
   const { token } = useAuth();
   const router = useRouter();
   const [cursus, setCursus] = useState<Cursus[]>([]);
-  const [userProgress, setUserProgress] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -84,9 +83,19 @@ export default function CursusScreen() {
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
       ]);
 
+      // Build progress map (audio_id -> progress data)
+      const progressMap: Record<string, any> = {};
+      if (progressRes.ok) {
+        const progressData = await progressRes.json();
+        (progressData || []).forEach((p: any) => {
+          progressMap[p.content_id] = p;
+        });
+      }
+
       if (cursusRes.ok) {
         const data = await cursusRes.json();
-        // Enrich cursus with stats
+        
+        // Enrich cursus with stats and progress
         const enriched = await Promise.all(
           data.map(async (c: any) => {
             try {
@@ -95,17 +104,39 @@ export default function CursusScreen() {
                 const courses = await coursesRes.json();
                 let totalEpisodes = 0;
                 let totalDuration = 0;
+                let completedEpisodes = 0;
                 
+                // Get playlist for each course to count completed episodes
                 for (const course of courses) {
                   totalEpisodes += course.modules_count || 0;
                   totalDuration += course.duration || 0;
+                  
+                  // Fetch playlist to check progress
+                  try {
+                    const playlistRes = await apiRequest(`/courses/${course.id}/playlist`, token);
+                    if (playlistRes.ok) {
+                      const playlist = await playlistRes.json();
+                      for (const ep of playlist) {
+                        const epProgress = progressMap[ep.audio_id];
+                        if (epProgress && (epProgress.completed || epProgress.progress >= 0.9)) {
+                          completedEpisodes++;
+                        }
+                      }
+                    }
+                  } catch (e) {}
                 }
+                
+                const progress = totalEpisodes > 0 
+                  ? Math.round((completedEpisodes / totalEpisodes) * 100) 
+                  : 0;
                 
                 return {
                   ...c,
                   courses_count: courses.length,
                   episodes_count: totalEpisodes,
                   total_duration: Math.round(totalDuration / 60), // en minutes
+                  progress,
+                  completed_episodes: completedEpisodes,
                 };
               }
             } catch (e) {}
@@ -114,10 +145,6 @@ export default function CursusScreen() {
         );
         setCursus(enriched.sort((a: Cursus, b: Cursus) => a.order - b.order));
       }
-
-      // Build progress map by cursus
-      if (progressRes.ok) {
-        const progressData = await progressRes.json();
         // TODO: Calculate cursus progress from individual audio progress
       }
     } catch (e) {
