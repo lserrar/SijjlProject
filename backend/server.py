@@ -1017,6 +1017,9 @@ async def get_home(request: Request):
         item['cursus_name'] = c.get('name', '')
         item['cursus_letter'] = CURSUS_LETTERS[order]
         item['cursus_color'] = CURSUS_COLORS[order]
+        # Clean title prefixes
+        if item.get('title'):
+            item['title'] = clean_title(item['title'])
         return item
 
     # 1. Featured hero: check cursus first, then course
