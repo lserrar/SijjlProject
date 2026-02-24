@@ -556,6 +556,10 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
     if filter_id:
         query['$or'] = [{'cursus_id': filter_id}, {'thematique_id': filter_id}]
     courses = await db.courses.find(query, {'_id': 0}).to_list(100)
+    # Clean titles
+    for c in courses:
+        if c.get('title'):
+            c['title'] = clean_title(c['title'])
     return courses
 
 @api_router.get("/courses/{course_id}/playlist")
