@@ -78,12 +78,35 @@ export default function HomeScreen() {
 
       {/* ── NAV HAUTE (sticky — hors ScrollView) ── */}
       <View style={s.topNav} testID="top-nav">
-        {/* Logo SIJILL + dot */}
+        {/* Avatar profil style Spotify (gauche) */}
+        <TouchableOpacity 
+          testID="home-profile-btn" 
+          onPress={goProfile} 
+          style={s.profileBtn}
+          activeOpacity={0.8}
+        >
+          {user?.picture ? (
+            <View style={s.profileAvatar}>
+              <Text style={s.profileAvatarText}>
+                {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          ) : (
+            <View style={s.profileAvatar}>
+              <Text style={s.profileAvatarText}>
+                {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Logo SIJILL + dot (centre) */}
         <View style={s.logoRow}>
           <Text style={s.logoText}>SIJILL</Text>
           <View style={s.logoDot} />
         </View>
-        {/* Search */}
+
+        {/* Search (droite) */}
         <TouchableOpacity testID="home-search-btn" onPress={goSearch} style={s.navSearchBtn}>
           <Ionicons name="search-outline" size={20} color="#F5F0E8" strokeWidth={2} />
         </TouchableOpacity>
