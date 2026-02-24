@@ -2068,6 +2068,21 @@ async def admin_list_thematiques_compat(request: Request):
     """Compatibility endpoint - redirects to cursus."""
     return await admin_list_cursus(request)
 
+@api_router.post("/admin/thematiques")
+async def admin_create_thematique_compat(body: CursusCreate, request: Request):
+    """Compatibility endpoint for web admin panel."""
+    return await admin_create_cursus(body, request)
+
+@api_router.put("/admin/thematiques/{cursus_id}")
+async def admin_update_thematique_compat(cursus_id: str, body: CursusUpdate, request: Request):
+    """Compatibility endpoint for web admin panel — saves description to cursus."""
+    return await admin_update_cursus(cursus_id, body, request)
+
+@api_router.delete("/admin/thematiques/{cursus_id}")
+async def admin_delete_thematique_compat(cursus_id: str, request: Request):
+    """Compatibility endpoint for web admin panel."""
+    return await admin_delete_cursus(cursus_id, request)
+
 @api_router.get("/cursus")
 async def public_list_cursus():
     """Public endpoint to list active cursus."""
