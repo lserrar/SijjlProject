@@ -32,7 +32,7 @@ function fmtDur(s: number) { return s > 0 ? formatDuration(s) : ''; }
 
 // ─── HOME SCREEN ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,7 @@ export default function HomeScreen() {
   const goAudio = (id: string) => router.push(`/audio/${id}` as any);
   const goCourse = (id: string) => router.push(`/course/${id}` as any);
   const goSearch = () => router.push('/search' as any);
+  const goProfile = () => router.push('/(tabs)/profil' as any);
   const goHero = (hero: any) => {
     if (hero?.hero_type === 'cursus') {
       router.push(`/cursus/${hero.cursus_id}` as any);
