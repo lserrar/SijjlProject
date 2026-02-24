@@ -2303,6 +2303,72 @@ async def public_list_cursus():
     cursus_list = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(100)
     return cursus_list
 
+@api_router.get("/cursus/{cursus_id}/scholars")
+async def get_cursus_scholars(cursus_id: str):
+    """Get all scholars teaching courses in a cursus."""
+    # Find all courses in this cursus
+    courses = await db.courses.find(
+        {'$or': [{'cursus_id': cursus_id}, {'thematique_id': cursus_id}], 'is_active': {'$ne': False}},
+        {'_id': 0, 'scholar_id': 1, 'scholar_name': 1, 'title': 1, 'id': 1}
+    ).to_list(100)
+    
+    # Collect unique scholar IDs and their courses
+    scholars_map = {}
+    for c in courses:
+        scholar_id = c.get('scholar_id')
+        if scholar_id:
+            if scholar_id not in scholars_map:
+                scholars_map[scholar_id] = {
+                    'id': scholar_id,
+                    'name': c.get('scholar_name', ''),
+                    'courses': []
+                }
+            scholars_map[scholar_id]['courses'].append({
+                'id': c['id'],
+                'title': clean_title(c.get('title', ''))
+            })
+    
+    # Enrich with scholar details from scholars collection
+    result = []
+    for sid, data in scholars_map.items():
+        scholar = await db.scholars.find_one({'id': sid}, {'_id': 0})
+        if scholar:
+            result.append({
+                'id': sid,
+                'name': scholar.get('name', data['name']),
+                'title': scholar.get('title', ''),
+                'bio': scholar.get('bio', ''),
+                'photo': scholar.get('photo', ''),
+                'courses_count': len(data['courses']),
+                'courses': data['courses']
+            })
+        else:
+            # Fallback if no scholar doc
+            result.append({
+                'id': sid,
+                'name': data['name'],
+                'title': '',
+                'bio': '',
+                'photo': '',
+                'courses_count': len(data['courses']),
+                'courses': data['courses']
+            })
+    
+    return result
+
+@api_router.get("/cursus/{cursus_id}/resources")
+async def get_cursus_resources(cursus_id: str):
+    """Get resources for a cursus (books, articles, links)."""
+    # Check if there's a resources collection or field in cursus
+    cursus = await db.cursus.find_one({'id': cursus_id}, {'_id': 0})
+    if not cursus:
+        raise HTTPException(404, "Cursus non trouvé")
+    
+    # For now, return empty list as resources are not yet implemented
+    # This can be expanded later to include books, PDFs, external links
+    resources = await db.resources.find({'cursus_id': cursus_id, 'is_active': True}, {'_id': 0}).to_list(50)
+    return resources
+
 @api_router.get("/thematiques")
 async def public_list_thematiques_compat():
     """Compatibility endpoint."""
