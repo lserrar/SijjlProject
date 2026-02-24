@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Any, Dict
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-import os, uuid, logging, hashlib, hmac, requests as http_requests
+import os, uuid, logging, hashlib, hmac, requests as http_requests, re
 import asyncio
 import boto3
 from botocore.config import Config as BotoConfig
@@ -23,6 +23,19 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET_KEY', 'hikmabyLM_secret')
 EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+# ─── Utility: Clean title prefixes ───────────────────────────────────────────
+def clean_title(title: str) -> str:
+    """Remove redundant prefixes like 'Épisode 1 —', 'Cours 1:', etc."""
+    if not title:
+        return title
+    # Remove "Épisode X —" or "Épisode X :" patterns
+    title = re.sub(r'^[ÉE]pisode\s+\d+\s*[—:\-–]\s*', '', title, flags=re.IGNORECASE)
+    # Remove "Cours X :" or "Cours X —" patterns
+    title = re.sub(r'^Cours\s+\d+\s*[—:\-–]\s*', '', title, flags=re.IGNORECASE)
+    # Remove "Module X —" patterns
+    title = re.sub(r'^Module\s+\d+\s*[—:\-–]\s*', '', title, flags=re.IGNORECASE)
+    return title.strip()
 
 # ─── Cloudflare R2 Config ────────────────────────────────────────────────────
 R2_ACCOUNT_ID     = os.environ.get('R2_ACCOUNT_ID', '')
