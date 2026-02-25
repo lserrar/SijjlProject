@@ -181,17 +181,55 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Sync R2 Modal -->
+    <div class="modal-overlay" id="syncModalOverlay" onclick="closeSyncModal(event)">
+        <div class="modal" style="max-width: 550px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-sync" style="color: var(--brand-primary); margin-right: 8px;"></i> Synchroniser les Bibliographies</h3>
+                <button class="modal-close" onclick="closeSyncModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: var(--text-secondary);">
+                    Cette action va synchroniser les fichiers <code>.docx</code> depuis le dossier <code>Biblio/</code> du bucket R2.
+                </p>
+                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        <i class="fas fa-info-circle" style="color: var(--brand-primary);"></i>
+                        Les fichiers doivent être nommés : <code>Biblio_Module{NN}_Cursus{X}.docx</code>
+                    </div>
+                </div>
+                <div id="syncResult" style="display: none; padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 16px;">
+                    <div id="syncResultContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSyncModal()">Fermer</button>
+                <button type="button" class="btn btn-primary" id="syncBtn" onclick="executeSyncR2()">
+                    <i class="fas fa-sync"></i> Lancer la synchronisation
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = '/api';
         let authToken = localStorage.getItem('adminToken');
         let items = [];
         let thematiques = [];
 
+        const CURSUS_NAMES = {
+            'cursus-falsafa': 'Cursus A - Falsafa',
+            'cursus-hermeneutique': 'Cursus B - Herméneutique',
+            'cursus-histoire': 'Cursus C - Histoire',
+            'cursus-litterature': 'Cursus D - Littérature',
+            'cursus-spiritualites': 'Cursus E - Spiritualités'
+        };
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'info' ? 'info-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 4000);
         }
@@ -218,6 +256,10 @@
             return t ? t.name : '-';
         }
 
+        function getCursusName(cursusId) {
+            return CURSUS_NAMES[cursusId] || cursusId || '-';
+        }
+
         function openModal(item = null) {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = item ? 'Modifier la bibliographie' : 'Nouvelle bibliographie';
@@ -225,8 +267,8 @@
             if (item) {
                 document.getElementById('itemId').value = item.id;
                 document.getElementById('title').value = item.title || '';
-                document.getElementById('thematique_id').value = item.thematique_id || '';
-                document.getElementById('content_fr').value = item.content_fr || '';
+                document.getElementById('thematique_id').value = item.thematique_id || item.cursus_id || '';
+                document.getElementById('content_fr').value = item.content_fr || item.content || '';
                 document.getElementById('content_en').value = item.content_en || '';
             } else {
                 document.getElementById('dataForm').reset();
@@ -237,6 +279,67 @@
         function closeModal(event) {
             if (event && event.target !== event.currentTarget) return;
             document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Sync Modal Functions
+        function openSyncModal() {
+            document.getElementById('syncModalOverlay').classList.add('active');
+            document.getElementById('syncResult').style.display = 'none';
+        }
+
+        function closeSyncModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('syncModalOverlay').classList.remove('active');
+        }
+
+        async function executeSyncR2() {
+            const btn = document.getElementById('syncBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation...';
+            
+            try {
+                const result = await apiRequest('/admin/sync-bibliographies', 'POST');
+                
+                document.getElementById('syncResult').style.display = 'block';
+                document.getElementById('syncResultContent').innerHTML = `
+                    <div style="color: var(--success); margin-bottom: 8px; font-weight: 600;">
+                        <i class="fas fa-check-circle"></i> Synchronisation réussie !
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-secondary);">
+                        <div>Bibliographies créées : <strong style="color: var(--text-primary);">${result.bibliographies_created}</strong></div>
+                        <div>Bibliographies mises à jour : <strong style="color: var(--text-primary);">${result.bibliographies_updated}</strong></div>
+                        <div>Total : <strong style="color: var(--brand-primary);">${result.total}</strong></div>
+                    </div>
+                `;
+                
+                showToast(`${result.total} bibliographie(s) synchronisée(s)`);
+                loadData();
+            } catch (error) {
+                document.getElementById('syncResult').style.display = 'block';
+                document.getElementById('syncResultContent').innerHTML = `
+                    <div style="color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i> ${error.message || 'Erreur de synchronisation'}
+                    </div>
+                `;
+                showToast(error.message || 'Erreur de synchronisation', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync"></i> Lancer la synchronisation';
+            }
+        }
+
+        // Standardize Titles Function
+        async function standardizeTitles() {
+            if (!confirm('Uniformiser tous les titres au format "Bibliographie - Cours XX : [Titre]" ?')) return;
+            
+            try {
+                showToast('Uniformisation en cours...', 'info');
+                const result = await apiRequest('/admin/bibliographies/standardize-titles', 'POST');
+                showToast(`${result.updated} titre(s) mis à jour`);
+                loadData();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de l\'uniformisation', 'error');
+            }
         }
 
         async function saveData(event) {
@@ -261,8 +364,9 @@
             } catch (error) { showToast(error.message, 'error'); }
         }
 
-        async function deleteItem(id, name) {
-            if (!confirm(`Supprimer "${name}" ?`)) return;
+        async function deleteItem(id) {
+            const item = items.find(i => i.id === id);
+            if (!confirm(`Supprimer "${item?.title || id}" ?`)) return;
             try {
                 await apiRequest(`/admin/bibliographies/${id}`, 'DELETE');
                 showToast('Bibliographie supprimée');
@@ -272,22 +376,23 @@
 
         function renderData(data) {
             if (data.length === 0) {
-                document.getElementById('dataTable').innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Aucune bibliographie. Cliquez sur "Nouvelle bibliographie" pour commencer.</p>`;
+                document.getElementById('dataTable').innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Aucune bibliographie. Cliquez sur "Sync R2" pour importer depuis le bucket.</p>`;
                 return;
             }
             document.getElementById('dataTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Titre</th><th>Thématique</th><th>Contenu FR</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Titre</th><th>Cursus</th><th>Module</th><th>Aperçu</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${data.map(item => `
-                            <tr>
+                            <tr data-testid="biblio-row-${item.id}">
                                 <td><div class="table-cell-text">${item.title}</div></td>
-                                <td><span class="tag">${getThematiqueName(item.thematique_id)}</span></td>
-                                <td><div class="table-cell-subtext">${(item.content_fr || '-').substring(0, 80)}...</div></td>
+                                <td><span class="tag" style="background: rgba(4, 209, 130, 0.15); color: var(--brand-primary);">${getCursusName(item.cursus_id)}</span></td>
+                                <td><span class="tag">${item.module_number ? 'Module ' + item.module_number : '-'}</span></td>
+                                <td><div class="table-cell-subtext">${((item.content_fr || item.content || '-').substring(0, 60))}...</div></td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editItem('${item.id}')"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}')"><i class="fas fa-trash"></i></button>
+                                        <button class="btn btn-secondary btn-sm btn-icon" onclick="editItem('${item.id}')" title="Modifier"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}')" title="Supprimer"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -300,16 +405,6 @@
         function editItem(id) {
             const item = items.find(i => i.id === id);
             if (item) openModal(item);
-        }
-
-        async function deleteItem(id) {
-            const item = items.find(i => i.id === id);
-            if (!confirm(`Supprimer "${item?.title || id}" ?`)) return;
-            try {
-                await apiRequest(`/admin/bibliographies/${id}`, 'DELETE');
-                showToast('Supprime');
-                loadData();
-            } catch (error) { showToast(error.message, 'error'); }
         }
 
         async function loadData() {
