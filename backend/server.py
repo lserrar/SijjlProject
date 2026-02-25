@@ -446,6 +446,26 @@ class StartTrialRequest(BaseModel):
 class Top10UpdateRequest(BaseModel):
     course_ids: List[str]
 
+# ─── Referral Models ─────────────────────────────────────────────────────────
+
+class ApplyReferralRequest(BaseModel):
+    referral_code: str
+
+class GrantFreeMonthRequest(BaseModel):
+    user_id: str
+    months: int = 1
+    reason: str = "admin_grant"
+
+def generate_referral_code(user_id: str, name: str) -> str:
+    """Generate a unique referral code based on user name and ID."""
+    # Clean name: remove accents, spaces, keep first part
+    import unicodedata
+    clean_name = unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('ASCII')
+    clean_name = clean_name.split()[0].upper()[:6] if clean_name else "USER"
+    # Add unique suffix from user_id
+    suffix = user_id[-4:].upper()
+    return f"SIJILL-{clean_name}{suffix}"
+
 # ─── Auth Routes ────────────────────────────────────────────────────────────
 
 @api_router.post("/auth/register")
