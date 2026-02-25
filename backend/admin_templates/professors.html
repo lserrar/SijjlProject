@@ -425,6 +425,19 @@
             }
         }
 
+        async function syncPhotos() {
+            if (!confirm('Synchroniser les photos des professeurs depuis R2 (dossier Prof/) ?')) return;
+            
+            try {
+                showToast('Synchronisation en cours...', 'info');
+                const result = await apiRequest('/admin/sync-professor-photos', 'POST');
+                showToast(`${result.photos_updated} photo(s) synchronisée(s)`, 'success');
+                loadProfessors();
+            } catch (error) {
+                showToast(error.message || 'Erreur de synchronisation', 'error');
+            }
+        }
+
         if (!authToken) {
             window.location.href = '/api/admin-panel/login';
         } else {
