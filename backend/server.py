@@ -2024,6 +2024,166 @@ async def admin_stats(request: Request):
         'users': {'total': users_total},
     }
 
+# Admin: Listening Statistics Dashboard
+@api_router.get("/admin/listening-stats")
+async def admin_listening_stats(request: Request, period: str = "all"):
+    """Get detailed listening statistics by cursus, course, module, and professor."""
+    await require_admin(request)
+    
+    # Calculate date filter based on period
+    now = datetime.now(timezone.utc)
+    date_filter = {}
+    if period == "7days":
+        date_filter = {"updated_at": {"$gte": now - timedelta(days=7)}}
+    elif period == "month":
+        date_filter = {"updated_at": {"$gte": now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)}}
+    elif period == "year":
+        date_filter = {"updated_at": {"$gte": now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)}}
+    # "all" = no filter
+    
+    # Get all progress data
+    progress_query = {"content_type": "audio"}
+    if date_filter:
+        progress_query.update(date_filter)
+    
+    progress_items = await db.user_progress.find(progress_query, {"_id": 0}).to_list(10000)
+    
+    # Get all audios, courses, cursus, and scholars for reference
+    audios = {a['id']: a for a in await db.audios.find({}, {"_id": 0}).to_list(1000)}
+    courses = {c['id']: c for c in await db.courses.find({}, {"_id": 0}).to_list(100)}
+    cursus_list = {c['id']: c for c in await db.thematiques.find({}, {"_id": 0}).to_list(50)}
+    scholars = {s['id']: s for s in await db.scholars.find({}, {"_id": 0}).to_list(100)}
+    
+    # Aggregate stats
+    stats_by_cursus = {}
+    stats_by_course = {}
+    stats_by_audio = {}
+    stats_by_professor = {}
+    daily_stats = {}
+    
+    total_listening_seconds = 0
+    total_plays = 0
+    
+    for p in progress_items:
+        audio_id = p.get('content_id')
+        audio = audios.get(audio_id, {})
+        if not audio:
+            continue
+        
+        duration = audio.get('duration', 0)
+        progress_pct = p.get('progress', 0)
+        listening_seconds = int(duration * progress_pct)
+        total_listening_seconds += listening_seconds
+        total_plays += 1
+        
+        # Get related entities
+        course_id = audio.get('course_id', '')
+        course = courses.get(course_id, {})
+        cursus_id = course.get('cursus_id', '')
+        cursus = cursus_list.get(cursus_id, {})
+        professor_id = audio.get('scholar_id', '') or course.get('scholar_id', '')
+        professor = scholars.get(professor_id, {})
+        
+        # Aggregate by cursus
+        if cursus_id:
+            if cursus_id not in stats_by_cursus:
+                stats_by_cursus[cursus_id] = {
+                    'id': cursus_id,
+                    'name': cursus.get('name', cursus_id),
+                    'listening_seconds': 0,
+                    'plays': 0
+                }
+            stats_by_cursus[cursus_id]['listening_seconds'] += listening_seconds
+            stats_by_cursus[cursus_id]['plays'] += 1
+        
+        # Aggregate by course
+        if course_id:
+            if course_id not in stats_by_course:
+                stats_by_course[course_id] = {
+                    'id': course_id,
+                    'title': course.get('title', course_id),
+                    'cursus_name': cursus.get('name', ''),
+                    'listening_seconds': 0,
+                    'plays': 0
+                }
+            stats_by_course[course_id]['listening_seconds'] += listening_seconds
+            stats_by_course[course_id]['plays'] += 1
+        
+        # Aggregate by audio (module/episode)
+        if audio_id not in stats_by_audio:
+            stats_by_audio[audio_id] = {
+                'id': audio_id,
+                'title': audio.get('title', audio_id),
+                'course_title': course.get('title', ''),
+                'listening_seconds': 0,
+                'plays': 0
+            }
+        stats_by_audio[audio_id]['listening_seconds'] += listening_seconds
+        stats_by_audio[audio_id]['plays'] += 1
+        
+        # Aggregate by professor
+        if professor_id:
+            if professor_id not in stats_by_professor:
+                stats_by_professor[professor_id] = {
+                    'id': professor_id,
+                    'name': professor.get('name', professor_id),
+                    'photo': professor.get('photo_url', ''),
+                    'listening_seconds': 0,
+                    'plays': 0
+                }
+            stats_by_professor[professor_id]['listening_seconds'] += listening_seconds
+            stats_by_professor[professor_id]['plays'] += 1
+        
+        # Daily stats for chart
+        updated_at = p.get('updated_at')
+        if updated_at:
+            if isinstance(updated_at, str):
+                updated_at = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+            day_key = updated_at.strftime('%Y-%m-%d')
+            if day_key not in daily_stats:
+                daily_stats[day_key] = {'date': day_key, 'listening_seconds': 0, 'plays': 0}
+            daily_stats[day_key]['listening_seconds'] += listening_seconds
+            daily_stats[day_key]['plays'] += 1
+    
+    # Sort and limit results
+    cursus_sorted = sorted(stats_by_cursus.values(), key=lambda x: x['listening_seconds'], reverse=True)
+    courses_sorted = sorted(stats_by_course.values(), key=lambda x: x['listening_seconds'], reverse=True)[:20]
+    audios_sorted = sorted(stats_by_audio.values(), key=lambda x: x['listening_seconds'], reverse=True)[:20]
+    professors_sorted = sorted(stats_by_professor.values(), key=lambda x: x['listening_seconds'], reverse=True)
+    
+    # Sort daily stats by date
+    daily_sorted = sorted(daily_stats.values(), key=lambda x: x['date'])
+    
+    # Convert seconds to hours for display
+    def to_hours(seconds):
+        return round(seconds / 3600, 1)
+    
+    for item in cursus_sorted:
+        item['listening_hours'] = to_hours(item['listening_seconds'])
+    for item in courses_sorted:
+        item['listening_hours'] = to_hours(item['listening_seconds'])
+    for item in audios_sorted:
+        item['listening_hours'] = to_hours(item['listening_seconds'])
+    for item in professors_sorted:
+        item['listening_hours'] = to_hours(item['listening_seconds'])
+    for item in daily_sorted:
+        item['listening_hours'] = to_hours(item['listening_seconds'])
+    
+    return {
+        'period': period,
+        'total': {
+            'listening_hours': to_hours(total_listening_seconds),
+            'listening_seconds': total_listening_seconds,
+            'plays': total_plays,
+            'unique_users': len(set(p.get('user_id') for p in progress_items))
+        },
+        'by_cursus': cursus_sorted,
+        'by_course': courses_sorted,
+        'by_audio': audios_sorted,
+        'by_professor': professors_sorted,
+        'daily': daily_sorted
+    }
+
 # Admin: Audio CRUD
 @api_router.get("/admin/audios")
 async def admin_list_audios(request: Request):
