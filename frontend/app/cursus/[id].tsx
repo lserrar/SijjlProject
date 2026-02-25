@@ -1370,6 +1370,60 @@ const styles = StyleSheet.create({
   resourcesTab: {
     paddingBottom: 20,
   },
+  
+  // ─── BIBLIOGRAPHY STYLES ──────────────────────────────────────────────────────
+  biblioCard: {
+    backgroundColor: '#1A1A1A',
+    marginBottom: 12,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  biblioCardExpanded: {
+    backgroundColor: '#1F1F1F',
+  },
+  biblioHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  biblioIcon: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  biblioTitleContainer: {
+    flex: 1,
+  },
+  biblioTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    letterSpacing: 1,
+    color: '#F5F0E8',
+    marginBottom: 2,
+  },
+  biblioMeta: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#888888',
+  },
+  biblioContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  biblioDivider: {
+    height: 1,
+    marginBottom: 16,
+  },
+  biblioText: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    lineHeight: 24,
+    color: 'rgba(245,240,232,0.85)',
+    textAlign: 'justify',
+  },
 
   // ─── EMPTY STATE ─────────────────────────────────────────────────────────────
   emptyState: {
