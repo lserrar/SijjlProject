@@ -245,6 +245,13 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Création de session Stripe Checkout
   - Page `/subscription-success` : Confirmation après paiement
   - Conversion automatique du parrainage quand filleul s'abonne (webhook)
+  - **Clé Stripe live configurée** ✅
+- ✅ **Page Admin Paramètres** (2026-02-25) :
+  - Route `/api/admin-panel/settings`
+  - Configuration Stripe : clé API, webhook secret
+  - Plans d'abonnement : essai, mensuel, annuel (modifiables)
+  - Système de parrainage : récompenses configurable, toggle activation
+  - Statistiques parrainages en temps réel
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
