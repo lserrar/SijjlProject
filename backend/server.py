@@ -808,6 +808,34 @@ async def stream_audio(audio_id: str, request: Request):
         if 'ContentRange' in resp:
             headers['Content-Range'] = resp['ContentRange']
 
+@api_router.get("/images/{file_path:path}")
+async def serve_image(file_path: str, request: Request):
+    """Serve images from R2 bucket."""
+    from fastapi.responses import Response
+    
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    file_key = f"images/{file_path}"
+    
+    try:
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=file_key)
+        content_type = resp.get('ContentType', 'image/jpeg')
+        body = resp['Body'].read()
+        
+        return Response(
+            content=body,
+            media_type=content_type,
+            headers={
+                'Cache-Control': 'public, max-age=86400',
+                'Access-Control-Allow-Origin': '*',
+            }
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            raise HTTPException(404, "Image non trouvée")
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
         status_code = 206 if range_header else 200
         from fastapi.responses import Response
         return Response(content=body, status_code=status_code, headers=headers, media_type=content_type)
