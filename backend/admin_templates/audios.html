@@ -693,7 +693,7 @@
                 if (user.picture) document.getElementById('userAvatar').src = user.picture;
 
                 // Load all data in parallel
-                const [scholarsData, audiosData, categoriesData, modulesData] = await Promise.all([
+                const [scholarsData, audiosData, categoriesData, modulesData, coursesData] = await Promise.all([
                     apiRequest('/admin/scholars'),
                     apiRequest('/admin/audios'),
                     apiRequest('/admin/audio-categories'),
