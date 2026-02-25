@@ -74,9 +74,10 @@ export default function SubscriptionChoiceScreen() {
       }
 
       // Redirect to Stripe Checkout
-      if (data.checkout_url) {
+      const checkoutUrl = data.checkout_url || data.url;
+      if (checkoutUrl) {
         if (typeof window !== 'undefined') {
-          window.location.href = data.checkout_url;
+          window.location.href = checkoutUrl;
         } else {
           Alert.alert(
             'Paiement',
