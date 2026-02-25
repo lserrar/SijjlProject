@@ -4131,8 +4131,11 @@ async def grant_user_access(transaction: dict):
     
     purchase_type = transaction['metadata'].get('purchase_type')
     
+    # Get current user to check for referral
+    user = await db.users.find_one({'user_id': user_id})
+    
     if purchase_type == 'subscription':
-        # Update subscription
+        # Update subscription and subscription_end_date
         await db.users.update_one(
             {'user_id': user_id},
             {'$set': {
@@ -4140,10 +4143,61 @@ async def grant_user_access(transaction: dict):
                     'plan_id': transaction['metadata'].get('plan_id'),
                     'started_at': now,
                     'expires_at': expires_at,
-                    'transaction_id': transaction['transaction_id']
-                }
+                    'transaction_id': transaction['transaction_id'],
+                    'status': 'active'
+                },
+                'subscription_end_date': expires_at
             }}
         )
+        
+        # Check if this user was referred and convert the referral
+        if user and user.get('referred_by'):
+            referrer_id = user['referred_by']
+            
+            # Find the pending referral
+            referral = await db.referrals.find_one({
+                'referrer_id': referrer_id,
+                'referee_id': user_id,
+                'status': 'pending'
+            })
+            
+            if referral:
+                # Update referral status
+                await db.referrals.update_one(
+                    {'id': referral['id']},
+                    {'$set': {
+                        'status': 'converted',
+                        'converted_at': now,
+                        'referrer_rewarded': True,
+                    }}
+                )
+                
+                # Reward the referrer with 1 free month
+                referrer = await db.users.find_one({'user_id': referrer_id})
+                if referrer:
+                    current_end = referrer.get('subscription_end_date')
+                    if current_end:
+                        if isinstance(current_end, str):
+                            current_end = datetime.fromisoformat(current_end.replace('Z', '+00:00'))
+                        if current_end.tzinfo is None:
+                            current_end = current_end.replace(tzinfo=timezone.utc)
+                    
+                    if not current_end or current_end < now:
+                        current_end = now
+                    
+                    new_end = current_end + timedelta(days=30)
+                    
+                    await db.users.update_one(
+                        {'user_id': referrer_id},
+                        {
+                            '$inc': {
+                                'referral_count': 1,
+                                'free_months_earned': 1,
+                            },
+                            '$set': {'subscription_end_date': new_end}
+                        }
+                    )
+                    logger.info(f"Referrer {referrer_id} rewarded with 1 free month for referral conversion")
     
     elif purchase_type in ('course', 'cursus'):
         # Add to purchases
