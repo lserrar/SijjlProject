@@ -954,21 +954,6 @@ async def get_thematique(thematique_id: str):
         raise HTTPException(404, "Cursus non trouvé")
     return t
 
-# ─── Bibliography Routes ─────────────────────────────────────────────────────
-
-@api_router.get("/bibliographies")
-async def get_bibliographies():
-    """Get all bibliographies for the library tab."""
-    biblio = await db.bibliographies.find({'is_active': {'$ne': False}}, {'_id': 0}).to_list(100)
-    return biblio
-
-@api_router.get("/bibliographies/{biblio_id}")
-async def get_bibliography(biblio_id: str):
-    b = await db.bibliographies.find_one({'id': biblio_id}, {'_id': 0})
-    if not b:
-        raise HTTPException(404, "Bibliographie non trouvée")
-    return b
-
 # ─── Masterclass Routes ──────────────────────────────────────────────────────
 
 @api_router.get("/masterclasses")
