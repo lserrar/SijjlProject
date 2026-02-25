@@ -3085,9 +3085,26 @@ async def admin_standardize_bibliography_titles(request: Request):
     """
     Uniformiser tous les titres des bibliographies au format :
     "Bibliographie - Cours XX : [Titre du Cours]"
+    Corrige aussi les cursus_id et assigne les course_id correspondants.
     """
     await require_admin(request)
     import re
+    
+    # Correct cursus mapping (A-E letters to real cursus IDs)
+    letter_to_cursus = {
+        'A': 'cursus-falsafa',
+        'B': 'cursus-theologie',
+        'C': 'cursus-sciences-islamiques',
+        'D': 'cursus-arts',
+        'E': 'cursus-spiritualites',
+    }
+    
+    # Fix old incorrect cursus mappings
+    old_to_new_cursus = {
+        'cursus-hermeneutique': 'cursus-theologie',
+        'cursus-histoire': 'cursus-sciences-islamiques',
+        'cursus-litterature': 'cursus-arts',
+    }
     
     # Get all bibliographies with module_number
     biblios = await db.bibliographies.find({'module_number': {'$exists': True}}, {'_id': 0}).to_list(100)
@@ -3097,29 +3114,49 @@ async def admin_standardize_bibliography_titles(request: Request):
     for biblio in biblios:
         module_num = biblio.get('module_number')
         cursus_id = biblio.get('cursus_id')
-        course_id = biblio.get('course_id')
+        cursus_letter = biblio.get('cursus_letter', '')
         
         if not module_num:
             continue
         
-        # Try to get the course title
-        course_title = None
-        if course_id:
-            course = await db.courses.find_one({'id': course_id})
-            if course:
-                course_title = course.get('title')
+        updates = {}
         
-        # If no course found, try to find by module_number and cursus
-        if not course_title and cursus_id:
-            course = await db.courses.find_one({
-                'cursus_id': cursus_id,
-                '$or': [
-                    {'module_number': module_num},
-                    {'title': {'$regex': f'Module {module_num}\\b', '$options': 'i'}}
-                ]
-            })
-            if course:
-                course_title = course.get('title')
+        # Fix cursus_id if it's using old incorrect mapping
+        if cursus_id in old_to_new_cursus:
+            cursus_id = old_to_new_cursus[cursus_id]
+            updates['cursus_id'] = cursus_id
+        elif cursus_letter and cursus_letter in letter_to_cursus:
+            correct_cursus = letter_to_cursus[cursus_letter]
+            if cursus_id != correct_cursus:
+                cursus_id = correct_cursus
+                updates['cursus_id'] = cursus_id
+        
+        # Find the corresponding course
+        course = None
+        course_title = None
+        
+        # Get all courses for this cursus
+        cursus_courses = await db.courses.find({'cursus_id': cursus_id}).to_list(50)
+        
+        # Try to match by position in cursus (module 1 = first course, etc.)
+        # Calculate position within this cursus based on letter
+        if cursus_letter == 'A':
+            position = module_num  # Modules 1-7
+        elif cursus_letter == 'B':
+            position = module_num - 7  # Modules 8-9 -> position 1-2
+        elif cursus_letter == 'C':
+            position = module_num - 9  # Modules 10-14 -> position 1-5
+        elif cursus_letter == 'D':
+            position = module_num - 14  # Modules 15-22 -> position 1-8
+        elif cursus_letter == 'E':
+            position = module_num - 22  # Modules 23-24 -> position 1-2
+        else:
+            position = module_num
+        
+        if cursus_courses and 1 <= position <= len(cursus_courses):
+            course = cursus_courses[position - 1]
+            course_title = course.get('title', '')
+            updates['course_id'] = course['id']
         
         # Clean up course title - remove "Cours X : " prefix if present
         if course_title:
@@ -3128,15 +3165,19 @@ async def admin_standardize_bibliography_titles(request: Request):
         else:
             new_title = f"Bibliographie - Cours {module_num:02d}"
         
-        # Only update if title is different
+        # Update title if different
         current_title = biblio.get('title', '')
         if current_title != new_title:
+            updates['title'] = new_title
+        
+        # Apply updates if any
+        if updates:
             await db.bibliographies.update_one(
                 {'id': biblio['id']},
-                {'$set': {'title': new_title}}
+                {'$set': updates}
             )
             updated_count += 1
-            logger.info(f"Updated biblio title: {current_title} -> {new_title}")
+            logger.info(f"Updated biblio {biblio['id']}: {list(updates.keys())}")
     
     return {
         'message': 'Uniformisation des titres terminée',
