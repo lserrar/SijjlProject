@@ -258,6 +258,9 @@ function ProfessorCard({ professor, onPress }: ProfessorCardProps) {
     ? `${professor.courses_count} cours · ${professor.episodes_count} épisodes`
     : `${professor.courses_count} cours`;
 
+  // Check if professor has a real photo
+  const hasPhoto = professor.photo && !professor.photo.includes('unsplash');
+
   return (
     <TouchableOpacity
       testID={`professor-card-${professor.id}`}
@@ -266,10 +269,17 @@ function ProfessorCard({ professor, onPress }: ProfessorCardProps) {
       activeOpacity={0.85}
       {...hoverProps}
     >
-      {/* Avatar */}
-      <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
-        <Text style={[styles.avatarText, { color: primaryColor }]}>{professor.initials}</Text>
-      </View>
+      {/* Avatar or Photo */}
+      {hasPhoto ? (
+        <Image 
+          source={{ uri: professor.photo }} 
+          style={[styles.photoAvatar, { borderColor: primaryColor }]}
+        />
+      ) : (
+        <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
+          <Text style={[styles.avatarText, { color: primaryColor }]}>{professor.initials}</Text>
+        </View>
+      )}
 
       {/* Info */}
       <View style={styles.cardInfo}>
