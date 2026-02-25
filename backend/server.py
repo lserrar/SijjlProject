@@ -2051,18 +2051,24 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
     try:
         # List files in the R2 folder
         prefix = f"{r2_folder}/"
+        logger.info(f"Sync R2: Listing files in bucket={R2_BUCKET}, prefix={prefix}")
         response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=500)
         
         files = []
-        for obj in response.get('Contents', []):
+        contents = response.get('Contents', [])
+        logger.info(f"Sync R2: Found {len(contents)} objects")
+        
+        for obj in contents:
             key = obj['Key']
             size = obj['Size']
+            logger.info(f"Sync R2: Checking file: {key} (size={size})")
             if size > 0 and (key.endswith('.m4a') or key.endswith('.mp3') or key.endswith('.wav')):
                 filename = key.replace(prefix, '')
                 # Extract episode number from filename with multiple patterns
                 import re
                 # Try various patterns: episode-01, episode01, ep-01, ep01, 01.m4a, piste-01, etc.
                 match = re.search(r'(?:episode|ep|piste)?[-_]?(\d+)', filename, re.IGNORECASE)
+                logger.info(f"Sync R2: Filename={filename}, match={match.group(1) if match else 'None'}")
                 if match:
                     ep_num = int(match.group(1))
                     files.append({
@@ -2072,6 +2078,7 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
                         'episode_number': ep_num,
                     })
         
+        logger.info(f"Sync R2: Final files count: {len(files)}")
         if not files:
             raise HTTPException(400, f"Aucun fichier audio trouvé dans '{r2_folder}/' (formats: .m4a, .mp3, .wav)")
         
