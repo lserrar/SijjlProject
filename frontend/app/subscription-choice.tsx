@@ -39,13 +39,23 @@ export default function SubscriptionChoiceScreen() {
       }
 
       await refreshUser?.();
-      Alert.alert(
-        'Essai gratuit activé !',
-        'Vous avez 3 jours d\'accès gratuit à tout le contenu.',
-        [{ text: 'Commencer', onPress: () => router.replace('/(tabs)') }]
-      );
+      
+      // Redirect directly on web, show alert on mobile
+      if (typeof window !== 'undefined') {
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert(
+          'Essai gratuit activé !',
+          'Vous avez 3 jours d\'accès gratuit à tout le contenu.',
+          [{ text: 'Commencer', onPress: () => router.replace('/(tabs)') }]
+        );
+      }
     } catch (e: any) {
-      Alert.alert('Erreur', e.message);
+      if (typeof window !== 'undefined') {
+        alert(e.message);
+      } else {
+        Alert.alert('Erreur', e.message);
+      }
     } finally {
       setLoading(false);
     }
