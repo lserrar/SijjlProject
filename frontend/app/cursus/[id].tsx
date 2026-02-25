@@ -590,13 +590,52 @@ export default function CursusCoursesScreen() {
 
         {activeTab === 'ressources' && (
           <View style={styles.resourcesTab}>
-            <View style={styles.emptyState}>
-              <Ionicons name="library-outline" size={40} color="#333" />
-              <Text style={styles.emptyTitle}>Ressources à venir</Text>
-              <Text style={styles.emptyText}>
-                Bibliographies, articles et liens complémentaires seront disponibles prochainement.
-              </Text>
-            </View>
+            {bibliographies.length > 0 ? (
+              <View>
+                <Text style={styles.sectionSubtitle}>Bibliographies</Text>
+                {bibliographies.map((biblio) => (
+                  <TouchableOpacity
+                    key={biblio.id}
+                    style={[
+                      styles.biblioCard,
+                      expandedBiblioId === biblio.id && styles.biblioCardExpanded,
+                    ]}
+                    onPress={() => setExpandedBiblioId(expandedBiblioId === biblio.id ? null : biblio.id)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="book-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{biblio.title}</Text>
+                        <Text style={styles.biblioMeta}>Module {biblio.module_number}</Text>
+                      </View>
+                      <Ionicons 
+                        name={expandedBiblioId === biblio.id ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color="#888" 
+                      />
+                    </View>
+                    
+                    {expandedBiblioId === biblio.id && (
+                      <View style={styles.biblioContent}>
+                        <View style={[styles.biblioDivider, { backgroundColor: `${cursusColor}33` }]} />
+                        <Text style={styles.biblioText}>{biblio.content}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="library-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Ressources à venir</Text>
+                <Text style={styles.emptyText}>
+                  Les bibliographies pour ce cursus seront disponibles prochainement.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
