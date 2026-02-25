@@ -165,6 +165,16 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Ajout des options `showInRecents` et `preferEphemeralSession` pour meilleure UX mobile
 - ✅ **Bug fix datetime timezone** : Correction comparaison datetime naive vs aware dans `/api/user/library`
 
+### 2026-02-25 — Session actuelle
+- ✅ **Bug fix: Images professeurs** (`cursus/[id].tsx`) :
+  - Correction de l'affichage des photos dans l'onglet Professeurs
+  - Import du composant `Image` de React Native
+  - Ajout de la condition `scholar.photo` pour afficher l'image ou les initiales
+  - Mise à jour des URLs photos dans MongoDB (ancien domaine `sijill-preview` → `quranic-studies-1`)
+- ✅ **Bug fix: Descriptions épisodes** (`app/(tabs)/index.tsx`) :
+  - Ajout du prop `description` à `EpisodeCard`
+  - Style `epDesc` en EB Garamond italique, couleur ivoire 50%
+
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
   - Hero avec dégradé sombre verdâtre (#0D1F17 → #090F0C → #0A0A0A)
