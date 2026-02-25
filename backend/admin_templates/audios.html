@@ -794,9 +794,8 @@
             const scholar = scholars.find(s => s.id === scholarId);
             const count = selectedAudioIds.size;
             
-            if (!confirm(`Assigner "${scholar.name}" à ${count} audio(s) ?`)) return;
-            
             try {
+                showToast(`Mise à jour de ${count} audio(s)...`, 'info');
                 const promises = Array.from(selectedAudioIds).map(audioId => 
                     apiRequest(`/admin/audios/${audioId}`, 'PUT', { 
                         scholar_id: scholarId, 
@@ -822,9 +821,8 @@
             const category = categories.find(c => c.id === categoryId);
             const count = selectedAudioIds.size;
             
-            if (!confirm(`Assigner la catégorie "${category.name}" à ${count} audio(s) ?`)) return;
-            
             try {
+                showToast(`Mise à jour de ${count} audio(s)...`, 'info');
                 const promises = Array.from(selectedAudioIds).map(audioId => 
                     apiRequest(`/admin/audios/${audioId}`, 'PUT', { category_id: categoryId })
                 );
