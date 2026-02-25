@@ -124,9 +124,19 @@
             <div class="page-header">
                 <div>
                     <h1 class="page-title">Bibliographies</h1>
-                    <p class="page-description">Recommandations de livres par thématique</p>
+                    <p class="page-description">Recommandations de livres par cursus et module</p>
                 </div>
-                <button class="btn btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> Nouvelle bibliographie</button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="openSyncModal()" data-testid="sync-biblio-r2-btn">
+                        <i class="fas fa-sync"></i> Sync R2
+                    </button>
+                    <button class="btn btn-secondary" onclick="standardizeTitles()" data-testid="standardize-titles-btn">
+                        <i class="fas fa-magic"></i> Uniformiser titres
+                    </button>
+                    <button class="btn btn-primary" onclick="openModal()" data-testid="new-biblio-btn">
+                        <i class="fas fa-plus"></i> Nouvelle bibliographie
+                    </button>
+                </div>
             </div>
 
             <div class="card">
