@@ -476,6 +476,10 @@ async def register(body: RegisterRequest):
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc)
     role = 'admin' if body.email in ADMIN_EMAILS else 'user'
+    
+    # Generate unique referral code for this user
+    referral_code = generate_referral_code(user_id, body.name)
+    
     user_doc = {
         'user_id': user_id,
         'email': body.email,
@@ -486,11 +490,49 @@ async def register(body: RegisterRequest):
         'role': role,
         'created_at': now,
         'progress': {},
-        'favorites': []
+        'favorites': [],
+        # Referral fields
+        'referral_code': referral_code,
+        'referred_by': None,  # user_id of referrer
+        'referral_count': 0,  # Number of successful referrals
+        'free_months_earned': 0,  # Total free months earned from referrals
+        'free_months_remaining': 0,  # Free months not yet used
+        'subscription_end_date': None,  # When subscription/free access ends
     }
+    
+    # Process referral code if provided
+    referrer_user = None
+    if body.referral_code:
+        referrer_user = await db.users.find_one({'referral_code': body.referral_code.upper()})
+        if referrer_user:
+            user_doc['referred_by'] = referrer_user['user_id']
+            user_doc['free_months_remaining'] = 1  # 1 free month for new user (filleul)
+            user_doc['subscription_end_date'] = now + timedelta(days=30)
+            
+            # Create referral record
+            await db.referrals.insert_one({
+                'id': f"ref_{uuid.uuid4().hex[:12]}",
+                'referrer_id': referrer_user['user_id'],
+                'referrer_name': referrer_user.get('name', ''),
+                'referee_id': user_id,
+                'referee_name': body.name,
+                'referee_email': body.email,
+                'status': 'pending',  # pending = waiting for referee to subscribe
+                'referrer_rewarded': False,
+                'created_at': now,
+                'converted_at': None,  # When referee subscribes
+            })
+            logger.info(f"Referral created: {referrer_user['user_id']} -> {user_id}")
+    
     await db.users.insert_one(user_doc)
     token = create_jwt({'user_id': user_id, 'exp': int((now + timedelta(days=7)).timestamp())})
-    return {'token': token, 'user': {k: v for k, v in user_doc.items() if k not in ('_id', 'password_hash')}}
+    
+    # Return user data (exclude sensitive fields)
+    user_response = {k: v for k, v in user_doc.items() if k not in ('_id', 'password_hash')}
+    if referrer_user:
+        user_response['referrer_name'] = referrer_user.get('name', '')
+    
+    return {'token': token, 'user': user_response}
 
 @api_router.post("/auth/login")
 async def login(body: LoginRequest):
