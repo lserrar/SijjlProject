@@ -152,7 +152,26 @@
                     <h1 class="page-title">Audios</h1>
                     <p class="page-description">Gérez les podcasts, conférences, musiques et récitations</p>
                 </div>
-                <button class="btn btn-primary" onclick="openModal()" data-testid="new-audio-btn"><i class="fas fa-plus"></i> Nouvel audio</button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="openSyncR2Modal()" data-testid="sync-r2-btn"><i class="fas fa-sync"></i> Sync R2</button>
+                    <button class="btn btn-primary" onclick="openModal()" data-testid="new-audio-btn"><i class="fas fa-plus"></i> Nouvel audio</button>
+                </div>
+            </div>
+
+            <!-- Bulk Actions Bar (hidden by default) -->
+            <div id="bulkActionsBar" class="card" style="display: none; margin-bottom: 16px; padding: 16px; background: rgba(4, 209, 130, 0.1); border: 1px solid var(--brand-primary);">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <span style="font-weight: 600; color: var(--brand-primary);"><i class="fas fa-check-square"></i> <span id="selectedCount">0</span> sélectionné(s)</span>
+                    <select class="form-select" id="bulkScholar" style="width: auto; min-width: 200px;">
+                        <option value="">-- Assigner professeur --</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="applyBulkScholar()"><i class="fas fa-user-check"></i> Appliquer</button>
+                    <select class="form-select" id="bulkCategory" style="width: auto; min-width: 200px;">
+                        <option value="">-- Assigner catégorie --</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="applyBulkCategory()"><i class="fas fa-tag"></i> Appliquer</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearSelection()" style="margin-left: auto;"><i class="fas fa-times"></i> Annuler</button>
+                </div>
             </div>
 
             <div class="toolbar">
