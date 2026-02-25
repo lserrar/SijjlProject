@@ -182,6 +182,16 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Préservation des descriptions existantes lors de la re-synchronisation
   - Préservation des titres, thumbnails, topics personnalisés
   - Les nouvelles syncs n'écrasent plus les données éditées manuellement
+- ✅ **Panel Admin : Sélection multiple** (`audios.html`) :
+  - Cases à cocher pour sélectionner plusieurs épisodes
+  - Checkbox "tout sélectionner" dans l'en-tête
+  - Barre d'actions groupées : assigner professeur ou catégorie en lot
+  - Lignes sélectionnées surlignées en vert
+- ✅ **Panel Admin : Synchronisation R2 directe** (`audios.html`) :
+  - Nouveau bouton "Sync R2" dans la barre d'outils
+  - Modal avec dropdown cours + champ dossier R2
+  - Message explicatif sur la préservation des descriptions
+  - Aperçu du résultat après synchronisation
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
