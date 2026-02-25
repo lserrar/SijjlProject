@@ -45,6 +45,8 @@ R2_BUCKET         = os.environ.get('R2_BUCKET_NAME', 'hikma-audio')
 R2_ENDPOINT_URL   = os.environ.get('R2_ENDPOINT_URL', f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com')
 
 r2_client = None
+logger_r2 = logging.getLogger(__name__)
+logger_r2.info(f"R2 config: ACCOUNT_ID={R2_ACCOUNT_ID[:10] if R2_ACCOUNT_ID else 'None'}..., ACCESS_KEY={R2_ACCESS_KEY_ID[:10] if R2_ACCESS_KEY_ID else 'None'}..., SECRET={'SET' if R2_SECRET_KEY else 'EMPTY'}, BUCKET={R2_BUCKET}")
 if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_KEY:
     try:
         r2_client = boto3.client(
