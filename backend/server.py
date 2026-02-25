@@ -2939,6 +2939,137 @@ async def admin_grant_subscription(user_id: str, body: GrantSubscriptionRequest,
         'expires_at': expires_at.isoformat()
     }
 
+# ─── Admin: Referrals Management ───────────────────────────────────────────────
+
+@api_router.get("/admin/referrals")
+async def admin_list_referrals(request: Request):
+    """List all referrals."""
+    await require_admin(request)
+    referrals = await db.referrals.find({}, {'_id': 0}).sort('created_at', -1).to_list(200)
+    return referrals
+
+@api_router.get("/admin/referrals/stats")
+async def admin_referral_stats(request: Request):
+    """Get referral statistics."""
+    await require_admin(request)
+    
+    total_referrals = await db.referrals.count_documents({})
+    converted_referrals = await db.referrals.count_documents({'status': 'converted'})
+    pending_referrals = await db.referrals.count_documents({'status': 'pending'})
+    
+    # Top referrers
+    pipeline = [
+        {'$match': {'referral_count': {'$gt': 0}}},
+        {'$sort': {'referral_count': -1}},
+        {'$limit': 10},
+        {'$project': {
+            '_id': 0,
+            'user_id': 1,
+            'name': 1,
+            'email': 1,
+            'referral_count': 1,
+            'free_months_earned': 1
+        }}
+    ]
+    top_referrers = await db.users.aggregate(pipeline).to_list(10)
+    
+    return {
+        'total_referrals': total_referrals,
+        'converted': converted_referrals,
+        'pending': pending_referrals,
+        'conversion_rate': round(converted_referrals / total_referrals * 100, 1) if total_referrals > 0 else 0,
+        'top_referrers': top_referrers
+    }
+
+@api_router.post("/admin/users/{user_id}/grant-free-months")
+async def admin_grant_free_months(user_id: str, body: GrantFreeMonthRequest, request: Request):
+    """Grant free months to a user (for professors, sponsors, etc.)."""
+    await require_admin(request)
+    
+    user = await db.users.find_one({'user_id': user_id})
+    if not user:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Calculate new subscription end date
+    current_end = user.get('subscription_end_date')
+    if current_end:
+        if isinstance(current_end, str):
+            current_end = datetime.fromisoformat(current_end.replace('Z', '+00:00'))
+        if current_end.tzinfo is None:
+            current_end = current_end.replace(tzinfo=timezone.utc)
+    
+    if not current_end or current_end < now:
+        current_end = now
+    
+    new_end = current_end + timedelta(days=30 * body.months)
+    
+    # Update user
+    await db.users.update_one(
+        {'user_id': user_id},
+        {
+            '$inc': {'free_months_remaining': body.months},
+            '$set': {
+                'subscription_end_date': new_end,
+                'subscription': {
+                    'plan_id': 'free_grant',
+                    'plan_name': f'{body.months} mois gratuit(s) - {body.reason}',
+                    'expires_at': new_end.isoformat(),
+                    'status': 'active',
+                    'granted_by_admin': True,
+                    'granted_at': now.isoformat(),
+                    'reason': body.reason
+                }
+            }
+        }
+    )
+    
+    logger.info(f"Granted {body.months} free months to user {user_id} ({body.reason})")
+    return {
+        'message': f'{body.months} mois gratuit(s) accordé(s)',
+        'user_id': user_id,
+        'new_expires_at': new_end.isoformat(),
+        'reason': body.reason
+    }
+
+@api_router.post("/admin/users/{user_id}/grant-lifetime")
+async def admin_grant_lifetime(user_id: str, request: Request, reason: str = "professeur"):
+    """Grant lifetime access to a user (for professors, sponsors, etc.)."""
+    await require_admin(request)
+    
+    user = await db.users.find_one({'user_id': user_id})
+    if not user:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    
+    now = datetime.now(timezone.utc)
+    lifetime_end = now + timedelta(days=365 * 100)  # 100 years
+    
+    # Update user with lifetime subscription
+    await db.users.update_one(
+        {'user_id': user_id},
+        {'$set': {
+            'subscription_end_date': lifetime_end,
+            'subscription': {
+                'plan_id': 'lifetime',
+                'plan_name': f'Accès à vie - {reason}',
+                'expires_at': lifetime_end.isoformat(),
+                'status': 'active',
+                'is_lifetime': True,
+                'granted_by_admin': True,
+                'granted_at': now.isoformat(),
+                'reason': reason
+            }
+        }}
+    )
+    
+    logger.info(f"Granted lifetime access to user {user_id} ({reason})")
+    return {
+        'message': f'Accès à vie accordé ({reason})',
+        'user_id': user_id,
+        'is_lifetime': True
+    }
+
 # ─── Admin: Thematiques CRUD ───────────────────────────────────────────────────
 
 # ─── Admin: Cursus CRUD (was Thematiques) ──────────────────────────────────────
