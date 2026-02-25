@@ -1292,6 +1292,130 @@ async def remove_favorite(content_type: str, content_id: str, request: Request):
     await db.user_favorites.delete_one({'user_id': user['user_id'], 'content_id': content_id})
     return {'message': 'Retiré de votre bibliothèque'}
 
+# ─── User Referral Routes ─────────────────────────────────────────────────────
+
+@api_router.get("/user/referral")
+async def get_user_referral(request: Request):
+    """Get user's referral code and stats."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    # Generate referral code if not exists
+    if not user.get('referral_code'):
+        referral_code = generate_referral_code(user['user_id'], user.get('name', 'User'))
+        await db.users.update_one(
+            {'user_id': user['user_id']},
+            {'$set': {'referral_code': referral_code}}
+        )
+        user['referral_code'] = referral_code
+    
+    # Get referrals made by this user
+    referrals = await db.referrals.find(
+        {'referrer_id': user['user_id']},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(50)
+    
+    # Calculate stats
+    total_referrals = len(referrals)
+    converted_referrals = len([r for r in referrals if r.get('status') == 'converted'])
+    pending_referrals = len([r for r in referrals if r.get('status') == 'pending'])
+    
+    return {
+        'referral_code': user.get('referral_code'),
+        'referral_count': user.get('referral_count', 0),
+        'free_months_earned': user.get('free_months_earned', 0),
+        'free_months_remaining': user.get('free_months_remaining', 0),
+        'subscription_end_date': user.get('subscription_end_date'),
+        'referred_by': user.get('referred_by'),
+        'stats': {
+            'total_referrals': total_referrals,
+            'converted': converted_referrals,
+            'pending': pending_referrals,
+        },
+        'referrals': referrals[:10],  # Last 10 referrals
+    }
+
+@api_router.get("/user/referrals")
+async def get_user_referrals(request: Request):
+    """Get detailed list of user's referrals (filleuls)."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    referrals = await db.referrals.find(
+        {'referrer_id': user['user_id']},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(100)
+    
+    return {'referrals': referrals}
+
+@api_router.post("/user/referral/validate")
+async def validate_referral_code(body: ApplyReferralRequest):
+    """Validate a referral code before registration."""
+    code = body.referral_code.upper().strip()
+    
+    referrer = await db.users.find_one({'referral_code': code}, {'_id': 0, 'password_hash': 0})
+    if not referrer:
+        raise HTTPException(404, "Code de parrainage invalide")
+    
+    return {
+        'valid': True,
+        'referrer_name': referrer.get('name', 'Un membre Sijill'),
+        'benefit': '1 mois gratuit pour vous et votre parrain'
+    }
+
+@api_router.post("/referrals/convert/{referee_id}")
+async def convert_referral(referee_id: str, request: Request):
+    """
+    Called when a referred user (filleul) subscribes.
+    Rewards the referrer (parrain) with 1 free month.
+    """
+    # This would typically be called by Stripe webhook or admin
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    # Find the referral
+    referral = await db.referrals.find_one({'referee_id': referee_id, 'status': 'pending'})
+    if not referral:
+        raise HTTPException(404, "Parrainage non trouvé ou déjà converti")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update referral status
+    await db.referrals.update_one(
+        {'id': referral['id']},
+        {'$set': {
+            'status': 'converted',
+            'converted_at': now,
+            'referrer_rewarded': True,
+        }}
+    )
+    
+    # Reward the referrer with 1 free month
+    referrer = await db.users.find_one({'user_id': referral['referrer_id']})
+    if referrer:
+        current_end = referrer.get('subscription_end_date') or now
+        if current_end < now:
+            current_end = now
+        new_end = current_end + timedelta(days=30)
+        
+        await db.users.update_one(
+            {'user_id': referral['referrer_id']},
+            {
+                '$inc': {
+                    'referral_count': 1,
+                    'free_months_earned': 1,
+                    'free_months_remaining': 1,
+                },
+                '$set': {'subscription_end_date': new_end}
+            }
+        )
+        logger.info(f"Referrer {referral['referrer_id']} rewarded with 1 free month")
+    
+    return {'message': 'Parrainage converti, parrain récompensé'}
+
 # ─── User Notification Preferences ─────────────────────────────────────────────
 
 @api_router.get("/user/notifications/preferences")
