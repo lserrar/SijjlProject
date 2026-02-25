@@ -2238,13 +2238,13 @@ async def sync_bibliographies(request: Request):
         from docx import Document
         from io import BytesIO
         
-        # Mapping of cursus letters to course IDs
+        # Mapping of cursus letters to cursus IDs (matching database)
         cursus_mapping = {
-            'A': 'cursus-falsafa',
-            'B': 'cursus-hermeneutique', 
-            'C': 'cursus-histoire',
-            'D': 'cursus-litterature',
-            'E': 'cursus-spiritualites',
+            'A': 'cursus-falsafa',           # A. La Falsafa et son héritage
+            'B': 'cursus-theologie',          # B. Théologie et Droit
+            'C': 'cursus-sciences-islamiques', # C. Sciences islamiques et transmission
+            'D': 'cursus-arts',               # D. Arts, Littérature et Sciences
+            'E': 'cursus-spiritualites',      # E. Philosophies et spiritualités connexes
         }
         
         # List all .docx files in Biblio/ folder
