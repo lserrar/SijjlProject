@@ -1,6 +1,6 @@
 <analysis>**original_problem_statement**: The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system. Recent work focused on fixing bugs, implementing a full-featured admin panel for content management, and integrating new content types like bibliographies from a Cloudflare R2 bucket.
+The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system. Recent work focused on fixing bugs, implementing a full-featured admin panel for content management, and integrating new content types like bibliographies from a Cloudflare R2 bucket. The most recent user requests involved creating a full-screen bibliography reader, implementing a full subscription and referral system with Stripe, and allowing admin configuration of payment settings.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill Project
@@ -9,94 +9,78 @@ The project has undergone several phases, culminating in the current one: a comp
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
 -   **Content Storage**: Audio files, professor images, and bibliographies are stored in the  Cloudflare R2 bucket.
 -   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts, a specific color palette ( green,  gold), and a zero border-radius policy.
--   **Admin Panel**: The user requires a powerful admin panel to manage all content (audios, professors, bibliographies) independently, including bulk actions and R2 synchronization.
+-   **Admin Panel**: A powerful admin panel to manage all content, users, and settings (including payments and referrals).
+-   **Monetization**: Subscriptions (Monthly, Annual) via Stripe and a user referral system.
 
 **User's preferred language**: French
 
 **what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend, adhering to a prestige dark-mode design.
+A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend. The app features a prestige dark-mode design and has implemented several core functionalities:
 
--   **Frontend**: The main application screens are functional. A significant addition is the bibliography viewer in the Ressources tab of the Cursus detail page.
--   **Admin Panel**: The web-based admin panel at  has been significantly enhanced with features requested by the user:
-    -   Bulk assignment of professors and categories to episodes via checkboxes.
-    -   A filter to display episodes by course.
-    -   A Sync R2 modal to trigger audio synchronization from the R2 bucket.
-    -   A Sync Photos R2 button on the professors' management page.
--   **Backend**: The monolithic  now includes robust content management logic:
-    -   Endpoints to sync audios, professor photos, and bibliographies from R2.
-    -   The audio sync script was improved to preserve custom descriptions and format titles.
-    -   The bibliography sync endpoint uses  to parse and store content from  files.
-    -   An endpoint () serves protected images from R2.
-    -   All R2-related operations now use the correct credentials for the  bucket.
+-   **Content Management**: A full-featured admin panel allows management of audios, professors, and bibliographies, including synchronization from a Cloudflare R2 bucket.
+-   **Subscription System**: A complete subscription flow is integrated using Stripe. New users (via email or Google Auth) are correctly redirected to a subscription page. An admin page allows for configuration of Stripe keys, webhook secrets, and plan pricing. The user's live Stripe key is configured.
+-   **Referral System**: A parrainage system is fully implemented on both the backend and frontend. Users can find their unique referral code on a dedicated profile page, and new users can apply a code during registration to receive a free month.
+-   **Frontend Features**: The app includes a detailed course page with tabs for episodes, professors, and resources. A full-screen, mobile-optimized bibliography reader has been created to enhance the user experience.
+-   **Data Integrity**: Legacy data has been cleaned up, and content like bibliography titles has been standardized and correctly linked across the database.
 
 **Last working item**:
--   **Last item agent was working**: The user requested the creation of a dedicated detail page for each  (course), which should resemble the existing  detail page, complete with tabs for Professeurs and Ressources. The agent identified the existing but basic file  and was analyzing it to begin the implementation.
+-   **Last item agent was working**: Fixing two critical bugs reported by the user:
+    1.  The Se déconnecter (Logout) button was not working on the web.
+    2.  Existing users could log in and access content without being checked for an active subscription, bypassing the paywall.
+    The agent identified the root causes (web-platform-specific code for logout, missing subscription check in the login flow) and implemented fixes in , , and .
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent. The test should navigate to a course detail page, verify the course title is displayed, and confirm the presence of tabs (e.g., Épisodes, Professeurs, Ressources).
+-   **Which testing method agent to use?**: frontend testing agent.
+    -   **Test Case 1 (Login Flow)**: Log in as an existing user **without** a subscription. **Expected**: The user should be redirected to the  page.
+    -   **Test Case 2 (Logout Flow)**: Log in as any user. Navigate to the profile and click the Se déconnecter button. **Expected**: The user should be successfully logged out and redirected to the login screen.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Create a  (course) detail page (P0)
-    -   **Description**: The user wants to click on a course and navigate to a dedicated detail page for it. This page should contain tabs for the course's episodes, the professor(s) teaching it, and any associated resources (bibliographies).
-    -   **Attempted fixes**: The agent identified the target file  and fixed prerequisite issues related to bibliography filtering and naming conventions.
+-   **Issue 1**: Verify fixes for the subscription check and logout flows (P0)
+    -   **Description**: The agent has implemented code changes to fix two bugs: users bypassing the paywall on login, and the logout button not working. These fixes need to be verified to confirm they work as expected.
     -   **Next debug checklist**:
-        1.  Modify  to fetch all necessary data for a specific course (details, episodes, professors, bibliographies).
-        2.  Create new backend endpoints if required (e.g., , ).
-        3.  Implement a tabbed layout similar to .
-        4.  Populate each tab with the fetched data.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a direct user feature request to improve content navigation and organization, making the app more intuitive.
+        1.  Restart the frontend service: frontend: ERROR (no such process)
+frontend: ERROR (no such process).
+        2.  Test the login flow: Log in with user  (password: ). Confirm redirection to .
+        3.  Test the logout flow: After logging in, navigate to the profile tab and click the logout button. Confirm redirection to the login screen.
+    -   **Why fix this issue and what will be achieved with the fix?**: These are critical user experience and security bugs. Fixing them ensures the application's monetization strategy is enforced and basic functionality works correctly.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
--   **Issue 2**: Bibliography titles need formatting standardization (P2)
-    -   **Description**: The user requested that all bibliography titles follow the format Bibliographie - Cours XX : [Course Title]. While some were fixed, a full audit is needed.
-    -   **Next debug checklist**:
-        1.  Write a script to query all documents in the  collection in MongoDB.
-        2.  Identify entries that do not match the desired title format.
-        3.  Generate and execute an  script to standardize all titles.
-    -   **Why fix this issue and what will be achieved with the fix?**: Ensures UI consistency as requested.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
--   **Task 1**: Implement  detail page.
-    -   **Where to resume**: The agent should start by editing .
-    -   **What will be achieved with this?**: A new, functional screen in the application that allows users to explore courses in detail.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
+-   None.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **(P1) Admin Button for Biblio Sync**: Add a button to the admin panel to trigger the synchronization of bibliographies, similar to the existing ones for audios and professor photos.
-    -   **(P1) Unify Bibliography Titles**: Complete the standardization of all bibliography titles in the database.
-    -   **(P2) Apply Paywall**: Implement the  hook on all premium content screens to restrict access for non-subscribed users.
 -   **Future Tasks:**
-    -   **(P2) Implement Push/Email Notifications**: Build the backend logic for sending notifications.
-    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI Routers.
-    -   **(P2) Implement Apple Sign-In**: The Apple Auth button is currently a non-functional placeholder.
-    -   **(P3) Promotions & Referrals**: Implement a system for promotions and user referrals.
+    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI Routers to improve maintainability.
+    -   **(P2) Implement Apple Sign-In**: The Apple Auth button on the authentication screen is currently a non-functional placeholder.
+    -   **(P2) Admin Dashboard for Referrals**: Enhance the admin panel to provide more detailed views and management of the referral system.
 
 **Completed work in this session**
--   **Admin Panel Overhaul**:
-    -   Implemented bulk actions (checkboxes, select-all) for assigning professors/categories to episodes.
-    -   Added a Sync R2 modal for synchronizing audio files.
-    -   Added a dropdown filter to view episodes by course.
-    -   Added a Sync Photos R2 button to the professors page.
-    -   Fixed numerous bugs in the admin panel functionality based on user testing and feedback.
--   **Bibliography Integration (Feature)**:
-    -   Created a backend process to sync and parse  bibliography files from R2.
-    -   Implemented the Ressources tab on the Cursus detail page to display the parsed bibliographies with prestige styling, including custom formatting for headers.
--   **Bug Fixes**:
-    -   **Professor Images**: Resolved a critical bug where professor images were not displaying. The fix involved correcting R2 credentials, fixing a duplicated API endpoint, and updating database entries.
-    -   **Episode Descriptions & Duplicates**: Solved an issue where custom descriptions were being overwritten by an R2 sync script and data was duplicated.
-    -   **Content Titling**: Standardized episode titles to the format [Title] epX.
--   **Configuration**:
-    -   Updated all backend R2 credentials to connect to the user's  bucket.
+-   **Subscription & Monetization System (Stripe)**:
+    -   Integrated the user's live Stripe key and created an admin settings page () to manage API keys, webhooks, and subscription pricing.
+    -   Built a subscription choice page () and integrated the Stripe Checkout flow for web.
+    -   Updated the Stripe webhook () to correctly grant access upon payment and trigger referral rewards.
+-   **Referral (Parrainage) System**:
+    -   Implemented the complete backend logic for generating referral codes, validating them on signup, and tracking rewards ().
+    -   Created a Parrainage page in the user's profile () to display their code and stats.
+    -   Added a referral code input field to the registration form ().
+-   **Feature: Full-Screen Bibliography Reader**:
+    -   Created a new dedicated page () with a mobile-first, prestige design for reading bibliographies.
+    -   Updated the Ressources tabs in the Cursus and Cours detail pages to link to this new reader.
+-   **Feature: Course Detail Page Completion**:
+    -   Added the Professeurs and Ressources tabs to the  detail page (), bringing it to feature parity with the Cursus page.
+-   **Admin & Data Cleanup**:
+    -   Added Sync R2 and Uniformiser titres buttons to the admin bibliography page.
+    -   Deleted 22 outdated legacy bibliography entries.
+    -   Corrected and standardized all bibliography data, linking them to the appropriate courses and cursus.
+-   **Critical Bug Fixes**:
+    -   Fixed a bug where new users signing up via Google Auth could bypass the subscription page.
+    -   Fixed an issue where the Start Free Trial button was not working correctly on the web platform.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly.
+-   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly in the past. This has not been investigated further.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -105,79 +89,80 @@ A full-stack application with a React Native (Expo Web) frontend and a FastAPI b
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Boto3 for Cloudflare R2, **** for parsing Word documents.
--   **Frontend**: React Native (Expo Web), .
--   **Admin Panel**: Server-side rendered HTML templates (Jinja2) with vanilla JavaScript for interactivity.
+-   **Backend**: FastAPI, Boto3 for Cloudflare R2,  for parsing, Jinja2 for admin templates,  for Stripe.
+-   **Frontend**: React Native (Expo Web),  for navigation, React Context API for state management.
+-   **Database**: MongoDB.
 
 **key DB schema**
--   **bibliographies**: New collection: 
--   **scholars**:  is now correctly populated from R2 and served via the  endpoint.
--   **audios**:  and  are correctly assigned.  is preserved during R2 syncs.
+-   **users**: New fields added:  (str),  (ObjectId),  (list of ObjectId),  (int),  (datetime),  (bool).
+-   **bibliographies**: New field  (ObjectId) added and populated;  values corrected.
 
 **changes in tech stack**
--   **New Dependency**:  was installed and is used in the backend.
+-   None in this session.
 
 **All files of reference**
--   **Task-in-Progress**:  (for the new course detail page).
--   **Admin Panel**: , ,  (all endpoints prefixed with ).
--   **Recently Completed Feature**:  (reference for the bibliography viewer).
--   **Backend Monolith**: .
+-   **Files with unverified fixes**:
+    -    (Logout fix)
+    -    (Login subscription redirect fix)
+    -    (Supporting logic for login fix)
+-   **Recently completed features**:
+    -    (Bibliography reader)
+    -    (Referral page)
+    -    (Subscription choice page)
+    -    (Admin settings page)
+    -    (Contains all new backend logic)
 
 **Areas that need refactoring**:
--    is extremely large and difficult to maintain. It is the highest priority for refactoring and should be broken down into multiple files using FastAPI's .
--   The JavaScript in the admin HTML templates is becoming complex and should be extracted into separate static  files for better organization and maintainability.
+-    is now extremely large (>2500 lines) and contains logic for users, content, payments, and referrals. It is the highest priority for refactoring into smaller, manageable modules using FastAPI's .
 
 **key api endpoints**
--   : **(NEW)** Syncs and parses bibliography  files from R2.
--   : **(NEW)** Updates multiple audio documents to assign a professor or category.
--   : **(NEW)** Syncs professor photos from the  folder in R2.
--   : **(NEW)** Serves parsed bibliography content for a specific Cursus.
--   : **(FIXED)** Now correctly serves images from the  bucket, handling different sub-folders (, ).
+-   **Referral**: , , 
+-   **Subscription/Stripe**: , , 
+-   **Admin Settings**: , 
+-   **Bibliography**: , 
 
 **Critical Info for New Agent**
--   **P0 Task**: The immediate priority is to build the course detail page as requested by the user. Start with .
--   **Admin Panel is Key**: The user is very active in the admin panel and values self-service capabilities. Future content management features should be integrated there.
--   **Backend Refactoring**: The  monolith is a significant technical debt. While implementing new features, be extremely careful not to introduce conflicting routes or logic. Searching the file for existing endpoint paths before adding new ones is critical. The agent fixed several duplicated endpoints in the last session.
+-   Your immediate priority is to **verify the two bug fixes** for the post-login subscription check and the logout button. The user cannot test payments until the subscription check is confirmed to be working for all login methods.
+-   The user has configured their **LIVE Stripe key**. The webhook endpoint is also configured. All payment-related testing must be done using Stripe's official test card numbers to avoid real charges.
+-   The user is highly engaged. After verifying the current fixes, be prepared to receive feedback on the new subscription and referral systems and potentially start on the backend refactoring task.
 
 **documents and test reports created in this job**
--    (updated)
+-    (updated multiple times to reflect completed work)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports bulk assignment, R2 sync, and title formatting are broken in the new admin panel.
-2.  **Agent**: Acknowledges and starts debugging.
-3.  **User**: Provides new R2 credentials for the  bucket.
-4.  **Agent**: Updates credentials and fixes sync issues.
-5.  **User**: Requests several more fixes/features for the admin panel: Title ep1 format, fix bulk select, add course filter.
-6.  **Agent**: Implements all requests, confirming the fixes are working.
-7.  **User**: Reports new regressions: professor photos are gone, audio filter is broken, and bulk assignment still fails in some cases. Also requests bibliography implementation.
-8.  **Agent**: Fixes all reported bugs and successfully implements the bibliography sync and viewer.
-9.  **User**: Praises the working bulk assignment and asks to proceed with the bibliography feature.
-10. **User**: Provides final feedback on the implemented bibliography feature (title formatting, incorrect filtering) and requests the main new feature: **a dedicated detail page for each course.**
+1.  **User**: Asks for full-screen bibliography reader. (Implemented)
+2.  **User**: Asks for advice on subscriptions (family vs. referral). (Agent advised referral)
+3.  **User**: Agrees to referral system and using Stripe for web/mobile. (Implemented)
+4.  **User**: Asks how to configure their own Stripe account and provides a **live key**. (Implemented)
+5.  **User**: Asks for help with Stripe webhook setup. (Agent provided step-by-step guidance)
+6.  **User**: Confirms webhook setup is done.
+7.  **User**: Reports free trial button doesn't work and Google Auth gives free access. (Fixes implemented)
+8.  **User**: Asks for step-by-step guide for Stripe setup. (Agent provided)
+9.  **User**: Asks for clarification on a step in the Stripe setup. (Agent clarified)
+10. **User**: Reports that the logout button is broken and that after logging in, users are not prompted for a subscription, preventing payment testing. (**This is the current task.**)
 
 **Project Health Check:**
--   **Broken**: No user-facing features are broken. The primary broken item is the absence of the user-requested course detail page.
--   **Mocked**:
-    -   The Apple Sign-in button on the authentication screen is a non-functional placeholder.
+-   **Broken**: The login flow for existing non-subscribed users is broken (bypasses paywall). The logout button is broken on the web. Fixes have been coded but not yet verified.
+-   **Mocked**: The Apple Sign-in button on the authentication screen is a non-functional placeholder.
 
 **3rd Party Integrations**
 -   **Cloudflare R2**: Used for storing all media (audio, images,  bibliographies) in the  bucket.
--   **Stripe**: For payments.
+-   **Stripe**: Integrated via  for handling web-based subscriptions. The user's live key and a webhook are configured.
 -   **Google Fonts**: For Cinzel and EB Garamond fonts.
--   **python-docx**: New backend library to parse Microsoft Word documents.
+-   **python-docx**: Used in the backend to parse bibliography Word documents.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: None. All regressions reported by the user during the session were fixed.
+-   **Known regressions**: The two bugs currently being fixed (logout and login subscription check) are recent regressions.
 
 **Credentials to test flow:**
 -   **Admin Panel (Web)**: 
 -   **Admin Email**: 
 -   **Admin Password**: 
--   **Test User Email**: 
+-   **Test User Email (non-subscribed)**: 
 -   **Test User Password**: 
 
 **What agent forgot to execute**
--   The bibliography sync process, while functional, lacks a user-facing button in the admin panel for easy triggering. The user might expect one.
--   The main pending task is the implementation of the Course detail page, which was interrupted by the end of the session.</analysis>
+-   The agent has been thorough. The main pending action is to verify the last set of implemented fixes before finishing.</analysis>

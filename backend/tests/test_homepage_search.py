@@ -7,7 +7,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://islamic-learning-35.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://quran-platform.preview.emergentagent.com').rstrip('/')
 
 TEST_USER_EMAIL = "testuser@hikma.com"
 TEST_USER_PASSWORD = "TestUser123!"

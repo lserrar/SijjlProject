@@ -65,7 +65,7 @@ export default function SubscriptionChoiceScreen() {
     setLoading(true);
     try {
       // Create checkout session
-      const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://islamic-learning-35.preview.emergentagent.com';
+      const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://quran-platform.preview.emergentagent.com';
       const response = await fetch(`${API_URL}/api/checkout/create`, {
         method: 'POST',
         headers: {
