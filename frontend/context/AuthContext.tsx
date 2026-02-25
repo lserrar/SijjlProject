@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await storeAuth(data.token, data.user);
   };
 
-  const exchangeGoogleSession = async (sessionId: string) => {
+  const exchangeGoogleSession = async (sessionId: string): Promise<any> => {
     const resp = await fetch(`${BACKEND_URL}/api/auth/google/exchange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -118,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data = await resp.json();
     await storeAuth(data.token, data.user);
+    return data.user;  // Return user data for subscription check
   };
 
   const loginWithGoogle = async () => {
