@@ -697,20 +697,198 @@
                     apiRequest('/admin/scholars'),
                     apiRequest('/admin/audios'),
                     apiRequest('/admin/audio-categories'),
-                    apiRequest('/admin/modules')
+                    apiRequest('/admin/modules'),
+                    apiRequest('/admin/courses')
                 ]);
                 
                 scholars = scholarsData || [];
                 audios = audiosData || [];
                 modules = modulesData || [];
                 categories = categoriesData || [];
+                courses = coursesData || [];
                 
                 populateCategorySelects();
+                populateBulkSelects();
                 renderAudios(audios);
             } catch (error) { showToast('Erreur de chargement', 'error'); }
         }
 
+        // ========== BULK SELECTION FUNCTIONS ==========
+        function toggleSelectAll(checked) {
+            const visibleAudios = getFilteredAudios();
+            if (checked) {
+                visibleAudios.forEach(a => selectedAudioIds.add(a.id));
+            } else {
+                visibleAudios.forEach(a => selectedAudioIds.delete(a.id));
+            }
+            updateBulkActionsBar();
+            renderAudios(visibleAudios);
+        }
+
+        function toggleAudioSelection(audioId, checked) {
+            if (checked) {
+                selectedAudioIds.add(audioId);
+            } else {
+                selectedAudioIds.delete(audioId);
+            }
+            updateBulkActionsBar();
+        }
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulkActionsBar');
+            const count = selectedAudioIds.size;
+            document.getElementById('selectedCount').textContent = count;
+            bar.style.display = count > 0 ? 'block' : 'none';
+        }
+
+        function clearSelection() {
+            selectedAudioIds.clear();
+            updateBulkActionsBar();
+            renderAudios(getFilteredAudios());
+        }
+
+        function getFilteredAudios() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            return audios.filter(a => {
+                const matchQuery = a.title.toLowerCase().includes(query) || (a.scholar_name && a.scholar_name.toLowerCase().includes(query));
+                const matchType = !typeFilter || a.type === typeFilter;
+                const matchCategory = !categoryFilter || a.category_id === categoryFilter;
+                return matchQuery && matchType && matchCategory;
+            });
+        }
+
+        function populateBulkSelects() {
+            // Populate bulk scholar select
+            const bulkScholarSelect = document.getElementById('bulkScholar');
+            bulkScholarSelect.innerHTML = '<option value="">-- Assigner professeur --</option>' +
+                scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            
+            // Populate bulk category select
+            const bulkCategorySelect = document.getElementById('bulkCategory');
+            bulkCategorySelect.innerHTML = '<option value="">-- Assigner catégorie --</option>' +
+                categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        async function applyBulkScholar() {
+            const scholarId = document.getElementById('bulkScholar').value;
+            if (!scholarId) { showToast('Sélectionnez un professeur', 'error'); return; }
+            if (selectedAudioIds.size === 0) { showToast('Aucun audio sélectionné', 'error'); return; }
+            
+            const scholar = scholars.find(s => s.id === scholarId);
+            const count = selectedAudioIds.size;
+            
+            if (!confirm(`Assigner "${scholar.name}" à ${count} audio(s) ?`)) return;
+            
+            try {
+                const promises = Array.from(selectedAudioIds).map(audioId => 
+                    apiRequest(`/admin/audios/${audioId}`, 'PUT', { 
+                        scholar_id: scholarId, 
+                        scholar_name: scholar.name 
+                    })
+                );
+                await Promise.all(promises);
+                showToast(`${count} audio(s) mis à jour avec succès`);
+                clearSelection();
+                loadAudios();
+            } catch (error) {
+                showToast('Erreur lors de la mise à jour', 'error');
+            }
+        }
+
+        async function applyBulkCategory() {
+            const categoryId = document.getElementById('bulkCategory').value;
+            if (!categoryId) { showToast('Sélectionnez une catégorie', 'error'); return; }
+            if (selectedAudioIds.size === 0) { showToast('Aucun audio sélectionné', 'error'); return; }
+            
+            const category = categories.find(c => c.id === categoryId);
+            const count = selectedAudioIds.size;
+            
+            if (!confirm(`Assigner la catégorie "${category.name}" à ${count} audio(s) ?`)) return;
+            
+            try {
+                const promises = Array.from(selectedAudioIds).map(audioId => 
+                    apiRequest(`/admin/audios/${audioId}`, 'PUT', { category_id: categoryId })
+                );
+                await Promise.all(promises);
+                showToast(`${count} audio(s) mis à jour avec succès`);
+                clearSelection();
+                loadAudios();
+            } catch (error) {
+                showToast('Erreur lors de la mise à jour', 'error');
+            }
+        }
+
+        // ========== SYNC R2 FUNCTIONS ==========
+        function openSyncR2Modal() {
+            document.getElementById('syncR2ModalOverlay').classList.add('active');
+            populateSyncCourseSelect();
+            document.getElementById('syncR2Folder').value = '';
+            document.getElementById('syncR2Preview').style.display = 'none';
+        }
+
+        function closeSyncR2Modal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('syncR2ModalOverlay').classList.remove('active');
+        }
+
+        function populateSyncCourseSelect() {
+            const select = document.getElementById('syncCourseId');
+            select.innerHTML = '<option value="">-- Sélectionner un cours --</option>' +
+                courses.map(c => `<option value="${c.id}" data-r2folder="${c.r2_folder || ''}">${c.title}</option>`).join('');
+        }
+
+        function updateSyncR2Folder() {
+            const select = document.getElementById('syncCourseId');
+            const option = select.options[select.selectedIndex];
+            const r2Folder = option.getAttribute('data-r2folder');
+            if (r2Folder) {
+                document.getElementById('syncR2Folder').value = r2Folder;
+            }
+        }
+
+        async function executeSyncR2() {
+            const courseId = document.getElementById('syncCourseId').value;
+            const r2Folder = document.getElementById('syncR2Folder').value.trim();
+            
+            if (!courseId) { showToast('Sélectionnez un cours', 'error'); return; }
+            if (!r2Folder) { showToast('Entrez le dossier R2', 'error'); return; }
+            
+            const btn = document.getElementById('syncR2Btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation...';
+            
+            try {
+                const result = await apiRequest(`/admin/courses/${courseId}/sync-r2`, 'POST', { r2_folder: r2Folder });
+                
+                document.getElementById('syncR2Preview').style.display = 'block';
+                document.getElementById('syncR2PreviewContent').innerHTML = `
+                    <div style="color: var(--success); margin-bottom: 8px;"><i class="fas fa-check-circle"></i> Synchronisation réussie !</div>
+                    <div>Épisodes créés : <strong>${result.episodes_created}</strong></div>
+                    <div>Épisodes mis à jour : <strong>${result.episodes_updated}</strong></div>
+                    <div>Total épisodes : <strong>${result.total_episodes}</strong></div>
+                `;
+                
+                showToast(`Synchronisation terminée : ${result.total_episodes} épisode(s)`);
+                loadAudios();
+            } catch (error) {
+                showToast(error.message || 'Erreur de synchronisation', 'error');
+                document.getElementById('syncR2Preview').style.display = 'block';
+                document.getElementById('syncR2PreviewContent').innerHTML = `
+                    <div style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> ${error.message || 'Erreur de synchronisation'}</div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync"></i> Synchroniser';
+            }
+        }
+
         if (!authToken) { window.location.href = '/api/admin-panel/login'; } else { loadAudios(); }
     </script>
+    <style>
+        .selected-row { background: rgba(4, 209, 130, 0.08) !important; }
+        .selected-row:hover { background: rgba(4, 209, 130, 0.12) !important; }
+    </style>
 </body>
 </html>
