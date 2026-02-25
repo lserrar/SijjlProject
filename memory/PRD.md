@@ -210,6 +210,12 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - **Interface frontend dans l'onglet RESSOURCES** du cursus detail
   - Design prestige : titres en or (Cinzel), texte justifié (EB Garamond)
   - Parsing markdown `##` pour formater les sections
+- ✅ **Panel Admin Bibliographies amélioré** (2026-02-25) :
+  - Bouton "Sync R2" avec modal pour synchroniser les fichiers .docx depuis R2
+  - Bouton "Uniformiser titres" pour standardiser au format "Bibliographie - Cours XX : [Titre]"
+  - Nouveau endpoint `POST /api/admin/bibliographies/standardize-titles`
+  - Tableau avec colonnes : Titre, Cursus, Module, Aperçu, Actions
+  - 24 bibliographies synchronisées et formatées
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
