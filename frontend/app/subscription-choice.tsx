@@ -64,8 +64,7 @@ export default function SubscriptionChoiceScreen() {
         },
         body: JSON.stringify({
           plan_id: planId,
-          success_url: `${currentUrl}/subscription-success`,
-          cancel_url: `${currentUrl}/subscription-choice`,
+          origin_url: currentUrl,
         }),
       });
 
