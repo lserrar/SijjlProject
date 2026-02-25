@@ -808,6 +808,13 @@ async def stream_audio(audio_id: str, request: Request):
         if 'ContentRange' in resp:
             headers['Content-Range'] = resp['ContentRange']
 
+        status_code = 206 if range_header else 200
+        from fastapi.responses import Response
+        return Response(content=body, status_code=status_code, headers=headers, media_type=content_type)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Stream error for {audio_id}: {e}")
+        raise HTTPException(500, "Erreur de lecture du fichier audio")
+
 @api_router.get("/images/{file_path:path}")
 async def serve_image(file_path: str, request: Request):
     """Serve images from R2 bucket."""
@@ -835,13 +842,6 @@ async def serve_image(file_path: str, request: Request):
         if e.response['Error']['Code'] == 'NoSuchKey':
             raise HTTPException(404, "Image non trouvée")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
-
-        status_code = 206 if range_header else 200
-        from fastapi.responses import Response
-        return Response(content=body, status_code=status_code, headers=headers, media_type=content_type)
-    except Exception as e:
-        logging.getLogger(__name__).error(f"Stream error for {audio_id}: {e}")
-        raise HTTPException(500, "Erreur de lecture du fichier audio")
 
 class UploadUrlRequest(BaseModel):
     file_key: str
