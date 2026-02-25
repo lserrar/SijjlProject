@@ -271,7 +271,7 @@ function SectionHeader({ title, link, onLink }: { title: string; link: string; o
   );
 }
 
-function EpisodeCard({ testID, color, label, title, meta, onPress }: any) {
+function EpisodeCard({ testID, color, label, title, description, meta, onPress }: any) {
   const [hovered, setHovered] = useState(false);
   const hoverProps = Platform.OS === 'web' ? {
     onMouseEnter: () => setHovered(true),
@@ -295,7 +295,10 @@ function EpisodeCard({ testID, color, label, title, meta, onPress }: any) {
       {...hoverProps}
     >
       <Text style={[s.epLabel, { color }]}>{label}</Text>
-      <Text style={s.epTitle} numberOfLines={4}>{title}</Text>
+      <Text style={s.epTitle} numberOfLines={2}>{title}</Text>
+      {description ? (
+        <Text style={s.epDesc} numberOfLines={2}>{description}</Text>
+      ) : null}
       {meta ? (
         <View style={s.epMetaRow}>
           <Text style={s.epMeta}>{meta}</Text>
