@@ -179,6 +179,9 @@
                     <i class="fas fa-search"></i>
                     <input type="text" class="search-input" placeholder="Rechercher un audio..." id="searchInput" oninput="filterAudios()">
                 </div>
+                <select class="form-select" id="courseFilter" onchange="filterAudios()" style="width: auto; padding: 10px 16px;">
+                    <option value="">Tous les cours</option>
+                </select>
                 <select class="form-select" id="categoryFilter" onchange="filterAudios()" style="width: auto; padding: 10px 16px;">
                     <option value="">Toutes les catégories</option>
                 </select>
