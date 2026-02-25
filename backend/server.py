@@ -1120,36 +1120,73 @@ async def get_home(request: Request):
             item['title'] = clean_title(item['title'])
         return item
 
-    # 1. Featured hero: check cursus first, then course
+    # 1. Featured hero: check highlight config first
     featured_hero = None
-    featured_cursus_doc = await db.cursus.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
-    if featured_cursus_doc:
-        order = max(0, min(featured_cursus_doc.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
-        featured_hero = {
-            'id': featured_cursus_doc['id'],
-            'hero_type': 'cursus',
-            # hero_title = optional custom promo title; falls back to cursus name
-            'title': featured_cursus_doc.get('hero_title') or featured_cursus_doc.get('name', ''),
-            # description = the ONE editable description (no separate hero_description override)
-            'description': featured_cursus_doc.get('description', ''),
-            'cursus_id': featured_cursus_doc['id'],
-            'cursus_letter': CURSUS_LETTERS[order],
-            'cursus_color': CURSUS_COLORS[order],
-            'cursus_name': featured_cursus_doc.get('name', ''),
-        }
+    
+    # Get highlight configuration
+    highlight_config = await db.config.find_one({'key': 'highlight_config'}, {'_id': 0})
+    highlight_mode = highlight_config.get('mode', 'manual') if highlight_config else 'manual'
+    
+    if highlight_mode == 'random':
+        # Random mode: pick a random active course or cursus
+        import random
+        
+        # Get all active courses and cursus
+        active_courses = await db.courses.find({'is_active': True}, {'_id': 0}).to_list(100)
+        active_cursus = await db.cursus.find({'is_active': True}, {'_id': 0}).to_list(50)
+        
+        # Combine and pick random
+        all_items = []
+        for c in active_courses:
+            all_items.append(('course', c))
+        for c in active_cursus:
+            all_items.append(('cursus', c))
+        
+        if all_items:
+            item_type, item = random.choice(all_items)
+            if item_type == 'cursus':
+                order = max(0, min(item.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
+                featured_hero = {
+                    'id': item['id'],
+                    'hero_type': 'cursus',
+                    'title': item.get('hero_title') or item.get('name', ''),
+                    'description': item.get('description', ''),
+                    'cursus_id': item['id'],
+                    'cursus_letter': CURSUS_LETTERS[order],
+                    'cursus_color': CURSUS_COLORS[order],
+                    'cursus_name': item.get('name', ''),
+                }
+            else:
+                item = enrich_cursus(item)
+                item['hero_type'] = 'course'
+                if item.get('hero_title'):
+                    item['title'] = item['hero_title']
+                featured_hero = item
     else:
-        featured_course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
-        if not featured_course:
-            featured_course = await db.courses.find_one({'is_active': True}, {'_id': 0})
-        if featured_course:
-            featured_course = enrich_cursus(featured_course)
-            featured_course['hero_type'] = 'course'
-            # hero_title = optional custom promo title; falls back to course title
-            if featured_course.get('hero_title'):
-                featured_course['title'] = featured_course['hero_title']
-            # description = the regular description field (editable in admin panel)
-            # no hero_description override — what you edit in admin IS what you see
-            featured_hero = featured_course
+        # Manual mode: check for featured cursus first, then course
+        featured_cursus_doc = await db.cursus.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+        if featured_cursus_doc:
+            order = max(0, min(featured_cursus_doc.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
+            featured_hero = {
+                'id': featured_cursus_doc['id'],
+                'hero_type': 'cursus',
+                'title': featured_cursus_doc.get('hero_title') or featured_cursus_doc.get('name', ''),
+                'description': featured_cursus_doc.get('description', ''),
+                'cursus_id': featured_cursus_doc['id'],
+                'cursus_letter': CURSUS_LETTERS[order],
+                'cursus_color': CURSUS_COLORS[order],
+                'cursus_name': featured_cursus_doc.get('name', ''),
+            }
+        else:
+            featured_course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
+            if not featured_course:
+                featured_course = await db.courses.find_one({'is_active': True}, {'_id': 0})
+            if featured_course:
+                featured_course = enrich_cursus(featured_course)
+                featured_course['hero_type'] = 'course'
+                if featured_course.get('hero_title'):
+                    featured_course['title'] = featured_course['hero_title']
+                featured_hero = featured_course
 
     # 2. Continue watching (last 3 in-progress audios)
     continue_watching = []
