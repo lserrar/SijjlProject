@@ -240,6 +240,11 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Page `/referral` : Affiche code, stats, liste des filleuls
   - Menu Profil : Nouveau bouton "Parrainage" avec badge NOUVEAU
   - Admin : Endpoints pour stats, liste des parrainages, grant lifetime/free months
+- ✅ **Abonnements Stripe** (2026-02-25) :
+  - Page `/subscription-choice` : Essai 3 jours, Mensuel 9.99€, Annuel 89.99€
+  - Création de session Stripe Checkout
+  - Page `/subscription-success` : Confirmation après paiement
+  - Conversion automatique du parrainage quand filleul s'abonne (webhook)
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
