@@ -4066,6 +4066,20 @@ async def admin_panel_users():
         raise HTTPException(404, "Template users non trouvé")
     return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
 
+@api_router.get("/admin-panel/listening-stats", response_class=HTMLResponse)
+async def admin_panel_listening_stats():
+    """Admin panel listening statistics page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'listening-stats.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template listening-stats non trouvé")
+    # Load base template and inject content
+    base_path = ADMIN_TEMPLATES_DIR / 'base.html'
+    stats_content = template_path.read_text(encoding='utf-8')
+    base_html = base_path.read_text(encoding='utf-8')
+    # Simple template rendering - replace content block
+    final_html = base_html.replace('<!-- Content will be loaded here -->', stats_content.replace('{% extends "base.html" %}', '').replace('{% block content %}', '').replace('{% endblock %}', ''))
+    return HTMLResponse(content=final_html)
+
 @api_router.get("/admin-panel/audios", response_class=HTMLResponse)
 async def admin_panel_audios():
     """Admin panel audios page - redirect to scholars for now."""
