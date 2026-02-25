@@ -316,6 +316,46 @@
         </div>
     </div>
 
+    <!-- Sync R2 Modal -->
+    <div class="modal-overlay" id="syncR2ModalOverlay" onclick="closeSyncR2Modal(event)">
+        <div class="modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-sync" style="color: var(--brand-primary); margin-right: 8px;"></i> Synchroniser depuis R2</h3>
+                <button class="modal-close" onclick="closeSyncR2Modal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: var(--text-secondary);">
+                    Synchronisez les fichiers audio depuis un dossier R2. Les épisodes existants seront mis à jour sans écraser les descriptions personnalisées.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Cours à synchroniser *</label>
+                    <select class="form-select" id="syncCourseId" required onchange="updateSyncR2Folder()">
+                        <option value="">-- Sélectionner un cours --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dossier R2 *</label>
+                    <input type="text" class="form-input" id="syncR2Folder" placeholder="Ex: sijill-project/Audio/Cours-Falsafa" required>
+                    <div class="form-hint">Le chemin du dossier dans le bucket R2 contenant les fichiers audio (format: *_episode{N}.m4a)</div>
+                </div>
+                <div id="syncR2Preview" style="display: none; margin-top: 16px;">
+                    <div style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: var(--brand-primary);">
+                            <i class="fas fa-info-circle"></i> Aperçu
+                        </div>
+                        <div id="syncR2PreviewContent" style="font-size: 13px; color: var(--text-secondary);"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSyncR2Modal()">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="executeSyncR2()" id="syncR2Btn">
+                    <i class="fas fa-sync"></i> Synchroniser
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
@@ -325,6 +365,8 @@
         let scholars = [];
         let categories = [];
         let modules = [];
+        let courses = [];
+        let selectedAudioIds = new Set();
         let currentR2Folder = '';
 
         function showToast(message, type = 'success') {
