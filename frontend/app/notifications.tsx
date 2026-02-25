@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,32 +8,106 @@ import {
   Switch,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth, apiRequest } from '../context/AuthContext';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE NOTIFICATIONS — Design Prestige Sijill
 // ═══════════════════════════════════════════════════════════════════════════════
 
+interface NotificationPrefs {
+  new_courses: boolean;
+  new_episodes: boolean;
+  weekly_digest: boolean;
+  subscription_expiry: boolean;
+  subscription_reminder: boolean;
+  promotions: boolean;
+}
+
+const DEFAULT_PREFS: NotificationPrefs = {
+  new_courses: true,
+  new_episodes: true,
+  weekly_digest: true,
+  subscription_expiry: true,
+  subscription_reminder: true,
+  promotions: false,
+};
+
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { token } = useAuth();
   
-  // Notification settings
-  const [newCourses, setNewCourses] = useState(true);
-  const [newEpisodes, setNewEpisodes] = useState(true);
-  const [subscriptionExpiry, setSubscriptionExpiry] = useState(true);
-  const [subscriptionReminder, setSubscriptionReminder] = useState(true);
-  const [promotions, setPromotions] = useState(false);
-  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const handleSave = () => {
-    Alert.alert(
-      'Préférences sauvegardées',
-      'Vos préférences de notifications ont été mises à jour.',
-      [{ text: 'OK', style: 'default' }]
-    );
+  // Load preferences from backend
+  const loadPreferences = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await apiRequest('/user/notifications/preferences', token);
+      if (res.ok) {
+        const data = await res.json();
+        setPrefs(data);
+      }
+    } catch (e) {
+      console.error('Failed to load notification preferences', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { loadPreferences(); }, [loadPreferences]);
+
+  // Update a preference
+  const updatePref = (key: keyof NotificationPrefs, value: boolean) => {
+    setPrefs(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
   };
+
+  // Save preferences to backend
+  const handleSave = async () => {
+    if (!token) return;
+    
+    setSaving(true);
+    try {
+      const res = await apiRequest('/user/notifications/preferences', token, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prefs),
+      });
+      
+      if (res.ok) {
+        setHasChanges(false);
+        Alert.alert(
+          'Préférences sauvegardées',
+          'Vos préférences de notifications ont été mises à jour.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        Alert.alert('Erreur', 'Impossible de sauvegarder les préférences.');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Une erreur est survenue.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#04D182" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -81,8 +155,8 @@ export default function NotificationsScreen() {
             iconColor="#04D182"
             label="Nouveaux cours"
             description="Notification lors de la publication d'un nouveau cours"
-            value={newCourses}
-            onValueChange={setNewCourses}
+            value={prefs.new_courses}
+            onValueChange={(v) => updatePref('new_courses', v)}
           />
 
           <SettingRow
@@ -90,8 +164,8 @@ export default function NotificationsScreen() {
             iconColor="#04D182"
             label="Nouveaux épisodes"
             description="Quand un nouvel épisode est disponible dans vos cursus"
-            value={newEpisodes}
-            onValueChange={setNewEpisodes}
+            value={prefs.new_episodes}
+            onValueChange={(v) => updatePref('new_episodes', v)}
           />
 
           <SettingRow
@@ -99,8 +173,8 @@ export default function NotificationsScreen() {
             iconColor="#C9A84C"
             label="Résumé hebdomadaire"
             description="Récapitulatif de la semaine par email"
-            value={weeklyDigest}
-            onValueChange={setWeeklyDigest}
+            value={prefs.weekly_digest}
+            onValueChange={(v) => updatePref('weekly_digest', v)}
           />
         </View>
 
@@ -118,8 +192,8 @@ export default function NotificationsScreen() {
             iconColor="#F59E0B"
             label="Rappel d'expiration"
             description="7 jours, 3 jours et 1 jour avant échéance"
-            value={subscriptionExpiry}
-            onValueChange={setSubscriptionExpiry}
+            value={prefs.subscription_expiry}
+            onValueChange={(v) => updatePref('subscription_expiry', v)}
           />
 
           <SettingRow
@@ -127,8 +201,8 @@ export default function NotificationsScreen() {
             iconColor="#F59E0B"
             label="Renouvellement automatique"
             description="Confirmation avant le renouvellement"
-            value={subscriptionReminder}
-            onValueChange={setSubscriptionReminder}
+            value={prefs.subscription_reminder}
+            onValueChange={(v) => updatePref('subscription_reminder', v)}
           />
         </View>
 
@@ -146,8 +220,8 @@ export default function NotificationsScreen() {
             iconColor="#777777"
             label="Offres et réductions"
             description="Codes promo et offres spéciales"
-            value={promotions}
-            onValueChange={setPromotions}
+            value={prefs.promotions}
+            onValueChange={(v) => updatePref('promotions', v)}
           />
         </View>
 
@@ -156,11 +230,18 @@ export default function NotificationsScreen() {
         ═══════════════════════════════════════════════════════════════════════ */}
         <TouchableOpacity 
           testID="notifications-save-btn"
-          style={styles.saveBtn}
+          style={[styles.saveBtn, !hasChanges && styles.saveBtnDisabled]}
           onPress={handleSave}
           activeOpacity={0.85}
+          disabled={!hasChanges || saving}
         >
-          <Text style={styles.saveBtnText}>Enregistrer</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color="#0A0A0A" />
+          ) : (
+            <Text style={styles.saveBtnText}>
+              {hasChanges ? 'Enregistrer' : 'Aucune modification'}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
@@ -215,6 +296,12 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Navigation
@@ -345,6 +432,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 16,
+  },
+  saveBtnDisabled: {
+    backgroundColor: '#333333',
   },
   saveBtnText: {
     fontFamily: 'Cinzel',
