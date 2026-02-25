@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Dimensions, Platform,
-  StatusBar,
+  StatusBar, Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth, apiRequest } from '../../context/AuthContext';
@@ -528,9 +528,11 @@ export default function CursusCoursesScreen() {
                 >
                   {scholar.photo ? (
                     <View style={styles.scholarPhoto}>
-                      <View style={[styles.scholarPhotoInner, { borderColor: cursusColor }]}>
-                        <Text style={styles.scholarInitial}>{scholar.name.charAt(0)}</Text>
-                      </View>
+                      <Image
+                        source={{ uri: scholar.photo }}
+                        style={[styles.scholarPhotoImg, { borderColor: cursusColor }]}
+                        resizeMode="cover"
+                      />
                     </View>
                   ) : (
                     <View style={styles.scholarPhoto}>
@@ -1256,6 +1258,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scholarPhotoImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    backgroundColor: '#1A1A1A',
   },
   scholarInitial: {
     fontFamily: 'Cinzel',
