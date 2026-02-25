@@ -2238,6 +2238,154 @@ async def sync_professor_photos(request: Request):
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+# ========== BIBLIOGRAPHY SYNC ==========
+@api_router.post("/admin/sync-bibliographies")
+async def sync_bibliographies(request: Request):
+    """
+    Sync bibliography files (.docx) from R2 Biblio/ folder.
+    Extracts text content and stores in database.
+    """
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        from docx import Document
+        from io import BytesIO
+        
+        # Mapping of cursus letters to course IDs
+        cursus_mapping = {
+            'A': 'cursus-falsafa',
+            'B': 'cursus-hermeneutique', 
+            'C': 'cursus-histoire',
+            'D': 'cursus-litterature',
+            'E': 'cursus-spiritualites',
+        }
+        
+        # List all .docx files in Biblio/ folder
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Biblio/', MaxKeys=100)
+        
+        created = 0
+        updated = 0
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            if not key.endswith('.docx'):
+                continue
+            
+            filename = key.replace('Biblio/', '')
+            # Parse filename: Biblio_Module01_CursusA.docx
+            import re
+            match = re.match(r'Biblio_Module(\d+)_Cursus([A-E])\.docx', filename)
+            if not match:
+                logger.warning(f"Skipping unrecognized biblio file: {filename}")
+                continue
+            
+            module_num = int(match.group(1))
+            cursus_letter = match.group(2)
+            cursus_id = cursus_mapping.get(cursus_letter)
+            
+            if not cursus_id:
+                logger.warning(f"Unknown cursus letter: {cursus_letter}")
+                continue
+            
+            # Download the .docx file
+            try:
+                file_response = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
+                docx_content = file_response['Body'].read()
+                
+                # Parse the Word document
+                doc = Document(BytesIO(docx_content))
+                
+                # Extract text content with formatting
+                content_parts = []
+                for para in doc.paragraphs:
+                    text = para.text.strip()
+                    if text:
+                        # Check if it's a heading (bold or larger)
+                        is_heading = any(run.bold for run in para.runs if run.text.strip())
+                        if is_heading:
+                            content_parts.append(f"## {text}")
+                        else:
+                            content_parts.append(text)
+                
+                content = "\n\n".join(content_parts)
+                
+                # Find the course associated with this module
+                course = await db.courses.find_one({
+                    'cursus_id': cursus_id,
+                    '$or': [
+                        {'module_number': module_num},
+                        {'title': {'$regex': f'Cours {module_num}\\b', '$options': 'i'}}
+                    ]
+                })
+                
+                course_id = course['id'] if course else None
+                course_title = course['title'] if course else f"Module {module_num}"
+                
+                # Create/update bibliography entry
+                biblio_id = f"biblio-{cursus_letter.lower()}-mod{module_num:02d}"
+                
+                biblio_doc = {
+                    'id': biblio_id,
+                    'title': f"Bibliographie - {course_title}",
+                    'content': content,
+                    'content_html': content.replace('\n\n## ', '\n\n<h3>').replace('## ', '<h3>').replace('\n\n', '</h3>\n\n<p>') + '</p>' if '## ' in content else f"<p>{content.replace(chr(10)+chr(10), '</p><p>')}</p>",
+                    'cursus_id': cursus_id,
+                    'cursus_letter': cursus_letter,
+                    'course_id': course_id,
+                    'module_number': module_num,
+                    'file_key': key,
+                    'updated_at': datetime.now(timezone.utc).isoformat(),
+                }
+                
+                result = await db.bibliographies.update_one(
+                    {'id': biblio_id},
+                    {'$set': biblio_doc},
+                    upsert=True
+                )
+                
+                if result.upserted_id:
+                    created += 1
+                else:
+                    updated += 1
+                    
+                logger.info(f"Synced bibliography: {biblio_id} ({len(content)} chars)")
+                
+            except Exception as e:
+                logger.error(f"Error processing {key}: {e}")
+                continue
+        
+        return {
+            'message': 'Synchronisation des bibliographies terminée',
+            'bibliographies_created': created,
+            'bibliographies_updated': updated,
+            'total': created + updated
+        }
+        
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/bibliographies")
+async def list_bibliographies(cursus_id: str = None, course_id: str = None):
+    """List bibliographies, optionally filtered by cursus or course."""
+    query = {}
+    if cursus_id:
+        query['cursus_id'] = cursus_id
+    if course_id:
+        query['course_id'] = course_id
+    
+    biblios = await db.bibliographies.find(query, {'_id': 0}).sort('module_number', 1).to_list(100)
+    return biblios
+
+@api_router.get("/bibliographies/{biblio_id}")
+async def get_bibliography(biblio_id: str):
+    """Get a specific bibliography by ID."""
+    biblio = await db.bibliographies.find_one({'id': biblio_id}, {'_id': 0})
+    if not biblio:
+        raise HTTPException(404, "Bibliographie non trouvée")
+    return biblio
+
 @api_router.post("/admin/sync-all-r2")
 async def sync_all_r2_audio(request: Request):
     """
