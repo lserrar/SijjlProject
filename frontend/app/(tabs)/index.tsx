@@ -577,6 +577,14 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: '#F5F0E8',
     lineHeight: 18,
+  },
+  epDesc: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 11,
+    color: 'rgba(245,240,232,0.50)',
+    lineHeight: 16,
+    marginTop: 6,
     flex: 1,
   },
   epMetaRow: {
