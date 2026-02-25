@@ -136,10 +136,10 @@ export default function SubscriptionChoiceScreen() {
           <Text style={styles.trialTitle}>3 jours gratuits</Text>
           <Text style={styles.trialSubtitle}>Accès complet à tous les contenus</Text>
           <View style={styles.features}>
-            <FeatureItem text="Tous les cours vidéo" />
-            <FeatureItem text="Podcasts et audios" />
+            <FeatureItem text="Tous les cours audio" />
+            <FeatureItem text="Épisodes complets" />
             <FeatureItem text="Bibliothèque complète" />
-            <FeatureItem text="Masterclasses en direct" />
+            <FeatureItem text="Accès hors connexion" />
           </View>
           {selectedPlan === 'trial' && (
             <View style={styles.checkMark}>
