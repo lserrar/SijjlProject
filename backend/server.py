@@ -190,6 +190,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
+    referral_code: Optional[str] = None  # Code de parrainage du parrain
 
 class LoginRequest(BaseModel):
     email: EmailStr
