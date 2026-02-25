@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform, TextInput,
+  ActivityIndicator, RefreshControl, Platform, TextInput, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, apiRequest } from '../../context/AuthContext';
