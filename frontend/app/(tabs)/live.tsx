@@ -262,6 +262,7 @@ function ProfessorCard({ professor, onPress }: ProfessorCardProps) {
 
   // Check if professor has a real photo
   const hasPhoto = professor.photo && !professor.photo.includes('unsplash');
+  const [imageError, setImageError] = useState(false);
 
   return (
     <TouchableOpacity
@@ -272,10 +273,12 @@ function ProfessorCard({ professor, onPress }: ProfessorCardProps) {
       {...hoverProps}
     >
       {/* Avatar or Photo */}
-      {hasPhoto ? (
+      {hasPhoto && !imageError ? (
         <Image 
           source={{ uri: professor.photo }} 
           style={[styles.photoAvatar, { borderColor: primaryColor }]}
+          onError={() => setImageError(true)}
+          resizeMode="cover"
         />
       ) : (
         <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
