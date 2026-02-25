@@ -61,8 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearAuth = async () => {
-    await AsyncStorage.removeItem('auth_token');
-    await AsyncStorage.removeItem('auth_user');
+    try {
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('auth_user');
+    } catch (e) {
+      // Fallback for web if AsyncStorage fails
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      }
+    }
     setToken(null);
     setUser(null);
   };
