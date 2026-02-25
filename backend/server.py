@@ -2184,8 +2184,15 @@ async def serve_r2_image(image_key: str):
         raise HTTPException(503, "R2 non configuré")
     
     try:
-        # Try to get from Prof/ folder first
-        key = f"Prof/{image_key}" if not image_key.startswith('Prof/') else image_key
+        # Handle the key - if it already contains a folder path, use it directly
+        # Otherwise, prepend Prof/ for professor images
+        if '/' in image_key:
+            key = image_key
+        elif image_key.startswith('Prof_'):
+            key = f"Prof/{image_key}"
+        else:
+            key = image_key
+        
         logger.info(f"Serving image: bucket={R2_BUCKET}, key={key}")
         response = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
         content = response['Body'].read()
@@ -2199,7 +2206,7 @@ async def serve_r2_image(image_key: str):
         
         return Response(content=content, media_type=content_type)
     except ClientError as e:
-        logger.error(f"R2 error for {key}: {e}")
+        logger.error(f"R2 error for key={key}: {e}")
         if e.response['Error']['Code'] == 'NoSuchKey':
             raise HTTPException(404, "Image non trouvée")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
