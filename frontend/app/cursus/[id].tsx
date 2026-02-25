@@ -185,6 +185,13 @@ export default function CursusCoursesScreen() {
         setScholars(scholarsData || []);
       }
 
+      if (biblioRes.ok) {
+        const biblioData = await biblioRes.json();
+        // Filter only new format bibliographies (with content field)
+        const newBiblios = (biblioData || []).filter((b: any) => b.content && b.module_number);
+        setBibliographies(newBiblios);
+      }
+
       // Build progress map
       const progressMap: Record<string, any> = {};
       if (progressRes.ok) {
