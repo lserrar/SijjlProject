@@ -622,17 +622,20 @@ export default function CursusCoursesScreen() {
                       <View style={styles.biblioContent}>
                         <View style={[styles.biblioDivider, { backgroundColor: `${cursusColor}33` }]} />
                         {biblio.content.split('\n\n').map((paragraph, idx) => {
-                          // Handle markdown headers
-                          if (paragraph.startsWith('## ')) {
+                          const trimmed = paragraph.trim();
+                          // Handle markdown headers (lines starting with ##)
+                          if (trimmed.startsWith('##')) {
+                            const headingText = trimmed.replace(/^#+\s*/, '');
                             return (
                               <Text key={idx} style={styles.biblioHeading}>
-                                {paragraph.replace('## ', '')}
+                                {headingText}
                               </Text>
                             );
                           }
+                          if (!trimmed) return null;
                           return (
                             <Text key={idx} style={styles.biblioText}>
-                              {paragraph}
+                              {trimmed}
                             </Text>
                           );
                         })}
