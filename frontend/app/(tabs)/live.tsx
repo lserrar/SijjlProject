@@ -441,6 +441,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  photoAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    flexShrink: 0,
+  },
 
   // Info
   cardInfo: {
