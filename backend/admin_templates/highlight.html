@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Highlight Page d'accueil</h1>
+        <p class="page-description">Choisissez le contenu mis en avant sur la page d'accueil</p>
+    </div>
+</div>
+
+<!-- Mode Selection -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-cog"></i> Mode d'affichage</h3>
+    </div>
+    <div class="mode-selector">
+        <div class="mode-option" id="modeManual" onclick="setMode('manual')">
+            <div class="mode-icon"><i class="fas fa-hand-pointer"></i></div>
+            <div class="mode-info">
+                <div class="mode-name">Manuel</div>
+                <div class="mode-desc">Choisissez vous-même le cours ou cursus à mettre en avant</div>
+            </div>
+            <div class="mode-check"><i class="fas fa-check-circle"></i></div>
+        </div>
+        <div class="mode-option" id="modeRandom" onclick="setMode('random')">
+            <div class="mode-icon"><i class="fas fa-random"></i></div>
+            <div class="mode-info">
+                <div class="mode-name">Aléatoire</div>
+                <div class="mode-desc">Un cours ou cursus différent à chaque connexion utilisateur</div>
+            </div>
+            <div class="mode-check"><i class="fas fa-check-circle"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Selection (shown only in manual mode) -->
+<div id="manualSection">
+    <!-- Current Featured -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-star"></i> Actuellement en avant</h3>
+            <button class="btn btn-secondary btn-sm" onclick="clearFeatured()">
+                <i class="fas fa-times"></i> Effacer
+            </button>
+        </div>
+        <div id="currentFeatured" class="current-featured">
+            <div class="loading"><div class="spinner"></div>Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Select Cursus -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-layer-group"></i> Mettre un Cursus en avant</h3>
+        </div>
+        <div class="selection-grid" id="cursusGrid">
+            <div class="loading"><div class="spinner"></div>Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Select Course -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-book-open"></i> Mettre un Cours en avant</h3>
+        </div>
+        <div class="selection-grid" id="courseGrid">
+            <div class="loading"><div class="spinner"></div>Chargement...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mode-selector {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .mode-option {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-subtle);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .mode-option:hover {
+        border-color: var(--border-hover);
+    }
+    
+    .mode-option.active {
+        border-color: var(--brand-primary);
+        background: rgba(4, 209, 130, 0.1);
+    }
+    
+    .mode-option.active .mode-check {
+        display: block;
+        color: var(--brand-primary);
+    }
+    
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: var(--bg-card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: var(--brand-primary);
+    }
+    
+    .mode-info {
+        flex: 1;
+    }
+    
+    .mode-name {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    
+    .mode-desc {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    
+    .mode-check {
+        display: none;
+        font-size: 24px;
+    }
+    
+    .current-featured {
+        padding: 20px;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
+    }
+    
+    .featured-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .featured-type {
+        background: var(--brand-primary);
+        color: var(--bg-primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .featured-title {
+        font-size: 18px;
+        font-weight: 600;
+        flex: 1;
+    }
+    
+    .no-featured {
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+    
+    .selection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+    
+    .selection-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border-subtle);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .selection-item:hover {
+        border-color: var(--border-hover);
+        background: var(--bg-card);
+    }
+    
+    .selection-item.featured {
+        border-color: var(--brand-primary);
+        background: rgba(4, 209, 130, 0.1);
+    }
+    
+    .selection-item.featured .item-star {
+        color: var(--brand-primary);
+    }
+    
+    .item-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .item-title {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .item-meta {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    
+    .item-star {
+        font-size: 18px;
+        color: var(--text-muted);
+    }
+    
+    #manualSection.hidden {
+        display: none;
+    }
+</style>
+
+<script>
+    let currentMode = 'manual';
+    let highlightData = null;
+    
+    async function loadHighlightConfig() {
+        try {
+            highlightData = await apiRequest('/admin/highlight');
+            currentMode = highlightData.mode || 'manual';
+            
+            updateModeUI();
+            renderCurrentFeatured();
+            renderCursusGrid();
+            renderCourseGrid();
+        } catch (e) {
+            showToast('Erreur lors du chargement: ' + e.message, 'error');
+        }
+    }
+    
+    function updateModeUI() {
+        document.getElementById('modeManual').classList.toggle('active', currentMode === 'manual');
+        document.getElementById('modeRandom').classList.toggle('active', currentMode === 'random');
+        document.getElementById('manualSection').classList.toggle('hidden', currentMode === 'random');
+    }
+    
+    async function setMode(mode) {
+        try {
+            await apiRequest('/admin/highlight/mode', 'PUT', { mode });
+            currentMode = mode;
+            updateModeUI();
+            showToast(`Mode changé en: ${mode === 'manual' ? 'Manuel' : 'Aléatoire'}`, 'success');
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
+    function renderCurrentFeatured() {
+        const container = document.getElementById('currentFeatured');
+        
+        if (highlightData.featured_cursus) {
+            container.innerHTML = `
+                <div class="featured-item">
+                    <span class="featured-type">Cursus</span>
+                    <span class="featured-title">${highlightData.featured_cursus.name}</span>
+                    <i class="fas fa-star" style="color: var(--brand-primary); font-size: 20px;"></i>
+                </div>
+            `;
+        } else if (highlightData.featured_course) {
+            container.innerHTML = `
+                <div class="featured-item">
+                    <span class="featured-type">Cours</span>
+                    <span class="featured-title">${highlightData.featured_course.title}</span>
+                    <i class="fas fa-star" style="color: var(--brand-primary); font-size: 20px;"></i>
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div class="no-featured">Aucun contenu mis en avant</div>';
+        }
+    }
+    
+    function renderCursusGrid() {
+        const container = document.getElementById('cursusGrid');
+        
+        if (!highlightData.all_cursus || highlightData.all_cursus.length === 0) {
+            container.innerHTML = '<div class="no-featured">Aucun cursus disponible</div>';
+            return;
+        }
+        
+        container.innerHTML = highlightData.all_cursus.map(c => `
+            <div class="selection-item ${c.is_featured ? 'featured' : ''}" onclick="setFeaturedCursus('${c.id}')">
+                <div class="item-info">
+                    <div class="item-title">${c.name}</div>
+                    <div class="item-meta">Cursus</div>
+                </div>
+                <i class="fas fa-star item-star"></i>
+            </div>
+        `).join('');
+    }
+    
+    function renderCourseGrid() {
+        const container = document.getElementById('courseGrid');
+        
+        if (!highlightData.all_courses || highlightData.all_courses.length === 0) {
+            container.innerHTML = '<div class="no-featured">Aucun cours disponible</div>';
+            return;
+        }
+        
+        container.innerHTML = highlightData.all_courses.map(c => `
+            <div class="selection-item ${c.is_featured ? 'featured' : ''}" onclick="setFeaturedCourse('${c.id}')">
+                <div class="item-info">
+                    <div class="item-title">${c.title}</div>
+                    <div class="item-meta">Cours</div>
+                </div>
+                <i class="fas fa-star item-star"></i>
+            </div>
+        `).join('');
+    }
+    
+    async function setFeaturedCursus(cursusId) {
+        try {
+            await apiRequest(`/admin/cursus/${cursusId}/set-featured`, 'PATCH');
+            showToast('Cursus mis en avant', 'success');
+            loadHighlightConfig();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
+    async function setFeaturedCourse(courseId) {
+        try {
+            await apiRequest(`/admin/courses/${courseId}/set-featured`, 'PATCH');
+            showToast('Cours mis en avant', 'success');
+            loadHighlightConfig();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
+    async function clearFeatured() {
+        if (!confirm('Voulez-vous vraiment effacer le highlight actuel ?')) return;
+        
+        try {
+            await apiRequest('/admin/highlight/clear', 'DELETE');
+            showToast('Highlight effacé', 'success');
+            loadHighlightConfig();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        setActiveNav('highlight');
+        loadHighlightConfig();
+    });
+</script>
+{% endblock %}
