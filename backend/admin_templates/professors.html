@@ -163,9 +163,14 @@
                     <h1 class="page-title">Professeurs</h1>
                     <p class="page-description">Gerez les professeurs et enseignants de la plateforme</p>
                 </div>
-                <button class="btn btn-primary" onclick="openModal()" data-testid="new-professor-btn">
-                    <i class="fas fa-plus"></i> Nouveau professeur
-                </button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="syncPhotos()" data-testid="sync-photos-btn">
+                        <i class="fas fa-sync"></i> Sync Photos R2
+                    </button>
+                    <button class="btn btn-primary" onclick="openModal()" data-testid="new-professor-btn">
+                        <i class="fas fa-plus"></i> Nouveau professeur
+                    </button>
+                </div>
             </div>
 
             <div class="toolbar">
