@@ -2174,6 +2174,82 @@ R2_TO_COURSE_MAPPING = {
     '22-philosophie-juive': 'cours-philo-juive',
 }
 
+# ========== IMAGE SERVING FROM R2 ==========
+@api_router.get("/images/{image_key:path}")
+async def serve_r2_image(image_key: str):
+    """Serve an image from R2 bucket"""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        # Try to get from Prof/ folder first
+        key = f"Prof/{image_key}" if not image_key.startswith('Prof/') else image_key
+        response = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
+        content = response['Body'].read()
+        
+        # Determine content type
+        content_type = 'image/jpeg'
+        if image_key.endswith('.png'):
+            content_type = 'image/png'
+        elif image_key.endswith('.webp'):
+            content_type = 'image/webp'
+        
+        return Response(content=content, media_type=content_type)
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            raise HTTPException(404, "Image non trouvée")
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+# ========== PROFESSOR PHOTO SYNC ==========
+@api_router.post("/admin/sync-professor-photos")
+async def sync_professor_photos(request: Request):
+    """Sync professor photos from R2 Prof/ folder"""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        # List all files in Prof/ folder
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Prof/', MaxKeys=100)
+        
+        updated = 0
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.replace('Prof/', '')
+            
+            # Extract professor name from filename (e.g., Prof_MeryemSebti.jpg -> Meryem Sebti)
+            if filename.startswith('Prof_'):
+                name_part = filename.replace('Prof_', '').rsplit('.', 1)[0]
+                # Handle special cases like "1973_HenriCorbin" -> "Henri Corbin"
+                name_part = name_part.split('_')[-1] if '_' in name_part else name_part
+                # Convert CamelCase to spaces
+                import re
+                name = re.sub(r'([a-z])([A-Z])', r'\1 \2', name_part)
+                
+                # Find matching scholar
+                scholar = await db.scholars.find_one({
+                    'name': {'$regex': name.replace(' ', '.*'), '$options': 'i'}
+                })
+                
+                if scholar:
+                    # Update photo URL
+                    photo_url = f"{BACKEND_URL}/api/images/{filename}"
+                    await db.scholars.update_one(
+                        {'id': scholar['id']},
+                        {'$set': {'photo': photo_url, 'photo_key': key}}
+                    )
+                    logger.info(f"Updated photo for {scholar['name']}: {photo_url}")
+                    updated += 1
+                else:
+                    logger.warning(f"No matching scholar found for: {name} (from {filename})")
+        
+        return {
+            'message': 'Synchronisation des photos terminée',
+            'photos_updated': updated
+        }
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
 @api_router.post("/admin/sync-all-r2")
 async def sync_all_r2_audio(request: Request):
     """
