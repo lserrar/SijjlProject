@@ -216,6 +216,16 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Nouveau endpoint `POST /api/admin/bibliographies/standardize-titles`
   - Tableau avec colonnes : Titre, Cursus, Module, Aperçu, Actions
   - 24 bibliographies synchronisées et formatées
+- ✅ **Nettoyage bibliographies** (2026-02-25) :
+  - Suppression des 22 bibliographies legacy (doublons)
+  - Correction du mapping cursus (A→cursus-falsafa, B→cursus-theologie, C→cursus-sciences-islamiques, D→cursus-arts, E→cursus-spiritualites)
+  - Attribution des course_id corrects aux 24 bibliographies
+  - Titres standardisés au format "Bibliographie - Cours XX : [Titre du Cours]"
+- ✅ **Page Cours avec onglets** (2026-02-25) :
+  - Ajout des onglets ÉPISODES / PROFESSEURS / RESSOURCES
+  - Onglet Professeurs : affiche le(s) professeur(s) du cours avec photo/initiales
+  - Onglet Ressources : affiche la bibliographie associée au cours (filtre par course_id)
+  - Design cohérent avec la page Cursus
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
