@@ -1469,4 +1469,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+
+  // ─── RESOURCE SECTION ────────────────────────────────────────────────────────
+  resourceSection: {
+    marginBottom: 24,
+  },
+  resourceCard: {
+    backgroundColor: '#1A1A1A',
+    marginBottom: 12,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  emptyStateSmall: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    backgroundColor: '#1A1A1A',
+  },
+  emptyTextSmall: {
+    fontFamily: 'EBGaramond',
+    fontSize: 13,
+    color: '#666666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
+  },
 });
