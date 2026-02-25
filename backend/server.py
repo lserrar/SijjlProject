@@ -2369,7 +2369,10 @@ async def sync_bibliographies(request: Request):
 @api_router.get("/bibliographies")
 async def list_bibliographies(cursus_id: str = None, course_id: str = None):
     """List bibliographies, optionally filtered by cursus or course."""
-    query = {}
+    query = {
+        'content': {'$exists': True, '$ne': ''},  # Only new format with content
+        'module_number': {'$exists': True}
+    }
     if cursus_id:
         query['cursus_id'] = cursus_id
     if course_id:
