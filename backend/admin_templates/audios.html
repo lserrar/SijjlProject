@@ -755,12 +755,20 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             const typeFilter = document.getElementById('typeFilter').value;
             const categoryFilter = document.getElementById('categoryFilter').value;
+            const courseFilter = document.getElementById('courseFilter').value;
             return audios.filter(a => {
                 const matchQuery = a.title.toLowerCase().includes(query) || (a.scholar_name && a.scholar_name.toLowerCase().includes(query));
                 const matchType = !typeFilter || a.type === typeFilter;
                 const matchCategory = !categoryFilter || a.category_id === categoryFilter;
-                return matchQuery && matchType && matchCategory;
+                const matchCourse = !courseFilter || a.course_id === courseFilter;
+                return matchQuery && matchType && matchCategory && matchCourse;
             });
+        }
+
+        function populateCourseFilter() {
+            const courseFilterSelect = document.getElementById('courseFilter');
+            courseFilterSelect.innerHTML = '<option value="">Tous les cours</option>' +
+                courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
         }
 
         function populateBulkSelects() {
