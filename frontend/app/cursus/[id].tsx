@@ -589,8 +589,30 @@ export default function CursusCoursesScreen() {
 
         {activeTab === 'ressources' && (
           <View style={styles.resourcesTab}>
-            {bibliographies.length > 0 ? (
-              <View>
+            {/* Timeline Section */}
+            <View style={styles.resourceSection}>
+              <Text style={styles.sectionSubtitle}>Frise chronologique</Text>
+              <TouchableOpacity
+                style={styles.resourceCard}
+                onPress={() => router.push(`/timeline/${id}` as any)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.biblioHeader}>
+                  <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                    <Ionicons name="map-outline" size={18} color={cursusColor} />
+                  </View>
+                  <View style={styles.biblioTitleContainer}>
+                    <Text style={styles.biblioTitle}>Carte des Penseurs</Text>
+                    <Text style={styles.biblioMeta}>Timeline interactive · Plein écran</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#888" />
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Bibliographies Section */}
+            {bibliographies.length > 0 && (
+              <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Bibliographies</Text>
                 {bibliographies.map((biblio) => (
                   <TouchableOpacity
@@ -612,13 +634,18 @@ export default function CursusCoursesScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="library-outline" size={40} color="#333" />
-                <Text style={styles.emptyTitle}>Ressources à venir</Text>
-                <Text style={styles.emptyText}>
-                  Les bibliographies pour ce cursus seront disponibles prochainement.
-                </Text>
+            )}
+
+            {/* Empty state only if no resources at all */}
+            {bibliographies.length === 0 && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Bibliographies</Text>
+                <View style={styles.emptyStateSmall}>
+                  <Ionicons name="library-outline" size={32} color="#333" />
+                  <Text style={styles.emptyTextSmall}>
+                    Les bibliographies seront disponibles prochainement.
+                  </Text>
+                </View>
               </View>
             )}
           </View>
