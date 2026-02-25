@@ -596,11 +596,8 @@ export default function CursusCoursesScreen() {
                 {bibliographies.map((biblio) => (
                   <TouchableOpacity
                     key={biblio.id}
-                    style={[
-                      styles.biblioCard,
-                      expandedBiblioId === biblio.id && styles.biblioCardExpanded,
-                    ]}
-                    onPress={() => setExpandedBiblioId(expandedBiblioId === biblio.id ? null : biblio.id)}
+                    style={styles.biblioCard}
+                    onPress={() => router.push(`/bibliography/${biblio.id}` as any)}
                     activeOpacity={0.85}
                   >
                     <View style={styles.biblioHeader}>
@@ -609,38 +606,10 @@ export default function CursusCoursesScreen() {
                       </View>
                       <View style={styles.biblioTitleContainer}>
                         <Text style={styles.biblioTitle}>{biblio.title}</Text>
-                        <Text style={styles.biblioMeta}>Module {biblio.module_number}</Text>
+                        <Text style={styles.biblioMeta}>Module {biblio.module_number} · Appuyez pour lire</Text>
                       </View>
-                      <Ionicons 
-                        name={expandedBiblioId === biblio.id ? "chevron-up" : "chevron-down"} 
-                        size={20} 
-                        color="#888" 
-                      />
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
                     </View>
-                    
-                    {expandedBiblioId === biblio.id && (
-                      <View style={styles.biblioContent}>
-                        <View style={[styles.biblioDivider, { backgroundColor: `${cursusColor}33` }]} />
-                        {biblio.content.split('\n\n').map((paragraph, idx) => {
-                          const trimmed = paragraph.trim();
-                          // Handle markdown headers (lines starting with ##)
-                          if (trimmed.startsWith('##')) {
-                            const headingText = trimmed.replace(/^#+\s*/, '');
-                            return (
-                              <Text key={idx} style={styles.biblioHeading}>
-                                {headingText}
-                              </Text>
-                            );
-                          }
-                          if (!trimmed) return null;
-                          return (
-                            <Text key={idx} style={styles.biblioText}>
-                              {trimmed}
-                            </Text>
-                          );
-                        })}
-                      </View>
-                    )}
                   </TouchableOpacity>
                 ))}
               </View>
