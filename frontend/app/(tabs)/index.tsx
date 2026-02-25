@@ -182,6 +182,7 @@ export default function HomeScreen() {
                   color={ep.cursus_color || '#04D182'}
                   label={`CURSUS ${ep.cursus_letter || 'A'}`}
                   title={ep.title}
+                  description={ep.description}
                   meta={[
                     ep.duration > 0 ? fmtDur(ep.duration) : null,
                     ep.episode_number ? `Ép. ${ep.episode_number}` : null,
