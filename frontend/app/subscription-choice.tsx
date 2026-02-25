@@ -66,6 +66,8 @@ export default function SubscriptionChoiceScreen() {
     try {
       // Create checkout session
       const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://quran-platform.preview.emergentagent.com';
+      console.log('Creating checkout session for plan:', planId);
+      
       const response = await fetch(`${API_URL}/api/checkout/create`, {
         method: 'POST',
         headers: {
@@ -79,31 +81,40 @@ export default function SubscriptionChoiceScreen() {
       });
 
       const data = await response.json();
+      console.log('Checkout response:', data);
+      
       if (!response.ok) {
         throw new Error(data.detail || 'Erreur lors de la création du paiement');
       }
 
       // Redirect to Stripe Checkout
-      const checkoutUrl = data.checkout_url || data.url;
+      const checkoutUrl = data.url;
+      console.log('Redirecting to:', checkoutUrl);
+      
       if (checkoutUrl) {
         if (typeof window !== 'undefined') {
-          window.location.href = checkoutUrl;
+          // Don't set loading to false - we're leaving the page
+          window.location.assign(checkoutUrl);
+          return; // Exit early, don't run finally
         } else {
+          setLoading(false);
           Alert.alert(
             'Paiement',
             'Veuillez vous connecter depuis le site web pour finaliser votre abonnement.',
             [{ text: 'OK' }]
           );
         }
+      } else {
+        throw new Error('URL de paiement non reçue');
       }
     } catch (e: any) {
+      console.error('Checkout error:', e);
+      setLoading(false);
       if (typeof window !== 'undefined') {
         alert(e.message || 'Erreur lors du paiement');
       } else {
         Alert.alert('Erreur', e.message);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
