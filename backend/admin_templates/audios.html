@@ -785,6 +785,7 @@
 
         async function applyBulkScholar() {
             const scholarId = document.getElementById('bulkScholar').value;
+            console.log('applyBulkScholar called, scholarId:', scholarId, 'selectedIds:', Array.from(selectedAudioIds));
             if (!scholarId) { showToast('Sélectionnez un professeur', 'error'); return; }
             if (selectedAudioIds.size === 0) { showToast('Aucun audio sélectionné', 'error'); return; }
             
@@ -805,12 +806,14 @@
                 clearSelection();
                 loadAudios();
             } catch (error) {
+                console.error('Bulk scholar update error:', error);
                 showToast('Erreur lors de la mise à jour', 'error');
             }
         }
 
         async function applyBulkCategory() {
             const categoryId = document.getElementById('bulkCategory').value;
+            console.log('applyBulkCategory called, categoryId:', categoryId, 'selectedIds:', Array.from(selectedAudioIds));
             if (!categoryId) { showToast('Sélectionnez une catégorie', 'error'); return; }
             if (selectedAudioIds.size === 0) { showToast('Aucun audio sélectionné', 'error'); return; }
             
@@ -828,6 +831,7 @@
                 clearSelection();
                 loadAudios();
             } catch (error) {
+                console.error('Bulk category update error:', error);
                 showToast('Erreur lors de la mise à jour', 'error');
             }
         }
