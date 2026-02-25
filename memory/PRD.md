@@ -226,6 +226,12 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Onglet Professeurs : affiche le(s) professeur(s) du cours avec photo/initiales
   - Onglet Ressources : affiche la bibliographie associée au cours (filtre par course_id)
   - Design cohérent avec la page Cursus
+- ✅ **Page Bibliographie plein écran** (2026-02-25) :
+  - Nouvelle page `/bibliography/[id]` pour lecture confortable sur mobile
+  - Header avec titre du cours et bouton retour
+  - Contenu scrollable avec typographie EB Garamond
+  - Sections formatées (headings en or, texte justifié)
+  - Navigation depuis Cursus et Cours (onglet Ressources)
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
