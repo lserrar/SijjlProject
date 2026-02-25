@@ -2030,7 +2030,7 @@ async def list_r2_folder_files(folder_name: str, request: Request):
 async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request: Request):
     """
     Sync a course with an R2 folder: scan the folder and create audio episodes.
-    Episodes are created based on files matching pattern: *_episode{N}.m4a or *_episode{N}.mp3
+    Accepts multiple file naming patterns: episode-01, episode01, ep01, 01.m4a, etc.
     """
     await require_admin(request)
     if not r2_client:
@@ -2041,9 +2041,12 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
     if not course:
         raise HTTPException(404, "Cours non trouvé")
     
-    r2_folder = body.r2_folder.strip()
+    r2_folder = body.r2_folder.strip().rstrip('/')
     if not r2_folder:
         raise HTTPException(400, "Dossier R2 requis")
+    
+    # Extract folder name for episode titles
+    folder_name = r2_folder.split('/')[-1].replace('-', ' ').replace('_', ' ').title()
     
     try:
         # List files in the R2 folder
@@ -2054,11 +2057,12 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
         for obj in response.get('Contents', []):
             key = obj['Key']
             size = obj['Size']
-            if size > 0:
+            if size > 0 and (key.endswith('.m4a') or key.endswith('.mp3') or key.endswith('.wav')):
                 filename = key.replace(prefix, '')
-                # Extract episode number from filename (e.g., "Cycle_Philosophie_episode1.m4a" -> 1)
+                # Extract episode number from filename with multiple patterns
                 import re
-                match = re.search(r'episode(\d+)', filename, re.IGNORECASE)
+                # Try various patterns: episode-01, episode01, ep-01, ep01, 01.m4a, piste-01, etc.
+                match = re.search(r'(?:episode|ep|piste)?[-_]?(\d+)', filename, re.IGNORECASE)
                 if match:
                     ep_num = int(match.group(1))
                     files.append({
@@ -2069,7 +2073,7 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
                     })
         
         if not files:
-            raise HTTPException(400, f"Aucun fichier d'épisode trouvé dans '{r2_folder}/'")
+            raise HTTPException(400, f"Aucun fichier audio trouvé dans '{r2_folder}/' (formats: .m4a, .mp3, .wav)")
         
         # Sort by episode number
         files.sort(key=lambda x: x['episode_number'])
