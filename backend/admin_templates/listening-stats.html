@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Statistiques d'écoute</h1>
+        <p class="page-description">Suivez l'activité d'écoute par cursus, cours, module et professeur</p>
+    </div>
+    <div class="filter-group">
+        <select class="form-select" id="periodFilter" style="width: auto; min-width: 150px;">
+            <option value="7days">7 derniers jours</option>
+            <option value="month">Ce mois</option>
+            <option value="year">Cette année</option>
+            <option value="all" selected>Tout</option>
+        </select>
+        <button class="btn btn-secondary" onclick="loadStats()">
+            <i class="fas fa-sync-alt"></i> Actualiser
+        </button>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid" id="summaryStats">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-headphones"></i></div>
+        <div class="stat-value" id="totalHours">-</div>
+        <div class="stat-label">Heures d'écoute totales</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-play-circle"></i></div>
+        <div class="stat-value" id="totalPlays">-</div>
+        <div class="stat-label">Lectures</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-users"></i></div>
+        <div class="stat-value" id="uniqueUsers">-</div>
+        <div class="stat-label">Utilisateurs actifs</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
+        <div class="stat-value" id="avgPerUser">-</div>
+        <div class="stat-label">Moyenne par utilisateur</div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-chart-line"></i> Évolution de l'écoute</h3>
+    </div>
+    <div id="chartContainer" style="height: 300px; position: relative;">
+        <canvas id="listeningChart"></canvas>
+    </div>
+</div>
+
+<!-- Stats Tables -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <!-- By Professor -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-user-graduate"></i> Par Professeur</h3>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Professeur</th>
+                        <th>Heures</th>
+                        <th>Lectures</th>
+                    </tr>
+                </thead>
+                <tbody id="professorTable">
+                    <tr><td colspan="3" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- By Cursus -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-layer-group"></i> Par Cursus</h3>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cursus</th>
+                        <th>Heures</th>
+                        <th>Lectures</th>
+                    </tr>
+                </thead>
+                <tbody id="cursusTable">
+                    <tr><td colspan="3" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- By Course -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-book-open"></i> Par Cours (Top 20)</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cours</th>
+                    <th>Cursus</th>
+                    <th>Heures</th>
+                    <th>Lectures</th>
+                </tr>
+            </thead>
+            <tbody id="courseTable">
+                <tr><td colspan="4" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- By Episode/Module -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-headphones"></i> Par Épisode (Top 20)</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Épisode</th>
+                    <th>Cours</th>
+                    <th>Heures</th>
+                    <th>Lectures</th>
+                </tr>
+            </thead>
+            <tbody id="audioTable">
+                <tr><td colspan="4" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let listeningChart = null;
+    
+    async function loadStats() {
+        const period = document.getElementById('periodFilter').value;
+        
+        try {
+            const data = await apiRequest(`/admin/listening-stats?period=${period}`);
+            
+            // Update summary stats
+            document.getElementById('totalHours').textContent = `${data.total.listening_hours}h`;
+            document.getElementById('totalPlays').textContent = data.total.plays.toLocaleString();
+            document.getElementById('uniqueUsers').textContent = data.total.unique_users.toLocaleString();
+            const avgHours = data.total.unique_users > 0 
+                ? (data.total.listening_hours / data.total.unique_users).toFixed(1) 
+                : 0;
+            document.getElementById('avgPerUser').textContent = `${avgHours}h`;
+            
+            // Update professor table
+            const profTable = document.getElementById('professorTable');
+            if (data.by_professor.length === 0) {
+                profTable.innerHTML = '<tr><td colspan="3" class="empty-state">Aucune donnée</td></tr>';
+            } else {
+                profTable.innerHTML = data.by_professor.map(p => `
+                    <tr>
+                        <td>
+                            <div class="table-cell-flex">
+                                ${p.photo ? `<img src="${p.photo}" class="table-avatar" onerror="this.style.display='none'">` : ''}
+                                <span class="table-cell-text">${p.name}</span>
+                            </div>
+                        </td>
+                        <td><strong>${p.listening_hours}h</strong></td>
+                        <td>${p.plays}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Update cursus table
+            const cursusTable = document.getElementById('cursusTable');
+            if (data.by_cursus.length === 0) {
+                cursusTable.innerHTML = '<tr><td colspan="3" class="empty-state">Aucune donnée</td></tr>';
+            } else {
+                cursusTable.innerHTML = data.by_cursus.map(c => `
+                    <tr>
+                        <td class="table-cell-text">${c.name}</td>
+                        <td><strong>${c.listening_hours}h</strong></td>
+                        <td>${c.plays}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Update course table
+            const courseTable = document.getElementById('courseTable');
+            if (data.by_course.length === 0) {
+                courseTable.innerHTML = '<tr><td colspan="4" class="empty-state">Aucune donnée</td></tr>';
+            } else {
+                courseTable.innerHTML = data.by_course.map(c => `
+                    <tr>
+                        <td class="table-cell-text">${c.title}</td>
+                        <td><span style="color: var(--text-secondary)">${c.cursus_name || '-'}</span></td>
+                        <td><strong>${c.listening_hours}h</strong></td>
+                        <td>${c.plays}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Update audio table
+            const audioTable = document.getElementById('audioTable');
+            if (data.by_audio.length === 0) {
+                audioTable.innerHTML = '<tr><td colspan="4" class="empty-state">Aucune donnée</td></tr>';
+            } else {
+                audioTable.innerHTML = data.by_audio.map(a => `
+                    <tr>
+                        <td class="table-cell-text">${a.title}</td>
+                        <td><span style="color: var(--text-secondary)">${a.course_title || '-'}</span></td>
+                        <td><strong>${a.listening_hours}h</strong></td>
+                        <td>${a.plays}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Update chart
+            updateChart(data.daily);
+            
+        } catch (e) {
+            showToast('Erreur lors du chargement des statistiques: ' + e.message, 'error');
+        }
+    }
+    
+    function updateChart(dailyData) {
+        const ctx = document.getElementById('listeningChart').getContext('2d');
+        
+        if (listeningChart) {
+            listeningChart.destroy();
+        }
+        
+        // Prepare data for last 30 days if we have data
+        const labels = dailyData.map(d => {
+            const date = new Date(d.date);
+            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        });
+        
+        const hoursData = dailyData.map(d => d.listening_hours);
+        const playsData = dailyData.map(d => d.plays);
+        
+        listeningChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Heures d\'écoute',
+                        data: hoursData,
+                        borderColor: '#04D182',
+                        backgroundColor: 'rgba(4, 209, 130, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Lectures',
+                        data: playsData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#a0a0a0',
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1e1e1e',
+                        titleColor: '#ffffff',
+                        bodyColor: '#a0a0a0',
+                        borderColor: '#2a2a2a',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: '#2a2a2a'
+                        },
+                        ticks: {
+                            color: '#666666'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: {
+                            color: '#2a2a2a'
+                        },
+                        ticks: {
+                            color: '#04D182',
+                            callback: function(value) {
+                                return value + 'h';
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Heures',
+                            color: '#04D182'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            color: '#3b82f6'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Lectures',
+                            color: '#3b82f6'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        setActiveNav('listening-stats');
+        loadStats();
+        
+        // Auto-refresh on period change
+        document.getElementById('periodFilter').addEventListener('change', loadStats);
+    });
+</script>
+
+<style>
+    .filter-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    
+    .filter-group .form-select {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-primary);
+        padding: 10px 16px;
+        border-radius: 8px;
+    }
+    
+    #chartContainer {
+        padding: 20px 0;
+    }
+</style>
+{% endblock %}
