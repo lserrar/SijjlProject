@@ -2104,6 +2104,191 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+# Mapping R2 folders to course IDs
+R2_TO_COURSE_MAPPING = {
+    '01-mouvement-traduction': 'cours-traduction',
+    '02-falsafa': 'cours-falsafa-grands',
+    '03-post-avicennisme': 'cours-post-avicennisme',
+    '04-falsafa-occident-musulman': 'cours-falsafa-occident',
+    '05-renouveau-falsafa-persan': 'cours-falsafa-persan',
+    '06-logique-arabe': 'cours-logique',
+    '07-inclassables': 'cours-inclassables',
+    '08-kalam': 'cours-kalam',
+    '09-usul-al-fiqh': 'cours-fiqh',
+    '10-doxographie': 'cours-doxographie',
+    '11-transmission-coran': 'cours-coran',
+    '12-transmission-hadith': 'cours-hadith',
+    '13-historiographie': 'cours-historiographie',
+    '14-autobiographies': 'cours-autobiographies',
+    '15-histoire-art': 'cours-art',
+    '16-poesie': 'cours-poesie',
+    '18-sciences': 'cours-sciences',
+    '19-kalam-chretien': 'cours-kalam-chretien',
+    '20-mystique-islamique': 'cours-soufisme',
+    '21-ismaelisme': 'cours-ismaelisme',
+    '22-philosophie-juive': 'cours-philo-juive',
+}
+
+@api_router.post("/admin/sync-all-r2")
+async def sync_all_r2_audio(request: Request):
+    """
+    Sync all audio files from R2 with database.
+    Scans Audio/ folder and creates/updates audio entries based on structure.
+    """
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        # List all files in Audio folder
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix="Audio/", MaxKeys=1000)
+        
+        stats = {
+            'total_files': 0,
+            'created': 0,
+            'updated': 0,
+            'skipped': 0,
+            'errors': []
+        }
+        
+        now = datetime.now(timezone.utc)
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            size = obj['Size']
+            
+            if size == 0 or not (key.endswith('.m4a') or key.endswith('.mp3')):
+                continue
+            
+            stats['total_files'] += 1
+            
+            # Parse path: Audio/cursus-X/cours-Y/[subfolder/]episode-N.m4a
+            parts = key.split('/')
+            if len(parts) < 4:
+                stats['skipped'] += 1
+                continue
+            
+            cursus_folder = parts[1]  # e.g., cursus-a-falsafa
+            cours_folder = parts[2]   # e.g., 02-falsafa
+            
+            # Get course_id from mapping
+            course_id = R2_TO_COURSE_MAPPING.get(cours_folder)
+            if not course_id:
+                stats['skipped'] += 1
+                stats['errors'].append(f"No mapping for {cours_folder}")
+                continue
+            
+            # Get course from DB
+            course = await db.courses.find_one({'id': course_id}, {'_id': 0})
+            if not course:
+                stats['skipped'] += 1
+                stats['errors'].append(f"Course not found: {course_id}")
+                continue
+            
+            # Extract episode title from subfolder name if present
+            # e.g., Audio/cursus-a-falsafa/02-falsafa/al-kindi/episode-01.m4a
+            episode_title = ""
+            episode_number = 1
+            
+            if len(parts) == 5:
+                # Has subfolder (philosopher name)
+                subfolder = parts[3]  # e.g., al-kindi
+                episode_title = subfolder.replace('-', ' ').title()
+                # Extract episode number from filename
+                filename = parts[4]
+                match = re.search(r'episode-?(\d+)', filename, re.IGNORECASE)
+                if match:
+                    episode_number = int(match.group(1))
+            else:
+                # No subfolder
+                filename = parts[3]
+                match = re.search(r'episode-?(\d+)', filename, re.IGNORECASE)
+                if match:
+                    episode_number = int(match.group(1))
+            
+            # Generate audio ID
+            subfolder_slug = parts[3].replace(' ', '-').lower() if len(parts) == 5 else ''
+            audio_id = f"aud_{course_id}-{subfolder_slug}-ep{episode_number:02d}" if subfolder_slug else f"aud_{course_id}-ep{episode_number:02d}"
+            audio_id = re.sub(r'[^a-z0-9_-]', '', audio_id)
+            
+            # Build title
+            if episode_title:
+                title = episode_title
+            else:
+                title = clean_title(course.get('title', ''))
+            
+            audio_doc = {
+                'id': audio_id,
+                'title': title,
+                'description': f"{title} — {clean_title(course.get('title', ''))}",
+                'scholar_id': course.get('scholar_id', ''),
+                'scholar_name': course.get('scholar_name', ''),
+                'duration': 0,  # Will be updated when played
+                'audio_url': '',
+                'file_key': key,
+                'thumbnail': course.get('thumbnail', ''),
+                'topic': course.get('topic', ''),
+                'type': 'lecture',
+                'course_id': course_id,
+                'cursus_id': course.get('cursus_id', course.get('thematique_id', '')),
+                'episode_number': episode_number,
+                'published_at': now.isoformat(),
+                'is_active': True,
+            }
+            
+            result = await db.audios.update_one(
+                {'id': audio_id},
+                {'$set': audio_doc},
+                upsert=True
+            )
+            
+            if result.upserted_id:
+                stats['created'] += 1
+            else:
+                stats['updated'] += 1
+        
+        return {
+            'message': 'Synchronisation R2 terminée',
+            'stats': stats
+        }
+        
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.post("/admin/update-professor-photos")
+async def update_professor_photos(request: Request):
+    """Update professor photos from R2 images folder."""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Mapping of R2 filenames to scholar IDs
+    photo_mapping = {
+        'Prof_MeryemSebti.jpg': 'sch-sebti',
+        'Prof_ChristianJambet.png': 'sch-jambet',
+        'Prof_EricGeoffroy.jpg': 'sch-geoffroy',
+        'Prof_1973_HCorbin.jpeg': 'sch-corbin',
+    }
+    
+    updated = []
+    for filename, scholar_id in photo_mapping.items():
+        r2_key = f"images/{filename}"
+        photo_url = f"https://{R2_PUBLIC_URL}/{r2_key}" if R2_PUBLIC_URL else f"/api/audios/stream/{r2_key}"
+        
+        result = await db.scholars.update_one(
+            {'id': scholar_id},
+            {'$set': {'photo': photo_url}},
+            upsert=False
+        )
+        
+        if result.modified_count > 0:
+            updated.append(scholar_id)
+    
+    return {
+        'message': 'Photos des professeurs mises à jour',
+        'updated': updated
+    }
+
 @api_router.get("/admin/courses/{course_id}/episodes")
 async def get_course_episodes(course_id: str, request: Request):
     """Get all audio episodes linked to a course."""
