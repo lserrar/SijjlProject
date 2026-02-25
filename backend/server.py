@@ -3070,6 +3070,168 @@ async def admin_grant_lifetime(user_id: str, request: Request, reason: str = "pr
         'is_lifetime': True
     }
 
+# ─── Admin: Settings Management ────────────────────────────────────────────────
+
+class StripeSettingsRequest(BaseModel):
+    api_key: str
+    webhook_secret: Optional[str] = None
+
+class PricingSettingsRequest(BaseModel):
+    trial_days: int = 3
+    monthly: float = 9.99
+    annual: float = 89.99
+
+class ReferralSettingsRequest(BaseModel):
+    enabled: bool = True
+    referrer_months: int = 1
+    referee_months: int = 1
+
+@api_router.get("/admin/settings")
+async def admin_get_settings(request: Request):
+    """Get all platform settings."""
+    await require_admin(request)
+    
+    # Get settings from database or return defaults
+    settings = await db.settings.find_one({'id': 'platform_settings'}, {'_id': 0})
+    if not settings:
+        settings = {
+            'id': 'platform_settings',
+            'stripe_configured': False,
+            'pricing': {
+                'trial_days': 3,
+                'monthly': 9.99,
+                'annual': 89.99
+            },
+            'referral': {
+                'enabled': True,
+                'referrer_months': 1,
+                'referee_months': 1
+            }
+        }
+    
+    # Check if Stripe is configured from environment
+    stripe_key = os.environ.get('STRIPE_API_KEY', '')
+    if stripe_key and stripe_key.startswith('sk_'):
+        settings['stripe_configured'] = True
+        settings['stripe_key_last4'] = stripe_key[-4:]
+        settings['stripe_mode'] = 'live' if 'live' in stripe_key else 'test'
+    
+    return settings
+
+@api_router.post("/admin/settings/stripe")
+async def admin_save_stripe_settings(body: StripeSettingsRequest, request: Request):
+    """Save Stripe API configuration."""
+    await require_admin(request)
+    
+    # Validate the key format
+    if not body.api_key.startswith('sk_'):
+        raise HTTPException(400, "La clé API doit commencer par sk_test_ ou sk_live_")
+    
+    # Update the .env file
+    env_path = '/app/backend/.env'
+    
+    # Read current .env content
+    with open(env_path, 'r') as f:
+        lines = f.readlines()
+    
+    # Update or add STRIPE_API_KEY
+    key_found = False
+    new_lines = []
+    for line in lines:
+        if line.startswith('STRIPE_API_KEY='):
+            new_lines.append(f'STRIPE_API_KEY={body.api_key}\n')
+            key_found = True
+        else:
+            new_lines.append(line)
+    
+    if not key_found:
+        new_lines.append(f'STRIPE_API_KEY={body.api_key}\n')
+    
+    # Add webhook secret if provided
+    if body.webhook_secret:
+        webhook_found = False
+        final_lines = []
+        for line in new_lines:
+            if line.startswith('STRIPE_WEBHOOK_SECRET='):
+                final_lines.append(f'STRIPE_WEBHOOK_SECRET={body.webhook_secret}\n')
+                webhook_found = True
+            else:
+                final_lines.append(line)
+        if not webhook_found:
+            final_lines.append(f'STRIPE_WEBHOOK_SECRET={body.webhook_secret}\n')
+        new_lines = final_lines
+    
+    # Write updated .env
+    with open(env_path, 'w') as f:
+        f.writelines(new_lines)
+    
+    # Update settings in database
+    await db.settings.update_one(
+        {'id': 'platform_settings'},
+        {'$set': {
+            'stripe_configured': True,
+            'stripe_key_last4': body.api_key[-4:],
+            'stripe_mode': 'live' if 'live' in body.api_key else 'test',
+            'updated_at': datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"Stripe API key updated (mode: {'live' if 'live' in body.api_key else 'test'})")
+    return {'message': 'Configuration Stripe enregistrée', 'mode': 'live' if 'live' in body.api_key else 'test'}
+
+@api_router.post("/admin/settings/pricing")
+async def admin_save_pricing_settings(body: PricingSettingsRequest, request: Request):
+    """Save pricing configuration."""
+    await require_admin(request)
+    
+    await db.settings.update_one(
+        {'id': 'platform_settings'},
+        {'$set': {
+            'pricing': {
+                'trial_days': body.trial_days,
+                'monthly': body.monthly,
+                'annual': body.annual
+            },
+            'updated_at': datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"Pricing updated: trial={body.trial_days}d, monthly={body.monthly}€, annual={body.annual}€")
+    return {'message': 'Tarifs enregistrés'}
+
+@api_router.post("/admin/settings/referral")
+async def admin_save_referral_settings(body: ReferralSettingsRequest, request: Request):
+    """Save referral system configuration."""
+    await require_admin(request)
+    
+    await db.settings.update_one(
+        {'id': 'platform_settings'},
+        {'$set': {
+            'referral': {
+                'enabled': body.enabled,
+                'referrer_months': body.referrer_months,
+                'referee_months': body.referee_months
+            },
+            'updated_at': datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"Referral settings updated: enabled={body.enabled}, referrer={body.referrer_months}m, referee={body.referee_months}m")
+    return {'message': 'Configuration parrainage enregistrée'}
+
+# ─── Admin Panel: Settings Page ────────────────────────────────────────────────
+
+@api_router.get("/admin-panel/settings")
+async def admin_panel_settings(request: Request):
+    """Serve the settings admin page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'settings.html'
+    with open(template_path, 'r') as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
+
 # ─── Admin: Thematiques CRUD ───────────────────────────────────────────────────
 
 # ─── Admin: Cursus CRUD (was Thematiques) ──────────────────────────────────────
