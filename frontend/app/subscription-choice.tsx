@@ -55,6 +55,7 @@ export default function SubscriptionChoiceScreen() {
     setLoading(true);
     try {
       // Create checkout session
+      const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://islamic-learning-35.preview.emergentagent.com';
       const response = await fetch(`${API_URL}/api/checkout/create`, {
         method: 'POST',
         headers: {
@@ -63,8 +64,8 @@ export default function SubscriptionChoiceScreen() {
         },
         body: JSON.stringify({
           plan_id: planId,
-          success_url: 'hikma://subscription-success',
-          cancel_url: 'hikma://subscription-choice',
+          success_url: `${currentUrl}/subscription-success`,
+          cancel_url: `${currentUrl}/subscription-choice`,
         }),
       });
 
@@ -73,12 +74,18 @@ export default function SubscriptionChoiceScreen() {
         throw new Error(data.detail || 'Erreur lors de la création du paiement');
       }
 
-      // For now, show a message since we can't open Stripe in mobile easily
-      Alert.alert(
-        'Paiement',
-        'Le paiement par carte sera disponible prochainement. En attendant, profitez de l\'essai gratuit !',
-        [{ text: 'OK' }]
-      );
+      // Redirect to Stripe Checkout
+      if (data.checkout_url) {
+        if (typeof window !== 'undefined') {
+          window.location.href = data.checkout_url;
+        } else {
+          Alert.alert(
+            'Paiement',
+            'Veuillez vous connecter depuis le site web pour finaliser votre abonnement.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
     } catch (e: any) {
       Alert.alert('Erreur', e.message);
     } finally {
