@@ -6,7 +6,7 @@ import { colors } from '../constants/theme';
 
 export default function AuthCallback() {
   const router = useRouter();
-  const { exchangeGoogleSession, isAuthenticated } = useAuth();
+  const { exchangeGoogleSession, isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -15,7 +15,20 @@ export default function AuthCallback() {
       const sessionId = params.get('session_id');
       if (sessionId) {
         exchangeGoogleSession(sessionId)
-          .then(() => router.replace('/(tabs)'))
+          .then(async (userData) => {
+            // Check if user has an active subscription
+            const hasSubscription = userData?.subscription_end_date && 
+              new Date(userData.subscription_end_date) > new Date();
+            const hasActiveSubscription = userData?.subscription?.status === 'active';
+            const isAdmin = userData?.role === 'admin';
+            
+            if (isAdmin || hasSubscription || hasActiveSubscription) {
+              router.replace('/(tabs)');
+            } else {
+              // New user or no subscription - go to subscription choice
+              router.replace('/subscription-choice');
+            }
+          })
           .catch(() => router.replace('/(auth)/login'));
       } else {
         router.replace('/(auth)/login');
