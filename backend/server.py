@@ -819,13 +819,24 @@ async def stream_audio(audio_id: str, request: Request):
 
 @api_router.get("/images/{file_path:path}")
 async def serve_image(file_path: str, request: Request):
-    """Serve images from R2 bucket."""
+    """Serve images from R2 bucket (supports both images/ and Prof/ folders)."""
     from fastapi.responses import Response
     
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
-    file_key = f"images/{file_path}"
+    # Determine the correct R2 key based on the file path
+    if file_path.startswith('Prof_') or file_path.startswith('Prof/'):
+        # Professor photos in Prof/ folder
+        file_key = f"Prof/{file_path.replace('Prof/', '')}"
+    elif file_path.startswith('images/') or '/' in file_path:
+        # Already has folder path
+        file_key = file_path
+    else:
+        # Default to images/ folder
+        file_key = f"images/{file_path}"
+    
+    logger.info(f"Serving image: key={file_key}")
     
     try:
         resp = r2_client.get_object(Bucket=R2_BUCKET, Key=file_key)
@@ -841,6 +852,7 @@ async def serve_image(file_path: str, request: Request):
             }
         )
     except ClientError as e:
+        logger.error(f"R2 error for key={file_key}: {e}")
         if e.response['Error']['Code'] == 'NoSuchKey':
             raise HTTPException(404, "Image non trouvée")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
