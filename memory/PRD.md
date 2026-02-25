@@ -44,7 +44,7 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 │   │   │   └── _layout.tsx    # Tab bar 5 onglets
 │   │   ├── cursus/[id].tsx    # Page Cours - REFONTE COMPLÈTE ✅ 2026-02-24
 │   │   ├── audio/[id].tsx     # Player audio redesign prestige (✅ 2026-02)
-│   │   ├── course/[id].tsx    # Page cours avec "Commencer le cours"
+│   │   ├── course/[id].tsx    # Page cours avec onglets (Épisodes, Professeurs, Ressources) ✅ 2026-02-25
 │   │   ├── search.tsx         # Écran de recherche
 │   │   └── ...
 │   │   # NOTE: admin/ supprimé (2026-02-24) - admin web uniquement
