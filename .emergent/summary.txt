@@ -1,173 +1,175 @@
 <analysis>**original_problem_statement**: The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system based on detailed user specifications. The agent's work in this session has been to continue this redesign across all remaining pages of the application (course lists, course details, professor pages, user library, etc.) and address various functional bugs and improvements reported by the user.
+The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system. Recent work focused on fixing bugs, implementing a full-featured admin panel for content management, and integrating new content types like bibliographies from a Cloudflare R2 bucket.
 
 **PRODUCT REQUIREMENTS**:
--   **App Name**: Sijill
+-   **App Name**: Sijill Project
 -   **Language**: French
 -   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend.
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
--   **Content Storage**: Audio files are stored in a Cloudflare R2 bucket.
+-   **Content Storage**: Audio files, professor images, and bibliographies are stored in the  Cloudflare R2 bucket.
 -   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts, a specific color palette ( green,  gold), and a zero border-radius policy.
+-   **Admin Panel**: The user requires a powerful admin panel to manage all content (audios, professors, bibliographies) independently, including bulk actions and R2 synchronization.
 
 **User's preferred language**: French
 
 **what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend. The entire application has been progressively refactored to a consistent, high-end prestige design system.
+A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend, adhering to a prestige dark-mode design.
 
--   **Frontend**: All major user-facing screens have been rewritten to match the new design: Homepage, Cursus List (Tab), Cursus Detail Page, Course Detail Page, Professor List (Tab), Professor Detail Page, and the User Library (Tab). The mobile-specific admin panel has been removed to avoid confusion with the main web admin panel.
--   **Backend**: A monolithic  handles all API logic and serves a web-based admin panel for content management. New endpoints have been added to serve and manage content for dynamic legal pages (Privacy Policy, Terms of Use). A data migration was attempted to update course data.
+-   **Frontend**: The main application screens are functional. A significant addition is the bibliography viewer in the Ressources tab of the Cursus detail page.
+-   **Admin Panel**: The web-based admin panel at  has been significantly enhanced with features requested by the user:
+    -   Bulk assignment of professors and categories to episodes via checkboxes.
+    -   A filter to display episodes by course.
+    -   A Sync R2 modal to trigger audio synchronization from the R2 bucket.
+    -   A Sync Photos R2 button on the professors' management page.
+-   **Backend**: The monolithic  now includes robust content management logic:
+    -   Endpoints to sync audios, professor photos, and bibliographies from R2.
+    -   The audio sync script was improved to preserve custom descriptions and format titles.
+    -   The bibliography sync endpoint uses  to parse and store content from  files.
+    -   An endpoint () serves protected images from R2.
+    -   All R2-related operations now use the correct credentials for the  bucket.
 
 **Last working item**:
--   **Last item agent was working**: Implementing an admin interface to allow the user to edit the content of the legal pages (Privacy Policy, Terms of Use) from the web admin panel. The agent created the HTML template (), added a link in the admin sidebar (), and created the corresponding FastAPI route in  to serve the new editor page. The save/update functionality has not been implemented yet.
+-   **Last item agent was working**: The user requested the creation of a dedicated detail page for each  (course), which should resemble the existing  detail page, complete with tabs for Professeurs and Ressources. The agent identified the existing but basic file  and was analyzing it to begin the implementation.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: manual testing by curl. The agent needs to log into the admin panel (), navigate to the new Pages Légales section, and verify the editor loads. Then, implement and test the form submission.
+-   **Which testing method agent to use?**: frontend testing agent. The test should navigate to a course detail page, verify the course title is displayed, and confirm the presence of tabs (e.g., Épisodes, Professeurs, Ressources).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: MiniPlayer UI feedback (P1)
-    -   **Description**: The user requested a redesign of the  to include rectangular waveform bars and a numerical timer. An initial implementation was not satisfactory. A second version was created, but the conversation moved on before the user could validate it.
-    -   **Attempted fixes**: The agent updated the  component twice. The first attempt used a progress bar, which the user rejected. The second attempt implemented distinct rectangular bars and a separate numerical timer.
+-   **Issue 1**: Create a  (course) detail page (P0)
+    -   **Description**: The user wants to click on a course and navigate to a dedicated detail page for it. This page should contain tabs for the course's episodes, the professor(s) teaching it, and any associated resources (bibliographies).
+    -   **Attempted fixes**: The agent identified the target file  and fixed prerequisite issues related to bibliography filtering and naming conventions.
     -   **Next debug checklist**:
-        1.  Ask the user for verification on the latest MiniPlayer design.
-        2.  If needed, take a screenshot of the app with an audio playing to show the MiniPlayer in action.
-        3.  Adjust the styling of the waveform bars (size, spacing) or the timer format based on user feedback.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the last core UI component that needs to meet the user's specific design requirements, ensuring full app consistency.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
+        1.  Modify  to fetch all necessary data for a specific course (details, episodes, professors, bibliographies).
+        2.  Create new backend endpoints if required (e.g., , ).
+        3.  Implement a tabbed layout similar to .
+        4.  Populate each tab with the fetched data.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a direct user feature request to improve content navigation and organization, making the app more intuitive.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+-   **Issue 2**: Bibliography titles need formatting standardization (P2)
+    -   **Description**: The user requested that all bibliography titles follow the format Bibliographie - Cours XX : [Course Title]. While some were fixed, a full audit is needed.
+    -   **Next debug checklist**:
+        1.  Write a script to query all documents in the  collection in MongoDB.
+        2.  Identify entries that do not match the desired title format.
+        3.  Generate and execute an  script to standardize all titles.
+    -   **Why fix this issue and what will be achieved with the fix?**: Ensures UI consistency as requested.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: backend
 
 **In progress Task List**:
--   **Task 1**: Finish Admin UI for Legal Pages (P0)
-    -   **Description**: This is the continuation of the . The UI is served, but the form doesn't save data.
-    -   **Where to resume**:
-        1.  In , enhance the  endpoint to handle  requests.
-        2.  The  logic should retrieve the  and  from the form data.
-        3.  Update the corresponding document in the  MongoDB collection using  with upsert=True.
-        4.  In , ensure the form  and  are correctly set up to submit the data.
-    -   **What will be achieved with this?**: The user will be able to manage the content of the Privacy Policy and Terms of Use pages without needing developer intervention.
+-   **Task 1**: Implement  detail page.
+    -   **Where to resume**: The agent should start by editing .
+    -   **What will be achieved with this?**: A new, functional screen in the application that allows users to explore courses in detail.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on something**: No.
+    -   **Should Test frontend/backend/both after fix?**: both
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) Connect Ma Bibliothèque to Real Data**: The Ma Bibliothèque page currently shows static, hardcoded data. This task involves fetching the user's actual in-progress and saved episodes from the backend and displaying them. This was requested by the user in message #333.
-    -   **(P0) Connect Profil Page to Real Data**: The user profile page also shows static data. This involves fetching and displaying real user statistics (courses followed, listening time, etc.). This was also requested in message #333.
-    -   **(P1) Implement Ressources and Profs Tabs**: Implement the content for the Ressources and Professeurs tabs on the  page.
-    -   **(P1) Sync New Géographes Cursus**: Sync new audio content for a Géographes cursus from the R2 bucket.
+    -   **(P1) Admin Button for Biblio Sync**: Add a button to the admin panel to trigger the synchronization of bibliographies, similar to the existing ones for audios and professor photos.
+    -   **(P1) Unify Bibliography Titles**: Complete the standardization of all bibliography titles in the database.
     -   **(P2) Apply Paywall**: Implement the  hook on all premium content screens to restrict access for non-subscribed users.
 -   **Future Tasks:**
-    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure (e.g., routers, services, models).
-    -   **(P2) Implement Push Notifications**.
+    -   **(P2) Implement Push/Email Notifications**: Build the backend logic for sending notifications.
+    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI Routers.
+    -   **(P2) Implement Apple Sign-In**: The Apple Auth button is currently a non-functional placeholder.
+    -   **(P3) Promotions & Referrals**: Implement a system for promotions and user referrals.
 
 **Completed work in this session**
--   **Page Redesigns (Prestige Style)**:
-    -   **Cursus Detail Page** (): Implemented the complex, multi-section page with a hero, sticky tabs, and an accordion for course listings. Validated with the testing agent.
-    -   **Course Detail Page** (): Rewrote the page to match the prestige design, ensuring consistent navigation from the homepage.
-    -   **Cursus List Tab** (): Redesigned the main tab for browsing all Cursus, including dynamic progress bars.
-    -   **Professors Tab & Detail Page** (, ): Redesigned the professor list with search functionality and the individual professor detail page.
-    -   **User Library Tab** (): Redesigned the user's personal library page with sections for in-progress and saved items (using static data for now).
--   **UI/UX Fixes**:
-    -   **Tab Renaming**: Renamed Profs to Professeurs and Biblio to Bibliothèque in the main navigation.
-    -   **Missing Back Button**: Added a back button to the Mon abonnement page.
-    -   **Profile Tab**: Reinstated the Profile tab in the bottom navigation after it was accidentally hidden.
--   **Admin & Backend**:
-    -   **Mobile Admin Removal**: Deleted the confusing in-app mobile admin panel.
-    -   **Legal Pages**: Created dynamic pages () and started building the backend admin interface to manage their content.
--   **Data**:
-    -   Assigned Prof. Meryem Sebti to all courses in Cursus A as requested.
+-   **Admin Panel Overhaul**:
+    -   Implemented bulk actions (checkboxes, select-all) for assigning professors/categories to episodes.
+    -   Added a Sync R2 modal for synchronizing audio files.
+    -   Added a dropdown filter to view episodes by course.
+    -   Added a Sync Photos R2 button to the professors page.
+    -   Fixed numerous bugs in the admin panel functionality based on user testing and feedback.
+-   **Bibliography Integration (Feature)**:
+    -   Created a backend process to sync and parse  bibliography files from R2.
+    -   Implemented the Ressources tab on the Cursus detail page to display the parsed bibliographies with prestige styling, including custom formatting for headers.
+-   **Bug Fixes**:
+    -   **Professor Images**: Resolved a critical bug where professor images were not displaying. The fix involved correcting R2 credentials, fixing a duplicated API endpoint, and updating database entries.
+    -   **Episode Descriptions & Duplicates**: Solved an issue where custom descriptions were being overwritten by an R2 sync script and data was duplicated.
+    -   **Content Titling**: Standardized episode titles to the format [Title] epX.
+-   **Configuration**:
+    -   Updated all backend R2 credentials to connect to the user's  bucket.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue deferred from a previous session where this name appeared unexpectedly.
+-   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly.
 
 **Known issue recurrence from previous fork**
--   None. The agent successfully managed cache issues by restarting the bundler.
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React Native (Expo Web),  for file-based routing.
--   **Backend**: FastAPI, Python.
--   **Database**: MongoDB.
--   **Styling**: A strict, custom prestige design system enforced via a global theme and inline styles (Cinzel/EB Garamond fonts, dark theme, specific colors, no ).
+-   **Backend**: FastAPI, Boto3 for Cloudflare R2, **** for parsing Word documents.
+-   **Frontend**: React Native (Expo Web), .
+-   **Admin Panel**: Server-side rendered HTML templates (Jinja2) with vanilla JavaScript for interactivity.
 
 **key DB schema**
--   : Contains , , , etc.
--   : Contains , , .
--   : Contains  and metadata.
--   : **(New)**  to store editable legal text.
+-   **bibliographies**: New collection: 
+-   **scholars**:  is now correctly populated from R2 and served via the  endpoint.
+-   **audios**:  and  are correctly assigned.  is preserved during R2 syncs.
+
+**changes in tech stack**
+-   **New Dependency**:  was installed and is used in the backend.
 
 **All files of reference**
--   **Core Frontend Pages (Redesigned)**:
-    -   
-    -   
-    -   
-    -   
-    -   
-    -   
--   **Core Backend File**:
-    -   
--   **Admin Panel Files (Modified/New)**:
-    -   
-    -   
--   **Component for Verification**:
-    -   
+-   **Task-in-Progress**:  (for the new course detail page).
+-   **Admin Panel**: , ,  (all endpoints prefixed with ).
+-   **Recently Completed Feature**:  (reference for the bibliography viewer).
+-   **Backend Monolith**: .
 
 **Areas that need refactoring**:
--   The Ma Bibliothèque () and Profil () pages are using hardcoded static data and need to be connected to backend APIs.
--    remains a large monolith.
+-    is extremely large and difficult to maintain. It is the highest priority for refactoring and should be broken down into multiple files using FastAPI's .
+-   The JavaScript in the admin HTML templates is becoming complex and should be extracted into separate static  files for better organization and maintainability.
 
 **key api endpoints**
--   : **(NEW)** Fetches content for the legal pages.
--   : **(NEW)** Serves the admin editor for legal pages.
--   : **(NEEDS IMPLEMENTATION)** Endpoint to save updates to legal page content.
--   : Returns data for the homepage.
--   : Returns list of all cursus.
--   : Returns list of all professors.
+-   : **(NEW)** Syncs and parses bibliography  files from R2.
+-   : **(NEW)** Updates multiple audio documents to assign a professor or category.
+-   : **(NEW)** Syncs professor photos from the  folder in R2.
+-   : **(NEW)** Serves parsed bibliography content for a specific Cursus.
+-   : **(FIXED)** Now correctly serves images from the  bucket, handling different sub-folders (, ).
 
 **Critical Info for New Agent**
--   Your immediate priorities are based on the user's message #333:
-    1.  **Finish the admin UI for legal pages**: Implement the  handler in  to save the content from the editor.
-    2.  **Connect Ma Bibliothèque to real data**: Replace the static content with data fetched from the backend (in-progress and saved episodes).
-    3.  **Connect Profil page to real data**: Replace static stats with dynamic user data.
--   After completing these, seek user verification for the latest  design. It's a recurring point of feedback.
--   The user is extremely detail-oriented and provides comprehensive design briefs. Adhere to them with precision. The prestige design system (Cinzel/EB Garamond, dark theme, specific colors, no border-radius) is non-negotiable.
+-   **P0 Task**: The immediate priority is to build the course detail page as requested by the user. Start with .
+-   **Admin Panel is Key**: The user is very active in the admin panel and values self-service capabilities. Future content management features should be integrated there.
+-   **Backend Refactoring**: The  monolith is a significant technical debt. While implementing new features, be extremely careful not to introduce conflicting routes or logic. Searching the file for existing endpoint paths before adding new ones is critical. The agent fixed several duplicated endpoints in the last session.
 
 **documents and test reports created in this job**
--    (updated multiple times)
--    (from testing the Page Cours redesign)
+-    (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Asks to rename the episode tab to ma bibliotheque and provides a detailed design spec for it.
-2.  **Agent**: Implements the new Ma Bibliothèque design.
-3.  **User**: Asks where the profile/settings tab went.
-4.  **Agent**: Explains options and restores the Profil tab as the 5th icon in the navigation bar.
-5.  **Agent**: Asks if the user wants to redesign the Profile page as well.
-6.  **User**: Reports several issues: legal links in profile do nothing, Mon abonnement page has no back button, course pages linked from a professor's page use the old design, and asks to set Prof. Sebti as the default for a Cursus. Also requests renaming tabs to full words (Professeurs, Bibliothèque).
-7.  **Agent**: Acknowledges all points and begins work.
-8.  **Agent**: Implements all fixes: adds back button, redesigns professor/scholar page, creates dynamic legal pages, renames tabs, and confirms professor data is already correct.
-9.  **Agent**: Presents a summary of all fixes and asks for next steps, referencing the user's 3-point request from a previous message.
-10. **User**: oui poursuis avec les points 1, 2 et 3 (Yes, continue with points 1, 2, and 3), referring to: 1) Admin for legal pages, 2) Dynamic data for Library, 3) Dynamic data for Profile.
+1.  **User**: Reports bulk assignment, R2 sync, and title formatting are broken in the new admin panel.
+2.  **Agent**: Acknowledges and starts debugging.
+3.  **User**: Provides new R2 credentials for the  bucket.
+4.  **Agent**: Updates credentials and fixes sync issues.
+5.  **User**: Requests several more fixes/features for the admin panel: Title ep1 format, fix bulk select, add course filter.
+6.  **Agent**: Implements all requests, confirming the fixes are working.
+7.  **User**: Reports new regressions: professor photos are gone, audio filter is broken, and bulk assignment still fails in some cases. Also requests bibliography implementation.
+8.  **Agent**: Fixes all reported bugs and successfully implements the bibliography sync and viewer.
+9.  **User**: Praises the working bulk assignment and asks to proceed with the bibliography feature.
+10. **User**: Provides final feedback on the implemented bibliography feature (title formatting, incorrect filtering) and requests the main new feature: **a dedicated detail page for each course.**
 
 **Project Health Check:**
--   **Broken**: Nothing is critically broken, but key features are incomplete.
+-   **Broken**: No user-facing features are broken. The primary broken item is the absence of the user-requested course detail page.
 -   **Mocked**:
-    -   The Ma Bibliothèque page is displaying static, hardcoded data instead of real user data.
-    -   The Profil page is also displaying static user statistics.
+    -   The Apple Sign-in button on the authentication screen is a non-functional placeholder.
 
 **3rd Party Integrations**
--   Cloudflare R2 (Audio storage)
--   Stripe (Payments)
--   Google Fonts (via  packages)
+-   **Cloudflare R2**: Used for storing all media (audio, images,  bibliographies) in the  bucket.
+-   **Stripe**: For payments.
+-   **Google Fonts**: For Cinzel and EB Garamond fonts.
+-   **python-docx**: New backend library to parse Microsoft Word documents.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, for the  page redesign.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: No new test files were created.
--   **Known regressions**: None.
+-   **Test files created**: None.
+-   **Known regressions**: None. All regressions reported by the user during the session were fixed.
 
 **Credentials to test flow:**
 -   **Admin Panel (Web)**: 
@@ -177,5 +179,5 @@ A full-stack application with a React Native (Expo Web) frontend and a FastAPI b
 -   **Test User Password**: 
 
 **What agent forgot to execute**
--   The agent correctly identified the user's next priorities (the 3 points) but only started the first one (admin UI for legal pages) before the session ended. The other two (connecting Library and Profile to real data) were acknowledged but not started.
--   The agent did not get final, explicit user verification for the latest  redesign after the user's initial negative feedback. This remains an open loop.</analysis>
+-   The bibliography sync process, while functional, lacks a user-facing button in the admin panel for easy triggering. The user might expect one.
+-   The main pending task is the implementation of the Course detail page, which was interrupted by the end of the session.</analysis>
