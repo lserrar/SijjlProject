@@ -1003,9 +1003,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 16,
   },
-  biblioCardExpanded: {
-    backgroundColor: '#151515',
-  },
   biblioHeader: {
     flexDirection: 'row',
     alignItems: 'center',
