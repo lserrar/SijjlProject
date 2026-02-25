@@ -24,7 +24,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  exchangeGoogleSession: (sessionId: string) => Promise<void>;
+  exchangeGoogleSession: (sessionId: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
