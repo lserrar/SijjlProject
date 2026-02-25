@@ -155,7 +155,6 @@ export default function CursusCoursesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('cours');
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
-  const [expandedBiblioId, setExpandedBiblioId] = useState<string | null>(null);
 
   // Derive cursus letter and color
   const cursusLetter = cursus
