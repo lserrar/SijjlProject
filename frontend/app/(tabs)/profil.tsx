@@ -81,6 +81,7 @@ export default function ProfilScreen() {
 
   const MENU_ITEMS = [
     { icon: 'card-outline', label: 'Mon abonnement', action: () => router.push('/subscription-choice') },
+    { icon: 'gift-outline', label: 'Parrainage', action: () => router.push('/referral'), badge: 'NOUVEAU' },
     { icon: 'settings-outline', label: 'Paramètres', action: () => router.push('/settings') },
     { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
     { icon: 'language-outline', label: 'Langue : Français', action: () => {} },
