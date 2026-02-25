@@ -61,22 +61,31 @@ export default function ProfilScreen() {
     loadStats();
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Se déconnecter',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Se déconnecter',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/(auth)/login');
+  const handleLogout = async () => {
+    // On web, use confirm instead of Alert
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
+      if (confirmed) {
+        await logout();
+        router.replace('/(auth)/login');
+      }
+    } else {
+      Alert.alert(
+        'Se déconnecter',
+        'Êtes-vous sûr de vouloir vous déconnecter ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: 'Se déconnecter',
+            style: 'destructive',
+            onPress: async () => {
+              await logout();
+              router.replace('/(auth)/login');
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const MENU_ITEMS = [
