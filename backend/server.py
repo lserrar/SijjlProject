@@ -1202,6 +1202,66 @@ async def remove_favorite(content_type: str, content_id: str, request: Request):
     await db.user_favorites.delete_one({'user_id': user['user_id'], 'content_id': content_id})
     return {'message': 'Retiré de votre bibliothèque'}
 
+# ─── User Notification Preferences ─────────────────────────────────────────────
+
+@api_router.get("/user/notifications/preferences")
+async def get_notification_preferences(request: Request):
+    """Get user notification preferences."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    prefs = await db.notification_preferences.find_one(
+        {'user_id': user['user_id']}, 
+        {'_id': 0}
+    )
+    
+    # Return defaults if no preferences saved yet
+    if not prefs:
+        return {
+            'new_courses': True,
+            'new_episodes': True,
+            'weekly_digest': True,
+            'subscription_expiry': True,
+            'subscription_reminder': True,
+            'promotions': False,
+        }
+    
+    return {
+        'new_courses': prefs.get('new_courses', True),
+        'new_episodes': prefs.get('new_episodes', True),
+        'weekly_digest': prefs.get('weekly_digest', True),
+        'subscription_expiry': prefs.get('subscription_expiry', True),
+        'subscription_reminder': prefs.get('subscription_reminder', True),
+        'promotions': prefs.get('promotions', False),
+    }
+
+@api_router.put("/user/notifications/preferences")
+async def update_notification_preferences(request: Request):
+    """Update user notification preferences."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    
+    body = await request.json()
+    
+    await db.notification_preferences.update_one(
+        {'user_id': user['user_id']},
+        {'$set': {
+            'user_id': user['user_id'],
+            'new_courses': body.get('new_courses', True),
+            'new_episodes': body.get('new_episodes', True),
+            'weekly_digest': body.get('weekly_digest', True),
+            'subscription_expiry': body.get('subscription_expiry', True),
+            'subscription_reminder': body.get('subscription_reminder', True),
+            'promotions': body.get('promotions', False),
+            'updated_at': datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True
+    )
+    
+    return {'message': 'Préférences sauvegardées'}
+
 # ─── User Stats & Library ─────────────────────────────────────────────────────
 
 @api_router.get("/user/stats")
