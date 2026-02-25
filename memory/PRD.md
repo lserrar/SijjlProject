@@ -232,6 +232,14 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Contenu scrollable avec typographie EB Garamond
   - Sections formatées (headings en or, texte justifié)
   - Navigation depuis Cursus et Cours (onglet Ressources)
+- ✅ **Système de Parrainage** (2026-02-25) :
+  - Backend : Génération de codes uniques (SIJILL-XXXXYYYY)
+  - Inscription : Champ code de parrainage avec validation en temps réel
+  - Filleul : 1 mois gratuit à l'inscription avec code valide
+  - Parrain : 1 mois gratuit quand le filleul s'abonne
+  - Page `/referral` : Affiche code, stats, liste des filleuls
+  - Menu Profil : Nouveau bouton "Parrainage" avec badge NOUVEAU
+  - Admin : Endpoints pour stats, liste des parrainages, grant lifetime/free months
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
