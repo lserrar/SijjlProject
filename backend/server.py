@@ -3087,6 +3087,7 @@ async def admin_standardize_bibliography_titles(request: Request):
     "Bibliographie - Cours XX : [Titre du Cours]"
     """
     await require_admin(request)
+    import re
     
     # Get all bibliographies with module_number
     biblios = await db.bibliographies.find({'module_number': {'$exists': True}}, {'_id': 0}).to_list(100)
@@ -3120,8 +3121,9 @@ async def admin_standardize_bibliography_titles(request: Request):
             if course:
                 course_title = course.get('title')
         
-        # Build the standardized title
+        # Clean up course title - remove "Cours X : " prefix if present
         if course_title:
+            course_title = re.sub(r'^Cours\s*\d+\s*:\s*', '', course_title)
             new_title = f"Bibliographie - Cours {module_num:02d} : {course_title}"
         else:
             new_title = f"Bibliographie - Cours {module_num:02d}"
