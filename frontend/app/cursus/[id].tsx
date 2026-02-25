@@ -621,7 +621,21 @@ export default function CursusCoursesScreen() {
                     {expandedBiblioId === biblio.id && (
                       <View style={styles.biblioContent}>
                         <View style={[styles.biblioDivider, { backgroundColor: `${cursusColor}33` }]} />
-                        <Text style={styles.biblioText}>{biblio.content}</Text>
+                        {biblio.content.split('\n\n').map((paragraph, idx) => {
+                          // Handle markdown headers
+                          if (paragraph.startsWith('## ')) {
+                            return (
+                              <Text key={idx} style={styles.biblioHeading}>
+                                {paragraph.replace('## ', '')}
+                              </Text>
+                            );
+                          }
+                          return (
+                            <Text key={idx} style={styles.biblioText}>
+                              {paragraph}
+                            </Text>
+                          );
+                        })}
                       </View>
                     )}
                   </TouchableOpacity>
