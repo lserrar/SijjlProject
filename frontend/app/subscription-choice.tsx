@@ -97,7 +97,11 @@ export default function SubscriptionChoiceScreen() {
         }
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e.message);
+      if (typeof window !== 'undefined') {
+        alert(e.message || 'Erreur lors du paiement');
+      } else {
+        Alert.alert('Erreur', e.message);
+      }
     } finally {
       setLoading(false);
     }
