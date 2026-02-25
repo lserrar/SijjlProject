@@ -192,6 +192,24 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
   - Modal avec dropdown cours + champ dossier R2
   - Message explicatif sur la préservation des descriptions
   - Aperçu du résultat après synchronisation
+- ✅ **Panel Admin : Filtre par cours** (`audios.html`) :
+  - Nouveau dropdown "Tous les cours" dans la barre d'outils
+  - Filtre combinable avec catégorie et type
+- ✅ **Bucket R2 mis à jour** :
+  - Nouvelles credentials configurées pour `sijill-project`
+  - Endpoint `/api/images/{key}` pour servir les photos professeurs
+  - Bouton "Sync Photos R2" dans la page Professeurs admin
+- ✅ **Titres épisodes raccourcis** :
+  - Nouveau format : "Nom Du Dossier epX" (ex: "Avicenne ep1", "Al Farabi ep1")
+  - 140 audios mis à jour avec le nouveau format
+- ✅ **Bibliographies implémentées** :
+  - Endpoint `/api/admin/sync-bibliographies` : Sync 24 fichiers .docx depuis R2 `Biblio/`
+  - Extraction du contenu Word avec python-docx
+  - Stockage en MongoDB collection `bibliographies`
+  - Endpoints `/api/bibliographies` et `/api/bibliographies/{id}` pour accès
+  - **Interface frontend dans l'onglet RESSOURCES** du cursus detail
+  - Design prestige : titres en or (Cinzel), texte justifié (EB Garamond)
+  - Parsing markdown `##` pour formater les sections
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
