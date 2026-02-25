@@ -23,20 +23,42 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, user } = useAuth();
   const router = useRouter();
+
+  const checkSubscriptionAndRedirect = (userData: any) => {
+    // Check if user has an active subscription
+    const hasSubscription = userData?.subscription_end_date && 
+      new Date(userData.subscription_end_date) > new Date();
+    const hasActiveSubscription = userData?.subscription?.status === 'active';
+    const isAdmin = userData?.role === 'admin';
+    
+    if (isAdmin || hasSubscription || hasActiveSubscription) {
+      router.replace('/(tabs)');
+    } else {
+      router.replace('/subscription-choice');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      if (typeof window !== 'undefined') {
+        alert('Veuillez remplir tous les champs');
+      } else {
+        Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      }
       return;
     }
     setLoading(true);
     try {
-      await login(email, password);
-      router.replace('/(tabs)');
+      const userData = await login(email, password);
+      checkSubscriptionAndRedirect(userData);
     } catch (e: any) {
-      Alert.alert('Erreur de connexion', e.message);
+      if (typeof window !== 'undefined') {
+        alert(e.message || 'Erreur de connexion');
+      } else {
+        Alert.alert('Erreur de connexion', e.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -46,9 +68,13 @@ export default function LoginScreen() {
     setGoogleLoading(true);
     try {
       await loginWithGoogle();
-      router.replace('/(tabs)');
+      // Google login redirects via auth-callback which handles subscription check
     } catch (e: any) {
-      Alert.alert('Erreur', e.message || 'Connexion Google échouée');
+      if (typeof window !== 'undefined') {
+        alert(e.message || 'Connexion Google échouée');
+      } else {
+        Alert.alert('Erreur', e.message || 'Connexion Google échouée');
+      }
     } finally {
       setGoogleLoading(false);
     }
