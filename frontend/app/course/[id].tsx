@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Dimensions, Platform,
-  StatusBar,
+  StatusBar, Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { apiRequest, useAuth } from '../../context/AuthContext';
@@ -23,6 +23,7 @@ const CURSUS_COLORS: Record<string, string> = {
 };
 
 type EpisodeStatus = 'todo' | 'active' | 'done';
+type TabKey = 'episodes' | 'professeurs' | 'ressources';
 
 interface Episode {
   id: string;
@@ -30,6 +31,21 @@ interface Episode {
   title: string;
   duration: number;
   status: EpisodeStatus;
+}
+
+interface Bibliography {
+  id: string;
+  title: string;
+  content: string;
+  module_number: number;
+  course_id?: string;
+}
+
+interface Scholar {
+  id: string;
+  name: string;
+  title?: string;
+  photo?: string;
 }
 
 function fmtDur(s: number): string {
@@ -46,7 +62,7 @@ function fmtDurShort(s: number): string {
   return `${m} min`;
 }
 
-// ─── Episode Play Button Component ────────────────────────────────────────────
+// Episode Play Button Component
 function EpisodePlayBtn({ status, color, size = 28, isLocked = false }: { status: EpisodeStatus; color: string; size?: number; isLocked?: boolean }) {
   if (isLocked) {
     return (
@@ -69,7 +85,6 @@ function EpisodePlayBtn({ status, color, size = 28, isLocked = false }: { status
       </View>
     );
   }
-  // done
   return (
     <View style={[
       styles.epPlayBtn,
@@ -80,7 +95,7 @@ function EpisodePlayBtn({ status, color, size = 28, isLocked = false }: { status
   );
 }
 
-// ─── Progress Bar Component ───────────────────────────────────────────────────
+// Progress Bar Component
 function ProgressBar({ progress, color, height = 2 }: { progress: number; color: string; height?: number }) {
   return (
     <View style={[styles.progressTrack, { height }]}>
@@ -89,7 +104,7 @@ function ProgressBar({ progress, color, height = 2 }: { progress: number; color:
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// Main Component
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -98,10 +113,14 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<any>(null);
   const [cursus, setCursus] = useState<any>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [scholars, setScholars] = useState<Scholar[]>([]);
+  const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
   const [userProgress, setUserProgress] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>('episodes');
+  const [expandedBiblioId, setExpandedBiblioId] = useState<string | null>(null);
 
   const { hasAccess, loading: accessLoading } = useAccessCheck('course', id);
 
@@ -110,18 +129,21 @@ export default function CourseDetailScreen() {
   const cursusLetter = CURSUS_LETTERS[Math.max(0, Math.min(cursusOrder - 1, CURSUS_LETTERS.length - 1))];
   const cursusColor = CURSUS_COLORS[cursusLetter] || '#04D182';
 
-  // ─── Load Data ──────────────────────────────────────────────────────────────
+  // Load Data
   const loadData = useCallback(async () => {
     try {
-      const [courseRes, playlistRes, progressRes, allCursusRes] = await Promise.all([
+      const [courseRes, playlistRes, progressRes, allCursusRes, scholarsRes, biblioRes] = await Promise.all([
         apiRequest(`/courses/${id}`, token),
         apiRequest(`/courses/${id}/playlist`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
         apiRequest('/cursus', token),
+        apiRequest('/scholars', token),
+        apiRequest(`/bibliographies?course_id=${id}`, token),
       ]);
 
+      let courseData = null;
       if (courseRes.ok) {
-        const courseData = await courseRes.json();
+        courseData = await courseRes.json();
         setCourse(courseData);
 
         // Find the cursus for this course
@@ -132,6 +154,25 @@ export default function CourseDetailScreen() {
           );
           setCursus(foundCursus);
         }
+      }
+
+      // Get scholars for this course
+      if (scholarsRes.ok && courseData) {
+        const allScholars = await scholarsRes.json();
+        // Filter scholars that teach this course (by scholar_id on the course)
+        const courseScholars = allScholars.filter((s: any) => 
+          s.id === courseData.scholar_id
+        );
+        setScholars(courseScholars);
+      }
+
+      // Get bibliographies for this course
+      if (biblioRes.ok) {
+        const biblioData = await biblioRes.json();
+        const filteredBiblios = (biblioData || []).filter((b: any) => 
+          b.content && (b.course_id === id)
+        );
+        setBibliographies(filteredBiblios);
       }
 
       // Build progress map
@@ -181,7 +222,7 @@ export default function CourseDetailScreen() {
 
   const handleRefresh = () => { setRefreshing(true); loadData(); };
 
-  // ─── Handlers ───────────────────────────────────────────────────────────────
+  // Handlers
   const handleFavorite = async () => {
     if (!token) return;
     if (isFavorite) {
@@ -201,7 +242,6 @@ export default function CourseDetailScreen() {
   };
 
   const handleStart = () => {
-    // Find first non-completed episode, or first episode
     const currentEp = episodes.find(e => e.status === 'active') || 
                       episodes.find(e => e.status === 'todo') || 
                       episodes[0];
@@ -210,12 +250,10 @@ export default function CourseDetailScreen() {
     }
   };
 
-  // ─── Computed Stats ─────────────────────────────────────────────────────────
+  // Computed Stats
   const completedEpisodes = episodes.filter(e => e.status === 'done').length;
   const totalDuration = episodes.reduce((sum, e) => sum + e.duration, 0);
   const courseProgress = episodes.length > 0 ? Math.round((completedEpisodes / episodes.length) * 100) : 0;
-  const currentEpisodeNum = episodes.findIndex(e => e.status === 'active') + 1 || 
-                           (completedEpisodes < episodes.length ? completedEpisodes + 1 : episodes.length);
   const remainingDuration = totalDuration * (1 - courseProgress / 100);
 
   // Scholar initials
@@ -223,7 +261,7 @@ export default function CourseDetailScreen() {
     ? course.scholar_name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
     : '';
 
-  // ─── Loading State ──────────────────────────────────────────────────────────
+  // Loading State
   if (loading || accessLoading) {
     return (
       <View style={styles.loadingWrap}>
@@ -233,6 +271,13 @@ export default function CourseDetailScreen() {
   }
 
   if (!course) return null;
+
+  // Tabs configuration
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: 'episodes', label: 'Épisodes' },
+    { key: 'professeurs', label: 'Professeurs' },
+    { key: 'ressources', label: 'Ressources' },
+  ];
 
   return (
     <View style={styles.root}>
@@ -244,14 +289,9 @@ export default function CourseDetailScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={cursusColor} />
         }
       >
-        {/* ═══════════════════════════════════════════════════════════════════════
-            1. HERO COURSE
-        ═══════════════════════════════════════════════════════════════════════ */}
+        {/* HERO COURSE */}
         <View style={styles.hero}>
-          {/* Radial glow effect */}
           <View style={[styles.heroGlow, { backgroundColor: `${cursusColor}12` }]} pointerEvents="none" />
-          
-          {/* Left border gradient */}
           <View style={[styles.heroLeftBorder, { backgroundColor: cursusColor }]} />
 
           {/* Navigation */}
@@ -272,9 +312,6 @@ export default function CourseDetailScreen() {
                   color={isFavorite ? '#C9A84C' : 'rgba(245,240,232,0.6)'} 
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.navIconBtn}>
-                <Ionicons name="ellipsis-horizontal" size={18} color="rgba(245,240,232,0.6)" />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -282,7 +319,7 @@ export default function CourseDetailScreen() {
           <View style={styles.heroEyebrow}>
             <View style={[styles.heroEyebrowLine, { backgroundColor: cursusColor }]} />
             <Text style={[styles.heroEyebrowText, { color: cursusColor }]}>
-              Cursus {cursusLetter} · {cursus?.name?.split(' ')[0] || 'Cours'}
+              Cursus {cursusLetter} · {cursus?.name?.split('.')[1]?.trim() || 'Cours'}
             </Text>
           </View>
 
@@ -361,87 +398,212 @@ export default function CourseDetailScreen() {
           </View>
         </View>
 
-        {/* ═══════════════════════════════════════════════════════════════════════
-            2. EPISODES LIST
-        ═══════════════════════════════════════════════════════════════════════ */}
-        <View style={styles.episodesContainer}>
-          <Text style={styles.sectionLabel}>{episodes.length} Épisodes</Text>
-
-          {!hasAccess && (
-            <View style={styles.accessWarning}>
-              <Ionicons name="lock-closed" size={14} color={cursusColor} />
-              <Text style={[styles.accessWarningText, { color: cursusColor }]}>
-                Abonnez-vous pour accéder à l'intégralité du cours
-              </Text>
-            </View>
-          )}
-
-          {episodes.map((ep, idx) => {
-            const isLocked = !hasAccess && idx > 0;
-            const isPreview = !hasAccess && idx === 0;
-            
-            return (
-              <TouchableOpacity
-                key={ep.id}
-                testID={`course-episode-${ep.id}`}
+        {/* TABS */}
+        <View style={styles.tabsContainer}>
+          {TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              testID={`course-tab-${tab.key}`}
+              style={[
+                styles.tabBtn,
+                activeTab === tab.key && [styles.tabBtnActive, { borderBottomColor: cursusColor }],
+              ]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text
                 style={[
-                  styles.episodeRow,
-                  idx < episodes.length - 1 && styles.episodeRowBorder,
-                  ep.status === 'active' && styles.episodeRowActive,
+                  styles.tabLabel,
+                  activeTab === tab.key && [styles.tabLabelActive, { color: cursusColor }],
                 ]}
-                onPress={() => !isLocked && goToEpisode(ep.id)}
-                disabled={isLocked}
-                activeOpacity={isLocked ? 1 : 0.7}
               >
-                <Text style={[
-                  styles.episodeNum,
-                  { color: ep.status === 'active' ? cursusColor : isLocked ? '#333' : '#444444' },
-                ]}>
-                  {String(ep.number).padStart(2, '0')}
-                </Text>
-                <View style={styles.episodeInfo}>
-                  <Text style={[
-                    styles.episodeTitle,
-                    { color: isLocked ? 'rgba(245,240,232,0.35)' : ep.status === 'active' ? '#F5F0E8' : 'rgba(245,240,232,0.75)' },
-                  ]} numberOfLines={2}>
-                    {ep.title}
-                  </Text>
-                  <View style={styles.episodeMeta}>
-                    <Text style={[
-                      styles.episodeDuration,
-                      { color: ep.status === 'active' ? cursusColor : '#777777' },
-                    ]}>
-                      {fmtDurShort(ep.duration)}
-                    </Text>
-                    {isPreview && (
-                      <View style={[styles.freeBadge, { backgroundColor: `${cursusColor}1A` }]}>
-                        <Text style={[styles.freeBadgeText, { color: cursusColor }]}>Aperçu gratuit</Text>
-                      </View>
-                    )}
-                    {ep.status === 'active' && (
-                      <View style={[styles.activeBadge, { backgroundColor: `${cursusColor}1A` }]}>
-                        <Text style={[styles.activeBadgeText, { color: cursusColor }]}>En cours</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-                <EpisodePlayBtn status={ep.status} color={cursusColor} size={28} isLocked={isLocked} />
-              </TouchableOpacity>
-            );
-          })}
-
-          {episodes.length === 0 && (
-            <Text style={styles.emptyText}>Aucun épisode disponible pour ce cours.</Text>
-          )}
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* ═══════════════════════════════════════════════════════════════════════
-            3. ABOUT SECTION
-        ═══════════════════════════════════════════════════════════════════════ */}
-        {course.description && (
-          <View style={styles.aboutSection}>
-            <Text style={[styles.sectionLabel, { color: cursusColor }]}>À propos de ce cours</Text>
-            <Text style={styles.aboutText}>{course.description}</Text>
+        {/* TAB CONTENT: Episodes */}
+        {activeTab === 'episodes' && (
+          <View style={styles.episodesContainer}>
+            {!hasAccess && (
+              <View style={styles.accessWarning}>
+                <Ionicons name="lock-closed" size={14} color={cursusColor} />
+                <Text style={[styles.accessWarningText, { color: cursusColor }]}>
+                  Abonnez-vous pour accéder à l'intégralité du cours
+                </Text>
+              </View>
+            )}
+
+            {episodes.map((ep, idx) => {
+              const isLocked = !hasAccess && idx > 0;
+              const isPreview = !hasAccess && idx === 0;
+              
+              return (
+                <TouchableOpacity
+                  key={ep.id}
+                  testID={`course-episode-${ep.id}`}
+                  style={[
+                    styles.episodeRow,
+                    ep.status === 'active' && styles.episodeRowActive,
+                  ]}
+                  onPress={() => !isLocked && goToEpisode(ep.id)}
+                  disabled={isLocked}
+                  activeOpacity={isLocked ? 1 : 0.7}
+                >
+                  <Text style={[
+                    styles.episodeNum,
+                    { color: ep.status === 'active' ? cursusColor : isLocked ? '#333' : '#444444' },
+                  ]}>
+                    {String(ep.number).padStart(2, '0')}
+                  </Text>
+                  <View style={styles.episodeInfo}>
+                    <Text style={[
+                      styles.episodeTitle,
+                      { color: isLocked ? 'rgba(245,240,232,0.35)' : ep.status === 'active' ? '#F5F0E8' : 'rgba(245,240,232,0.75)' },
+                    ]} numberOfLines={2}>
+                      {ep.title}
+                    </Text>
+                    <View style={styles.episodeMeta}>
+                      <Text style={[
+                        styles.episodeDuration,
+                        { color: ep.status === 'active' ? cursusColor : '#777777' },
+                      ]}>
+                        {fmtDurShort(ep.duration)}
+                      </Text>
+                      {isPreview && (
+                        <View style={[styles.freeBadge, { backgroundColor: `${cursusColor}1A` }]}>
+                          <Text style={[styles.freeBadgeText, { color: cursusColor }]}>Aperçu gratuit</Text>
+                        </View>
+                      )}
+                      {ep.status === 'active' && (
+                        <View style={[styles.activeBadge, { backgroundColor: `${cursusColor}1A` }]}>
+                          <Text style={[styles.activeBadgeText, { color: cursusColor }]}>En cours</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <EpisodePlayBtn status={ep.status} color={cursusColor} size={28} isLocked={isLocked} />
+                </TouchableOpacity>
+              );
+            })}
+
+            {episodes.length === 0 && (
+              <Text style={styles.emptyText}>Aucun épisode disponible pour ce cours.</Text>
+            )}
+          </View>
+        )}
+
+        {/* TAB CONTENT: Professeurs */}
+        {activeTab === 'professeurs' && (
+          <View style={styles.scholarsTab}>
+            {scholars.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="school-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Aucun professeur</Text>
+                <Text style={styles.emptyText}>Les professeurs de ce cours apparaîtront ici.</Text>
+              </View>
+            ) : (
+              scholars.map((scholar, idx) => (
+                <TouchableOpacity
+                  key={scholar.id}
+                  testID={`course-scholar-${scholar.id}`}
+                  style={[styles.scholarCard, idx !== scholars.length - 1 && styles.scholarCardBorder]}
+                  onPress={() => router.push(`/scholar/${scholar.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  {scholar.photo ? (
+                    <View style={styles.scholarPhoto}>
+                      <Image
+                        source={{ uri: scholar.photo }}
+                        style={[styles.scholarPhotoImg, { borderColor: cursusColor }]}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.scholarPhoto}>
+                      <View style={[styles.scholarPhotoInner, { borderColor: cursusColor }]}>
+                        <Text style={styles.scholarInitial}>{scholar.name.charAt(0)}</Text>
+                      </View>
+                    </View>
+                  )}
+                  <View style={styles.scholarInfo}>
+                    <Text style={styles.scholarCardName}>{scholar.name}</Text>
+                    {scholar.title && (
+                      <Text style={styles.scholarTitle}>{scholar.title}</Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#777" />
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* TAB CONTENT: Ressources */}
+        {activeTab === 'ressources' && (
+          <View style={styles.resourcesTab}>
+            {bibliographies.length > 0 ? (
+              <View>
+                <Text style={styles.sectionSubtitle}>Bibliographie</Text>
+                {bibliographies.map((biblio) => (
+                  <TouchableOpacity
+                    key={biblio.id}
+                    testID={`course-biblio-${biblio.id}`}
+                    style={[
+                      styles.biblioCard,
+                      expandedBiblioId === biblio.id && styles.biblioCardExpanded,
+                    ]}
+                    onPress={() => setExpandedBiblioId(expandedBiblioId === biblio.id ? null : biblio.id)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="book-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{biblio.title}</Text>
+                      </View>
+                      <Ionicons 
+                        name={expandedBiblioId === biblio.id ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color="#888" 
+                      />
+                    </View>
+                    
+                    {expandedBiblioId === biblio.id && (
+                      <View style={styles.biblioContent}>
+                        <View style={[styles.biblioDivider, { backgroundColor: `${cursusColor}33` }]} />
+                        {biblio.content.split('\n\n').map((paragraph, idx) => {
+                          const trimmed = paragraph.trim();
+                          if (trimmed.startsWith('##')) {
+                            const headingText = trimmed.replace(/^#+\s*/, '');
+                            return (
+                              <Text key={idx} style={styles.biblioHeading}>
+                                {headingText}
+                              </Text>
+                            );
+                          }
+                          if (!trimmed) return null;
+                          return (
+                            <Text key={idx} style={styles.biblioText}>
+                              {trimmed}
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="library-outline" size={40} color="#333" />
+                <Text style={styles.emptyTitle}>Ressources à venir</Text>
+                <Text style={styles.emptyText}>
+                  La bibliographie pour ce cours sera disponible prochainement.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -451,12 +613,12 @@ export default function CourseDetailScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0A0A0A' },
   loadingWrap: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
 
-  // ─── HERO ─────────────────────────────────────────────────────────────────
+  // HERO
   hero: {
     paddingBottom: 24,
     position: 'relative',
@@ -657,7 +819,35 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // ─── EPISODES CONTAINER ───────────────────────────────────────────────────
+  // TABS
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+    marginTop: 4,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabBtnActive: {
+    borderBottomWidth: 2,
+  },
+  tabLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: '#666666',
+    textTransform: 'uppercase',
+  },
+  tabLabelActive: {
+    fontWeight: '600',
+  },
+
+  // EPISODES CONTAINER
   episodesContainer: {
     paddingTop: 18,
   },
@@ -695,7 +885,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
 
-  // ─── EPISODE ROW ──────────────────────────────────────────────────────────
+  // EPISODE ROW
   episodeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -705,7 +895,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     marginBottom: 2,
   },
-  episodeRowBorder: {},
   episodeRowActive: {
     backgroundColor: '#1A1A1A',
     borderLeftWidth: 3,
@@ -770,18 +959,138 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 
-  // ─── ABOUT SECTION ────────────────────────────────────────────────────────
-  aboutSection: {
-    paddingTop: 22,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#222222',
-    marginTop: 18,
+  // SCHOLARS TAB
+  scholarsTab: {
+    paddingTop: 18,
   },
-  aboutText: {
+  scholarCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#111111',
+  },
+  scholarCardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  scholarPhoto: {
+    width: 56,
+    height: 56,
+  },
+  scholarPhotoImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+  },
+  scholarPhotoInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scholarInitial: {
+    fontFamily: 'Cinzel',
+    fontSize: 20,
+    color: '#777',
+  },
+  scholarInfo: {
+    flex: 1,
+  },
+  scholarCardName: {
+    fontFamily: 'Cinzel',
+    fontSize: 13,
+    color: '#F5F0E8',
+    marginBottom: 4,
+  },
+  scholarTitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#777777',
+  },
+
+  // RESOURCES TAB
+  resourcesTab: {
+    paddingTop: 18,
+    paddingHorizontal: 20,
+  },
+  sectionSubtitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 4,
+    color: '#C9A84C',
+    textTransform: 'uppercase',
+    marginBottom: 14,
+  },
+  biblioCard: {
+    backgroundColor: '#111111',
+    marginBottom: 10,
+    padding: 16,
+  },
+  biblioCardExpanded: {
+    backgroundColor: '#151515',
+  },
+  biblioHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  biblioIcon: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  biblioTitleContainer: {
+    flex: 1,
+  },
+  biblioTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    color: '#F5F0E8',
+    letterSpacing: 0.5,
+  },
+  biblioContent: {
+    marginTop: 16,
+  },
+  biblioDivider: {
+    height: 1,
+    marginBottom: 16,
+  },
+  biblioHeading: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    color: '#C9A84C',
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  biblioText: {
     fontFamily: 'EBGaramond',
     fontSize: 14,
-    color: 'rgba(245,240,232,0.55)',
+    color: 'rgba(245,240,232,0.7)',
     lineHeight: 24,
+    marginBottom: 12,
+    textAlign: 'justify',
+  },
+
+  // EMPTY STATE
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 30,
+  },
+  emptyTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 12,
+    color: '#555',
+    marginTop: 16,
+    marginBottom: 8,
   },
 });
