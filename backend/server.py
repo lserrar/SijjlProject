@@ -1126,6 +1126,7 @@ async def get_home(request: Request):
     # Get highlight configuration
     highlight_config = await db.config.find_one({'key': 'highlight_config'}, {'_id': 0})
     highlight_mode = highlight_config.get('mode', 'manual') if highlight_config else 'manual'
+    logger.info(f"Highlight mode: {highlight_mode}")
     
     if highlight_mode == 'random':
         # Random mode: pick a random active course or cursus
@@ -1134,6 +1135,7 @@ async def get_home(request: Request):
         # Get all active courses and cursus
         active_courses = await db.courses.find({'is_active': True}, {'_id': 0}).to_list(100)
         active_cursus = await db.cursus.find({'is_active': True}, {'_id': 0}).to_list(50)
+        logger.info(f"Random mode: {len(active_courses)} courses, {len(active_cursus)} cursus")
         
         # Combine and pick random
         all_items = []
@@ -1144,6 +1146,7 @@ async def get_home(request: Request):
         
         if all_items:
             item_type, item = random.choice(all_items)
+            logger.info(f"Random picked: {item_type} - {item.get('id')}")
             if item_type == 'cursus':
                 order = max(0, min(item.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
                 featured_hero = {
@@ -1162,6 +1165,8 @@ async def get_home(request: Request):
                 if item.get('hero_title'):
                     item['title'] = item['hero_title']
                 featured_hero = item
+        else:
+            logger.info("Random mode: No items found")
     else:
         # Manual mode: check for featured cursus first, then course
         featured_cursus_doc = await db.cursus.find_one({'is_featured': True, 'is_active': True}, {'_id': 0})
