@@ -1437,6 +1437,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: 'rgba(245,240,232,0.85)',
     textAlign: 'justify',
+    marginBottom: 12,
+  },
+  biblioHeading: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    letterSpacing: 1,
+    color: '#C9A84C',
+    marginTop: 16,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
 
   // ─── EMPTY STATE ─────────────────────────────────────────────────────────────
