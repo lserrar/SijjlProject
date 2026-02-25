@@ -3080,6 +3080,68 @@ async def admin_delete_bibliography(biblio_id: str, request: Request):
         raise HTTPException(404, "Bibliographie non trouvée")
     return {'message': 'Bibliographie supprimée'}
 
+@api_router.post("/admin/bibliographies/standardize-titles")
+async def admin_standardize_bibliography_titles(request: Request):
+    """
+    Uniformiser tous les titres des bibliographies au format :
+    "Bibliographie - Cours XX : [Titre du Cours]"
+    """
+    await require_admin(request)
+    
+    # Get all bibliographies with module_number
+    biblios = await db.bibliographies.find({'module_number': {'$exists': True}}, {'_id': 0}).to_list(100)
+    
+    updated_count = 0
+    
+    for biblio in biblios:
+        module_num = biblio.get('module_number')
+        cursus_id = biblio.get('cursus_id')
+        course_id = biblio.get('course_id')
+        
+        if not module_num:
+            continue
+        
+        # Try to get the course title
+        course_title = None
+        if course_id:
+            course = await db.courses.find_one({'id': course_id})
+            if course:
+                course_title = course.get('title')
+        
+        # If no course found, try to find by module_number and cursus
+        if not course_title and cursus_id:
+            course = await db.courses.find_one({
+                'cursus_id': cursus_id,
+                '$or': [
+                    {'module_number': module_num},
+                    {'title': {'$regex': f'Module {module_num}\\b', '$options': 'i'}}
+                ]
+            })
+            if course:
+                course_title = course.get('title')
+        
+        # Build the standardized title
+        if course_title:
+            new_title = f"Bibliographie - Cours {module_num:02d} : {course_title}"
+        else:
+            new_title = f"Bibliographie - Cours {module_num:02d}"
+        
+        # Only update if title is different
+        current_title = biblio.get('title', '')
+        if current_title != new_title:
+            await db.bibliographies.update_one(
+                {'id': biblio['id']},
+                {'$set': {'title': new_title}}
+            )
+            updated_count += 1
+            logger.info(f"Updated biblio title: {current_title} -> {new_title}")
+    
+    return {
+        'message': 'Uniformisation des titres terminée',
+        'updated': updated_count,
+        'total_checked': len(biblios)
+    }
+
 # ─── Admin: Masterclasses CRUD ─────────────────────────────────────────────────
 
 @api_router.get("/admin/masterclasses")
