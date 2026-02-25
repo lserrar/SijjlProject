@@ -2082,22 +2082,25 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
         for f in files:
             audio_id = f"aud-{course_id.replace('crs-', '')}-{f['episode_number']:02d}"
             
+            # Check if audio already exists to preserve description and other custom fields
+            existing_audio = await db.audios.find_one({'id': audio_id})
+            
             audio_doc = {
                 'id': audio_id,
-                'title': f"Épisode {f['episode_number']} — {course['title']}",
-                'description': f"{course['title']}, épisode {f['episode_number']}.",
+                'title': existing_audio.get('title') if existing_audio and existing_audio.get('title') else f"Épisode {f['episode_number']} — {course['title']}",
+                'description': existing_audio.get('description') if existing_audio and existing_audio.get('description') else f"{course['title']}, épisode {f['episode_number']}.",
                 'scholar_id': course.get('scholar_id', ''),
                 'scholar_name': course.get('scholar_name', ''),
-                'duration': 0,  # Unknown duration
+                'duration': existing_audio.get('duration', 0) if existing_audio else 0,
                 'audio_url': '',
                 'file_key': f['key'],
-                'thumbnail': course.get('thumbnail', ''),
-                'topic': course.get('topic', ''),
+                'thumbnail': existing_audio.get('thumbnail') if existing_audio and existing_audio.get('thumbnail') else course.get('thumbnail', ''),
+                'topic': existing_audio.get('topic') if existing_audio and existing_audio.get('topic') else course.get('topic', ''),
                 'type': 'lecture',
                 'course_id': course_id,
                 'episode_number': f['episode_number'],
-                'published_at': now.isoformat(),
-                'is_active': True,
+                'published_at': existing_audio.get('published_at') if existing_audio else now.isoformat(),
+                'is_active': existing_audio.get('is_active', True) if existing_audio else True,
             }
             
             result = await db.audios.update_one(
