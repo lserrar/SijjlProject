@@ -2188,41 +2188,6 @@ R2_TO_COURSE_MAPPING = {
     '22-philosophie-juive': 'cours-philo-juive',
 }
 
-# ========== IMAGE SERVING FROM R2 ==========
-@api_router.get("/images/{image_key:path}")
-async def serve_r2_image(image_key: str):
-    """Serve an image from R2 bucket"""
-    if not r2_client:
-        raise HTTPException(503, "R2 non configuré")
-    
-    try:
-        # Handle the key - if it already contains a folder path, use it directly
-        # Otherwise, prepend Prof/ for professor images
-        if '/' in image_key:
-            key = image_key
-        elif image_key.startswith('Prof_'):
-            key = f"Prof/{image_key}"
-        else:
-            key = image_key
-        
-        logger.info(f"Serving image: bucket={R2_BUCKET}, key={key}")
-        response = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
-        content = response['Body'].read()
-        
-        # Determine content type
-        content_type = 'image/jpeg'
-        if image_key.endswith('.png'):
-            content_type = 'image/png'
-        elif image_key.endswith('.webp'):
-            content_type = 'image/webp'
-        
-        return Response(content=content, media_type=content_type)
-    except ClientError as e:
-        logger.error(f"R2 error for key={key}: {e}")
-        if e.response['Error']['Code'] == 'NoSuchKey':
-            raise HTTPException(404, "Image non trouvée")
-        raise HTTPException(500, f"Erreur R2: {str(e)}")
-
 # ========== PROFESSOR PHOTO SYNC ==========
 @api_router.post("/admin/sync-professor-photos")
 async def sync_professor_photos(request: Request):
