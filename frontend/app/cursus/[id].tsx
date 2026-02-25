@@ -149,11 +149,13 @@ export default function CursusCoursesScreen() {
   const [cursus, setCursus] = useState<any>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [scholars, setScholars] = useState<any[]>([]);
+  const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
   const [userProgress, setUserProgress] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('cours');
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
+  const [expandedBiblioId, setExpandedBiblioId] = useState<string | null>(null);
 
   // Derive cursus letter and color
   const cursusLetter = cursus
