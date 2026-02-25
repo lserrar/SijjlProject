@@ -2232,8 +2232,8 @@ async def sync_professor_photos(request: Request):
                 })
                 
                 if scholar:
-                    # Update photo URL
-                    photo_url = f"{BACKEND_URL}/api/images/{filename}"
+                    # Update photo URL - use relative path for flexibility
+                    photo_url = f"/api/images/{filename}"
                     await db.scholars.update_one(
                         {'id': scholar['id']},
                         {'$set': {'photo': photo_url, 'photo_key': key}}
