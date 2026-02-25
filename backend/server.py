@@ -2415,6 +2415,66 @@ async def list_r2_folder_files(folder_name: str, request: Request):
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+# ─── Timeline Routes ───────────────────────────────────────────────────────────
+
+@api_router.get("/timeline/{cursus_letter}")
+async def get_timeline_html(cursus_letter: str):
+    """Get timeline HTML content for a cursus (A, B, C, D, E)."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Normalize the cursus letter
+    letter = cursus_letter.upper().strip()
+    if letter not in ['A', 'B', 'C', 'D', 'E']:
+        raise HTTPException(400, "Cursus invalide. Utilisez A, B, C, D ou E.")
+    
+    r2_key = f"Timeline/sijill_timeline_cursus_{letter.lower()}.html"
+    
+    try:
+        response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+        html_content = response['Body'].read().decode('utf-8')
+        return HTMLResponse(content=html_content, media_type="text/html")
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        if error_code == 'NoSuchKey':
+            raise HTTPException(404, f"Timeline non trouvée pour le cursus {letter}")
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/timelines")
+async def list_available_timelines():
+    """List all available timeline files."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=100)
+        timelines = []
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            if key.endswith('.html') and 'timeline' in key.lower():
+                # Extract cursus letter from filename
+                filename = key.split('/')[-1]
+                # sijill_timeline_cursus_a.html -> A
+                import re
+                match = re.search(r'cursus_([a-e])\.html', filename.lower())
+                if match:
+                    letter = match.group(1).upper()
+                    timelines.append({
+                        'cursus_letter': letter,
+                        'cursus_name': {
+                            'A': 'La Falsafa — Philosophie islamique',
+                            'B': 'Théologie et Droit',
+                            'C': 'Sciences islamiques et traditions',
+                            'D': 'Arts, Littérature et Sciences',
+                            'E': 'Philosophies et spiritualités'
+                        }.get(letter, f'Cursus {letter}'),
+                        'r2_key': key,
+                        'url': f'/api/timeline/{letter}'
+                    })
+        return {'timelines': sorted(timelines, key=lambda x: x['cursus_letter'])}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
 @api_router.post("/admin/courses/{course_id}/sync-r2")
 async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request: Request):
     """
