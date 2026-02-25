@@ -149,6 +149,39 @@ export default function RegisterScreen() {
               <Text style={styles.termsLink}>Conditions d'utilisation</Text>
             </Text>
 
+            {/* Referral Code Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Code de parrainage</Text>
+                <Text style={styles.labelOptional}>(optionnel)</Text>
+              </View>
+              <View style={styles.referralInputRow}>
+                <TextInput
+                  testID="register-referral-input"
+                  style={[styles.input, { flex: 1 }]}
+                  value={referralCode}
+                  onChangeText={(text) => {
+                    setReferralCode(text.toUpperCase());
+                    validateReferralCode(text);
+                  }}
+                  placeholder="SIJILL-XXXX"
+                  placeholderTextColor={colors.text.tertiary}
+                  autoCapitalize="characters"
+                />
+                {validatingCode && (
+                  <ActivityIndicator size="small" color="#04D182" style={{ marginLeft: 10 }} />
+                )}
+              </View>
+              {referrerName && (
+                <View style={styles.referralSuccess}>
+                  <Ionicons name="checkmark-circle" size={16} color="#04D182" />
+                  <Text style={styles.referralSuccessText}>
+                    Parrainé par <Text style={styles.referralHighlight}>{referrerName}</Text> — 1 mois gratuit !
+                  </Text>
+                </View>
+              )}
+            </View>
+
             <TouchableOpacity
               testID="register-submit-btn"
               style={styles.primaryBtn}
