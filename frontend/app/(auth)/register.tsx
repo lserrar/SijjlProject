@@ -21,10 +21,40 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [validatingCode, setValidatingCode] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
+
+  // Validate referral code
+  const validateReferralCode = async (code: string) => {
+    if (!code || code.length < 5) {
+      setReferrerName(null);
+      return;
+    }
+    setValidatingCode(true);
+    try {
+      const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+      const res = await fetch(`${API_URL}/api/user/referral/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referral_code: code.toUpperCase() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReferrerName(data.referrer_name);
+      } else {
+        setReferrerName(null);
+      }
+    } catch {
+      setReferrerName(null);
+    } finally {
+      setValidatingCode(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
@@ -37,7 +67,7 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register(name, email, password, referralCode || undefined);
       // Redirect to subscription choice screen instead of tabs
       router.replace('/subscription-choice');
     } catch (e: any) {
