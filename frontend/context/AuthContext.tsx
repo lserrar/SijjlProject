@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<any> => {
     const resp = await fetch(`${BACKEND_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const data = await resp.json();
     await storeAuth(data.token, data.user);
+    return data.user;  // Return user data for subscription check
   };
 
   const register = async (name: string, email: string, password: string, referralCode?: string) => {
