@@ -63,19 +63,18 @@ export default function ProfilScreen() {
   };
 
   const handleLogout = async () => {
-    // On web, use confirm instead of Alert
+    // Direct logout without confirmation for web (simpler and more reliable)
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
-      if (confirmed) {
-        try {
-          await logout();
-          // Force redirect on web using window.location for reliability
-          window.location.href = '/login';
-        } catch (e) {
-          console.error('Logout error:', e);
-          // Force redirect anyway
-          window.location.href = '/login';
-        }
+      try {
+        console.log('Logging out...');
+        await logout();
+        console.log('Logout successful, redirecting...');
+        // Force redirect on web using window.location for reliability
+        window.location.href = '/login';
+      } catch (e) {
+        console.error('Logout error:', e);
+        // Force redirect anyway
+        window.location.href = '/login';
       }
     } else {
       Alert.alert(
