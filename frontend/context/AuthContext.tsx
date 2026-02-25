@@ -88,11 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await storeAuth(data.token, data.user);
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string, referralCode?: string) => {
+    const body: any = { name, email, password };
+    if (referralCode) {
+      body.referral_code = referralCode.toUpperCase();
+    }
     const resp = await fetch(`${BACKEND_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify(body),
     });
     if (!resp.ok) {
       const err = await resp.json();
