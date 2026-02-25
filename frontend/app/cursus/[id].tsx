@@ -33,6 +33,15 @@ interface Episode {
   status: EpisodeStatus;
 }
 
+interface Bibliography {
+  id: string;
+  title: string;
+  content: string;
+  content_html?: string;
+  module_number: number;
+  course_id?: string;
+}
+
 interface Course {
   id: string;
   title: string;
