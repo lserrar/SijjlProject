@@ -268,11 +268,13 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 
 ### P1 — Prochain sprint
 - ✅ Design MiniPlayer validé par utilisateur
-- Implémenter l'onglet "Ressources" sur la Page Cursus (intégrer les fichiers Biblio/ depuis R2)
+- ✅ **Bouton Sync Bibliographies R2** (2026-02-25) : Ajout dans le panel admin page Bibliographies
+- ✅ **Uniformisation titres bibliographies** (2026-02-25) : Endpoint `/api/admin/bibliographies/standardize-titles` + bouton admin
 - Synchroniser le nouveau cursus "Géographes" depuis R2
 - Appliquer le Paywall sur tout le contenu premium (useAccessCheck hook)
 - Ajouter play_count tracking dans le player audio (appel POST /audios/{id}/play au démarrage)
 - Implémenter l'authentification Apple (nécessite configuration développeur Apple)
+- **Page de détail Cours** : Créer une page pour chaque cours avec onglets (Épisodes, Professeurs, Ressources)
 
 ### P2 — Futur
 - Refactoriser backend/server.py en routers modulaires
