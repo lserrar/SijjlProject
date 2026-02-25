@@ -2963,6 +2963,111 @@ async def update_admin_top10(body: Top10UpdateRequest, request: Request):
     )
     return {'message': 'Top 10 mis à jour', 'course_ids': body.course_ids}
 
+# ─── Admin: Highlight/Featured Management ──────────────────────────────────────
+
+@api_router.get("/admin/highlight")
+async def get_highlight_config(request: Request):
+    """Get the current highlight configuration."""
+    await require_admin(request)
+    
+    # Get highlight config
+    config = await db.config.find_one({'key': 'highlight_config'}, {'_id': 0})
+    if not config:
+        config = {
+            'key': 'highlight_config',
+            'mode': 'manual',  # 'manual' or 'random'
+        }
+    
+    # Get current featured course
+    featured_course = await db.courses.find_one({'is_featured': True, 'is_active': True}, {'_id': 0, 'id': 1, 'title': 1})
+    
+    # Get current featured cursus
+    featured_cursus = await db.cursus.find_one({'is_featured': True, 'is_active': True}, {'_id': 0, 'id': 1, 'name': 1})
+    
+    # Get all courses and cursus for selection
+    all_courses = await db.courses.find({'is_active': True}, {'_id': 0, 'id': 1, 'title': 1, 'is_featured': 1}).to_list(100)
+    all_cursus = await db.cursus.find({'is_active': True}, {'_id': 0, 'id': 1, 'name': 1, 'is_featured': 1}).to_list(50)
+    
+    return {
+        'mode': config.get('mode', 'manual'),
+        'featured_course': featured_course,
+        'featured_cursus': featured_cursus,
+        'all_courses': all_courses,
+        'all_cursus': all_cursus
+    }
+
+@api_router.put("/admin/highlight/mode")
+async def set_highlight_mode(request: Request):
+    """Set highlight mode (manual or random)."""
+    await require_admin(request)
+    body = await request.json()
+    mode = body.get('mode', 'manual')
+    
+    if mode not in ['manual', 'random']:
+        raise HTTPException(400, "Mode invalide. Utilisez 'manual' ou 'random'.")
+    
+    await db.config.update_one(
+        {'key': 'highlight_config'},
+        {'$set': {
+            'key': 'highlight_config',
+            'mode': mode,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {'message': f'Mode highlight changé en: {mode}', 'mode': mode}
+
+@api_router.patch("/admin/courses/{course_id}/set-featured")
+async def set_course_featured(course_id: str, request: Request):
+    """Set a course as featured (unfeaturing any previous)."""
+    await require_admin(request)
+    
+    # First, unfeatured all courses and cursus
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
+    
+    # Set this course as featured
+    result = await db.courses.update_one(
+        {'id': course_id},
+        {'$set': {'is_featured': True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(404, "Cours non trouvé")
+    
+    return {'message': f'Cours {course_id} mis en avant', 'course_id': course_id}
+
+@api_router.patch("/admin/cursus/{cursus_id}/set-featured")
+async def set_cursus_featured(cursus_id: str, request: Request):
+    """Set a cursus as featured (unfeaturing any previous)."""
+    await require_admin(request)
+    
+    # First, unfeatured all courses and cursus
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
+    
+    # Set this cursus as featured
+    result = await db.cursus.update_one(
+        {'id': cursus_id},
+        {'$set': {'is_featured': True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(404, "Cursus non trouvé")
+    
+    return {'message': f'Cursus {cursus_id} mis en avant', 'cursus_id': cursus_id}
+
+@api_router.delete("/admin/highlight/clear")
+async def clear_featured(request: Request):
+    """Clear all featured items."""
+    await require_admin(request)
+    
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
+    
+    return {'message': 'Highlight effacé'}
+
 # ─── Admin: Scholar Toggle ─────────────────────────────────────────────────────
 
 @api_router.patch("/admin/scholars/{scholar_id}/toggle")
