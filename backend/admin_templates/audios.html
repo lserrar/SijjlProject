@@ -649,10 +649,14 @@
             }
             document.getElementById('audiosTable').innerHTML = `
                 <table>
-                    <thead><tr><th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Module lié</th><th>Durée</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <thead><tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" style="cursor: pointer;"></th>
+                        <th>Audio</th><th>Professeur</th><th>Catégorie</th><th>Module lié</th><th>Durée</th><th>Statut</th><th>Actions</th>
+                    </tr></thead>
                     <tbody>
                         ${data.map(a => `
-                            <tr data-testid="audio-row-${a.id}">
+                            <tr data-testid="audio-row-${a.id}" class="${selectedAudioIds.has(a.id) ? 'selected-row' : ''}">
+                                <td><input type="checkbox" class="audio-checkbox" data-id="${a.id}" ${selectedAudioIds.has(a.id) ? 'checked' : ''} onchange="toggleAudioSelection('${a.id}', this.checked)" style="cursor: pointer;"></td>
                                 <td>
                                     <div class="table-cell-flex">
                                         <img src="${a.thumbnail || 'https://via.placeholder.com/48'}" class="table-avatar">
