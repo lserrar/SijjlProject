@@ -2096,12 +2096,12 @@ async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request
             # Check if audio already exists to preserve description and other custom fields
             existing_audio = await db.audios.find_one({'id': audio_id})
             
-            # Use folder name for title: "1. Premier Tasawwuf" instead of "Épisode 1 — Cours Title"
-            default_title = f"{f['episode_number']}. {folder_name}"
+            # Use folder name for title: "Nom Dossier ep1" instead of "Épisode 1 — Cours Title"
+            default_title = f"{folder_name} ep{f['episode_number']}"
             
             audio_doc = {
                 'id': audio_id,
-                'title': existing_audio.get('title') if existing_audio and existing_audio.get('title') and not existing_audio.get('title').startswith('Épisode') else default_title,
+                'title': existing_audio.get('title') if existing_audio and existing_audio.get('title') and not existing_audio.get('title').startswith('Épisode') and not existing_audio.get('title').startswith('1.') else default_title,
                 'description': existing_audio.get('description') if existing_audio and existing_audio.get('description') else '',
                 'scholar_id': course.get('scholar_id', ''),
                 'scholar_name': course.get('scholar_name', ''),
