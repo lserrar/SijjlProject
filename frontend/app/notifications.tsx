@@ -7,252 +7,362 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors, spacing, radius } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAGE NOTIFICATIONS — Design Prestige Sijill
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function NotificationsScreen() {
   const router = useRouter();
   
   // Notification settings
   const [newCourses, setNewCourses] = useState(true);
-  const [newMasterclasses, setNewMasterclasses] = useState(true);
+  const [newEpisodes, setNewEpisodes] = useState(true);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState(true);
+  const [subscriptionReminder, setSubscriptionReminder] = useState(true);
   const [promotions, setPromotions] = useState(false);
   const [weeklyDigest, setWeeklyDigest] = useState(true);
 
   const handleSave = () => {
-    // In a real app, save to backend
-    Alert.alert('Préférences sauvegardées', 'Vos préférences de notifications ont été mises à jour.');
+    Alert.alert(
+      'Préférences sauvegardées',
+      'Vos préférences de notifications ont été mises à jour.',
+      [{ text: 'OK', style: 'default' }]
+    );
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.root}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
+        {/* ═══════════════════════════════════════════════════════════════════════
+            NAVIGATION
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.navRow}>
           <TouchableOpacity 
             testID="notifications-back-btn"
             style={styles.backBtn} 
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
+            <Ionicons name="chevron-back" size={18} color="rgba(245,240,232,0.50)" />
+            <Text style={styles.backText}>Profil</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Notifications</Text>
         </View>
 
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <Ionicons name="notifications" size={24} color={colors.brand.primary} />
-          <Text style={styles.infoText}>
-            Restez informé des nouveautés et ne manquez aucun contenu important.
+        {/* ═══════════════════════════════════════════════════════════════════════
+            TITRE
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleIcon}>
+              <Ionicons name="notifications" size={20} color="#04D182" />
+            </View>
+            <Text style={styles.title}>Notifications</Text>
+          </View>
+          <Text style={styles.subtitle}>
+            Paramétrez vos alertes pour ne manquer aucun contenu.
           </Text>
         </View>
 
-        {/* Contenu Section */}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            SECTION : CONTENU
+        ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contenu</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Contenu</Text>
+            <View style={styles.sectionLine} />
+          </View>
           
-          <View style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="book-outline" size={20} color={colors.brand.primary} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Nouveaux cours</Text>
-              <Text style={styles.settingDesc}>Être notifié lors de la publication d'un nouveau cours</Text>
-            </View>
-            <Switch
-              value={newCourses}
-              onValueChange={setNewCourses}
-              trackColor={{ false: colors.border.default, true: colors.brand.primary }}
-              thumbColor="#fff"
-            />
-          </View>
+          <SettingRow
+            icon="school-outline"
+            iconColor="#04D182"
+            label="Nouveaux cours"
+            description="Notification lors de la publication d'un nouveau cours"
+            value={newCourses}
+            onValueChange={setNewCourses}
+          />
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="videocam-outline" size={20} color={colors.brand.primary} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Masterclasses en direct</Text>
-              <Text style={styles.settingDesc}>Rappels avant le début des sessions live</Text>
-            </View>
-            <Switch
-              value={newMasterclasses}
-              onValueChange={setNewMasterclasses}
-              trackColor={{ false: colors.border.default, true: colors.brand.primary }}
-              thumbColor="#fff"
-            />
-          </View>
+          <SettingRow
+            icon="headset-outline"
+            iconColor="#04D182"
+            label="Nouveaux épisodes"
+            description="Quand un nouvel épisode est disponible dans vos cursus"
+            value={newEpisodes}
+            onValueChange={setNewEpisodes}
+          />
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="mail-outline" size={20} color={colors.brand.primary} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Résumé hebdomadaire</Text>
-              <Text style={styles.settingDesc}>Recevoir un récapitulatif chaque semaine</Text>
-            </View>
-            <Switch
-              value={weeklyDigest}
-              onValueChange={setWeeklyDigest}
-              trackColor={{ false: colors.border.default, true: colors.brand.primary }}
-              thumbColor="#fff"
-            />
-          </View>
+          <SettingRow
+            icon="mail-outline"
+            iconColor="#C9A84C"
+            label="Résumé hebdomadaire"
+            description="Récapitulatif de la semaine par email"
+            value={weeklyDigest}
+            onValueChange={setWeeklyDigest}
+          />
         </View>
 
-        {/* Abonnement Section */}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            SECTION : ABONNEMENT
+        ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Abonnement</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="time-outline" size={20} color={colors.brand.warning} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Expiration de l'abonnement</Text>
-              <Text style={styles.settingDesc}>Rappel 7 jours avant expiration</Text>
-            </View>
-            <Switch
-              value={subscriptionExpiry}
-              onValueChange={setSubscriptionExpiry}
-              trackColor={{ false: colors.border.default, true: colors.brand.primary }}
-              thumbColor="#fff"
-            />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Abonnement</Text>
+            <View style={styles.sectionLine} />
           </View>
+          
+          <SettingRow
+            icon="time-outline"
+            iconColor="#F59E0B"
+            label="Rappel d'expiration"
+            description="7 jours, 3 jours et 1 jour avant échéance"
+            value={subscriptionExpiry}
+            onValueChange={setSubscriptionExpiry}
+          />
+
+          <SettingRow
+            icon="calendar-outline"
+            iconColor="#F59E0B"
+            label="Renouvellement automatique"
+            description="Confirmation avant le renouvellement"
+            value={subscriptionReminder}
+            onValueChange={setSubscriptionReminder}
+          />
         </View>
 
-        {/* Marketing Section */}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            SECTION : PROMOTIONS
+        ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Promotions</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingIcon}>
-              <Ionicons name="pricetag-outline" size={20} color={colors.text.secondary} />
-            </View>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Offres et réductions</Text>
-              <Text style={styles.settingDesc}>Recevoir les codes promo et offres spéciales</Text>
-            </View>
-            <Switch
-              value={promotions}
-              onValueChange={setPromotions}
-              trackColor={{ false: colors.border.default, true: colors.brand.primary }}
-              thumbColor="#fff"
-            />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>Promotions</Text>
+            <View style={styles.sectionLine} />
           </View>
+          
+          <SettingRow
+            icon="pricetag-outline"
+            iconColor="#777777"
+            label="Offres et réductions"
+            description="Codes promo et offres spéciales"
+            value={promotions}
+            onValueChange={setPromotions}
+          />
         </View>
 
-        {/* Save Button */}
+        {/* ═══════════════════════════════════════════════════════════════════════
+            BOUTON SAUVEGARDER
+        ═══════════════════════════════════════════════════════════════════════ */}
         <TouchableOpacity 
           testID="notifications-save-btn"
           style={styles.saveBtn}
           onPress={handleSave}
+          activeOpacity={0.85}
         >
-          <Text style={styles.saveBtnText}>Enregistrer les préférences</Text>
+          <Text style={styles.saveBtnText}>Enregistrer</Text>
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
           Vous pouvez également gérer les notifications depuis les réglages de votre appareil.
         </Text>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Setting Row Component ────────────────────────────────────────────────────
+interface SettingRowProps {
+  icon: string;
+  iconColor: string;
+  label: string;
+  description: string;
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+}
+
+function SettingRow({ icon, iconColor, label, description, value, onValueChange }: SettingRowProps) {
+  return (
+    <View style={styles.settingRow}>
+      <View style={[styles.settingIcon, { borderColor: iconColor }]}>
+        <Ionicons name={icon as any} size={18} color={iconColor} />
+      </View>
+      <View style={styles.settingInfo}>
+        <Text style={styles.settingLabel}>{label}</Text>
+        <Text style={styles.settingDesc}>{description}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#333333', true: '#04D182' }}
+        thumbColor={value ? '#F5F0E8' : '#777777'}
+        ios_backgroundColor="#333333"
+        style={styles.switch}
+      />
+    </View>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background.primary },
-  scroll: { flex: 1 },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: spacing.lg, 
-    paddingTop: spacing.sm, 
-    paddingBottom: spacing.lg,
-    gap: spacing.md,
+  root: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
   },
-  backBtn: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: colors.background.card, 
-    alignItems: 'center', 
-    justifyContent: 'center' 
+  scroll: {
+    flex: 1,
   },
-  title: { fontFamily: 'Inter-Bold', fontSize: 24, color: colors.text.primary },
-  
-  infoCard: {
+
+  // Navigation
+  navRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-    backgroundColor: 'rgba(217, 255, 0, 0.1)',
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(217, 255, 0, 0.2)',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 10,
   },
-  infoText: { 
-    flex: 1, 
-    fontFamily: 'DMSans-Regular', 
-    fontSize: 14, 
-    color: colors.text.secondary,
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  backText: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: 'rgba(245,240,232,0.50)',
+    textTransform: 'uppercase',
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    marginBottom: 20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  titleIcon: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(4,209,130,0.1)',
+  },
+  title: {
+    fontFamily: 'Cinzel',
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: '#F5F0E8',
+  },
+  subtitle: {
+    fontFamily: 'EBGaramond',
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: 'rgba(245,240,232,0.55)',
     lineHeight: 20,
   },
 
-  section: { marginBottom: spacing.xl, paddingHorizontal: spacing.lg },
-  sectionTitle: { 
-    fontFamily: 'Inter-SemiBold', 
-    fontSize: 13, 
-    color: colors.text.secondary, 
-    marginBottom: spacing.md, 
-    letterSpacing: 0.5, 
-    textTransform: 'uppercase' 
+  // Section
+  section: {
+    marginBottom: 24,
+    paddingHorizontal: 20,
   },
-  
-  settingItem: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
+    gap: 10,
+    marginBottom: 14,
+  },
+  sectionLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 3,
+    color: '#777777',
+    textTransform: 'uppercase',
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#222222',
+  },
+
+  // Setting Row
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#111111',
+    padding: 14,
+    marginBottom: 8,
+    ...(Platform.OS === 'web' ? { transition: 'background-color 0.2s' } as any : {}),
   },
   settingIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.elevated,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    backgroundColor: 'transparent',
   },
-  settingInfo: { flex: 1 },
-  settingLabel: { fontFamily: 'Inter-Medium', fontSize: 15, color: colors.text.primary },
-  settingDesc: { fontFamily: 'DMSans-Regular', fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
-
-  saveBtn: {
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.brand.primary,
-    borderRadius: radius.full,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: spacing.md,
+  settingInfo: {
+    flex: 1,
   },
-  saveBtnText: { fontFamily: 'Inter-Bold', fontSize: 16, color: '#000' },
-
-  disclaimer: {
-    fontFamily: 'DMSans-Regular',
+  settingLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1,
+    color: '#F5F0E8',
+    marginBottom: 3,
+  },
+  settingDesc: {
+    fontFamily: 'EBGaramond',
     fontSize: 12,
-    color: colors.text.tertiary,
+    color: 'rgba(245,240,232,0.50)',
+    lineHeight: 16,
+  },
+  switch: {
+    transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }],
+  },
+
+  // Save Button
+  saveBtn: {
+    marginHorizontal: 20,
+    backgroundColor: '#04D182',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  saveBtnText: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 3,
+    color: '#0A0A0A',
+    textTransform: 'uppercase',
+  },
+
+  // Disclaimer
+  disclaimer: {
+    fontFamily: 'EBGaramond',
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#777777',
     textAlign: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 40,
     lineHeight: 18,
   },
 });
