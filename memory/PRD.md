@@ -174,6 +174,14 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - ✅ **Bug fix: Descriptions épisodes** (`app/(tabs)/index.tsx`) :
   - Ajout du prop `description` à `EpisodeCard`
   - Style `epDesc` en EB Garamond italique, couleur ivoire 50%
+- ✅ **Synchronisation professeurs Cursus A** :
+  - Tous les cours et épisodes du Cursus A assignés à Meryem Sebti
+  - Le cours 22 (Soufisme/Taṣawwuf) assigné à Eric Geoffroy
+  - 25+ audios mis à jour avec le bon scholar_id et scholar_name
+- ✅ **Amélioration sync R2** (`server.py` `/admin/courses/{id}/sync-r2`) :
+  - Préservation des descriptions existantes lors de la re-synchronisation
+  - Préservation des titres, thumbnails, topics personnalisés
+  - Les nouvelles syncs n'écrasent plus les données éditées manuellement
 
 ### 2026-02-24 — Session précédente
 - ✅ **REFONTE COMPLÈTE Page Cours** (`/cursus/[id].tsx`) :
