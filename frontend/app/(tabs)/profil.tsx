@@ -63,11 +63,18 @@ export default function ProfilScreen() {
 
   const handleLogout = async () => {
     // On web, use confirm instead of Alert
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web') {
       const confirmed = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
       if (confirmed) {
-        await logout();
-        router.replace('/(auth)/login');
+        try {
+          await logout();
+          // Force redirect on web using window.location for reliability
+          window.location.href = '/login';
+        } catch (e) {
+          console.error('Logout error:', e);
+          // Force redirect anyway
+          window.location.href = '/login';
+        }
       }
     } else {
       Alert.alert(
