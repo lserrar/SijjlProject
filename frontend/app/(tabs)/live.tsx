@@ -98,6 +98,7 @@ interface Professor {
   cursus: string[];
   courses_count: number;
   episodes_count: number;
+  photo?: string;
 }
 
 export default function ProfesseursScreen() {
@@ -125,6 +126,7 @@ export default function ProfesseursScreen() {
             cursus: s.cursus_letters || ['A'],
             courses_count: s.courses_count || 0,
             episodes_count: s.episodes_count || 0,
+            photo: s.photo || '',
           }));
           setProfessors(mapped.length > 0 ? mapped : STATIC_PROFESSORS);
         }
