@@ -217,10 +217,12 @@ Le contenu audio est stocké dans un bucket Cloudflare R2.
 - ✅ Connecter "Ma Bibliothèque" aux vraies données
 - ✅ Connecter "Profil" aux vraies données
 - ✅ Interface admin pour pages légales
+- ✅ **Bug fix: Images professeurs** (2026-02-25) : Correction de l'affichage des photos dans l'onglet Professeurs de cursus/[id].tsx
+- ✅ **Bug fix: Descriptions épisodes** (2026-02-25) : Ajout de l'affichage des descriptions dans les cartes d'épisodes sur la page d'accueil
 
 ### P1 — Prochain sprint
-- 🔄 Vérifier le design du MiniPlayer (feedback utilisateur en attente)
-- Implémenter les onglets "Professeurs" et "Ressources" sur la Page Cursus
+- ✅ Design MiniPlayer validé par utilisateur
+- Implémenter l'onglet "Ressources" sur la Page Cursus (intégrer les fichiers Biblio/ depuis R2)
 - Synchroniser le nouveau cursus "Géographes" depuis R2
 - Appliquer le Paywall sur tout le contenu premium (useAccessCheck hook)
 - Ajouter play_count tracking dans le player audio (appel POST /audios/{id}/play au démarrage)
