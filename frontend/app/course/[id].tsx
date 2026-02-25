@@ -120,7 +120,6 @@ export default function CourseDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('episodes');
-  const [expandedBiblioId, setExpandedBiblioId] = useState<string | null>(null);
 
   const { hasAccess, loading: accessLoading } = useAccessCheck('course', id);
 
