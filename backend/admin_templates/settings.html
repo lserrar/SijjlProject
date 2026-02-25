@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - Sijill Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0A0A0A;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1A1A1A;
+            --text-primary: #F5F0E8;
+            --text-secondary: #888888;
+            --text-tertiary: #555555;
+            --brand-primary: #04D182;
+            --brand-gold: #C9A84C;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --success: #04D182;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'EB Garamond', serif; 
+            background: var(--bg-primary); 
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Layout */
+        .admin-layout { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid #1A1A1A;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid #1A1A1A;
+        }
+        .sidebar-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 18px;
+            color: var(--brand-primary);
+            letter-spacing: 4px;
+        }
+        .sidebar-nav { padding: 16px 0; flex: 1; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title {
+            font-family: 'Cinzel', serif;
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(4, 209, 130, 0.1); color: var(--brand-primary); border-left: 2px solid var(--brand-primary); }
+        .nav-item i { width: 18px; text-align: center; font-size: 14px; }
+        
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #1A1A1A;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--brand-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: var(--bg-primary);
+        }
+        .user-name {
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+        .user-role {
+            font-size: 10px;
+            color: var(--text-tertiary);
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 8px;
+            margin-left: auto;
+        }
+        .logout-btn:hover { color: var(--danger); }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 32px;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        .page-title {
+            font-family: 'Cinzel', serif;
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--text-primary);
+        }
+        .page-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        /* Settings Sections */
+        .settings-section {
+            background: var(--bg-secondary);
+            border: 1px solid #1A1A1A;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #1A1A1A;
+        }
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(4, 209, 130, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand-primary);
+            font-size: 18px;
+        }
+        .section-title {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+        .section-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-family: 'Cinzel', serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .form-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid #333;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: 'EB Garamond', serif;
+            font-size: 14px;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+        }
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+        .form-hint {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 6px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            font-family: 'Cinzel', serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--brand-primary);
+            color: var(--bg-primary);
+        }
+        .btn-primary:hover {
+            background: #03b872;
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #333;
+            color: var(--text-secondary);
+        }
+        .btn-secondary:hover {
+            border-color: var(--text-primary);
+            color: var(--text-primary);
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            font-family: 'Cinzel', serif;
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .status-badge.success {
+            background: rgba(4, 209, 130, 0.15);
+            color: var(--brand-primary);
+        }
+        .status-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+        
+        /* Toggle */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle.active {
+            background: var(--brand-primary);
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle.active::after {
+            transform: translateX(24px);
+        }
+        .toggle-label {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid #333;
+            padding: 14px 20px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Price Card */
+        .price-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .price-card {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border: 1px solid #333;
+        }
+        .price-card-title {
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: var(--brand-gold);
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+        .price-card-value {
+            font-family: 'Cinzel', serif;
+            font-size: 24px;
+            color: var(--text-primary);
+        }
+        .price-card-period {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">SIJILL</div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <a href="/api/admin-panel" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="/api/admin-panel/users" class="nav-item"><i class="fas fa-users"></i> Utilisateurs</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Contenu</div>
+                    <a href="/api/admin-panel/cursus" class="nav-item"><i class="fas fa-graduation-cap"></i> Cursus</a>
+                    <a href="/api/admin-panel/courses" class="nav-item"><i class="fas fa-book"></i> Cours</a>
+                    <a href="/api/admin-panel/modules" class="nav-item"><i class="fas fa-layer-group"></i> Modules</a>
+                    <a href="/api/admin-panel/audios" class="nav-item"><i class="fas fa-headphones"></i> Audios</a>
+                    <a href="/api/admin-panel/professors" class="nav-item"><i class="fas fa-chalkboard-teacher"></i> Professeurs</a>
+                    <a href="/api/admin-panel/bibliographies" class="nav-item"><i class="fas fa-book-open"></i> Bibliographies</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Commerce</div>
+                    <a href="/api/admin-panel/pricing" class="nav-item"><i class="fas fa-tags"></i> Tarifs</a>
+                    <a href="/api/admin-panel/promos" class="nav-item"><i class="fas fa-percent"></i> Promotions</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Système</div>
+                    <a href="/api/admin-panel/settings" class="nav-item active"><i class="fas fa-cog"></i> Paramètres</a>
+                    <a href="/api/admin-panel/r2" class="nav-item"><i class="fas fa-cloud"></i> Stockage R2</a>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role">Administrateur</div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()" title="Déconnexion">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Paramètres</h1>
+                    <p class="page-description">Configuration de la plateforme Sijill</p>
+                </div>
+            </div>
+
+            <!-- Stripe Configuration -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fab fa-stripe-s"></i></div>
+                    <div>
+                        <div class="section-title">Configuration Stripe</div>
+                        <div class="section-subtitle">Gestion des paiements et abonnements</div>
+                    </div>
+                    <div id="stripeStatus" class="status-badge warning" style="margin-left: auto;">
+                        <i class="fas fa-circle"></i> Vérification...
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Clé API Stripe (Secret Key)</label>
+                    <input type="password" id="stripeApiKey" class="form-input" placeholder="sk_live_..." data-testid="stripe-api-key-input">
+                    <p class="form-hint">Commence par sk_live_ (production) ou sk_test_ (test). Disponible sur <a href="https://dashboard.stripe.com/apikeys" target="_blank" style="color: var(--brand-primary);">dashboard.stripe.com</a></p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Webhook Secret (optionnel)</label>
+                    <input type="password" id="stripeWebhookSecret" class="form-input" placeholder="whsec_...">
+                    <p class="form-hint">Pour valider les événements Stripe. Configurez le webhook sur : <code style="color: var(--brand-gold);">/api/webhooks/stripe</code></p>
+                </div>
+                
+                <button class="btn btn-primary" onclick="saveStripeConfig()" data-testid="save-stripe-btn">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+
+            <!-- Subscription Plans -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-crown"></i></div>
+                    <div>
+                        <div class="section-title">Plans d'abonnement</div>
+                        <div class="section-subtitle">Configurez les tarifs et durées</div>
+                    </div>
+                </div>
+                
+                <div class="price-cards">
+                    <div class="price-card">
+                        <div class="price-card-title">ESSAI GRATUIT</div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="number" id="trialDays" class="form-input" value="3" min="0" max="30">
+                            <p class="form-hint">jours</p>
+                        </div>
+                    </div>
+                    <div class="price-card">
+                        <div class="price-card-title">MENSUEL</div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="number" id="monthlyPrice" class="form-input" value="9.99" step="0.01" min="0">
+                            <p class="form-hint">€ / mois</p>
+                        </div>
+                    </div>
+                    <div class="price-card">
+                        <div class="price-card-title">ANNUEL</div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="number" id="annualPrice" class="form-input" value="89.99" step="0.01" min="0">
+                            <p class="form-hint">€ / an</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="savePricingConfig()" data-testid="save-pricing-btn">
+                        <i class="fas fa-save"></i> Enregistrer les tarifs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Referral Configuration -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-gift"></i></div>
+                    <div>
+                        <div class="section-title">Système de parrainage</div>
+                        <div class="section-subtitle">Récompenses pour les parrains et filleuls</div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Récompense parrain</label>
+                        <input type="number" id="referrerReward" class="form-input" value="1" min="0" max="12">
+                        <p class="form-hint">mois gratuit(s) quand un filleul s'abonne</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Récompense filleul</label>
+                        <input type="number" id="refereeReward" class="form-input" value="1" min="0" max="12">
+                        <p class="form-hint">mois gratuit(s) à l'inscription avec code</p>
+                    </div>
+                </div>
+                
+                <div class="toggle-group" style="margin-bottom: 20px;">
+                    <div id="referralToggle" class="toggle active" onclick="toggleReferral()"></div>
+                    <span class="toggle-label">Système de parrainage activé</span>
+                </div>
+                
+                <button class="btn btn-primary" onclick="saveReferralConfig()" data-testid="save-referral-btn">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+
+            <!-- Referral Stats -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <div class="section-title">Statistiques parrainages</div>
+                        <div class="section-subtitle">Vue d'ensemble du programme de parrainage</div>
+                    </div>
+                </div>
+                
+                <div class="price-cards">
+                    <div class="price-card">
+                        <div class="price-card-title">TOTAL</div>
+                        <div class="price-card-value" id="totalReferrals">-</div>
+                        <div class="price-card-period">parrainages</div>
+                    </div>
+                    <div class="price-card">
+                        <div class="price-card-title">CONVERTIS</div>
+                        <div class="price-card-value" id="convertedReferrals" style="color: var(--brand-primary);">-</div>
+                        <div class="price-card-period">abonnés</div>
+                    </div>
+                    <div class="price-card">
+                        <div class="price-card-title">EN ATTENTE</div>
+                        <div class="price-card-value" id="pendingReferrals" style="color: var(--brand-gold);">-</div>
+                        <div class="price-card-period">non convertis</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <a href="/api/admin-panel/users" class="btn btn-secondary">
+                        <i class="fas fa-users"></i> Voir tous les utilisateurs
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+        let settings = {};
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = { 
+                method, 
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${authToken}` 
+                } 
+            };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('adminToken');
+                window.location.href = '/api/admin-panel/login';
+                return null;
+            }
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Erreur serveur');
+            }
+            return response.json();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/api/admin-panel/login';
+        }
+
+        function toggleReferral() {
+            const toggle = document.getElementById('referralToggle');
+            toggle.classList.toggle('active');
+        }
+
+        async function loadSettings() {
+            try {
+                // Load user info
+                const user = await apiRequest('/auth/me');
+                if (!user || user.role !== 'admin') {
+                    window.location.href = '/api/admin-panel/login';
+                    return;
+                }
+                document.getElementById('userName').textContent = user.name || user.email;
+                document.getElementById('userAvatar').textContent = (user.name || 'A').charAt(0).toUpperCase();
+
+                // Load settings
+                settings = await apiRequest('/admin/settings');
+                
+                // Populate Stripe settings
+                if (settings.stripe_configured) {
+                    document.getElementById('stripeApiKey').value = '••••••••••••' + (settings.stripe_key_last4 || '');
+                    document.getElementById('stripeStatus').className = 'status-badge success';
+                    document.getElementById('stripeStatus').innerHTML = '<i class="fas fa-check-circle"></i> Configuré';
+                } else {
+                    document.getElementById('stripeStatus').className = 'status-badge warning';
+                    document.getElementById('stripeStatus').innerHTML = '<i class="fas fa-exclamation-circle"></i> Non configuré';
+                }
+                
+                // Populate pricing
+                if (settings.pricing) {
+                    document.getElementById('trialDays').value = settings.pricing.trial_days || 3;
+                    document.getElementById('monthlyPrice').value = settings.pricing.monthly || 9.99;
+                    document.getElementById('annualPrice').value = settings.pricing.annual || 89.99;
+                }
+                
+                // Populate referral settings
+                if (settings.referral) {
+                    document.getElementById('referrerReward').value = settings.referral.referrer_months || 1;
+                    document.getElementById('refereeReward').value = settings.referral.referee_months || 1;
+                    if (!settings.referral.enabled) {
+                        document.getElementById('referralToggle').classList.remove('active');
+                    }
+                }
+                
+                // Load referral stats
+                const stats = await apiRequest('/admin/referrals/stats');
+                document.getElementById('totalReferrals').textContent = stats.total_referrals || 0;
+                document.getElementById('convertedReferrals').textContent = stats.converted || 0;
+                document.getElementById('pendingReferrals').textContent = stats.pending || 0;
+                
+            } catch (error) {
+                console.error('Load settings error:', error);
+                showToast('Erreur de chargement', 'error');
+            }
+        }
+
+        async function saveStripeConfig() {
+            try {
+                const apiKey = document.getElementById('stripeApiKey').value;
+                const webhookSecret = document.getElementById('stripeWebhookSecret').value;
+                
+                // Don't save if it's the masked value
+                if (apiKey.startsWith('••••')) {
+                    showToast('Entrez une nouvelle clé API pour la modifier', 'error');
+                    return;
+                }
+                
+                await apiRequest('/admin/settings/stripe', 'POST', {
+                    api_key: apiKey,
+                    webhook_secret: webhookSecret || null
+                });
+                
+                showToast('Configuration Stripe enregistrée');
+                loadSettings();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function savePricingConfig() {
+            try {
+                await apiRequest('/admin/settings/pricing', 'POST', {
+                    trial_days: parseInt(document.getElementById('trialDays').value) || 3,
+                    monthly: parseFloat(document.getElementById('monthlyPrice').value) || 9.99,
+                    annual: parseFloat(document.getElementById('annualPrice').value) || 89.99
+                });
+                showToast('Tarifs enregistrés');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function saveReferralConfig() {
+            try {
+                const enabled = document.getElementById('referralToggle').classList.contains('active');
+                await apiRequest('/admin/settings/referral', 'POST', {
+                    enabled: enabled,
+                    referrer_months: parseInt(document.getElementById('referrerReward').value) || 1,
+                    referee_months: parseInt(document.getElementById('refereeReward').value) || 1
+                });
+                showToast('Configuration parrainage enregistrée');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Initialize
+        if (!authToken) {
+            window.location.href = '/api/admin-panel/login';
+        } else {
+            loadSettings();
+        }
+    </script>
+</body>
+</html>
