@@ -1026,28 +1026,12 @@ const styles = StyleSheet.create({
     color: '#F5F0E8',
     letterSpacing: 0.5,
   },
-  biblioContent: {
-    marginTop: 16,
-  },
-  biblioDivider: {
-    height: 1,
-    marginBottom: 16,
-  },
-  biblioHeading: {
-    fontFamily: 'Cinzel',
-    fontSize: 11,
-    color: '#C9A84C',
-    letterSpacing: 1,
-    marginBottom: 10,
-    marginTop: 8,
-  },
-  biblioText: {
+  biblioSubtitle: {
     fontFamily: 'EBGaramond',
-    fontSize: 14,
-    color: 'rgba(245,240,232,0.7)',
-    lineHeight: 24,
-    marginBottom: 12,
-    textAlign: 'justify',
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: '#777777',
+    marginTop: 4,
   },
 
   // EMPTY STATE
