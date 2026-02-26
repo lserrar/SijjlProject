@@ -195,14 +195,21 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Apple placeholder */}
+            {/* Apple Sign-In */}
             <TouchableOpacity
               testID="login-apple-btn"
-              style={[styles.socialBtn, { opacity: 0.5 }]}
-              onPress={() => Alert.alert('Bientôt disponible', 'La connexion Apple sera disponible prochainement.')}
+              style={styles.socialBtn}
+              onPress={handleAppleLogin}
+              disabled={appleLoading}
             >
-              <Ionicons name="logo-apple" size={20} color={colors.text.primary} />
-              <Text style={styles.socialBtnText}>Continuer avec Apple</Text>
+              {appleLoading ? (
+                <ActivityIndicator color={colors.text.primary} />
+              ) : (
+                <>
+                  <Ionicons name="logo-apple" size={20} color={colors.text.primary} />
+                  <Text style={styles.socialBtnText}>Continuer avec Apple</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
