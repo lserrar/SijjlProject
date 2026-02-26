@@ -51,6 +51,34 @@
     </div>
 </div>
 
+<!-- Assign Cursus Modal -->
+<div id="assignCursusModal" class="modal" style="display: none;">
+    <div class="modal-content modal-small">
+        <div class="modal-header">
+            <h2 class="modal-title">Assigner un Cursus</h2>
+            <button class="modal-close" onclick="closeAssignModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="assignFilename" style="color: var(--text-secondary); margin-bottom: 16px;"></p>
+            <div class="form-group">
+                <label>Cursus</label>
+                <select id="cursusSelect" class="form-select">
+                    <option value="">— Non assigné —</option>
+                    <option value="A">A - La Falsafa</option>
+                    <option value="B">B - Théologie et Droit</option>
+                    <option value="C">C - Sciences islamiques</option>
+                    <option value="D">D - Arts, Littérature</option>
+                    <option value="E">E - Spiritualités</option>
+                </select>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeAssignModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveAssignment()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Context Documents Section -->
 <div class="card">
     <div class="card-header">
