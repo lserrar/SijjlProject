@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── Navigation ────────────────────────────────────────────────────────────
 function initNavigation() {
-  // Mark current page as active
   const currentPath = window.location.pathname;
   document.querySelectorAll('.nav-link').forEach(link => {
     const href = link.getAttribute('href');
@@ -90,12 +89,12 @@ async function login(email, password) {
       body: JSON.stringify({ email, password })
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Connexion échouée');
+      throw new Error(data.detail || 'Connexion échouée');
     }
     
-    const data = await response.json();
     authToken = data.token;
     currentUser = data.user;
     localStorage.setItem('auth_token', authToken);
@@ -104,7 +103,8 @@ async function login(email, password) {
     hideModal();
     window.location.reload();
   } catch (error) {
-    showError(error.message);
+    console.error('Login error:', error);
+    showError(error.message || 'Erreur de connexion');
   }
 }
 
@@ -116,12 +116,12 @@ async function register(name, email, password) {
       body: JSON.stringify({ name, email, password })
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Inscription échouée');
+      throw new Error(data.detail || 'Inscription échouée');
     }
     
-    const data = await response.json();
     authToken = data.token;
     currentUser = data.user;
     localStorage.setItem('auth_token', authToken);
@@ -173,6 +173,9 @@ function showLoginModal() {
     if (loginForm) loginForm.style.display = 'block';
     if (registerForm) registerForm.style.display = 'none';
     if (switchText) switchText.innerHTML = 'Pas encore de compte ? <a href="#" onclick="showRegisterModal(); return false;">S\'inscrire</a>';
+    // Clear any previous errors
+    const errorEl = document.getElementById('form-error');
+    if (errorEl) errorEl.style.display = 'none';
   }
 }
 
@@ -233,6 +236,10 @@ async function loadHomePage() {
     // Render highlight
     if (homeData.highlight) {
       renderHighlight(homeData.highlight);
+    } else {
+      // No highlight, hide the section
+      const container = document.getElementById('highlight-container');
+      if (container) container.innerHTML = '';
     }
     
     // Render cursus list
@@ -241,6 +248,11 @@ async function loadHomePage() {
     }
   } catch (error) {
     console.error('Failed to load home page:', error);
+    // Hide loading spinners on error
+    const highlightContainer = document.getElementById('highlight-container');
+    const cursusContainer = document.getElementById('cursus-list');
+    if (highlightContainer) highlightContainer.innerHTML = '';
+    if (cursusContainer) cursusContainer.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Impossible de charger les données.</p>';
   }
 }
 
@@ -253,25 +265,35 @@ async function loadCursusPage() {
   }
 }
 
-// ─── Rendering Functions ───────────────────────────────────────────────────
-const CURSUS_COLORS = {
-  'cursus-falsafa': { color: '#04D182', letter: 'A' },
-  'cursus-kalam': { color: '#8B5CF6', letter: 'B' },
-  'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C' },
-  'cursus-arts': { color: '#EC4899', letter: 'D' },
-  'cursus-philosophies': { color: '#06B6D4', letter: 'E' }
+// ─── Cursus Colors - Exact match with app ──────────────────────────────────
+// Colors matching the actual cursus IDs from the database
+const CURSUS_CONFIG = {
+  'cursus-falsafa': { color: '#04D182', letter: 'F', name: 'Falsafa' },
+  'cursus-theologie': { color: '#8B5CF6', letter: 'K', name: 'Kalām' },
+  'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'S', name: 'Sciences' },
+  'cursus-arts': { color: '#EC4899', letter: 'A', name: 'Arts' },
+  'cursus-spiritualites': { color: '#06B6D4', letter: 'P', name: 'Philosophies' }
 };
 
 function getCursusStyle(cursusId) {
-  return CURSUS_COLORS[cursusId] || { color: '#04D182', letter: cursusId?.charAt(0)?.toUpperCase() || '?' };
+  return CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: cursusId?.charAt(0)?.toUpperCase() || '?' };
 }
 
 function renderHighlight(highlight) {
   const container = document.getElementById('highlight-container');
-  if (!container || !highlight) return;
+  if (!container || !highlight) {
+    if (container) container.innerHTML = '';
+    return;
+  }
   
   const course = highlight.course;
   const professor = highlight.professor;
+  
+  if (!course) {
+    container.innerHTML = '';
+    return;
+  }
+  
   const style = getCursusStyle(course?.cursus_id);
   
   container.innerHTML = `
@@ -298,6 +320,11 @@ function renderCursusList(cursusList) {
   const container = document.getElementById('cursus-list');
   if (!container) return;
   
+  if (!cursusList || cursusList.length === 0) {
+    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Aucun cursus disponible.</p>';
+    return;
+  }
+  
   container.innerHTML = cursusList.map(cursus => {
     const style = getCursusStyle(cursus.id);
     return `
@@ -317,6 +344,11 @@ function renderCursusList(cursusList) {
 function renderCursusGrid(cursusList) {
   const container = document.getElementById('cursus-grid');
   if (!container) return;
+  
+  if (!cursusList || cursusList.length === 0) {
+    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Aucun cursus disponible.</p>';
+    return;
+  }
   
   container.innerHTML = cursusList.map(cursus => {
     const style = getCursusStyle(cursus.id);
