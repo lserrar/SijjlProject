@@ -23,31 +23,37 @@ export default function TabLayout() {
   const { currentTrack } = usePlayer();
   const insets = useSafeAreaInsets();
   const tabBarHeight = 72 + insets.bottom;
+  const headerHeight = HEADER_HEIGHT + insets.top;
 
   return (
     <View style={styles.wrapper}>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: BG,
-            borderTopColor: '#222222',
-            borderTopWidth: 1,
-            height: tabBarHeight,
-            paddingBottom: insets.bottom,
-            paddingTop: 10,
-          },
-          tabBarActiveTintColor: ACTIVE,
-          tabBarInactiveTintColor: INACTIVE,
-          tabBarLabelStyle: {
-            fontFamily: 'Cinzel',
-            fontSize: 7.5,
-            letterSpacing: 1.5,
-            textTransform: 'uppercase',
-            marginTop: 2,
-          },
-        }}
-      >
+      {/* Global Header */}
+      <GlobalHeader />
+
+      {/* Main Content with padding for header */}
+      <View style={[styles.content, { paddingTop: headerHeight }]}>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: {
+              backgroundColor: BG,
+              borderTopColor: '#222222',
+              borderTopWidth: 1,
+              height: tabBarHeight,
+              paddingBottom: insets.bottom,
+              paddingTop: 10,
+            },
+            tabBarActiveTintColor: ACTIVE,
+            tabBarInactiveTintColor: INACTIVE,
+            tabBarLabelStyle: {
+              fontFamily: 'Cinzel',
+              fontSize: 7.5,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginTop: 2,
+            },
+          }}
+        >
         <Tabs.Screen
           name="index"
           options={{
