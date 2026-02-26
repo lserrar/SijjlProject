@@ -558,8 +558,58 @@ export default function CourseDetailScreen() {
         {/* TAB CONTENT: Ressources */}
         {activeTab === 'ressources' && (
           <View style={styles.resourcesTab}>
-            {bibliographies.length > 0 ? (
-              <View>
+            {/* Timeline Section - Link to cursus timeline if available */}
+            {cursus && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Frise chronologique</Text>
+                <TouchableOpacity
+                  style={styles.resourceCard}
+                  onPress={() => router.push(`/timeline/${cursus.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.biblioHeader}>
+                    <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                      <Ionicons name="map-outline" size={18} color={cursusColor} />
+                    </View>
+                    <View style={styles.biblioTitleContainer}>
+                      <Text style={styles.biblioTitle}>Carte des Penseurs</Text>
+                      <Text style={styles.biblioSubtitle}>Timeline interactive · Plein écran</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#888" />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Context Documents Section */}
+            {contextResources.length > 0 && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Contexte historique</Text>
+                {contextResources.map((ctx) => (
+                  <TouchableOpacity
+                    key={ctx.id}
+                    style={styles.resourceCard}
+                    onPress={() => router.push(`/context/${ctx.filename.replace('.docx', '')}` as any)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="time-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{ctx.subject}</Text>
+                        <Text style={styles.biblioSubtitle}>Module {ctx.module_number} · Contexte historique</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Bibliographies Section */}
+            {bibliographies.length > 0 && (
+              <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Bibliographie</Text>
                 {bibliographies.map((biblio) => (
                   <TouchableOpacity
@@ -575,19 +625,22 @@ export default function CourseDetailScreen() {
                       </View>
                       <View style={styles.biblioTitleContainer}>
                         <Text style={styles.biblioTitle}>{biblio.title}</Text>
-                        <Text style={styles.biblioSubtitle}>Appuyez pour lire</Text>
+                        <Text style={styles.biblioSubtitle}>Bibliographie</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={20} color="#888" />
                     </View>
                   </TouchableOpacity>
                 ))}
               </View>
-            ) : (
+            )}
+
+            {/* Empty state only if no resources at all */}
+            {bibliographies.length === 0 && contextResources.length === 0 && !cursus && (
               <View style={styles.emptyState}>
                 <Ionicons name="library-outline" size={40} color="#333" />
                 <Text style={styles.emptyTitle}>Ressources à venir</Text>
                 <Text style={styles.emptyText}>
-                  La bibliographie pour ce cours sera disponible prochainement.
+                  Les ressources pour ce cours seront disponibles prochainement.
                 </Text>
               </View>
             )}
