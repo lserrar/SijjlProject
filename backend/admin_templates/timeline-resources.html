@@ -627,6 +627,50 @@
         document.getElementById('previewModal').style.display = 'flex';
     }
     
+    // Context Document Edit Functions
+    let currentEditContextId = null;
+    
+    function openEditContextModal(docId, filename, docData) {
+        currentEditContextId = docId;
+        document.getElementById('editContextId').value = docId;
+        document.getElementById('editContextFilename').textContent = filename;
+        
+        // Pre-fill form
+        document.getElementById('editContextTitle').value = docData.title || '';
+        document.getElementById('editContextSubject').value = docData.subject || '';
+        document.getElementById('editContextModule').value = docData.module_number || 0;
+        document.getElementById('editContextDescription').value = docData.description || '';
+        document.getElementById('editContextCredits').value = docData.credits || '';
+        
+        document.getElementById('editContextModal').style.display = 'flex';
+    }
+    
+    function closeEditContextModal() {
+        document.getElementById('editContextModal').style.display = 'none';
+        currentEditContextId = null;
+    }
+    
+    async function saveContextEdit() {
+        if (!currentEditContextId) return;
+        
+        const data = {
+            title: document.getElementById('editContextTitle').value.trim(),
+            subject: document.getElementById('editContextSubject').value.trim(),
+            module_number: parseInt(document.getElementById('editContextModule').value) || 0,
+            description: document.getElementById('editContextDescription').value.trim(),
+            credits: document.getElementById('editContextCredits').value.trim()
+        };
+        
+        try {
+            await apiRequest(`/admin/resources/context/${currentEditContextId}`, 'PUT', data);
+            showToast('Document mis à jour', 'success');
+            closeEditContextModal();
+            loadResources();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
     // Close modal on outside click
     document.getElementById('previewModal').addEventListener('click', function(e) {
         if (e.target === this) closePreview();
@@ -638,6 +682,10 @@
     
     document.getElementById('editAudioModal').addEventListener('click', function(e) {
         if (e.target === this) closeEditAudioModal();
+    });
+    
+    document.getElementById('editContextModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditContextModal();
     });
     
     // Initialize
