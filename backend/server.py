@@ -658,6 +658,135 @@ async def google_exchange(body: GoogleSessionRequest):
     user = await db.users.find_one({'user_id': user_id}, {'_id': 0, 'password_hash': 0})
     return {'token': token, 'user': user}
 
+# ─── Apple Sign-In Routes ────────────────────────────────────────────────────
+
+class AppleAuthRequest(BaseModel):
+    code: Optional[str] = None
+    id_token: Optional[str] = None
+    user: Optional[str] = None  # JSON string with name/email on first auth
+
+@api_router.get("/auth/apple/login")
+async def apple_login_redirect():
+    """Redirect user to Apple Sign-In page."""
+    if not is_apple_auth_configured():
+        raise HTTPException(503, "Apple Sign-In n'est pas configuré")
+    
+    import secrets
+    state = secrets.token_urlsafe(32)
+    auth_url = get_apple_auth_url(state=state)
+    
+    return {"auth_url": auth_url, "state": state}
+
+@api_router.post("/auth/apple/callback")
+async def apple_callback(
+    code: Optional[str] = None,
+    id_token: Optional[str] = None,
+    user: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None
+):
+    """
+    Handle Apple OAuth callback.
+    Apple sends data via form POST (response_mode: form_post).
+    """
+    if error:
+        logger.error(f"Apple auth error: {error}")
+        raise HTTPException(400, f"Erreur Apple: {error}")
+    
+    if not is_apple_auth_configured():
+        raise HTTPException(503, "Apple Sign-In n'est pas configuré")
+    
+    try:
+        # Exchange code for tokens if we have a code
+        if code and not id_token:
+            token_response = await exchange_apple_code_for_tokens(code)
+            id_token = token_response.get("id_token")
+        
+        if not id_token:
+            raise HTTPException(400, "Token d'identité manquant")
+        
+        # Validate the identity token
+        apple_user_data = await validate_apple_identity_token(id_token)
+        apple_user_id = apple_user_data.get("sub")
+        
+        if not apple_user_id:
+            raise HTTPException(400, "Identifiant utilisateur Apple manquant")
+        
+        # Get email from token or user data
+        email = apple_user_data.get("email")
+        
+        # Parse user info (Apple only sends this on FIRST sign-in)
+        user_info = decode_apple_user_data(user) if user else {}
+        name_data = user_info.get("name", {})
+        first_name = name_data.get("firstName", "")
+        last_name = name_data.get("lastName", "")
+        full_name = f"{first_name} {last_name}".strip() if first_name or last_name else None
+        
+        # If no email in token, try from user info
+        if not email:
+            email = user_info.get("email")
+        
+        now = datetime.now(timezone.utc)
+        
+        # Check if user exists (by Apple ID or email)
+        existing = await db.users.find_one({
+            '$or': [
+                {'apple_id': apple_user_id},
+                {'email': email} if email else {'_id': None}
+            ]
+        }, {'_id': 0})
+        
+        if existing:
+            user_id = existing['user_id']
+            # Update Apple ID if not set
+            update_data = {'apple_id': apple_user_id}
+            if full_name and not existing.get('name'):
+                update_data['name'] = full_name
+            if email and not existing.get('email'):
+                update_data['email'] = email
+            await db.users.update_one({'user_id': user_id}, {'$set': update_data})
+            logger.info(f"Apple Sign-In: existing user {user_id}")
+        else:
+            # Create new user
+            user_id = f"user_{uuid.uuid4().hex[:12]}"
+            role = 'admin' if email in ADMIN_EMAILS else 'user'
+            
+            # Generate referral code
+            referral_code = generate_referral_code(user_id, full_name or "User")
+            
+            user_doc = {
+                'user_id': user_id,
+                'apple_id': apple_user_id,
+                'email': email,
+                'name': full_name or (email.split('@')[0] if email else 'Utilisateur Apple'),
+                'picture': f"https://ui-avatars.com/api/?name={(full_name or 'A').replace(' ', '+')}&background=04D182&color=000&bold=true",
+                'provider': 'apple',
+                'role': role,
+                'created_at': now,
+                'password_hash': None,
+                'referral_code': referral_code,
+                'referred_by': None,
+                'referral_count': 0,
+                'free_months_earned': 0,
+                'free_months_remaining': 0,
+                'subscription_end_date': None,
+            }
+            await db.users.insert_one(user_doc)
+            logger.info(f"Apple Sign-In: new user created {user_id}")
+        
+        # Create JWT token
+        token = create_jwt({'user_id': user_id, 'exp': int((now + timedelta(days=7)).timestamp())})
+        user_data = await db.users.find_one({'user_id': user_id}, {'_id': 0, 'password_hash': 0})
+        
+        return {'token': token, 'user': user_data}
+        
+    except ValueError as e:
+        logger.error(f"Apple auth validation error: {e}")
+        raise HTTPException(401, str(e))
+    except Exception as e:
+        logger.error(f"Apple auth error: {e}")
+        raise HTTPException(500, "Erreur d'authentification Apple")
+
 @api_router.get("/auth/me")
 async def me(request: Request):
     user = await get_current_user(request)
