@@ -1,10 +1,15 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MiniPlayer from '../../components/MiniPlayer';
+import GlobalHeader from '../../components/GlobalHeader';
 import { usePlayer } from '../../context/PlayerContext';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IS_DESKTOP = SCREEN_WIDTH >= 768;
+const HEADER_HEIGHT = IS_DESKTOP ? 56 : 52;
 
 const ACTIVE = '#04D182';
 const INACTIVE = '#777777';
