@@ -90,10 +90,7 @@ export default function LoginScreen() {
           {/* Logo SIJILL PROJECT */}
           <View style={styles.logoSection} testID="login-logo">
             <Text style={styles.logoSijill}>SIJILL</Text>
-            <View style={styles.logoProjectRow}>
-              <Text style={styles.logoProject}>PROJECT</Text>
-              <View style={styles.logoDot} />
-            </View>
+            <Text style={styles.logoProject}>PROJECT<Text style={styles.logoDotText}>•</Text></Text>
             <View style={styles.goldLine} />
           </View>
           <Text style={styles.tagline}>Plateforme académique · Sciences islamiques</Text>
@@ -247,8 +244,7 @@ const styles = StyleSheet.create({
   },
   logoDotText: {
     color: '#04D182',
-    fontSize: 28,
-    letterSpacing: 0,
+    fontSize: 20,
   },
   logoDot: {
     width: 6,
