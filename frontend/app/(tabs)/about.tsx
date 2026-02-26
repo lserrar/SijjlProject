@@ -83,17 +83,6 @@ export default function AboutScreen() {
           {/* Ligne verticale dorée */}
           <View style={styles.heroGoldLine} />
 
-          {/* Logo SIJILL en haut */}
-          <View style={styles.navRow}>
-            <View style={styles.logoRow}>
-              <Text style={styles.logoText}>SIJILL</Text>
-              <View style={styles.logoDot} />
-            </View>
-            <TouchableOpacity style={styles.moreBtn}>
-              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(245,240,232,0.50)" />
-            </TouchableOpacity>
-          </View>
-
           {/* Eyebrow */}
           <View style={styles.eyebrow}>
             <View style={styles.eyebrowLine} />
