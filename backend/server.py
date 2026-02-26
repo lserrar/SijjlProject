@@ -3001,6 +3001,36 @@ async def update_audio_resource(resource_id: str, request: Request):
         'updated_fields': [f for f in allowed_fields if f in body]
     }
 
+@api_router.put("/admin/resources/context/{resource_id}")
+async def update_context_resource(resource_id: str, request: Request):
+    """Update context document metadata (title, description, credits, etc.)."""
+    await require_admin(request)
+    
+    body = await request.json()
+    
+    update_data = {
+        'resource_id': resource_id,
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Allow updating these fields
+    allowed_fields = ['title', 'description', 'credits', 'subject', 'module_number', 'cursus_id']
+    for field in allowed_fields:
+        if field in body:
+            update_data[field] = body[field]
+    
+    result = await db.context_resources.update_one(
+        {'resource_id': resource_id},
+        {'$set': update_data},
+        upsert=True
+    )
+    
+    return {
+        'message': 'Document mis à jour',
+        'resource_id': resource_id,
+        'updated_fields': [f for f in allowed_fields if f in body]
+    }
+
 @api_router.get("/admin/resources/audio/{resource_id}")
 async def get_audio_resource_admin(resource_id: str, request: Request):
     """Get audio resource details for editing."""
