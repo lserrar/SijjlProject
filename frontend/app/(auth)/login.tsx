@@ -89,8 +89,8 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* Logo SIJILL PROJECT */}
           <View style={styles.logoSection} testID="login-logo">
+            <Text style={styles.logoSijill}>SIJILL</Text>
             <View style={styles.logoProjectRow}>
-              <Text style={styles.logoSijill}>SIJILL</Text>
               <Text style={styles.logoProject}>PROJECT</Text>
               <View style={styles.logoDot} />
             </View>
@@ -227,8 +227,7 @@ const styles = StyleSheet.create({
   },
   logoProjectRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 6,
+    alignItems: 'center',
   },
   logoSijill: {
     fontFamily: 'Cinzel',
@@ -236,14 +235,14 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#F5F0E8',
     letterSpacing: 28 * 0.16,
+    marginBottom: 2,
   },
   logoProject: {
     fontFamily: 'Cinzel',
-    fontSize: 28 * 0.62,
+    fontSize: 28,
     fontWeight: '400',
-    color: '#888888',
-    letterSpacing: (28 * 0.62) * 0.12,
-    marginLeft: 6,
+    color: '#F5F0E8',
+    letterSpacing: 28 * 0.16,
   },
   logoDotText: {
     color: '#04D182',
@@ -255,8 +254,7 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#04D182',
     borderRadius: 3,
-    marginLeft: 0,
-    marginBottom: 4,
+    marginLeft: -10,
     shadowColor: '#04D182',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
