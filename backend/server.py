@@ -5242,20 +5242,20 @@ async def admin_panel_listening_stats():
     return HTMLResponse(content=final_html)
 
 @api_router.get("/admin-panel/highlight", response_class=HTMLResponse)
-async def admin_panel_highlight():
+async def admin_panel_highlight(request: Request):
     """Admin panel highlight configuration page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'highlight.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template highlight non trouvé")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "highlight.html",
+        {"request": request, "active_page": "highlight"}
+    )
 
 @api_router.get("/admin-panel/timeline-resources", response_class=HTMLResponse)
-async def admin_panel_timeline_resources():
+async def admin_panel_timeline_resources(request: Request):
     """Admin panel timeline resources management page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'timeline-resources.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template timeline-resources non trouvé")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "timeline-resources.html",
+        {"request": request, "active_page": "timeline-resources"}
+    )
 
 @api_router.get("/admin-panel/audios", response_class=HTMLResponse)
 async def admin_panel_audios():
