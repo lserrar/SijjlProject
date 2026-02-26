@@ -207,6 +207,12 @@ const styles = StyleSheet.create({
   headerCenter: {
     alignItems: 'center',
   },
+  headerTitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 14,
+    color: colors.text.primary,
+    letterSpacing: 1,
+  },
   headerModule: {
     fontFamily: 'Cinzel',
     fontSize: 12,
