@@ -23,7 +23,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { login, loginWithGoogle, user } = useAuth();
+  const [appleLoading, setAppleLoading] = useState(false);
+  const { login, loginWithGoogle, loginWithApple, user } = useAuth();
   const router = useRouter();
 
   const checkSubscriptionAndRedirect = (userData: any) => {
