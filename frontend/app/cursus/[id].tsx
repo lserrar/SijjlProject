@@ -708,7 +708,7 @@ export default function CursusCoursesScreen() {
                   <TouchableOpacity
                     key={conf.id}
                     style={styles.audioConferenceCard}
-                    onPress={() => router.push(`/conference/${conf.id}?cursusId=${currentCursus?.id || ''}` as any)}
+                    onPress={() => router.push(`/conference/${conf.id}?cursusId=${id || ''}` as any)}
                     activeOpacity={0.85}
                   >
                     <View style={styles.audioConferenceHeader}>
