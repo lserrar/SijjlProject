@@ -66,7 +66,7 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
   };
 
   // Desktop Header
-  if (IS_DESKTOP) {
+  if (isDesktop) {
     return (
       <View style={[styles.header, styles.headerDesktop, { paddingTop: insets.top }]}>
         <View style={styles.headerInner}>
