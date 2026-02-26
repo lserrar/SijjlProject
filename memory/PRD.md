@@ -20,76 +20,41 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Corrections multiples
+### Session actuelle - Corrections et Nouvelles Fonctionnalités
 
-#### 1. Header Global "SIJILL PROJECT" ✅
+#### 1. Affichage Multi-Timelines par Cursus ✅ (NEW)
+- **Backend**: API `GET /api/timelines/cursus/{cursus_id}` retourne toutes les timelines associées
+- **Frontend**: Page Cursus affiche dynamiquement la liste des timelines (ex: Cursus A + Cursus A Map)
+- **Timeline Viewer**: Support du paramètre `file` pour charger une timeline spécifique
+- Test: 2 timelines affichées pour Cursus A (Cursus A, Cursus A Map)
+
+#### 2. Lecteur Audio Conférence ✅ (VERIFIED)
+- Page `/conference/[id].tsx` entièrement fonctionnelle
+- Lecteur avec: waveform, play/pause, skip ±15s/30s, vitesse (1x/1.25x/1.5x/2x)
+- Métadonnées: titre, intervenant, description, taille fichier
+- Style cohérent avec le design Sijill
+
+#### 3. Couleur Titres Documents ✅ (FIXED)
+- Les titres de section dans `/context/[resourceId].tsx` sont maintenant en vert `#04D182`
+- Avant: violet `#8B5CF6` (colors.brand.secondary)
+- Après: vert `#04D182` (Cursus A accent color)
+
+#### 4. Bug Fix: Variable undefined ✅
+- Corrigé référence à `currentCursus` → `id` dans le lien conference
+
+### Fonctionnalités Précédentes
+
+#### Header Global "SIJILL PROJECT" ✅
 - Composant GlobalHeader créé avec logo, navigation et icons
-- Suppression des logos legacy dupliqués sur cursus, bibliothèque, live, about
 - Layout responsive: Desktop (logo+nav+icons) / Mobile (logo centré+hamburger)
 
-#### 2. Page Abonnement - Code Promo ✅
-- Ajout du champ "Code promo" sur la page subscription-choice
-- Le code est passé à l'endpoint `/checkout/create` lors du paiement
-
-#### 3. Admin Panel - Ressources ✅
+#### Admin Panel - Ressources ✅
 - Renommage "Timeline" → "Ressources"
 - Édition des audios ET des documents .docx (titre, description, crédits)
-- Endpoints PUT pour audio et context
 
-#### 4. Page Conférence Audio ✅
+#### Page Conférence Audio ✅
 - Nouvelle page `/conference/[id].tsx` avec lecteur style Sijill
 - Waveform, contrôles, vitesse de lecture
-- Navigation depuis l'onglet Ressources des pages Cursus/Cours
-
-### Admin Panel - Page "Ressources" ✅ (26/02)
-- **Renommage**: "Timeline" → "Ressources" dans la navigation et le titre de page
-- **Audios chargés**: L'endpoint `/admin/resources/timeline` charge les 3 types (HTML, DOCX, Audio)
-- **Édition des audios**: Modal d'édition avec Titre, Description, Crédits, Conférencier, Sujet, Module
-- **Édition des documents**: Modal d'édition pour .docx avec Titre, Description, Crédits
-- **Endpoint PUT**: `/admin/resources/audio/{resource_id}` et `/admin/resources/context/{resource_id}`
-- **API publique**: `/resources/audio` et `/resources/context` utilisent les données DB
-
-### Intégration Conférences Audio ✅
-- Interface `AudioConference` ajoutée aux pages Cursus et Cours
-- API `/resources/audio` intégrée pour récupérer les conférences
-- Lecteur audio natif HTML avec play/pause dans l'onglet Ressources
-- Styles dédiés pour les cartes de conférence (`audioConferenceCard`, `audioPlayBtn`)
-- 1 fichier test uploadé: `Conf_Averroes_Brenet_module4.m4a` (43 Mo)
-
-### Système de Ressources Timeline ✅
-
-#### Backend (Fonctionnel)
-- `GET /api/timelines` - Liste les 5 timelines HTML
-- `GET /api/timeline/{A-E}` - Retourne le HTML d'une timeline
-- `GET /api/resources/context` - Liste les 18 documents de contexte
-- `GET /api/resources/context/{id}` - Contenu parsé d'un document Word
-- `GET /api/resources/audio` - Liste les conférences audio du bucket R2
-- `GET /api/resources/audio/stream/{filename}` - Stream d'une conférence audio
-- `GET /api/admin/resources/timeline` - Liste admin des ressources (HTML + DOCX + Audio)
-- `POST /api/admin/resources/sync-timeline` - Synchronisation R2 → DB
-- `PUT /api/admin/resources/audio/{resource_id}` - Éditer métadonnées audio
-
-#### Frontend (Implémenté)
-- `/app/frontend/app/timeline/[cursusId].tsx` - Page timeline plein écran (iframe)
-- `/app/frontend/app/context/[resourceId].tsx` - Page contexte historique (style Sijill)
-- Onglet "Ressources" mis à jour dans Cursus et Cours avec 4 sections :
-  1. **Frise chronologique** → Page timeline interactive
-  2. **Contexte historique** → Documents Word par penseur
-  3. **Bibliographies** → Documents existants
-  4. **Conférences Audio** → Lecteur intégré
-
-#### Admin Panel
-- `/api/admin-panel/timeline-resources` - Page "Timeline" avec :
-  - Liste des 5 timelines HTML (preview + lien externe)
-  - Liste des 18 documents de contexte (aperçu intégré)
-  - Liste des conférences audio avec lecteur
-  - Bouton "Synchroniser R2" pour mise à jour automatique
-
-### Autres fonctionnalités de la session
-- Dashboard Stats d'écoute (`/api/admin-panel/listening-stats`)
-- Highlight Page d'accueil (`/api/admin-panel/highlight`)
-- Correction bugs déconnexion et paywall
-- Pages paiement success/cancel
 
 ---
 
@@ -98,6 +63,7 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 ### Timeline/ (5 HTML + 18 DOCX)
 ```
 sijill_timeline_cursus_{a-e}.html  →  Timelines interactives
+sijill_timeline_cursus_a_map.html  →  Timeline carte (NEW)
 Timeline_Module{N}_{Penseur}.docx  →  Documents contexte historique
 ```
 
@@ -108,47 +74,36 @@ Conf_{Sujet}_{Speaker}_module{N}.m4a  →  Conférences audio
 
 ---
 
-## Fichiers Frontend Modifiés
+## Key API Endpoints
 
-| Fichier | Description |
-|---------|-------------|
-| `app/cursus/[id].tsx` | Onglet Ressources avec lecteur audio conférences |
-| `app/course/[id].tsx` | Onglet Ressources avec lecteur audio conférences |
-| `app/timeline/[cursusId].tsx` | Page timeline plein écran (iframe) |
-| `app/context/[resourceId].tsx` | Page contexte historique formatée |
-| `app/payment/success.tsx` | Page succès paiement |
-| `app/payment/cancel.tsx` | Page annulation paiement |
-
-## Fichiers Backend Créés
-
-| Fichier | Description |
-|---------|-------------|
-| `admin_templates/timeline-resources.html` | Page admin Timeline |
-| `admin_templates/listening-stats.html` | Page admin Stats |
-| `admin_templates/highlight.html` | Page admin Highlight |
-| `server.py` | Endpoints timeline, context et audio |
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/timelines/cursus/{cursus_id}` | Liste les timelines d'un cursus |
+| `GET /api/timeline/file/{filename}` | Retourne le HTML d'une timeline spécifique |
+| `GET /api/resources/audio` | Liste les conférences audio |
+| `GET /api/resources/context/{id}` | Contenu parsé d'un document Word |
 
 ---
 
 ## Backlog
 
-### P0 (Critique)
-- ⚠️ Environnement preview instable (tunnel ngrok ERR_NGROK_334)
-- Backend API fonctionne ✅, Frontend inaccessible
+### P0 (Critique) - RESOLVED
+- ~~Environnement preview instable~~ → Stabilisé
 
 ### P1 (Important)
-- Tester visuellement l'intégration des conférences audio quand env disponible
+- Écran de démarrage animé "SIJILL PROJECT" (demandé par user)
 - Tester webhook Stripe en production
-- Lier les ressources aux modules spécifiques (pas seulement au cursus)
 
 ### P2 (Futur)
 - Refactoriser backend/server.py en modules FastAPI Router (>5000 lignes)
+- Refactoriser templates admin avec héritage Jinja2
 - Implémenter Apple Sign-In
 - Dashboard admin parrainages amélioré
 
 ---
 
 ## Credentials Test
-- **Admin**: `admin@hikma-admin.com` / `Admin123!`
-- **User test**: `testuser@hikma.com` / `TestUser123!`
-- **Panel admin**: `/api/admin-panel/login`
+- **Admin Panel**: `/admin-panel/login`
+- **Admin Email**: `loubna.serrar@gmail.com`
+- **Admin Password**: `Admin123!`
+- **Test User**: `testuser@hikma.com` / `TestUser123!`
