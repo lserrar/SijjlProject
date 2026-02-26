@@ -2662,8 +2662,8 @@ async def list_context_resources():
                 }
                 resources.append(resource_data)
             elif old_match:
-                module_num = int(match.group(1))
-                subject_raw = match.group(2)
+                module_num = int(old_match.group(1))
+                subject_raw = old_match.group(2)
                 # Clean up subject name: Al-Kindi -> Al-Kindī, etc.
                 subject = subject_raw.replace('_', ' ').replace('-', ' ')
                 
