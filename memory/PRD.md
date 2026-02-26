@@ -112,9 +112,15 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
   - Email: `loubniz@hotmail.com`
   - Password: `Test123!`
 
-## Completed Work (Latest Session - Feb 2026)
+## Completed Work (Latest Session - Feb 26, 2026)
 
-### Bug Fixes
+### Admin Panel Bug Fixes (26 Fév 2026)
+- [x] **Fixed Stats d'écoute page** - Was not loading due to incorrect Jinja2 rendering (used TemplateResponse instead of manual string replacement)
+- [x] **Restored missing menu items** - Added Tarifs, Parrainage, Codes promo, Stockage R2 back to sidebar
+- [x] **Created Parrainage page** - New admin page (`referrals.html`) with stats, configuration, and referral list
+- [x] **Updated pricing/promos endpoints** - Now use Jinja2 templates (`pricing_new.html`, `promos_new.html`)
+
+### Previous Bug Fixes (Session précédente)
 - [x] Fixed Cursus page scroll behavior (removed sticky header causing overlap)
 - [x] **Fixed resource filtering on Course detail page** - Timelines, context documents, and audio conferences are now correctly filtered by cursus when opening a course from the homepage
 - [x] **Custom titles display** - Timeline and context document titles from admin panel are now correctly displayed
@@ -151,8 +157,11 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 - [x] Suppression de `masterclasses.html` et son endpoint
 
 ### Templates Admin Restants (non critiques)
-- [ ] `promos.html`, `pricing.html`
-- [ ] `listening-stats.html`, `audio-categories.html`
+- [x] `promos_new.html` - Migrée vers Jinja2 (Fév 2026)
+- [x] `pricing_new.html` - Migrée vers Jinja2 (Fév 2026)
+- [x] `listening-stats.html` - Corrigée pour utiliser Jinja2 (Fév 2026)
+- [x] `referrals.html` - Nouvelle page créée (Fév 2026)
+- [ ] `audio-categories.html`
 
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
