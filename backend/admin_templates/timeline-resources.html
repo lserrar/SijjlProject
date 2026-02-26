@@ -186,6 +186,7 @@
 
 <script>
     let resourcesData = null;
+    let currentAssignFilename = null;
     
     async function loadResources() {
         try {
@@ -202,14 +203,32 @@
             } else {
                 timelinesTable.innerHTML = resourcesData.timelines.map(t => `
                     <tr>
-                        <td><span class="cursus-badge">Cursus ${t.cursus_letter || '?'}</span></td>
+                        <td>
+                            <span class="cursus-badge ${t.cursus_letter ? '' : 'unassigned'}" 
+                                  onclick="openAssignModal('${t.filename}', '${t.cursus_letter || ''}')"
+                                  title="Cliquez pour modifier">
+                                ${t.cursus_letter ? 'Cursus ' + t.cursus_letter : 'Non assigné'}
+                                <i class="fas fa-pencil-alt" style="font-size: 10px; margin-left: 6px;"></i>
+                            </span>
+                        </td>
                         <td class="table-cell-text">${t.filename}</td>
                         <td>${t.size_kb} KB</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn btn-sm btn-secondary" onclick="previewTimeline('${t.cursus_letter}')">
+                                ${t.cursus_letter ? `
+                                <button class="btn btn-sm btn-secondary" onclick="previewTimeline('${t.cursus_letter}')" title="Aperçu">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                                <a href="/api/timeline/${t.cursus_letter}" target="_blank" class="btn btn-sm btn-secondary" title="Ouvrir">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                ` : `
+                                <span style="color: var(--text-muted); font-size: 12px;">Assignez un cursus</span>
+                                `}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
                                 <a href="/api/timeline/${t.cursus_letter}" target="_blank" class="btn btn-sm btn-secondary">
                                     <i class="fas fa-external-link-alt"></i>
                                 </a>
