@@ -309,9 +309,43 @@
         document.getElementById('previewModal').style.display = 'none';
     }
     
+    // Assign Cursus Modal Functions
+    function openAssignModal(filename, currentCursus) {
+        currentAssignFilename = filename;
+        document.getElementById('assignFilename').textContent = filename;
+        document.getElementById('cursusSelect').value = currentCursus || '';
+        document.getElementById('assignCursusModal').style.display = 'flex';
+    }
+    
+    function closeAssignModal() {
+        document.getElementById('assignCursusModal').style.display = 'none';
+        currentAssignFilename = null;
+    }
+    
+    async function saveAssignment() {
+        if (!currentAssignFilename) return;
+        
+        const cursusLetter = document.getElementById('cursusSelect').value;
+        
+        try {
+            await apiRequest(`/admin/resources/timeline/${encodeURIComponent(currentAssignFilename)}/assign-cursus`, 'PATCH', {
+                cursus_letter: cursusLetter
+            });
+            showToast(cursusLetter ? `Cursus ${cursusLetter} assigné` : 'Assignation retirée', 'success');
+            closeAssignModal();
+            loadResources();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
     // Close modal on outside click
     document.getElementById('previewModal').addEventListener('click', function(e) {
         if (e.target === this) closePreview();
+    });
+    
+    document.getElementById('assignCursusModal').addEventListener('click', function(e) {
+        if (e.target === this) closeAssignModal();
     });
     
     // Initialize
