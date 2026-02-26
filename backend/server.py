@@ -2676,6 +2676,8 @@ async def admin_sync_timeline_resources(request: Request):
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
+    import re
+    
     try:
         response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
         
