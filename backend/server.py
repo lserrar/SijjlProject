@@ -2760,15 +2760,33 @@ async def get_context_resource(resource_id: str):
         # Extract metadata from filename
         filename = target_key.split('/')[-1]
         import re
-        match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
-        module_num = int(match.group(1)) if match else 0
-        subject = match.group(2).replace('_', ' ').replace('-', ' ') if match else filename
+        
+        # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
+        new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+        # Try old format: Timeline_Module{N}_{Penseur}.docx
+        old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+        
+        if new_match:
+            cursus_letter = new_match.group(1).upper()
+            module_num = int(new_match.group(2))
+            subject_raw = new_match.group(3)
+            subject = subject_raw.replace('-', ' ').replace('_', ' ').title()
+        elif old_match:
+            cursus_letter = 'A'  # Default to A for old format
+            module_num = int(old_match.group(1))
+            subject_raw = old_match.group(2)
+            subject = subject_raw.replace('_', ' ').replace('-', ' ')
+        else:
+            cursus_letter = 'A'
+            module_num = 0
+            subject = filename.replace('.docx', '').replace('_', ' ').replace('-', ' ').title()
         
         return {
             'id': resource_id,
-            'title': f"Contexte historique : {subject}",
+            'title': subject,
             'module_number': module_num,
             'subject': subject,
+            'cursus_letter': cursus_letter,
             'r2_key': target_key,
             'content': content_blocks
         }
