@@ -1,6 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, Response
+from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from pydantic import BaseModel, EmailStr, Field
@@ -16,6 +17,9 @@ from emergentintegrations.payments.stripe.checkout import StripeCheckout, Checko
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Initialize Jinja2 templates
+templates = Jinja2Templates(directory=str(ROOT_DIR / 'admin_templates'))
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
