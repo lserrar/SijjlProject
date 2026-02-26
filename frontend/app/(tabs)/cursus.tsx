@@ -175,23 +175,6 @@ export default function CursusScreen() {
         }
       >
         {/* ═══════════════════════════════════════════════════════════════════════
-            NAVIGATION HAUTE (sticky)
-        ═══════════════════════════════════════════════════════════════════════ */}
-        <View style={styles.navBar}>
-          <View style={styles.navLogo}>
-            <Text style={styles.navLogoText}>SIJILL</Text>
-            <View style={styles.navLogoDot} />
-          </View>
-          <TouchableOpacity 
-            testID="cursus-search-btn"
-            style={styles.navSearchBtn}
-            onPress={() => router.push('/search' as any)}
-          >
-            <Ionicons name="search-outline" size={20} color="rgba(245,240,232,0.6)" />
-          </TouchableOpacity>
-        </View>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
             HERO CURSUS
         ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.hero}>
