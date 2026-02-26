@@ -185,7 +185,7 @@ export default function CourseDetailScreen() {
       }
 
       // Now fetch resources with proper cursus filtering
-      const [playlistRes, progressRes, scholarsRes, biblioRes, contextRes, audioRes] = await Promise.all([
+      const [playlistRes, progressRes, scholarsRes, biblioRes, contextRes, audioRes, timelinesRes] = await Promise.all([
         apiRequest(`/courses/${id}/playlist`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
         apiRequest('/scholars', token),
@@ -194,7 +194,17 @@ export default function CourseDetailScreen() {
         foundCursus ? apiRequest(`/resources/context/cursus/${foundCursus.id}`, token) : Promise.resolve({ ok: false }),
         // Get all audio and filter client-side by cursus_letter
         apiRequest('/resources/audio', token),
+        // Get timelines for this cursus
+        foundCursus ? apiRequest(`/timelines/cursus/${foundCursus.id}`, token) : Promise.resolve({ ok: false }),
       ]);
+
+      // Get timelines for this cursus
+      if (timelinesRes.ok) {
+        const timelinesData = await timelinesRes.json();
+        setTimelines(timelinesData.timelines || []);
+      } else {
+        setTimelines([]);
+      }
 
       // Get scholars for this course
       if (scholarsRes.ok && courseData) {
