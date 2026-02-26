@@ -121,7 +121,7 @@
   <script>
     function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
     
-    // Load professors - filter out inactive ones, no images
+    // Load professors - filter out inactive ones, show photos
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         const API_URL = 'https://learn-quran-10.preview.emergentagent.com/api';
@@ -139,22 +139,38 @@
           return;
         }
         
-        container.innerHTML = activeProfessors.map(prof => `
+        container.innerHTML = activeProfessors.map(prof => {
+          // Build photo URL - photos are served from /api/images/
+          const photoUrl = prof.photo ? `${API_URL}${prof.photo.startsWith('/api') ? prof.photo.replace('/api', '') : prof.photo}` : null;
+          
+          return `
           <div class="card">
             <div class="card-content">
-              <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                <div style="width: 48px; height: 48px; border: 1px solid var(--brand-primary); display: flex; align-items: center; justify-content: center;">
-                  <span style="font-family: var(--font-display); font-size: 1.25rem; color: var(--brand-primary);">${(prof.name || '?').charAt(0).toUpperCase()}</span>
-                </div>
-                <div>
-                  <h3 class="card-title" style="margin: 0;">${prof.name || 'Professeur'}</h3>
-                  <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">${prof.title || ''}</p>
+              <div style="display: flex; align-items: flex-start; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+                ${photoUrl ? `
+                  <img src="${photoUrl}" alt="${prof.name}" style="width: 80px; height: 80px; object-fit: cover; border: 1px solid var(--border-subtle);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                  <div style="width: 80px; height: 80px; border: 1px solid var(--brand-primary); display: none; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <span style="font-family: var(--font-display); font-size: 1.75rem; color: var(--brand-primary);">${(prof.name || '?').charAt(0).toUpperCase()}</span>
+                  </div>
+                ` : `
+                  <div style="width: 80px; height: 80px; border: 1px solid var(--brand-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <span style="font-family: var(--font-display); font-size: 1.75rem; color: var(--brand-primary);">${(prof.name || '?').charAt(0).toUpperCase()}</span>
+                  </div>
+                `}
+                <div style="flex: 1;">
+                  <h3 class="card-title" style="margin: 0 0 4px 0;">${prof.name || 'Professeur'}</h3>
+                  <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0;">${prof.university || ''}</p>
+                  ${prof.specializations && prof.specializations.length > 0 ? `
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                      ${prof.specializations.slice(0, 3).map(s => `<span style="font-size: 0.6rem; padding: 2px 8px; border: 1px solid var(--border-subtle); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em;">${s}</span>`).join('')}
+                    </div>
+                  ` : ''}
                 </div>
               </div>
-              ${prof.bio ? `<p class="card-description">${prof.bio.substring(0, 200)}${prof.bio.length > 200 ? '...' : ''}</p>` : ''}
+              ${prof.bio ? `<p class="card-description" style="font-size: 0.9rem; line-height: 1.6;">${prof.bio.substring(0, 250)}${prof.bio.length > 250 ? '...' : ''}</p>` : ''}
             </div>
           </div>
-        `).join('');
+        `}).join('');
       } catch (error) {
         console.error('Failed to load professors:', error);
         document.getElementById('professors-grid').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Erreur lors du chargement des professeurs.</p>';
