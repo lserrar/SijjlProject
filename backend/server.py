@@ -2965,6 +2965,57 @@ async def assign_timeline_cursus(filename: str, request: Request):
         'cursus_letter': cursus_letter if cursus_letter else None
     }
 
+@api_router.put("/admin/resources/audio/{resource_id}")
+async def update_audio_resource(resource_id: str, request: Request):
+    """Update audio resource metadata (title, description, credits, etc.)."""
+    await require_admin(request)
+    
+    body = await request.json()
+    
+    update_data = {
+        'resource_id': resource_id,
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Allow updating these fields
+    allowed_fields = ['title', 'description', 'credits', 'speaker', 'subject', 'module_number', 'cursus_id']
+    for field in allowed_fields:
+        if field in body:
+            update_data[field] = body[field]
+    
+    result = await db.audio_resources.update_one(
+        {'resource_id': resource_id},
+        {'$set': update_data},
+        upsert=True
+    )
+    
+    return {
+        'message': 'Audio mis à jour',
+        'resource_id': resource_id,
+        'updated_fields': [f for f in allowed_fields if f in body]
+    }
+
+@api_router.get("/admin/resources/audio/{resource_id}")
+async def get_audio_resource_admin(resource_id: str, request: Request):
+    """Get audio resource details for editing."""
+    await require_admin(request)
+    
+    db_entry = await db.audio_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+    
+    if not db_entry:
+        return {
+            'resource_id': resource_id,
+            'title': '',
+            'description': '',
+            'credits': '',
+            'speaker': '',
+            'subject': '',
+            'module_number': 0,
+            'cursus_id': ''
+        }
+    
+    return db_entry
+
 @api_router.post("/admin/courses/{course_id}/sync-r2")
 async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request: Request):
     """
