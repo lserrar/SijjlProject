@@ -155,7 +155,7 @@ export default function CourseDetailScreen() {
   // Load Data
   const loadData = useCallback(async () => {
     try {
-      const [courseRes, playlistRes, progressRes, allCursusRes, scholarsRes, biblioRes, contextRes] = await Promise.all([
+      const [courseRes, playlistRes, progressRes, allCursusRes, scholarsRes, biblioRes, contextRes, audioRes] = await Promise.all([
         apiRequest(`/courses/${id}`, token),
         apiRequest(`/courses/${id}/playlist`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
@@ -163,6 +163,7 @@ export default function CourseDetailScreen() {
         apiRequest('/scholars', token),
         apiRequest(`/bibliographies?course_id=${id}`, token),
         apiRequest('/resources/context', token),
+        apiRequest('/resources/audio', token),
       ]);
 
       let courseData = null;
