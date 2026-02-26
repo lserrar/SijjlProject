@@ -3264,8 +3264,11 @@ async def update_context_resource(resource_id: str, request: Request):
     
     body = await request.json()
     
+    # Normalize resource_id to use dashes (matching the public API format)
+    normalized_id = resource_id.replace('_', '-').lower()
+    
     update_data = {
-        'resource_id': resource_id,
+        'resource_id': normalized_id,
         'updated_at': datetime.now(timezone.utc).isoformat()
     }
     
@@ -3276,14 +3279,14 @@ async def update_context_resource(resource_id: str, request: Request):
             update_data[field] = body[field]
     
     result = await db.context_resources.update_one(
-        {'resource_id': resource_id},
+        {'resource_id': normalized_id},
         {'$set': update_data},
         upsert=True
     )
     
     return {
         'message': 'Fiche mise à jour',
-        'resource_id': resource_id,
+        'resource_id': normalized_id,
         'updated_fields': [f for f in allowed_fields if f in body]
     }
 
