@@ -499,23 +499,39 @@
             if (resourcesData.context_docs.length === 0) {
                 contextTable.innerHTML = '<tr><td colspan="5" class="empty-state">Aucun document trouvé</td></tr>';
             } else {
-                contextTable.innerHTML = resourcesData.context_docs.map(d => {
+                // Sort by cursus letter, then module number, then subject
+                const sortedDocs = [...resourcesData.context_docs].sort((a, b) => {
+                    const cursusA = a.cursus_letter || 'Z';
+                    const cursusB = b.cursus_letter || 'Z';
+                    if (cursusA !== cursusB) return cursusA.localeCompare(cursusB);
+                    const modA = a.module_number || 99;
+                    const modB = b.module_number || 99;
+                    if (modA !== modB) return modA - modB;
+                    return (a.subject || '').localeCompare(b.subject || '');
+                });
+                
+                contextTable.innerHTML = sortedDocs.map(d => {
                     const docId = d.filename.replace('.docx', '');
+                    const safeData = JSON.stringify(d).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     return `
                     <tr>
-                        <td><span class="module-badge">Module ${d.module_number || '?'}</span></td>
+                        <td>
+                            <span class="cursus-badge ${d.cursus_letter ? '' : 'unassigned'}">
+                                ${d.cursus_letter ? 'Cursus ' + d.cursus_letter : '—'}
+                            </span>
+                        </td>
+                        <td><span class="module-badge">M${d.module_number || '?'}</span></td>
                         <td class="table-cell-text">
                             <div class="audio-title-main">${d.title || d.subject || d.filename}</div>
-                            ${d.description ? `<div class="audio-title-sub" style="font-style: italic;">${d.description.substring(0, 80)}${d.description.length > 80 ? '...' : ''}</div>` : ''}
+                            <div class="audio-title-sub">${d.subject || ''}</div>
                         </td>
                         <td><small style="color: var(--text-tertiary)">${d.filename}</small></td>
-                        <td>${d.size_kb} KB</td>
                         <td>
                             <div class="action-btns">
-                                <button class="btn btn-sm btn-primary" onclick="openEditContextModal('${docId}', '${d.filename}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" title="Éditer">
+                                <button class="btn btn-sm btn-primary" onclick='openEditContextModal("${docId}", "${d.filename}", ${safeData})' title="Éditer le titre">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-secondary" onclick="previewContext('${docId}')">
+                                <button class="btn btn-sm btn-secondary" onclick="previewContext('${docId}')" title="Aperçu">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
