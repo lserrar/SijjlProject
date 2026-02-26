@@ -18,8 +18,10 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 export default function TabLayout() {
   const { currentTrack } = usePlayer();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const isDesktop = screenWidth >= 768;
+  const headerHeight = (isDesktop ? 56 : 52) + insets.top;
   const tabBarHeight = 72 + insets.bottom;
-  const headerHeight = HEADER_HEIGHT + insets.top;
 
   return (
     <View style={styles.wrapper}>
