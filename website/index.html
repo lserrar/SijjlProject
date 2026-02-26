@@ -19,42 +19,6 @@
       padding: 0 var(--spacing-lg);
     }
     
-    /* Identity Section */
-    .identity-section {
-      text-align: center;
-      padding: var(--spacing-3xl) 0;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    
-    .identity-eyebrow {
-      display: block;
-      font-family: var(--font-display);
-      font-size: 0.6rem;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: var(--brand-gold);
-      margin-bottom: var(--spacing-lg);
-    }
-    
-    .identity-title {
-      font-family: var(--font-display);
-      font-size: clamp(1.5rem, 4vw, 2rem);
-      font-weight: 400;
-      letter-spacing: 0.05em;
-      line-height: 1.4;
-      color: var(--text-primary);
-      margin-bottom: var(--spacing-lg);
-    }
-    
-    .identity-text {
-      font-family: var(--font-body);
-      font-size: 1.05rem;
-      line-height: 1.8;
-      color: var(--text-secondary);
-      font-style: italic;
-    }
-    
     .home-section {
       padding: var(--spacing-xl) 0;
     }
@@ -66,77 +30,90 @@
       margin-bottom: var(--spacing-lg);
     }
     
-    .section-title {
+    .section-title-small {
       font-family: var(--font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
       color: var(--text-muted);
     }
     
     .section-link {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--brand-primary);
       text-decoration: none;
+      letter-spacing: 0.1em;
     }
     
-    /* Featured Course */
+    /* Featured Course - Centered and elegant */
+    .featured-wrapper {
+      max-width: 600px;
+      margin: 0 auto var(--spacing-xl);
+    }
+    
     .featured-course {
-      padding: var(--spacing-xl);
+      padding: var(--spacing-lg);
       background: var(--bg-card);
-      border-left: 2px solid var(--brand-primary);
+      border-left: 3px solid var(--brand-primary);
     }
     
     .featured-eyebrow {
       font-family: var(--font-display);
-      font-size: 0.6rem;
-      letter-spacing: 0.2em;
+      font-size: 0.5rem;
+      letter-spacing: 0.25em;
       color: var(--brand-gold);
       text-transform: uppercase;
       margin-bottom: var(--spacing-sm);
     }
     
-    .featured-content {
-      display: grid;
-      grid-template-columns: 100px 1fr;
-      gap: var(--spacing-xl);
-      align-items: start;
+    .featured-header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
     }
     
-    .featured-letter-box {
-      width: 100px;
-      height: 100px;
+    .featured-letter {
+      width: 48px;
+      height: 48px;
       border: 1px solid var(--brand-primary);
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-    
-    .featured-letter {
       font-family: var(--font-display);
-      font-size: 2.5rem;
+      font-size: 1.25rem;
       color: var(--brand-primary);
+      flex-shrink: 0;
     }
     
     .featured-info h2 {
-      font-size: 1.25rem;
-      margin: 0 0 var(--spacing-sm);
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
       color: var(--text-primary);
+      margin: 0 0 4px;
     }
     
     .featured-info p {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
       color: var(--text-secondary);
-      line-height: 1.6;
-      margin-bottom: var(--spacing-md);
+      line-height: 1.5;
+      margin: 0;
     }
     
     .featured-meta {
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
-      margin-bottom: var(--spacing-md);
-      font-size: 0.85rem;
+      margin-top: var(--spacing-md);
+      font-size: 0.7rem;
       color: var(--text-muted);
+    }
+    
+    .featured-btn {
+      margin-top: var(--spacing-md);
     }
     
     /* Horizontal Scroll Sections */
@@ -158,16 +135,16 @@
     
     /* Episode Card */
     .episode-card {
-      flex: 0 0 280px;
+      flex: 0 0 260px;
       background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--brand-primary);
       padding: var(--spacing-md);
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: background-color 0.2s;
     }
     
     .episode-card:hover {
-      border-color: var(--brand-primary);
+      background: #1A1A1A;
     }
     
     .episode-header {
@@ -178,194 +155,173 @@
     }
     
     .episode-letter {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border: 1px solid currentColor;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--font-display);
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
     
-    .episode-cursus {
-      font-size: 0.6rem;
-      letter-spacing: 0.15em;
+    .episode-tag {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
     }
     
     .episode-title {
-      font-size: 0.95rem;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
       color: var(--text-primary);
-      margin-bottom: var(--spacing-xs);
-      line-height: 1.4;
+      margin-bottom: 4px;
+      line-height: 1.3;
     }
     
     .episode-meta {
+      font-family: var(--font-body);
       font-size: 0.75rem;
       color: var(--text-muted);
+      font-style: italic;
     }
     
-    /* Cursus Scroll Card */
-    .cursus-scroll-card {
-      flex: 0 0 200px;
+    /* Cursus Scroll Card - Like app */
+    .cursus-card {
+      flex: 0 0 300px;
       background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--brand-primary);
       padding: var(--spacing-md);
       cursor: pointer;
-      transition: border-color 0.2s;
-      text-align: center;
+      transition: background-color 0.2s;
     }
     
-    .cursus-scroll-card:hover {
-      border-color: var(--brand-primary);
+    .cursus-card:hover {
+      background: #1A1A1A;
     }
     
-    .cursus-scroll-letter {
-      width: 48px;
-      height: 48px;
-      border: 1px solid currentColor;
+    .cursus-card-header {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      font-family: var(--font-display);
-      font-size: 1.5rem;
-      margin: 0 auto var(--spacing-sm);
+      margin-bottom: var(--spacing-sm);
     }
     
-    .cursus-scroll-name {
-      font-size: 0.85rem;
+    .cursus-card-tag {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    
+    .cursus-card-stats {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    
+    .cursus-card-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
       color: var(--text-primary);
       margin-bottom: var(--spacing-xs);
     }
     
-    .cursus-scroll-count {
-      font-size: 0.7rem;
+    .cursus-card-desc {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: rgba(245,240,232,0.6);
+      line-height: 1.5;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .cursus-card-footer {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+    }
+    
+    .cursus-card-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.15em;
       color: var(--text-muted);
+      text-transform: uppercase;
     }
     
     /* Top 5 Section */
     .top5-list {
-      /* Already inside main with proper padding */
+      /* Container */
     }
     
     .top5-item {
       display: grid;
-      grid-template-columns: 32px 48px 1fr auto;
+      grid-template-columns: 28px 40px 1fr auto;
       gap: var(--spacing-md);
       align-items: center;
       padding: var(--spacing-md) 0;
       border-bottom: 1px solid var(--border-subtle);
       cursor: pointer;
+      transition: background-color 0.2s;
     }
     
     .top5-item:hover {
       background: var(--bg-card);
+      margin: 0 calc(-1 * var(--spacing-sm));
+      padding-left: var(--spacing-sm);
+      padding-right: var(--spacing-sm);
     }
     
     .top5-rank {
       font-family: var(--font-display);
-      font-size: 1.25rem;
+      font-size: 1rem;
       color: var(--text-muted);
       text-align: center;
     }
     
     .top5-letter {
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       border: 1px solid currentColor;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--font-display);
-      font-size: 1.25rem;
+      font-size: 1rem;
     }
     
     .top5-info h4 {
-      font-size: 0.95rem;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
       color: var(--text-primary);
-      margin: 0 0 4px;
+      margin: 0 0 2px;
     }
     
     .top5-info p {
-      font-size: 0.75rem;
+      font-family: var(--font-body);
+      font-size: 0.7rem;
       color: var(--text-muted);
       margin: 0;
     }
     
     .top5-play {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       border: 1px solid var(--brand-primary);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--brand-primary);
-    }
-    
-    /* Domains Section */
-    .domains-section {
-      padding: var(--spacing-2xl) var(--spacing-xl);
-      border-top: 1px solid var(--border-subtle);
-      margin-top: var(--spacing-2xl);
-    }
-    
-    .domains-title {
-      font-family: var(--font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--brand-gold);
-      margin-bottom: var(--spacing-lg);
-      text-align: center;
-    }
-    
-    .domains-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: var(--spacing-sm);
-      max-width: 800px;
-      margin: 0 auto var(--spacing-2xl);
-    }
-    
-    .domain-tag {
-      font-family: var(--font-body);
       font-size: 0.8rem;
-      padding: 8px 16px;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-secondary);
-      transition: all 0.2s;
-    }
-    
-    .domain-tag:hover {
-      border-color: var(--brand-primary);
-      color: var(--brand-primary);
-    }
-    
-    .ambition-section {
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-      padding: var(--spacing-xl) 0;
-    }
-    
-    .ambition-title {
-      font-family: var(--font-display);
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--brand-gold);
-      margin-bottom: var(--spacing-md);
-    }
-    
-    .ambition-text {
-      font-family: var(--font-body);
-      font-size: 1rem;
-      line-height: 1.8;
-      color: var(--text-secondary);
-      font-style: italic;
     }
     
     @media (max-width: 768px) {
@@ -373,61 +329,26 @@
         padding: 0 var(--spacing-md);
       }
       
-      .identity-section {
-        padding: var(--spacing-xl) 0;
-      }
-      
-      .identity-title {
-        font-size: 1.3rem;
-      }
-      
-      .identity-text {
-        font-size: 0.95rem;
-      }
-      
-      .featured-content {
-        grid-template-columns: 1fr;
-      }
-      
-      .featured-letter-box {
-        width: 60px;
-        height: 60px;
-      }
-      
-      .featured-letter {
-        font-size: 1.5rem;
-      }
-      
-      .featured-course {
-        padding: var(--spacing-md);
+      .featured-wrapper {
+        max-width: 100%;
       }
       
       .episode-card {
-        flex: 0 0 240px;
+        flex: 0 0 220px;
       }
       
-      .cursus-scroll-card {
-        flex: 0 0 160px;
+      .cursus-card {
+        flex: 0 0 260px;
       }
       
       .top5-item {
-        grid-template-columns: 24px 40px 1fr;
+        grid-template-columns: 24px 36px 1fr;
       }
       
       .top5-play {
         display: none;
       }
       
-      .domains-section {
-        padding: var(--spacing-xl) 0;
-      }
-      
-      .domain-tag {
-        font-size: 0.7rem;
-        padding: 6px 12px;
-      }
-      
-      /* Mobile header */
       .nav {
         display: none;
         position: absolute;
@@ -442,11 +363,6 @@
       
       .nav.active {
         display: flex;
-      }
-      
-      .nav-link {
-        padding: var(--spacing-md) 0;
-        border-bottom: 1px solid var(--border-subtle);
       }
       
       .header-actions {
@@ -496,17 +412,17 @@
 
   <main>
     <!-- Hero Identity Section (same as À propos) -->
-    <section class="hero" style="min-height: auto; padding: calc(var(--header-height) + 50px) 20px 40px;">
-      <div class="hero-content" style="max-width: 800px; text-align: left;">
+    <section class="hero" style="min-height: auto; padding: 40px 20px;">
+      <div class="hero-content" style="max-width: 700px; text-align: left;">
         <div class="hero-eyebrow">
           <span class="hero-eyebrow-line"></span>
           <span class="hero-eyebrow-text">Notre identité</span>
         </div>
         
-        <h1 style="text-transform: none; letter-spacing: 0.02em; font-size: 1.5rem; margin-bottom: 8px;">Comprendre, transmettre,</h1>
-        <p style="font-family: 'EB Garamond', serif; font-size: 1.25rem; font-style: italic; color: var(--text-secondary); margin-bottom: var(--spacing-lg);">penser la pluralité des savoirs islamiques</p>
+        <h1 style="text-transform: none; letter-spacing: 0.02em; font-size: 1.4rem; margin-bottom: 6px;">Comprendre, transmettre,</h1>
+        <p style="font-family: 'EB Garamond', serif; font-size: 1.15rem; font-style: italic; color: var(--text-secondary); margin-bottom: var(--spacing-md);">penser la pluralité des savoirs islamiques</p>
         
-        <p class="hero-intro" style="text-align: left; margin: 0;">
+        <p class="hero-intro" style="text-align: left; margin: 0; font-size: 0.95rem;">
           Une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches et les plus féconds de l'humanité.
         </p>
       </div>
@@ -514,9 +430,11 @@
 
     <!-- Featured Course Section -->
     <section class="home-section" id="featured-section">
-      <div class="featured-course" id="featured-container">
-        <div style="text-align: center; padding: var(--spacing-xl);">
-          <div class="loading-spinner"></div>
+      <div class="featured-wrapper">
+        <div class="featured-course" id="featured-container">
+          <div style="text-align: center; padding: var(--spacing-lg);">
+            <div class="loading-spinner"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -524,7 +442,7 @@
     <!-- New Episodes Section -->
     <section class="home-section" id="episodes-section">
       <div class="section-header">
-        <span class="section-title">Nouveaux épisodes</span>
+        <span class="section-title-small">Nouveaux épisodes</span>
       </div>
       <div class="scroll-container" id="episodes-container">
         <div style="text-align: center; padding: var(--spacing-xl); width: 100%;">
@@ -533,10 +451,10 @@
       </div>
     </section>
     
-    <!-- Cursus Section (horizontal scroll) -->
+    <!-- Cursus Section (horizontal scroll like app) -->
     <section class="home-section" id="cursus-section">
       <div class="section-header">
-        <span class="section-title">Nos Cursus</span>
+        <span class="section-title-small">Nos Cursus</span>
         <a href="pages/cursus.html" class="section-link">Voir tout →</a>
       </div>
       <div class="scroll-container" id="cursus-container">
@@ -549,7 +467,7 @@
     <!-- Top 5 Section -->
     <section class="home-section" id="top5-section">
       <div class="section-header">
-        <span class="section-title">Top 5 du mois</span>
+        <span class="section-title-small">Top 5 du mois</span>
       </div>
       <div class="top5-list" id="top5-container">
         <div style="text-align: center; padding: var(--spacing-xl);">
@@ -563,7 +481,7 @@
     
     <!-- Domaines explorés (same as À propos) -->
     <section class="section" style="padding-top: 0;">
-      <div class="container" style="max-width: 800px;">
+      <div class="container" style="max-width: 700px;">
         <div class="section-title-row">
           <span class="section-title-gray">Domaines explorés</span>
           <span class="section-title-line"></span>
@@ -591,7 +509,7 @@
     
     <!-- Vision Block (same as À propos) -->
     <section class="section" style="padding-top: 0;">
-      <div class="container" style="max-width: 800px;">
+      <div class="container" style="max-width: 700px;">
         <div class="vision-block">
           <span class="vision-label">Notre ambition</span>
           <p class="vision-text">
@@ -601,7 +519,7 @@
       </div>
     </section>
     
-    <!-- Footer Logo (same as À propos) -->
+    <!-- Footer Logo -->
     <section class="section" style="text-align: center; padding-bottom: 40px;">
       <div style="width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--brand-gold), transparent); margin: 0 auto 16px;"></div>
       <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px;">
@@ -654,7 +572,6 @@
       
       <div class="footer-bottom">
         <p>&copy; 2026 Sijill Project. Tous droits réservés.</p>
-        <p class="footer-tagline">Rigueur · Pluralité · Transmission</p>
       </div>
     </div>
   </footer>
@@ -670,7 +587,6 @@
       <div class="modal-body">
         <div id="form-error" style="display: none;"></div>
         
-        <!-- Login Form -->
         <form id="login-form" onsubmit="handleLoginSubmit(event)">
           <div class="form-group">
             <label class="form-label">Email</label>
@@ -683,7 +599,6 @@
           <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
         </form>
         
-        <!-- Register Form -->
         <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
           <div class="form-group">
             <label class="form-label">Nom complet</label>
@@ -719,17 +634,17 @@
   <script>
     function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
     
-    // Cursus config for home page (use different name to avoid conflict with app.js)
+    // Cursus config (like app)
     const HOME_CURSUS_CONFIG = {
-      'cursus-falsafa': { color: '#04D182', letter: 'A' },
-      'cursus-theologie': { color: '#8B5CF6', letter: 'B' },
-      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C' },
-      'cursus-arts': { color: '#EC4899', letter: 'D' },
-      'cursus-spiritualites': { color: '#06B6D4', letter: 'E' }
+      'cursus-falsafa': { color: '#04D182', letter: 'A', shortName: 'Falsafa', title: 'Philosophie islamique', desc: "D'Al-Kindī à Ibn Khaldūn — la grande tradition philosophique de l'Islam classique." },
+      'cursus-theologie': { color: '#8B5CF6', letter: 'B', shortName: 'Kalām', title: 'Théologie & Droit', desc: 'Les grandes écoles de théologie rationnelle et les fondements du droit islamique.' },
+      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C', shortName: 'Sciences', title: 'Sciences islamiques', desc: 'Coran, hadith, historiographie — les sciences qui ont structuré la civilisation islamique.' },
+      'cursus-arts': { color: '#EC4899', letter: 'D', shortName: 'Arts', title: 'Arts, Sciences & Géographie', desc: 'Poésie, médecine, géographie, musique — les arts et les sciences de la civilisation arabo-islamique.' },
+      'cursus-spiritualites': { color: '#06B6D4', letter: 'E', shortName: 'Connexions', title: 'Philosophies connectées', desc: 'Dialogue entre Islam, christianisme oriental, soufisme, ismaélisme et judaïsme médiéval.' }
     };
     
     function getHomeCursusConfig(cursusId) {
-      return HOME_CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?' };
+      return HOME_CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?', shortName: '', title: '', desc: '' };
     }
     
     // Load all home page data
@@ -757,7 +672,7 @@
           document.getElementById('episodes-section').style.display = 'none';
         }
         
-        // Render cursus scroll
+        // Render cursus scroll (like app)
         if (cursusData && cursusData.length > 0) {
           renderCursusScroll(cursusData);
         }
@@ -781,22 +696,20 @@
       
       container.innerHTML = `
         <span class="featured-eyebrow">À la une</span>
-        <div class="featured-content">
-          <div class="featured-letter-box" style="border-color: ${config.color};">
-            <span class="featured-letter" style="color: ${config.color};">${config.letter}</span>
-          </div>
+        <div class="featured-header">
+          <div class="featured-letter" style="border-color: ${config.color}; color: ${config.color};">${config.letter}</div>
           <div class="featured-info">
             <h2>${course.title}</h2>
-            <p>${course.description || ''}</p>
-            <div class="featured-meta">
-              ${scholar ? `<span>Par <strong>${scholar.name}</strong></span>` : course.scholar_name ? `<span>Par <strong>${course.scholar_name}</strong></span>` : ''}
-              ${course.modules_count ? `<span><i class="fas fa-headphones"></i> ${course.modules_count} épisodes</span>` : ''}
-            </div>
-            <button class="btn btn-primary" onclick="requireAuth('pages/abonnement.html')">
-              <i class="fas fa-play"></i> Écouter
-            </button>
+            <p>${course.description?.substring(0, 120) || ''}...</p>
           </div>
         </div>
+        <div class="featured-meta">
+          ${scholar ? `<span>Par <strong>${scholar.name}</strong></span>` : course.scholar_name ? `<span>Par <strong>${course.scholar_name}</strong></span>` : ''}
+          ${course.modules_count ? `<span><i class="fas fa-headphones"></i> ${course.modules_count} épisodes</span>` : ''}
+        </div>
+        <button class="btn btn-primary featured-btn" onclick="requireAuth('pages/abonnement.html')">
+          <i class="fas fa-play"></i> Écouter
+        </button>
       `;
     }
     
@@ -806,10 +719,10 @@
       container.innerHTML = episodes.slice(0, 10).map(ep => {
         const config = getHomeCursusConfig(ep.cursus_id);
         return `
-          <div class="episode-card" onclick="requireAuth('pages/abonnement.html')">
+          <div class="episode-card" style="border-left-color: ${config.color};" onclick="requireAuth('pages/abonnement.html')">
             <div class="episode-header">
               <div class="episode-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
-              <span class="episode-cursus" style="color: ${config.color};">${ep.cursus_name || ''}</span>
+              <span class="episode-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
             </div>
             <h4 class="episode-title">${ep.title}</h4>
             <p class="episode-meta">${ep.scholar_name || ''}</p>
@@ -824,10 +737,16 @@
       container.innerHTML = cursus.map(c => {
         const config = getHomeCursusConfig(c.id);
         return `
-          <div class="cursus-scroll-card" onclick="requireAuth('pages/abonnement.html')" style="border-left: 2px solid ${config.color};">
-            <div class="cursus-scroll-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
-            <h4 class="cursus-scroll-name">${c.name}</h4>
-            <p class="cursus-scroll-count">${c.course_count || 0} cours</p>
+          <div class="cursus-card" style="border-left-color: ${config.color};" onclick="requireAuth('pages/abonnement.html')">
+            <div class="cursus-card-header">
+              <span class="cursus-card-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
+              <span class="cursus-card-stats">${c.course_count || 0} cours</span>
+            </div>
+            <h4 class="cursus-card-title">${config.title || c.name}</h4>
+            <p class="cursus-card-desc">${config.desc || c.description?.substring(0, 100) || ''}</p>
+            <div class="cursus-card-footer">
+              <span class="cursus-card-stat"><i class="fas fa-play-circle"></i> ${c.episodes_count || (c.course_count * 5) || 0} épisodes</span>
+            </div>
           </div>
         `;
       }).join('');
