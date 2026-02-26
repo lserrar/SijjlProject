@@ -2,8 +2,8 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Timeline</h1>
-        <p class="page-description">Gérez les timelines HTML et documents de contexte historique</p>
+        <h1 class="page-title">Ressources</h1>
+        <p class="page-description">Gérez les timelines, documents de contexte et conférences audio</p>
     </div>
     <div class="btn-group">
         <button class="btn btn-primary" onclick="syncResources()">
@@ -143,10 +143,72 @@
     </div>
 </div>
 
+<!-- Edit Audio Modal -->
+<div id="editAudioModal" class="modal" style="display: none;">
+    <div class="modal-content modal-medium">
+        <div class="modal-header">
+            <h2 class="modal-title">Éditer la conférence audio</h2>
+            <button class="modal-close" onclick="closeEditAudioModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editAudioId" value="">
+            <p id="editAudioFilename" style="color: var(--text-secondary); margin-bottom: 16px; font-size: 12px;"></p>
+            
+            <div class="form-group">
+                <label>Titre</label>
+                <input type="text" id="editAudioTitle" class="form-input" placeholder="Titre de la conférence">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Conférencier</label>
+                    <input type="text" id="editAudioSpeaker" class="form-input" placeholder="Nom du conférencier">
+                </div>
+                <div class="form-group">
+                    <label>Sujet</label>
+                    <input type="text" id="editAudioSubject" class="form-input" placeholder="Sujet traité">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Module</label>
+                <select id="editAudioModule" class="form-select">
+                    <option value="0">— Non spécifié —</option>
+                    <option value="1">Module 1</option>
+                    <option value="2">Module 2</option>
+                    <option value="3">Module 3</option>
+                    <option value="4">Module 4</option>
+                    <option value="5">Module 5</option>
+                    <option value="6">Module 6</option>
+                    <option value="7">Module 7</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editAudioDescription" class="form-textarea" rows="3" placeholder="Description de la conférence"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Crédits</label>
+                <textarea id="editAudioCredits" class="form-textarea" rows="2" placeholder="Crédits et remerciements"></textarea>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeEditAudioModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveAudioEdit()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .modal-large {
         max-width: 900px;
         max-height: 80vh;
+    }
+    .modal-medium {
+        max-width: 600px;
     }
     .modal-body {
         max-height: 60vh;
@@ -210,11 +272,48 @@
     .modal-small {
         max-width: 400px;
     }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .form-textarea {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 14px;
+        resize: vertical;
+    }
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+    }
+    .audio-player-mini {
+        width: 100%;
+        height: 32px;
+        margin-top: 8px;
+    }
+    .audio-title-cell {
+        max-width: 300px;
+    }
+    .audio-title-main {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    .audio-title-sub {
+        font-size: 11px;
+        color: var(--text-tertiary);
+        margin-top: 2px;
+    }
 </style>
 
 <script>
     let resourcesData = null;
     let currentAssignFilename = null;
+    let currentEditAudioId = null;
     
     async function loadResources() {
         try {
@@ -223,6 +322,7 @@
             // Update stats
             document.getElementById('totalTimelines').textContent = resourcesData.total_timelines;
             document.getElementById('totalContextDocs').textContent = resourcesData.total_context_docs;
+            document.getElementById('totalAudios').textContent = resourcesData.total_audios || 0;
             
             // Render timelines table
             const timelinesTable = document.getElementById('timelinesTable');
@@ -274,6 +374,36 @@
                             <div class="action-btns">
                                 <button class="btn btn-sm btn-secondary" onclick="previewContext('${d.filename.replace('.docx', '')}')">
                                     <i class="fas fa-eye"></i> Aperçu
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Render audio resources table
+            const audioTable = document.getElementById('audioTable');
+            const audioResources = resourcesData.audio_resources || [];
+            if (audioResources.length === 0) {
+                audioTable.innerHTML = '<tr><td colspan="5" class="empty-state">Aucune conférence audio trouvée</td></tr>';
+            } else {
+                audioTable.innerHTML = audioResources.map(a => `
+                    <tr>
+                        <td><span class="module-badge">Module ${a.module_number || '?'}</span></td>
+                        <td class="audio-title-cell">
+                            <div class="audio-title-main">${a.title}</div>
+                            <div class="audio-title-sub">${a.filename}</div>
+                            ${a.description ? `<div class="audio-title-sub" style="font-style: italic;">${a.description.substring(0, 80)}${a.description.length > 80 ? '...' : ''}</div>` : ''}
+                        </td>
+                        <td>${a.speaker || '-'}</td>
+                        <td>${a.size_mb} Mo</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-primary" onclick="openEditAudioModal('${a.id}', '${a.filename}')" title="Éditer">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="playAudio('${a.stream_url}')" title="Écouter">
+                                    <i class="fas fa-play"></i>
                                 </button>
                             </div>
                         </td>
@@ -367,6 +497,74 @@
         }
     }
     
+    // Edit Audio Modal Functions
+    async function openEditAudioModal(audioId, filename) {
+        currentEditAudioId = audioId;
+        document.getElementById('editAudioId').value = audioId;
+        document.getElementById('editAudioFilename').textContent = filename;
+        
+        // Find audio in resourcesData
+        const audio = (resourcesData.audio_resources || []).find(a => a.id === audioId);
+        
+        if (audio) {
+            document.getElementById('editAudioTitle').value = audio.title || '';
+            document.getElementById('editAudioSpeaker').value = audio.speaker || '';
+            document.getElementById('editAudioSubject').value = audio.subject || '';
+            document.getElementById('editAudioModule').value = audio.module_number || 0;
+            document.getElementById('editAudioDescription').value = audio.description || '';
+            document.getElementById('editAudioCredits').value = audio.credits || '';
+        } else {
+            // Clear form
+            document.getElementById('editAudioTitle').value = '';
+            document.getElementById('editAudioSpeaker').value = '';
+            document.getElementById('editAudioSubject').value = '';
+            document.getElementById('editAudioModule').value = 0;
+            document.getElementById('editAudioDescription').value = '';
+            document.getElementById('editAudioCredits').value = '';
+        }
+        
+        document.getElementById('editAudioModal').style.display = 'flex';
+    }
+    
+    function closeEditAudioModal() {
+        document.getElementById('editAudioModal').style.display = 'none';
+        currentEditAudioId = null;
+    }
+    
+    async function saveAudioEdit() {
+        if (!currentEditAudioId) return;
+        
+        const data = {
+            title: document.getElementById('editAudioTitle').value.trim(),
+            speaker: document.getElementById('editAudioSpeaker').value.trim(),
+            subject: document.getElementById('editAudioSubject').value.trim(),
+            module_number: parseInt(document.getElementById('editAudioModule').value) || 0,
+            description: document.getElementById('editAudioDescription').value.trim(),
+            credits: document.getElementById('editAudioCredits').value.trim()
+        };
+        
+        try {
+            await apiRequest(`/admin/resources/audio/${currentEditAudioId}`, 'PUT', data);
+            showToast('Conférence audio mise à jour', 'success');
+            closeEditAudioModal();
+            loadResources();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
+    function playAudio(streamUrl) {
+        // Open a small preview modal with audio player
+        document.getElementById('previewTitle').textContent = 'Lecture audio';
+        document.getElementById('previewContent').innerHTML = `
+            <audio controls autoplay style="width: 100%;">
+                <source src="${streamUrl}" type="audio/mpeg">
+                Votre navigateur ne supporte pas l'élément audio.
+            </audio>
+        `;
+        document.getElementById('previewModal').style.display = 'flex';
+    }
+    
     // Close modal on outside click
     document.getElementById('previewModal').addEventListener('click', function(e) {
         if (e.target === this) closePreview();
@@ -374,6 +572,10 @@
     
     document.getElementById('assignCursusModal').addEventListener('click', function(e) {
         if (e.target === this) closeAssignModal();
+    });
+    
+    document.getElementById('editAudioModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditAudioModal();
     });
     
     // Initialize
