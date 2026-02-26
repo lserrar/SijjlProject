@@ -11,6 +11,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     /* Home page specific styles */
+    main {
+      margin-top: var(--header-height);
+      max-width: var(--max-width);
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 var(--spacing-lg);
+    }
+    
     .home-section {
       padding: var(--spacing-xl) 0;
     }
@@ -20,7 +28,6 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: var(--spacing-lg);
-      padding: 0 var(--spacing-xl);
     }
     
     .section-title {
@@ -39,7 +46,6 @@
     
     /* Featured Course */
     .featured-course {
-      margin: var(--spacing-xl);
       padding: var(--spacing-xl);
       background: var(--bg-card);
       border-left: 2px solid var(--brand-primary);
