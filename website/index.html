@@ -565,8 +565,8 @@
   <script>
     function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
     
-    // Cursus config
-    const CURSUS_CONFIG = {
+    // Cursus config for home page (use different name to avoid conflict with app.js)
+    const HOME_CURSUS_CONFIG = {
       'cursus-falsafa': { color: '#04D182', letter: 'A' },
       'cursus-theologie': { color: '#8B5CF6', letter: 'B' },
       'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C' },
@@ -574,8 +574,8 @@
       'cursus-spiritualites': { color: '#06B6D4', letter: 'E' }
     };
     
-    function getCursusConfig(cursusId) {
-      return CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?' };
+    function getHomeCursusConfig(cursusId) {
+      return HOME_CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?' };
     }
     
     // Load all home page data
