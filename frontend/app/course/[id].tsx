@@ -1212,4 +1212,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+
+  // AUDIO CONFERENCE STYLES
+  audioConferenceCard: {
+    backgroundColor: '#111111',
+    marginBottom: 10,
+    padding: 16,
+    overflow: 'hidden',
+  },
+  audioConferenceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  audioPlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  audioPlayBtnActive: {
+    backgroundColor: 'rgba(4, 209, 130, 0.1)',
+  },
+  audioPlayerContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
 });
