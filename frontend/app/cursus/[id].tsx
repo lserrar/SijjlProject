@@ -1181,14 +1181,6 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 10,
   },
-  emptyText: {
-    fontFamily: 'EBGaramond',
-    fontSize: 14,
-    color: '#777777',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 40,
-  },
 
   // ─── COURSE CARD ──────────────────────────────────────────────────────────
   courseCardWrap: {
