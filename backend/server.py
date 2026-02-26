@@ -2755,6 +2755,33 @@ async def admin_sync_timeline_resources(request: Request):
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+@api_router.patch("/admin/resources/timeline/{filename}/assign-cursus")
+async def assign_timeline_cursus(filename: str, request: Request):
+    """Manually assign a cursus letter to a timeline file."""
+    await require_admin(request)
+    
+    body = await request.json()
+    cursus_letter = body.get('cursus_letter', '').upper().strip()
+    
+    if cursus_letter and cursus_letter not in ['A', 'B', 'C', 'D', 'E']:
+        raise HTTPException(400, "Cursus invalide. Utilisez A, B, C, D ou E.")
+    
+    # Update or create the timeline resource entry
+    result = await db.timeline_resources.update_one(
+        {'filename': filename, 'type': 'timeline'},
+        {'$set': {
+            'cursus_letter': cursus_letter if cursus_letter else None,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {
+        'message': f'Cursus {"assigné: " + cursus_letter if cursus_letter else "retiré"} pour {filename}',
+        'filename': filename,
+        'cursus_letter': cursus_letter if cursus_letter else None
+    }
+
 @api_router.post("/admin/courses/{course_id}/sync-r2")
 async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request: Request):
     """
