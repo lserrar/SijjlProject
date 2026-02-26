@@ -271,14 +271,13 @@ async function loadCursusPage() {
   }
 }
 
-// ─── Cursus Colors - Exact match with app ──────────────────────────────────
-// Colors matching the actual cursus IDs from the database
+// ─── Cursus Colors - Exact match with app (A, B, C, D, E) ──────────────────
 const CURSUS_CONFIG = {
-  'cursus-falsafa': { color: '#04D182', letter: 'F', name: 'Falsafa' },
-  'cursus-theologie': { color: '#8B5CF6', letter: 'K', name: 'Kalām' },
-  'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'S', name: 'Sciences' },
-  'cursus-arts': { color: '#EC4899', letter: 'A', name: 'Arts' },
-  'cursus-spiritualites': { color: '#06B6D4', letter: 'P', name: 'Philosophies' }
+  'cursus-falsafa': { color: '#04D182', letter: 'A' },
+  'cursus-theologie': { color: '#8B5CF6', letter: 'B' },
+  'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C' },
+  'cursus-arts': { color: '#EC4899', letter: 'D' },
+  'cursus-spiritualites': { color: '#06B6D4', letter: 'E' }
 };
 
 function getCursusStyle(cursusId) {
