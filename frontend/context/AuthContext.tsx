@@ -23,6 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<any>;
   register: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<any>;
   logout: () => Promise<void>;
   exchangeGoogleSession: (sessionId: string) => Promise<any>;
 }
