@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Tarification - Sijill Admin{% endblock %}
+
+{% block content %}
+<style>
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px; }
+.pricing-card { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px; text-align: center; transition: all 0.3s; }
+.pricing-card:hover { border-color: var(--brand-primary); }
+.pricing-card.featured { border-color: var(--brand-primary); background: linear-gradient(135deg, rgba(4, 209, 130, 0.05) 0%, rgba(4, 209, 130, 0.02) 100%); }
+.pricing-card .plan-name { font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; }
+.pricing-card .plan-price { font-family: 'Cinzel', serif; font-size: 48px; color: var(--text-primary); margin-bottom: 8px; }
+.pricing-card .plan-period { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+.pricing-card .plan-features { list-style: none; padding: 0; margin: 0 0 24px 0; text-align: left; }
+.pricing-card .plan-features li { padding: 8px 0; border-bottom: 1px solid var(--border-subtle); font-size: 14px; color: var(--text-secondary); }
+.pricing-card .plan-features li i { color: var(--brand-primary); margin-right: 8px; }
+@media (max-width: 1000px) { .pricing-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tarification</h1>
+        <p class="page-description">Configurez les plans et les prix</p>
+    </div>
+    <button class="btn btn-primary" onclick="savePricing()">
+        <i class="fas fa-save"></i> Enregistrer les modifications
+    </button>
+</div>
+
+<div class="pricing-grid">
+    <div class="pricing-card">
+        <div class="plan-name">Essai Gratuit</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+            <input type="number" id="trialDays" class="form-input" value="3" min="0" max="30" style="width: 80px; text-align: center; font-size: 32px; font-family: 'Cinzel', serif;">
+        </div>
+        <div class="plan-period">jours gratuits</div>
+        <ul class="plan-features">
+            <li><i class="fas fa-check"></i> Accès complet au catalogue</li>
+            <li><i class="fas fa-check"></i> Écoute illimitée</li>
+            <li><i class="fas fa-check"></i> Sans engagement</li>
+        </ul>
+    </div>
+    
+    <div class="pricing-card featured">
+        <div class="plan-name" style="color: var(--brand-primary);">Mensuel</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 8px;">
+            <input type="number" id="monthlyPrice" class="form-input" value="9.99" step="0.01" min="0" style="width: 120px; text-align: center; font-size: 32px; font-family: 'Cinzel', serif;">
+            <span style="font-size: 18px; color: var(--text-muted);">€</span>
+        </div>
+        <div class="plan-period">par mois</div>
+        <ul class="plan-features">
+            <li><i class="fas fa-check"></i> Accès complet au catalogue</li>
+            <li><i class="fas fa-check"></i> Nouveaux contenus chaque semaine</li>
+            <li><i class="fas fa-check"></i> Résiliable à tout moment</li>
+            <li><i class="fas fa-check"></i> Support prioritaire</li>
+        </ul>
+    </div>
+    
+    <div class="pricing-card">
+        <div class="plan-name">Annuel</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 8px;">
+            <input type="number" id="annualPrice" class="form-input" value="89.99" step="0.01" min="0" style="width: 120px; text-align: center; font-size: 32px; font-family: 'Cinzel', serif;">
+            <span style="font-size: 18px; color: var(--text-muted);">€</span>
+        </div>
+        <div class="plan-period">par an <span id="savingsLabel" style="color: var(--brand-primary); font-size: 12px;"></span></div>
+        <ul class="plan-features">
+            <li><i class="fas fa-check"></i> Tout le plan mensuel</li>
+            <li><i class="fas fa-check"></i> Économisez jusqu'à 25%</li>
+            <li><i class="fas fa-check"></i> Accès anticipé aux nouveautés</li>
+            <li><i class="fas fa-check"></i> Contenu exclusif</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card" style="padding: 24px;">
+    <h3 style="font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;">Configuration Stripe</h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div class="form-group">
+            <label class="form-label">Product ID Mensuel (Stripe)</label>
+            <input type="text" class="form-input" id="monthlyProductId" placeholder="price_...">
+            <div class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">ID du prix Stripe pour l'abonnement mensuel</div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Product ID Annuel (Stripe)</label>
+            <input type="text" class="form-input" id="annualProductId" placeholder="price_...">
+            <div class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">ID du prix Stripe pour l'abonnement annuel</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadPricing();
+updateSavingsLabel();
+document.getElementById('monthlyPrice').addEventListener('input', updateSavingsLabel);
+document.getElementById('annualPrice').addEventListener('input', updateSavingsLabel);
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateSavingsLabel() {
+    const monthly = parseFloat(document.getElementById('monthlyPrice').value) || 0;
+    const annual = parseFloat(document.getElementById('annualPrice').value) || 0;
+    const yearlyMonthly = monthly * 12;
+    const savings = yearlyMonthly > 0 ? Math.round((1 - annual / yearlyMonthly) * 100) : 0;
+    document.getElementById('savingsLabel').textContent = savings > 0 ? `(−${savings}%)` : '';
+}
+
+async function loadPricing() {
+    try {
+        const settings = await apiRequest('/admin/settings') || {};
+        document.getElementById('trialDays').value = settings.trial_days ?? 3;
+        document.getElementById('monthlyPrice').value = settings.monthly_price ?? 9.99;
+        document.getElementById('annualPrice').value = settings.annual_price ?? 89.99;
+        document.getElementById('monthlyProductId').value = settings.stripe_monthly_price_id || '';
+        document.getElementById('annualProductId').value = settings.stripe_annual_price_id || '';
+        updateSavingsLabel();
+    } catch (error) {
+        showToast('Erreur de chargement', 'error');
+    }
+}
+
+async function savePricing() {
+    try {
+        await apiRequest('/admin/settings/pricing', 'PUT', {
+            trial_days: parseInt(document.getElementById('trialDays').value) || 0,
+            monthly_price: parseFloat(document.getElementById('monthlyPrice').value) || 9.99,
+            annual_price: parseFloat(document.getElementById('annualPrice').value) || 89.99,
+            stripe_monthly_price_id: document.getElementById('monthlyProductId').value,
+            stripe_annual_price_id: document.getElementById('annualProductId').value
+        });
+        showToast('Configuration enregistrée');
+    } catch (error) {
+        showToast(error.message || 'Erreur', 'error');
+    }
+}
+</script>
+{% endblock %}

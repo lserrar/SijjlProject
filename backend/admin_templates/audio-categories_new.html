@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Catégories Audio - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Catégories Audio</h1>
+        <p class="page-description">Organisez vos contenus audio par catégories</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()" data-testid="add-category-btn">
+        <i class="fas fa-plus"></i> Nouvelle catégorie
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-container" id="dataTable" data-testid="categories-table">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Nouvelle catégorie</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="categoryForm" onsubmit="saveCategory(event)">
+            <div class="modal-body">
+                <input type="hidden" id="categoryId">
+                <div class="form-group">
+                    <label class="form-label">Nom *</label>
+                    <input type="text" class="form-input" id="name" required placeholder="Ex: Conférences">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="description" placeholder="Description de la catégorie..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dossier R2</label>
+                    <input type="text" class="form-input" id="r2_folder" placeholder="Ex: Conferences/">
+                    <div class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">Chemin du dossier dans le bucket R2</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icône (FontAwesome)</label>
+                    <input type="text" class="form-input" id="icon" value="folder" placeholder="Ex: microphone">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ordre</label>
+                    <input type="number" class="form-input" id="order" value="1" min="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadData();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let categories = [];
+
+function openModal(category = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = category ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+    
+    if (category) {
+        document.getElementById('categoryId').value = category.id;
+        document.getElementById('name').value = category.name || '';
+        document.getElementById('description').value = category.description || '';
+        document.getElementById('r2_folder').value = category.r2_folder || '';
+        document.getElementById('icon').value = category.icon || 'folder';
+        document.getElementById('order').value = category.order || 1;
+    } else {
+        document.getElementById('categoryForm').reset();
+        document.getElementById('categoryId').value = '';
+        document.getElementById('order').value = categories.length + 1;
+    }
+}
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+async function saveCategory(event) {
+    event.preventDefault();
+    const id = document.getElementById('categoryId').value;
+    const data = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        r2_folder: document.getElementById('r2_folder').value,
+        icon: document.getElementById('icon').value || 'folder',
+        order: parseInt(document.getElementById('order').value) || 1
+    };
+    
+    try {
+        if (id) {
+            await apiRequest(`/admin/audio-categories/${id}`, 'PUT', data);
+            showToast('Catégorie modifiée');
+        } else {
+            await apiRequest('/admin/audio-categories', 'POST', data);
+            showToast('Catégorie créée');
+        }
+        closeModal();
+        loadData();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function deleteCategory(id, name) {
+    if (!confirm(`Supprimer la catégorie "${name}" ?`)) return;
+    try {
+        await apiRequest(`/admin/audio-categories/${id}`, 'DELETE');
+        showToast('Catégorie supprimée');
+        loadData();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function renderData(data) {
+    if (!data || data.length === 0) {
+        document.getElementById('dataTable').innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Aucune catégorie. Créez-en une pour organiser vos audios.</p>`;
+        return;
+    }
+    document.getElementById('dataTable').innerHTML = `
+        <table>
+            <thead><tr><th>#</th><th>Catégorie</th><th>Dossier R2</th><th>Audios</th><th>Actions</th></tr></thead>
+            <tbody>
+                ${data.map(c => `
+                    <tr>
+                        <td><span style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">${c.order || '-'}</span></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-${c.icon || 'folder'}" style="color: var(--brand-primary);"></i>
+                                <div>
+                                    <div class="table-cell-text">${c.name}</div>
+                                    <div class="table-cell-subtext">${c.description || '-'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><code style="font-size: 12px; background: var(--bg-tertiary); padding: 2px 6px;">${c.r2_folder || '-'}</code></td>
+                        <td>${c.audio_count || 0}</td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick='openModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCategory('${c.id}', '${c.name.replace(/'/g, "\\'")}')" ><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+async function loadData() {
+    try {
+        categories = await apiRequest('/admin/audio-categories') || [];
+        renderData(categories);
+    } catch (error) { showToast('Erreur de chargement', 'error'); }
+}
+</script>
+{% endblock %}

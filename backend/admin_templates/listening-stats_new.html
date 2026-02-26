@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiques d'écoute - Sijill Admin{% endblock %}
+
+{% block content %}
+<style>
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 24px; }
+.stat-card .stat-value { font-family: 'Cinzel', serif; font-size: 32px; color: var(--text-primary); margin-bottom: 4px; }
+.stat-card .stat-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.chart-container { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 24px; margin-bottom: 24px; }
+.chart-title { font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; color: var(--text-primary); }
+@media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Statistiques d'écoute</h1>
+        <p class="page-description">Analyse des comportements d'écoute</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <select class="form-select" id="periodFilter" onchange="loadStats()" style="width: 150px;">
+            <option value="7">7 derniers jours</option>
+            <option value="30" selected>30 derniers jours</option>
+            <option value="90">3 mois</option>
+            <option value="365">1 an</option>
+        </select>
+        <button class="btn btn-secondary" onclick="loadStats()">
+            <i class="fas fa-sync"></i> Actualiser
+        </button>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value" id="totalListens">-</div>
+        <div class="stat-label">Écoutes totales</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="uniqueListeners">-</div>
+        <div class="stat-label">Auditeurs uniques</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="avgDuration">-</div>
+        <div class="stat-label">Durée moyenne</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" id="completionRate">-</div>
+        <div class="stat-label">Taux de complétion</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div class="chart-container">
+        <div class="chart-title">Top 10 des contenus écoutés</div>
+        <div id="topContentList">
+            <div class="loading"><div class="spinner"></div> Chargement...</div>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <div class="chart-title">Activité par jour</div>
+        <div id="activityChart" style="height: 300px; display: flex; align-items: flex-end; gap: 4px; padding-top: 20px;">
+            <div class="loading"><div class="spinner"></div> Chargement...</div>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container">
+    <div class="chart-title">Dernières écoutes</div>
+    <div class="table-container" id="recentListensTable">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadStats();
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatDuration(seconds) {
+    if (!seconds) return '-';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatDateTime(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadStats() {
+    const days = document.getElementById('periodFilter').value;
+    
+    try {
+        const stats = await apiRequest(`/admin/listening-stats?days=${days}`);
+        
+        // Update summary cards
+        document.getElementById('totalListens').textContent = stats.total_listens?.toLocaleString() || '0';
+        document.getElementById('uniqueListeners').textContent = stats.unique_listeners?.toLocaleString() || '0';
+        document.getElementById('avgDuration').textContent = formatDuration(stats.avg_duration);
+        document.getElementById('completionRate').textContent = stats.completion_rate ? `${Math.round(stats.completion_rate)}%` : '-';
+        
+        // Top content
+        if (stats.top_content && stats.top_content.length > 0) {
+            document.getElementById('topContentList').innerHTML = stats.top_content.map((item, idx) => `
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-subtle);">
+                    <span style="background: ${idx < 3 ? 'var(--brand-primary)' : 'var(--bg-tertiary)'}; color: ${idx < 3 ? 'var(--bg-primary)' : 'var(--text-secondary)'}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${idx + 1}</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 500;">${item.title || 'Sans titre'}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${item.scholar_name || '-'}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 600; color: var(--brand-primary);">${item.listen_count || 0}</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">écoutes</div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            document.getElementById('topContentList').innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">Aucune donnée disponible</p>';
+        }
+        
+        // Activity chart (simple bar chart)
+        if (stats.daily_activity && stats.daily_activity.length > 0) {
+            const maxValue = Math.max(...stats.daily_activity.map(d => d.count));
+            document.getElementById('activityChart').innerHTML = stats.daily_activity.map(d => {
+                const height = maxValue > 0 ? (d.count / maxValue) * 250 : 0;
+                return `
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 100%; height: ${height}px; background: var(--brand-primary); border-radius: 4px 4px 0 0; min-height: 2px;" title="${d.count} écoutes"></div>
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 8px; writing-mode: vertical-rl; transform: rotate(180deg);">${d.date?.substring(5) || ''}</div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            document.getElementById('activityChart').innerHTML = '<p style="color: var(--text-secondary); text-align: center; width: 100%;">Aucune activité</p>';
+        }
+        
+        // Recent listens
+        if (stats.recent_listens && stats.recent_listens.length > 0) {
+            document.getElementById('recentListensTable').innerHTML = `
+                <table>
+                    <thead><tr><th>Contenu</th><th>Utilisateur</th><th>Durée</th><th>Date</th></tr></thead>
+                    <tbody>
+                        ${stats.recent_listens.slice(0, 20).map(l => `
+                            <tr>
+                                <td>${l.audio_title || '-'}</td>
+                                <td>${l.user_email || 'Anonyme'}</td>
+                                <td>${formatDuration(l.duration)}</td>
+                                <td>${formatDateTime(l.created_at)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            document.getElementById('recentListensTable').innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">Aucune écoute récente</p>';
+        }
+        
+    } catch (error) {
+        showToast('Erreur de chargement des statistiques', 'error');
+        document.getElementById('topContentList').innerHTML = '<p style="color: var(--danger);">Erreur de chargement</p>';
+    }
+}
+</script>
+{% endblock %}
