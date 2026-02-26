@@ -5228,18 +5228,12 @@ async def admin_panel_users(request: Request):
     )
 
 @api_router.get("/admin-panel/listening-stats", response_class=HTMLResponse)
-async def admin_panel_listening_stats():
+async def admin_panel_listening_stats(request: Request):
     """Admin panel listening statistics page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'listening-stats.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template listening-stats non trouvé")
-    # Load base template and inject content
-    base_path = ADMIN_TEMPLATES_DIR / 'base.html'
-    stats_content = template_path.read_text(encoding='utf-8')
-    base_html = base_path.read_text(encoding='utf-8')
-    # Simple template rendering - replace content block
-    final_html = base_html.replace('<!-- Content will be loaded here -->', stats_content.replace('{% extends "base.html" %}', '').replace('{% block content %}', '').replace('{% endblock %}', ''))
-    return HTMLResponse(content=final_html)
+    return templates.TemplateResponse(
+        "listening-stats.html",
+        {"request": request, "active_page": "listening-stats"}
+    )
 
 @api_router.get("/admin-panel/highlight", response_class=HTMLResponse)
 async def admin_panel_highlight(request: Request):
