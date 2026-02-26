@@ -5823,6 +5823,14 @@ async def admin_panel_pricing(request: Request):
         {"request": request, "active_page": "pricing"}
     )
 
+@api_router.get("/admin-panel/referrals", response_class=HTMLResponse)
+async def admin_panel_referrals(request: Request):
+    """Admin panel referrals management page."""
+    return templates.TemplateResponse(
+        "referrals.html",
+        {"request": request, "active_page": "referrals"}
+    )
+
 # ─── Promo Codes & Free Trial ─────────────────────────────────────────────────
 
 @api_router.post("/promo/validate")
