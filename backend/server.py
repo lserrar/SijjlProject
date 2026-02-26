@@ -5258,13 +5258,12 @@ async def admin_panel_timeline_resources(request: Request):
     )
 
 @api_router.get("/admin-panel/audios", response_class=HTMLResponse)
-async def admin_panel_audios():
-    """Admin panel audios page - redirect to scholars for now."""
-    template_path = ADMIN_TEMPLATES_DIR / 'audios.html'
-    if template_path.exists():
-        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
-    # Fallback to dashboard
-    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+async def admin_panel_audios(request: Request):
+    """Admin panel audios page."""
+    return templates.TemplateResponse(
+        "audios_new.html",
+        {"request": request, "active_page": "audios"}
+    )
 
 @api_router.get("/admin-panel/articles", response_class=HTMLResponse)
 async def admin_panel_articles():
