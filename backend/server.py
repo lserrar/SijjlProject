@@ -2503,6 +2503,108 @@ async def list_available_timelines():
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+@api_router.get("/timelines/cursus/{cursus_id}")
+async def get_cursus_timelines(cursus_id: str):
+    """Get all timelines for a specific cursus."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Map cursus_id to letter
+    cursus_letter_map = {
+        'cursus-falsafa': 'A',
+        'cursus-theologie': 'B', 
+        'cursus-sciences-islamiques': 'C',
+        'cursus-arts': 'D',
+        'cursus-spiritualites': 'E'
+    }
+    
+    letter = cursus_letter_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else None)
+    if not letter or letter not in ['A', 'B', 'C', 'D', 'E']:
+        return {'timelines': [], 'count': 0}
+    
+    # Get all timeline entries from DB for this cursus
+    db_entries = await db.timeline_resources.find(
+        {'cursus_letter': letter, 'type': 'timeline'}
+    ).to_list(20)
+    
+    timelines = []
+    for entry in db_entries:
+        filename = entry.get('filename', '')
+        if not filename:
+            continue
+            
+        # Check if file exists in R2
+        r2_key = f"Timeline/{filename}"
+        try:
+            r2_client.head_object(Bucket=R2_BUCKET, Key=r2_key)
+            file_exists = True
+        except:
+            file_exists = False
+        
+        if file_exists:
+            timelines.append({
+                'id': filename.replace('.html', '').lower().replace(' ', '-').replace('_', '-'),
+                'filename': filename,
+                'title': entry.get('title') or filename.replace('.html', '').replace('_', ' ').replace('sijill timeline ', '').title(),
+                'cursus_letter': letter,
+                'url': f'/api/timeline/file/{filename}',
+                'updated_at': entry.get('updated_at')
+            })
+    
+    return {'timelines': timelines, 'count': len(timelines)}
+
+@api_router.get("/timeline/file/{filename}")
+async def get_timeline_by_filename(filename: str):
+    """Get timeline HTML by filename."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Sanitize filename
+    if not filename.endswith('.html'):
+        filename = f"{filename}.html"
+    
+    r2_key = f"Timeline/{filename}"
+    
+    try:
+        response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+        html_content = response['Body'].read().decode('utf-8')
+        return HTMLResponse(content=html_content, media_type="text/html")
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        if error_code == 'NoSuchKey':
+            raise HTTPException(404, f"Timeline non trouvée: {filename}")
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.put("/admin/resources/timeline/{resource_id}")
+async def update_timeline_resource(resource_id: str, request: Request):
+    """Update timeline resource metadata (title)."""
+    await require_admin(request)
+    
+    body = await request.json()
+    
+    # Find the entry by filename pattern
+    filename = resource_id.replace('-', '_') + '.html'
+    
+    update_data = {
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    if 'title' in body:
+        update_data['title'] = body['title']
+    if 'cursus_letter' in body:
+        update_data['cursus_letter'] = body['cursus_letter']
+    
+    result = await db.timeline_resources.update_one(
+        {'filename': {'$regex': resource_id.replace('-', '_'), '$options': 'i'}},
+        {'$set': update_data}
+    )
+    
+    return {
+        'message': 'Timeline mise à jour',
+        'resource_id': resource_id,
+        'modified': result.modified_count
+    }
+
 # ─── Context Resources (Word Documents) ────────────────────────────────────────
 
 @api_router.get("/resources/context")
