@@ -633,80 +633,7 @@ export default function CursusCoursesScreen() {
 
         {activeTab === 'ressources' && (
           <View style={styles.resourcesTab}>
-            {/* Timeline Section - Dynamic list from timelines state */}
-            <View style={styles.resourceSection}>
-              <Text style={styles.sectionSubtitle}>Frise chronologique</Text>
-              {timelines.length > 0 ? (
-                timelines.map((timeline: any, idx: number) => (
-                  <TouchableOpacity
-                    key={timeline.id || timeline._id || `timeline-${idx}`}
-                    style={styles.resourceCard}
-                    onPress={() => router.push(`/timeline/${id}?file=${encodeURIComponent(timeline.file_key || timeline.filename || '')}` as any)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.biblioHeader}>
-                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
-                        <Ionicons name="map-outline" size={18} color={cursusColor} />
-                      </View>
-                      <View style={styles.biblioTitleContainer}>
-                        <Text style={styles.biblioTitle}>
-                          {timeline.title || timeline.filename?.replace('.html', '').replace(/_/g, ' ') || 'Timeline'}
-                        </Text>
-                        <Text style={styles.biblioMeta}>
-                          Timeline interactive · Plein écran
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color="#888" />
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <TouchableOpacity
-                  style={styles.resourceCard}
-                  onPress={() => router.push(`/timeline/${id}` as any)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.biblioHeader}>
-                    <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
-                      <Ionicons name="map-outline" size={18} color={cursusColor} />
-                    </View>
-                    <View style={styles.biblioTitleContainer}>
-                      <Text style={styles.biblioTitle}>Carte des Penseurs</Text>
-                      <Text style={styles.biblioMeta}>Timeline interactive · Plein écran</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#888" />
-                  </View>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Context Documents Section */}
-            {contextResources.length > 0 && (
-              <View style={styles.resourceSection}>
-                <Text style={styles.sectionSubtitle}>Contexte historique</Text>
-                {contextResources.map((ctx) => (
-                  <TouchableOpacity
-                    key={ctx.id}
-                    style={styles.resourceCard}
-                    onPress={() => router.push(`/context/${ctx.filename.replace('.docx', '')}` as any)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.biblioHeader}>
-                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
-                        <Ionicons name="time-outline" size={18} color={cursusColor} />
-                      </View>
-                      <View style={styles.biblioTitleContainer}>
-                        <Text style={styles.biblioTitle}>{ctx.subject}</Text>
-                        <Text style={styles.biblioMeta}>Module {ctx.module_number} · Contexte historique</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color="#888" />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Bibliographies Section */}
+            {/* 1. Bibliographies Section - FIRST */}
             {bibliographies.length > 0 && (
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Bibliographies</Text>
@@ -732,7 +659,78 @@ export default function CursusCoursesScreen() {
               </View>
             )}
 
-            {/* Audio Conferences Section */}
+            {/* 2. Timeline Section - SECOND */}
+            <View style={styles.resourceSection}>
+              <Text style={styles.sectionSubtitle}>Frise chronologique</Text>
+              {timelines && timelines.length > 0 ? (
+                timelines.map((timeline: any, idx: number) => (
+                  <TouchableOpacity
+                    key={timeline.id || timeline._id || `timeline-${idx}`}
+                    style={styles.biblioCard}
+                    onPress={() => router.push(`/timeline/${id}?file=${encodeURIComponent(timeline.filename || '')}` as any)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="map-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>
+                          {timeline.title || timeline.filename?.replace('.html', '').replace(/_/g, ' ') || 'Timeline'}
+                        </Text>
+                        <Text style={styles.biblioMeta}>Timeline interactive · Plein écran</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <TouchableOpacity
+                  style={styles.biblioCard}
+                  onPress={() => router.push(`/timeline/${id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.biblioHeader}>
+                    <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                      <Ionicons name="map-outline" size={18} color={cursusColor} />
+                    </View>
+                    <View style={styles.biblioTitleContainer}>
+                      <Text style={styles.biblioTitle}>Carte des Penseurs</Text>
+                      <Text style={styles.biblioMeta}>Timeline interactive · Plein écran</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#888" />
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* 3. Context Documents Section - THIRD */}
+            {contextResources.length > 0 && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Contexte historique</Text>
+                {contextResources.map((ctx) => (
+                  <TouchableOpacity
+                    key={ctx.id}
+                    style={styles.biblioCard}
+                    onPress={() => router.push(`/context/${ctx.filename.replace('.docx', '')}` as any)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="time-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{ctx.subject}</Text>
+                        <Text style={styles.biblioMeta}>Module {ctx.module_number} · Contexte historique</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* 4. Audio Conferences Section - LAST */}
             {audioConferences.length > 0 && (
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Conférences Audio</Text>
