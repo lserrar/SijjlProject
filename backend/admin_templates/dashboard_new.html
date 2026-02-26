@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tableau de bord</h1>
+        <p class="page-description">Vue d'ensemble de la plateforme</p>
+    </div>
+</div>
+
+<div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-spinner fa-spin"></i></div>
+        <div class="stat-value">...</div>
+        <div class="stat-label">Chargement</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Professeurs récents</h2>
+            <a href="/api/admin-panel/professors" class="btn btn-secondary btn-sm">
+                Voir tout
+            </a>
+        </div>
+        <div class="table-container" id="recentScholars">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Chargement...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Cours récents</h2>
+            <a href="/api/admin-panel/courses" class="btn btn-secondary btn-sm">
+                Voir tout
+            </a>
+        </div>
+        <div class="table-container" id="recentCourses">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Chargement...</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadDashboard();
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDashboard() {
+    try {
+        const [scholars, courses, audios, users] = await Promise.all([
+            apiRequest('/admin/scholars'),
+            apiRequest('/admin/courses'),
+            apiRequest('/admin/audios'),
+            apiRequest('/admin/users')
+        ]);
+
+        document.getElementById('statsGrid').innerHTML = `
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-value">${scholars?.length || 0}</div>
+                <div class="stat-label">Professeurs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-book-open"></i></div>
+                <div class="stat-value">${courses?.length || 0}</div>
+                <div class="stat-label">Cours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="fas fa-headphones"></i></div>
+                <div class="stat-value">${audios?.length || 0}</div>
+                <div class="stat-label">Audios</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="fas fa-users"></i></div>
+                <div class="stat-value">${users?.length || 0}</div>
+                <div class="stat-label">Utilisateurs</div>
+            </div>
+        `;
+
+        // Recent scholars
+        if (scholars && scholars.length > 0) {
+            const recentScholars = scholars.slice(0, 5);
+            document.getElementById('recentScholars').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Professeur</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recentScholars.map(s => `
+                            <tr>
+                                <td>
+                                    <div class="table-cell-flex">
+                                        <img src="${s.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name)}" class="table-avatar" alt="">
+                                        <div>
+                                            <div class="table-cell-text">${s.name}</div>
+                                            <div class="table-cell-subtext">${s.university || '-'}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status ${s.is_active !== false ? 'status-active' : 'status-inactive'}">
+                                        ${s.is_active !== false ? 'Actif' : 'Inactif'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            document.getElementById('recentScholars').innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Aucun professeur trouvé</p>';
+        }
+
+        // Recent courses
+        if (courses && courses.length > 0) {
+            const recentCourses = courses.slice(0, 5);
+            document.getElementById('recentCourses').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cours</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recentCourses.map(c => `
+                            <tr>
+                                <td>
+                                    <div class="table-cell-flex">
+                                        <img src="${c.thumbnail || 'https://via.placeholder.com/40'}" class="table-avatar" alt="">
+                                        <div>
+                                            <div class="table-cell-text">${c.title}</div>
+                                            <div class="table-cell-subtext">${c.scholar_name || '-'}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status ${c.is_active !== false ? 'status-active' : 'status-inactive'}">
+                                        ${c.is_active !== false ? 'Actif' : 'Inactif'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            document.getElementById('recentCourses').innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Aucun cours trouvé</p>';
+        }
+
+    } catch (error) {
+        console.error('Dashboard error:', error);
+    }
+}
+</script>
+{% endblock %}
