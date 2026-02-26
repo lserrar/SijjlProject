@@ -42,6 +42,15 @@ interface Bibliography {
   course_id?: string;
 }
 
+interface ContextResource {
+  id: string;
+  filename: string;
+  module_number: number;
+  subject: string;
+  title: string;
+  url: string;
+}
+
 interface Course {
   id: string;
   title: string;
