@@ -20,29 +20,34 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Gestion des ressources Admin + UI Mobile
+### Session actuelle - Gestion des ressources Admin + UI Mobile + Auth
 
 #### 1. Édition des titres des Timelines HTML ✅
-- **Admin Panel**: Interface complète pour éditer titre, cursus et ordre d'affichage
-- **Modal d'édition**: Titre affiché, sélection cursus (A-E), ordre numérique
-- **Backend**: Endpoint `PUT /api/admin/resources/timeline/{filename}` avec upsert MongoDB
+- Admin Panel: Interface pour éditer titre, cursus et ordre d'affichage
+- Backend: Endpoint `PUT /api/admin/resources/timeline/{filename}`
 
 #### 2. Édition des titres des Fiches de Contexte (DOCX) ✅
-- **Admin Panel**: Modal d'édition complet pour les 47 fiches DOCX
-- **Champs éditables**: Titre affiché, Cursus, Module, Sujet/Penseur, Description, Crédits
-- **Backend**: Endpoint `PUT /api/admin/resources/context/{resource_id}` avec normalisation ID
-- **Synchronisation DB ↔ API publique**: Les titres personnalisés s'affichent sur l'app
+- Admin Panel: Modal d'édition complet pour les 47 fiches DOCX
+- Backend: Endpoint `PUT /api/admin/resources/context/{resource_id}`
 
-#### 3. Suppression du Splash Screen animé ✅ (NEW)
-- Supprimé le composant AnimatedSplash de `_layout.tsx`
+#### 3. Suppression du Splash Screen animé ✅
 - L'app affiche directement la page de login élégante
 
-#### 4. Header Mobile style Spotify ✅ (NEW)
-- **Avatar vert** à gauche avec l'initiale de l'utilisateur
-- **Logo SIJILL PROJECT•** au centre
-- **Icône de recherche** à droite
-- **Suppression** du menu hamburger et du menu déroulant
-- Navigation uniquement via les onglets en bas
+#### 4. Header Mobile style Spotify ✅
+- Avatar vert à gauche → accès profil
+- Logo "SIJILL PROJECT•" au centre
+- Icône de recherche à droite
+- Plus de menu hamburger
+
+#### 5. Réinitialisation de mot de passe ✅ (NEW)
+- **Page "Mot de passe oublié"** (`/forgot-password`) avec design prestige
+- **Lien** sur la page de connexion
+- **Backend** : Endpoint `POST /api/auth/forgot-password` (enregistre les demandes)
+- **Écran de confirmation** élégant après soumission
+- Note : L'envoi d'email réel nécessite l'intégration d'un service (SendGrid, etc.)
+
+#### 6. Correction compte utilisateur ✅ (NEW)
+- Réinitialisation du mot de passe pour `loubniz@hotmail.com` → `Test123!`
 
 ---
 
