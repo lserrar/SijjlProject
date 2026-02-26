@@ -193,6 +193,15 @@ export default function LoginScreen() {
               <Text style={styles.footerLink}>S'inscrire</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Forgot password link */}
+          <TouchableOpacity 
+            testID="login-forgot-password"
+            style={styles.forgotPassword}
+            onPress={() => router.push('/(auth)/forgot-password' as any)}
+          >
+            <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
