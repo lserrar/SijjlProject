@@ -776,6 +776,10 @@
         if (e.target === this) closeEditContextModal();
     });
     
+    document.getElementById('editTimelineModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditTimelineModal();
+    });
+    
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
         setActiveNav('timeline-resources');
