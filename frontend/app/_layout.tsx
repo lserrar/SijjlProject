@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -24,10 +24,13 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '../context/AuthContext';
 import { PlayerProvider } from '../context/PlayerContext';
+import AnimatedSplash from '../components/AnimatedSplash';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
+  
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
