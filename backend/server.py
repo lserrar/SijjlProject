@@ -2428,16 +2428,23 @@ async def get_timeline_html(cursus_letter: str):
     if letter not in ['A', 'B', 'C', 'D', 'E']:
         raise HTTPException(400, "Cursus invalide. Utilisez A, B, C, D ou E.")
     
-    # First, check if there's a manual assignment in the database
-    db_entry = await db.timeline_resources.find_one(
-        {'cursus_letter': letter, 'type': 'timeline'},
-        {'_id': 0}
-    )
+    # Check if there's a manual assignment in the database
+    # Get all entries for this cursus and sort by updated_at (most recent first)
+    # Also prioritize files with 'map' in the name
+    db_entries = await db.timeline_resources.find(
+        {'cursus_letter': letter, 'type': 'timeline'}
+    ).sort('updated_at', -1).to_list(10)
     
-    if db_entry and db_entry.get('filename'):
-        # Use the manually assigned file
-        r2_key = f"Timeline/{db_entry['filename']}"
-    else:
+    r2_key = None
+    if db_entries:
+        # Prioritize map files, otherwise use the most recently updated
+        map_entry = next((e for e in db_entries if 'map' in e.get('filename', '').lower()), None)
+        if map_entry and map_entry.get('filename'):
+            r2_key = f"Timeline/{map_entry['filename']}"
+        elif db_entries[0].get('filename'):
+            r2_key = f"Timeline/{db_entries[0]['filename']}"
+    
+    if not r2_key:
         # Default to the standard naming convention
         r2_key = f"Timeline/sijill_timeline_cursus_{letter.lower()}.html"
     
