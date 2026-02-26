@@ -136,6 +136,12 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 - [x] **Backend Structure**: Created `/app/backend/config.py`, `/app/backend/utils/helpers.py`, `/app/backend/routes/`
 - [x] Configured `Jinja2Templates` in `server.py`
 
+### Refactoring (P2) - Phase 2 : Templates Admin Migrés
+- [x] `dashboard_new.html` - Tableau de bord (~70% code reduction)
+- [x] `professors_new.html` - Gestion des professeurs (~51% code reduction)
+- [x] `courses_new.html` - Gestion des cours (~52% code reduction)
+- [x] `users_new.html` - Gestion des utilisateurs (~59% code reduction)
+
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
 - [x] Admin Panel - Context Document Management (edit metadata)
