@@ -190,7 +190,7 @@ export default function CursusCoursesScreen() {
   // ─── Load Data ──────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
-      const [cursusRes, coursesRes, progressRes, scholarsRes, biblioRes, contextRes, audioRes] = await Promise.all([
+      const [cursusRes, coursesRes, progressRes, scholarsRes, biblioRes, contextRes, audioRes, timelinesRes] = await Promise.all([
         apiRequest('/cursus', token),
         apiRequest(`/courses?cursus_id=${id}`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
@@ -198,6 +198,7 @@ export default function CursusCoursesScreen() {
         apiRequest(`/bibliographies?cursus_id=${id}`, token),
         apiRequest('/resources/context', token),
         apiRequest('/resources/audio', token),
+        apiRequest(`/timelines/cursus/${id}`, token),
       ]);
 
       if (cursusRes.ok) {
