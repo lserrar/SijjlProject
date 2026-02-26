@@ -2608,6 +2608,138 @@ async def get_context_resource(resource_id: str):
             raise HTTPException(404, f"Ressource non trouvée: {resource_id}")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+# ─── Audio Resources (Conferences) ─────────────────────────────────────────────
+
+@api_router.get("/resources/audio")
+async def list_audio_resources():
+    """List all audio resources (conferences) from the audio folder."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    import re
+    
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='audio/', MaxKeys=200)
+        resources = []
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            
+            # Skip non-audio files
+            if not any(filename.lower().endswith(ext) for ext in ['.mp3', '.m4a', '.wav', '.ogg', '.aac']):
+                continue
+            
+            # Parse filename: Conf_Averroes_Brenet_module4.m4a
+            # Format: Conf_{Subject}_{Speaker}_module{N}.ext
+            match = re.match(r'Conf_([^_]+)_([^_]+)_module(\d+)\.(mp3|m4a|wav|ogg|aac)', filename, re.IGNORECASE)
+            
+            if match:
+                subject = match.group(1).replace('-', ' ')
+                speaker = match.group(2).replace('-', ' ')
+                module_num = int(match.group(3))
+                ext = match.group(4).lower()
+            else:
+                # Fallback: try to extract any useful info
+                subject = filename.replace('_', ' ').rsplit('.', 1)[0]
+                speaker = ''
+                module_num = 0
+                ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            
+            resource_id = filename.rsplit('.', 1)[0].lower().replace(' ', '-').replace('_', '-')
+            
+            resources.append({
+                'id': resource_id,
+                'filename': filename,
+                'r2_key': key,
+                'subject': subject,
+                'speaker': speaker,
+                'module_number': module_num,
+                'title': f"Conférence : {subject}" + (f" par {speaker}" if speaker else ""),
+                'size': obj['Size'],
+                'size_mb': round(obj['Size'] / (1024*1024), 1),
+                'format': ext,
+                'stream_url': f'/api/resources/audio/stream/{filename}'
+            })
+        
+        # Sort by module number then subject
+        resources.sort(key=lambda x: (x['module_number'], x['subject']))
+        return {'resources': resources, 'count': len(resources)}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/resources/audio/stream/{filename}")
+async def stream_audio_resource(filename: str, request: Request):
+    """Stream an audio resource file from R2."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    r2_key = f"audio/{filename}"
+    
+    try:
+        # Get file metadata first
+        head = r2_client.head_object(Bucket=R2_BUCKET, Key=r2_key)
+        file_size = head['ContentLength']
+        content_type = head.get('ContentType', 'audio/mpeg')
+        
+        # Determine content type from extension
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        content_types = {
+            'mp3': 'audio/mpeg',
+            'm4a': 'audio/mp4',
+            'wav': 'audio/wav',
+            'ogg': 'audio/ogg',
+            'aac': 'audio/aac'
+        }
+        content_type = content_types.get(ext, 'audio/mpeg')
+        
+        # Handle range requests for seeking
+        range_header = request.headers.get('range')
+        
+        if range_header:
+            # Parse range header
+            import re
+            range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
+            if range_match:
+                start = int(range_match.group(1))
+                end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
+                
+                # Fetch partial content
+                response = r2_client.get_object(
+                    Bucket=R2_BUCKET, 
+                    Key=r2_key,
+                    Range=f'bytes={start}-{end}'
+                )
+                
+                return Response(
+                    content=response['Body'].read(),
+                    status_code=206,
+                    headers={
+                        'Content-Type': content_type,
+                        'Content-Range': f'bytes {start}-{end}/{file_size}',
+                        'Accept-Ranges': 'bytes',
+                        'Content-Length': str(end - start + 1)
+                    }
+                )
+        
+        # Full file request
+        response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+        
+        return Response(
+            content=response['Body'].read(),
+            headers={
+                'Content-Type': content_type,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(file_size)
+            }
+        )
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        if error_code == 'NoSuchKey':
+            raise HTTPException(404, f"Fichier audio non trouvé: {filename}")
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
 @api_router.get("/admin/resources/timeline")
 async def admin_list_timeline_resources(request: Request):
     """Admin: List all timeline resources (HTML + DOCX) for management."""
