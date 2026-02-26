@@ -553,6 +553,37 @@ async def login(body: LoginRequest):
     user.pop('password_hash', None)
     return {'token': token, 'user': user}
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(body: ForgotPasswordRequest):
+    """Request a password reset. Stores the request for admin to process."""
+    email = body.email.lower().strip()
+    
+    # Check if user exists (but don't reveal this to prevent enumeration)
+    user = await db.users.find_one({'email': email}, {'_id': 0})
+    
+    # Always log the request for admin review
+    reset_request = {
+        'email': email,
+        'requested_at': datetime.now(timezone.utc).isoformat(),
+        'status': 'pending',
+        'user_exists': user is not None
+    }
+    
+    # Store request (upsert to avoid duplicates)
+    await db.password_reset_requests.update_one(
+        {'email': email},
+        {'$set': reset_request},
+        upsert=True
+    )
+    
+    logger.info(f"Password reset requested: email={email}, user_exists={user is not None}")
+    
+    # Always return success to prevent email enumeration attacks
+    return {'message': 'Si un compte existe avec cette adresse, un email a été envoyé.'}
+
 @api_router.post("/auth/google/exchange")
 async def google_exchange(body: GoogleSessionRequest):
     try:
