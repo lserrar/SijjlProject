@@ -128,6 +128,9 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 - [x] Client-side audio conference filtering by `cursus_letter`
 - [x] Display custom titles for timelines and context documents
 
+### Frontend Changes (cursus.tsx)
+- [x] **Fixed cursus titles/descriptions from admin panel** - Now uses database values instead of hardcoded static data
+
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
 - [x] Admin Panel - Context Document Management (edit metadata)
