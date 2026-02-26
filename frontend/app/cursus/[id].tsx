@@ -226,7 +226,10 @@ export default function CursusCoursesScreen() {
 
       if (audioRes.ok) {
         const audioData = await audioRes.json();
+        console.log('Audio conferences loaded:', audioData);
         setAudioConferences(audioData.resources || []);
+      } else {
+        console.log('Audio API failed:', audioRes.status);
       }
 
       // Handle timelines data
