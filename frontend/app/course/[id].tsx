@@ -141,13 +141,14 @@ export default function CourseDetailScreen() {
   // Load Data
   const loadData = useCallback(async () => {
     try {
-      const [courseRes, playlistRes, progressRes, allCursusRes, scholarsRes, biblioRes] = await Promise.all([
+      const [courseRes, playlistRes, progressRes, allCursusRes, scholarsRes, biblioRes, contextRes] = await Promise.all([
         apiRequest(`/courses/${id}`, token),
         apiRequest(`/courses/${id}/playlist`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
         apiRequest('/cursus', token),
         apiRequest('/scholars', token),
         apiRequest(`/bibliographies?course_id=${id}`, token),
+        apiRequest('/resources/context', token),
       ]);
 
       let courseData = null;
@@ -182,6 +183,12 @@ export default function CourseDetailScreen() {
           b.content && (b.course_id === id)
         );
         setBibliographies(filteredBiblios);
+      }
+
+      // Get context resources
+      if (contextRes.ok) {
+        const contextData = await contextRes.json();
+        setContextResources(contextData.resources || []);
       }
 
       // Build progress map
