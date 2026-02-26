@@ -678,6 +678,43 @@
         document.getElementById('previewModal').style.display = 'flex';
     }
     
+    // Edit Timeline Modal Functions
+    let currentEditTimelineFilename = null;
+    
+    function openEditTimelineModal(filename, cursusLetter, title, displayOrder) {
+        currentEditTimelineFilename = filename;
+        document.getElementById('editTimelineFilename').value = filename;
+        document.getElementById('editTimelineFileDisplay').textContent = `Fichier: ${filename}`;
+        document.getElementById('editTimelineTitle').value = title || '';
+        document.getElementById('editTimelineCursus').value = cursusLetter || '';
+        document.getElementById('editTimelineOrder').value = displayOrder || '';
+        document.getElementById('editTimelineModal').style.display = 'flex';
+    }
+    
+    function closeEditTimelineModal() {
+        document.getElementById('editTimelineModal').style.display = 'none';
+        currentEditTimelineFilename = null;
+    }
+    
+    async function saveTimelineEdit() {
+        if (!currentEditTimelineFilename) return;
+        
+        const data = {
+            title: document.getElementById('editTimelineTitle').value.trim(),
+            cursus_letter: document.getElementById('editTimelineCursus').value || null,
+            display_order: parseInt(document.getElementById('editTimelineOrder').value) || 0
+        };
+        
+        try {
+            await apiRequest(`/admin/resources/timeline/${encodeURIComponent(currentEditTimelineFilename)}`, 'PUT', data);
+            showToast('Timeline mise à jour avec succès', 'success');
+            closeEditTimelineModal();
+            loadResources();
+        } catch (e) {
+            showToast('Erreur: ' + e.message, 'error');
+        }
+    }
+    
     // Context Document Edit Functions
     let currentEditContextId = null;
     
