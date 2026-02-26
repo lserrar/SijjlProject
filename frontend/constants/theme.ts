@@ -75,13 +75,13 @@ export const typography = {
     dmSans: 'DMSans-Regular',
   },
   size: {
-    xs: 11,
-    sm: 13,
-    md: 15,
-    lg: 17,
-    xl: 22,
-    xxl: 28,
-    xxxl: 36,
+    xs: 13,
+    sm: 15,
+    md: 17,
+    lg: 19,
+    xl: 24,
+    xxl: 32,
+    xxxl: 40,
   },
 };
 
