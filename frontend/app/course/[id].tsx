@@ -721,7 +721,7 @@ export default function CourseDetailScreen() {
             )}
 
             {/* Empty state only if no resources at all */}
-            {bibliographies.length === 0 && contextResources.length === 0 && audioConferences.length === 0 && !cursus && (
+            {bibliographies.length === 0 && contextResources.length === 0 && audioConferences.length === 0 && timelines.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="library-outline" size={40} color="#333" />
                 <Text style={styles.emptyTitle}>Ressources à venir</Text>
