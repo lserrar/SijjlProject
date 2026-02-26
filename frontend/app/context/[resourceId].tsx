@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,8 +26,18 @@ interface ContextResource {
   title: string;
   module_number: number;
   subject: string;
+  cursus_letter?: string;
   content: ContentBlock[];
 }
+
+// Cursus color mapping
+const CURSUS_COLORS: Record<string, string> = {
+  'A': '#04D182',
+  'B': '#8B5CF6',
+  'C': '#F59E0B',
+  'D': '#EF4444',
+  'E': '#3B82F6',
+};
 
 export default function ContextScreen() {
   const { resourceId } = useLocalSearchParams<{ resourceId: string }>();
@@ -37,6 +46,8 @@ export default function ContextScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resource, setResource] = useState<ContextResource | null>(null);
+
+  const cursusColor = resource?.cursus_letter ? CURSUS_COLORS[resource.cursus_letter] || '#04D182' : '#04D182';
 
   useEffect(() => {
     const fetchResource = async () => {
@@ -82,20 +93,17 @@ export default function ContextScreen() {
       switch (block.type) {
         case 'heading':
           return (
-            <Text
-              key={index}
-              style={[
-                styles.heading,
-                block.level === 1 ? styles.heading1 : styles.heading2,
-              ]}
-            >
-              {block.text}
-            </Text>
+            <View key={index} style={styles.headingContainer}>
+              <View style={[styles.headingDivider, { backgroundColor: `${cursusColor}40` }]} />
+              <Text style={[styles.mainHeading, { color: cursusColor }]}>
+                {block.text}
+              </Text>
+            </View>
           );
         case 'list_item':
           return (
             <View key={index} style={styles.listItem}>
-              <Text style={styles.listBullet}>•</Text>
+              <Text style={[styles.listBullet, { color: cursusColor }]}>•</Text>
               <Text style={styles.listText}>{block.text}</Text>
             </View>
           );
@@ -114,7 +122,7 @@ export default function ContextScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.brand.primary} />
+          <ActivityIndicator size="large" color={cursusColor} />
           <Text style={styles.loadingText}>Chargement du contexte historique...</Text>
         </View>
       </SafeAreaView>
@@ -125,17 +133,19 @@ export default function ContextScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+          <TouchableOpacity onPress={handleBack} style={styles.headerBackBtn}>
+            <Ionicons name="chevron-back" size={24} color="#F5F0E8" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Erreur</Text>
-          <View style={{ width: 40 }} />
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerEyebrow}>ERREUR</Text>
+          </View>
+          <View style={styles.headerRight} />
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={48} color={colors.brand.error} />
+          <Ionicons name="alert-circle" size={48} color="#EF4444" />
           <Text style={styles.errorText}>{error || 'Ressource non trouvée'}</Text>
-          <TouchableOpacity onPress={handleBack} style={styles.errorButton}>
-            <Text style={styles.errorButtonText}>Retour</Text>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -146,33 +156,49 @@ export default function ContextScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+        <TouchableOpacity onPress={handleBack} style={styles.headerBackBtn}>
+          <Ionicons name="chevron-back" size={24} color="#F5F0E8" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerModule}>Module {resource.module_number}</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: cursusColor }]}>CONTEXTE HISTORIQUE</Text>
+          <Text style={styles.headerTitle}>Module {resource.module_number}</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerIconBtn}>
+            <Ionicons name="bookmark-outline" size={20} color="#F5F0E8" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Section */}
-        <View style={styles.titleSection}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="time-outline" size={32} color={colors.brand.secondary} />
-          </View>
-          <Text style={styles.title}>{resource.subject}</Text>
-          <Text style={styles.subtitle}>Contexte historique</Text>
-          <View style={styles.divider} />
+        {/* Title Block */}
+        <View style={styles.titleBlock}>
+          <View style={[styles.titleAccent, { backgroundColor: cursusColor }]} />
+          <Text style={styles.contextTitle}>{resource.subject}</Text>
         </View>
 
+        {/* Divider */}
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: '#1A1A1A' }]} />
+          <View style={[styles.dividerDiamond, { backgroundColor: cursusColor }]} />
+          <View style={[styles.dividerLine, { backgroundColor: cursusColor }]} />
+        </View>
+
+        {/* Cursus Info */}
+        <Text style={[styles.sectionLabel, { color: cursusColor }]}>
+          CURSUS {resource.cursus_letter || 'A'}
+        </Text>
+        <Text style={styles.moduleLabel}>
+          Module {resource.module_number} — {resource.subject}
+        </Text>
+
         {/* Document Content */}
-        <View style={styles.documentContent}>
+        <View style={styles.contentContainer}>
           {renderContent()}
         </View>
 
@@ -190,131 +216,7 @@ export default function ContextScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
-  },
-  backButton: {
-    padding: spacing.sm,
-  },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontFamily: 'Cinzel',
-    fontSize: 14,
-    color: colors.text.primary,
-    letterSpacing: 1,
-  },
-  headerModule: {
-    fontFamily: 'Cinzel',
-    fontSize: 12,
-    color: colors.brand.secondary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 40,
-  },
-  titleSection: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: `${colors.brand.secondary}15`,
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontFamily: 'Cinzel',
-    fontSize: 24,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontFamily: 'EB Garamond',
-    fontSize: 16,
-    color: colors.text.tertiary,
-    fontStyle: 'italic',
-    marginBottom: spacing.lg,
-  },
-  divider: {
-    width: 60,
-    height: 2,
-    backgroundColor: colors.brand.secondary,
-  },
-  documentContent: {
-    paddingHorizontal: spacing.lg,
-  },
-  heading: {
-    fontFamily: 'Cinzel',
-    color: '#04D182',
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
-  },
-  heading1: {
-    fontSize: 18,
-    letterSpacing: 1,
-  },
-  heading2: {
-    fontSize: 15,
-    letterSpacing: 0.5,
-  },
-  paragraph: {
-    fontFamily: 'EB Garamond',
-    fontSize: 17,
-    color: 'rgba(245,240,232,0.85)',
-    lineHeight: 28,
-    marginBottom: spacing.md,
-    textAlign: 'justify',
-  },
-  listItem: {
-    flexDirection: 'row',
-    paddingLeft: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  listBullet: {
-    fontFamily: 'EB Garamond',
-    fontSize: 17,
-    color: colors.brand.primary,
-    marginRight: spacing.sm,
-    lineHeight: 28,
-  },
-  listText: {
-    flex: 1,
-    fontFamily: 'EB Garamond',
-    fontSize: 17,
-    color: 'rgba(245,240,232,0.85)',
-    lineHeight: 28,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    marginTop: spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.subtle,
-  },
-  footerText: {
-    fontFamily: 'Cinzel',
-    fontSize: 10,
-    color: colors.text.tertiary,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
+    backgroundColor: '#0A0A0A',
   },
   loadingContainer: {
     flex: 1,
@@ -323,33 +225,204 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
     fontSize: 16,
-    color: colors.text.secondary,
-    marginTop: spacing.md,
+    color: '#777',
+    marginTop: 16,
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
+    justifyContent: 'center',
   },
   errorText: {
     fontFamily: 'EB Garamond',
     fontSize: 16,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    color: '#777',
+    marginTop: 16,
+    marginBottom: 20,
   },
-  errorButton: {
-    backgroundColor: colors.brand.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+  backButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  errorButtonText: {
+  backButtonText: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    letterSpacing: 2,
+    color: '#C9A84C',
+    textTransform: 'uppercase',
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+    backgroundColor: '#0A0A0A',
+  },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: 'Cinzel',
+    fontSize: 8,
+    letterSpacing: 4,
+    color: '#04D182',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
     fontFamily: 'Cinzel',
     fontSize: 12,
-    color: '#0A0A0A',
+    color: '#F5F0E8',
+    letterSpacing: 1,
+  },
+  headerRight: {
+    width: 40,
+    alignItems: 'flex-end',
+  },
+  headerIconBtn: {
+    padding: 8,
+  },
+
+  // Scroll
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
+
+  // Title Block
+  titleBlock: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  titleAccent: {
+    width: 3,
+    height: '100%',
+    minHeight: 40,
+    marginRight: 16,
+  },
+  contextTitle: {
+    flex: 1,
+    fontFamily: 'Cinzel',
+    fontSize: 20,
+    fontWeight: '400',
+    color: '#F5F0E8',
+    lineHeight: 30,
+    letterSpacing: 0.5,
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerDiamond: {
+    width: 8,
+    height: 8,
+    transform: [{ rotate: '45deg' }],
+    marginHorizontal: 12,
+  },
+
+  // Section labels
+  sectionLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  moduleLabel: {
+    fontFamily: 'Cinzel',
+    fontSize: 13,
+    color: '#C9A84C',
     letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 32,
+  },
+
+  // Content
+  contentContainer: {
+    paddingBottom: 20,
+  },
+  headingContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  headingDivider: {
+    height: 1,
+    marginBottom: 16,
+  },
+  mainHeading: {
+    fontFamily: 'Cinzel',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  paragraph: {
+    fontFamily: 'EB Garamond',
+    fontSize: 17,
+    color: '#F5F0E8',
+    lineHeight: 30,
+    marginBottom: 20,
+    textAlign: 'justify',
+  },
+  listItem: {
+    flexDirection: 'row',
+    paddingLeft: 8,
+    marginBottom: 12,
+  },
+  listBullet: {
+    fontFamily: 'EB Garamond',
+    fontSize: 17,
+    marginRight: 12,
+    lineHeight: 30,
+  },
+  listText: {
+    flex: 1,
+    fontFamily: 'EB Garamond',
+    fontSize: 17,
+    color: '#F5F0E8',
+    lineHeight: 30,
+  },
+
+  // Footer
+  footer: {
+    alignItems: 'center',
+    paddingTop: 40,
+    borderTopWidth: 1,
+    borderTopColor: '#1A1A1A',
+    marginTop: 20,
+  },
+  footerText: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    color: '#555',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });
