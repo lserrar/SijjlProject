@@ -81,6 +81,25 @@ export default function LoginScreen() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
+    try {
+      const userData = await loginWithApple();
+      if (userData) {
+        checkSubscriptionAndRedirect(userData);
+      }
+      // Apple login may redirect via callback for web
+    } catch (e: any) {
+      if (typeof window !== 'undefined') {
+        alert(e.message || 'Connexion Apple échouée');
+      } else {
+        Alert.alert('Erreur', e.message || 'Connexion Apple échouée');
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
