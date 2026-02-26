@@ -89,9 +89,10 @@ export default function RegisterScreen() {
 
           {/* Logo */}
           <View style={styles.logoSection}>
-            <Text style={styles.logoSijill}>SIJILL</Text>
             <View style={styles.logoProjectRow}>
-              <Text style={styles.logoProject}>PROJECT<Text style={styles.logoDotText}>•</Text></Text>
+              <Text style={styles.logoSijill}>SIJILL</Text>
+              <Text style={styles.logoProject}>PROJECT</Text>
+              <View style={styles.logoDot} />
             </View>
             <View style={styles.goldLine} />
           </View>
@@ -216,10 +217,10 @@ const styles = StyleSheet.create({
   logoRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6, flexWrap: 'nowrap' },
   logoProjectRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 },
   logoSijill: { fontFamily: 'Cinzel', fontSize: 24, fontWeight: '400', color: '#F5F0E8', letterSpacing: 24 * 0.16 },
-  logoProject: { fontFamily: 'Cinzel', fontSize: 24, fontWeight: '400', color: '#F5F0E8', letterSpacing: 24 * 0.16 },
+  logoProject: { fontFamily: 'Cinzel', fontSize: 24 * 0.62, fontWeight: '400', color: '#888888', letterSpacing: (24 * 0.62) * 0.22, marginLeft: 5 },
   logoDotText: { color: '#04D182', fontSize: 24, letterSpacing: 0 },
   logoDot: {
-    width: 5, height: 5, backgroundColor: '#04D182', borderRadius: 3, marginLeft: -8, marginBottom: 5,
+    width: 5, height: 5, backgroundColor: '#04D182', borderRadius: 3, marginLeft: 0, marginBottom: 3,
     shadowColor: '#04D182', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8,
   },
   goldLine: { height: 1, width: '100%', backgroundColor: '#C9A84C', opacity: 0.3, marginBottom: 10 },
