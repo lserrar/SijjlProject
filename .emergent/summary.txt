@@ -17,79 +17,95 @@ The project has undergone several phases, culminating in the current one: a comp
 **what currently exists?**
 A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend. The app features a prestige dark-mode design and has implemented several core functionalities:
 
--   **Content Management**: An extensive admin panel allows management of audios, professors, bibliographies, and users.
--   **Advanced Admin Features**:
-    -   **Listening Stats Dashboard**: A dedicated page () with charts and tables showing listening activity by professor, cursus, course, and episode.
-    -   **Homepage Highlight**: An admin page () to control the featured content on the homepage, allowing manual selection of a course/cursus or a random mode.
-    -   **Resource Management**: A new admin page () to synchronize and manage new resource types (HTML Timelines, DOCX Context documents, Audio Conferences) from the Cloudflare R2 bucket, with the ability to manually assign resources to a Cursus.
--   **Subscription & Referral System**: A complete subscription flow using Stripe and a user referral system are fully implemented and have been tested by the user.
--   **Frontend Features**: The app includes detailed course/cursus pages with a Ressources tab designed to hold bibliographies, timelines, and historical context documents. Viewers for bibliographies and timelines have been created.
+-   **Branding & UI**: The app has been rebranded to Sijill Project and now features a new responsive, sticky global header component across all pages.
+-   **Content Management**: The admin panel () now allows management of Timelines, Context Documents, and Audio Conferences. Admins can edit metadata (titles, descriptions, credits) for all resource types.
+-   **Advanced Content Features**:
+    -   A dedicated page () has been created for playing audio conferences.
+    -   The backend now supports associating multiple timeline files with a single Cursus.
+-   **Payments**: The subscription payment page now includes a field for promo codes, integrated with the Stripe backend.
+-   **Admin Login**: The admin authentication system has been debugged and a stable admin account is now available.
 
 **Last working item**:
--   **Last item agent was working**: Integrating audio conferences as a new resource type. The user uploaded a test file () to the R2 bucket. The agent successfully created the backend endpoints to list and stream these audio files and updated the Timeline admin page to display and manage these new audio resources.
+-   **Last item agent was working**: The user wants to display all available timeline files for a given Cursus (not just one) and be able to edit their titles. The agent updated the backend to fetch all timelines for a cursus and enable title editing in the admin panel. The current work involves updating the frontend Cursus page () to display a list of these timelines.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Backend and Admin Panel only)
--   **Which testing method agent to use?**: frontend testing agent. The next step is to integrate an audio player into the frontend Ressources tab on the Cursus and Cours detail pages.
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: frontend testing agent
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
 -   **Issue 1**: The frontend preview environment is unstable (P0)
-    -   **Description**: The user and the agent have repeatedly encountered a  error when trying to access the application URL (). This blocks all frontend development and user testing.
-    -   **Attempted fixes**: The agent tried multiple frontend: ERROR (no such process)
-frontend: ERROR (no such process) commands, killing  processes, and restarting the entire environment. These fixes worked only intermittently. The issue appears to be related to the  tunnel connection ( - endpoint already in use).
+    -   **Description**: The user and agent have repeatedly encountered  errors when accessing the application URL. This blocks all frontend development and user testing and has been a persistent problem.
+    -   **Attempted fixes**: Restarting supervisor (frontend: ERROR (no such process)
+frontend: ERROR (no such process)), killing  processes (). These fixes are only temporary.
     -   **Next debug checklist**:
         1.  Check frontend: ERROR (no such process).
-        2.  Check frontend logs: . Look for  tunnel errors.
-        3.  If blocked, attempt a full restart: nginx-code-proxy: stopped
-mongodb: stopped
-backend: started
-expo: started
-mongodb: started
-nginx-code-proxy: started
-code-server: started.
-        4.  If the issue persists, this may be a platform-level problem. The next agent should prioritize resolving this environment instability before proceeding with any frontend tasks.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker. Fixing it will unblock all pending frontend tasks and allow the user to test the application.
+        2.  Check frontend logs: . Look for  tunnel errors like .
+        3.  If the issue persists, this may be a platform-level problem.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker for all frontend development and user verification.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: None
 
+-   **Issue 2**: Audio conference player shows an error (P1)
+    -   **Description**: The user reported that playing an audio conference results in an error. The agent created a dedicated player page (), but it needs to be fully tested and styled to match the app's design.
+    -   **Next debug checklist**:
+        1.  Navigate to a Cursus/Cours page and click on an audio conference resource.
+        2.  Verify the page  loads and the audio player is functional.
+        3.  Ensure the player design is consistent with the rest of the Sijill app. Check .
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a core feature for the new audio conference resource type.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: Blocked by Issue 1.
+
+-   **Issue 3**: Incorrect title color in document viewer (P2)
+    -   **Description**: The user noted that titles in the document viewer page () are purple. They should be green () to align with the Cursus A color scheme.
+    -   **Next debug checklist**:
+        1.  Open .
+        2.  Locate the styles for headings (e.g., , ).
+        3.  Change the color from the current value () to the requested green ().
+    -   **Why fix this issue and what will be achieved with the fix?**: To ensure UI consistency as requested by the user.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: Blocked by Issue 1.
+
 **In progress Task List**:
--   **Task 1**: Complete Frontend Integration for New Resources (P1)
-    -   **Where to resume**: The backend and admin panel functionalities for Timeline, Context Documents, and Audio Conferences are complete. The next steps are purely on the frontend:
-        1.  **Audio Conferences**: Integrate the new audio conference resources into the Ressources tab of both the Cursus () and Cours () detail pages. This will require adding an audio player component.
-        2.  **Context Documents**: The code to display context documents in the Ressources tab has been added, but it has never been tested due to the environment instability. This needs to be verified and potentially debugged.
-    -   **What will be achieved with this?**: Users will be able to access all three new resource types (Timelines, Context, Audio Conferences) directly from the relevant Cursus and Cours pages, completing the feature request.
+-   **Task 1**: Display multiple timelines per Cursus (P0)
+    -   **Where to resume**: The backend () and admin panel are ready. The frontend page  needs to be completed. The next step is to modify the JSX to render a list of links to the timelines returned by the API, instead of a single hardcoded button.
+    -   **What will be achieved with this?**: Users will see and be able to access all available timelines for a Cursus from the Ressources tab.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on something**: Blocked by Issue 1: The frontend preview environment is unstable.
+    -   **Blocked on something**: Blocked by Issue 1 (Frontend environment instability).
 
 **Upcoming and Future Tasks**
--   **Future Tasks:**
-    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI Routers to improve maintainability.
-    -   **(P2) Implement Apple Sign-In**: The Apple Auth button on the authentication screen is currently a non-functional placeholder.
+-   **Upcoming Tasks**:
+    -   **(P1) Animated Splash Screen**: Create an animated splash screen that shows SIJILL PROJECT in green before displaying the login page.
+-   **Future Tasks**:
+    -   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI Routers.
+    -   **(P2) Refactor Admin Templates**: Use Jinja2 template inheritance () to centralize the navigation menu and remove duplicated HTML.
+    -   **(P2) Implement Apple Sign-In**: The Apple Auth button is a non-functional placeholder.
     -   **(P2) Admin Dashboard for Referrals**: Enhance the admin panel to provide more detailed views and management of the referral system.
 
 **Completed work in this session**
--   **Critical Bug Fixes**:
-    -   Fixed the Se déconnecter (Logout) button, which was not working on the web.
-    -   Fixed a major paywall bypass bug where existing, non-subscribed users could access content after logging in.
-    -   Fixed a white screen bug that occurred during the redirection to the Stripe payment page.
--   **Feature: Listening Stats Dashboard**:
-    -   Implemented a new admin page () with a chart and detailed tables to track listening activity (hours, plays) by professor, cursus, course, and episode, including time-based filters.
--   **Feature: Homepage Highlight Management**:
-    -   Implemented a new admin page () allowing the admin to feature a specific Cursus or Cours on the homepage or enable a random mode that selects one at random for each user session.
--   **Feature: Advanced Resource Integration (Backend & Admin)**:
-    -   Created a unified admin page () to manage three new resource types from Cloudflare R2: HTML Timelines, DOCX Context Documents, and Audio Conferences.
-    -   Implemented backend logic to parse and serve these resources via API endpoints.
-    -   Added a Sync from R2 feature in the admin panel.
-    -   Added the ability for admins to manually assign a Cursus to any timeline resource directly from the UI.
--   **Admin UI/UX Improvements**:
-    -   Fixed an issue where new admin page links (Stats, Highlight, Timeline) were not appearing in the main navigation menu by updating all relevant HTML templates.
-    -   Renamed Ressources Timeline to Timeline as requested by the user.
+-   **Feature: Global Header & Rebranding**:
+    -   Created and implemented a responsive, sticky global header component across the app.
+    -   Rebranded the entire application (frontend & admin) to Sijill Project with the new tagline.
+-   **Feature: Admin Resource Management**:
+    -   The Timeline admin page was renamed to Ressources.
+    -   Implemented functionality for admins to edit titles, descriptions, and credits for audio conferences and context documents directly from the Ressources page.
+-   **Feature: Promo Code on Payment Page**:
+    -   Added a Code promo input field to the subscription page, fully integrated with the Stripe checkout flow.
+-   **Bug Fix: Admin Authentication**:
+    -   Resolved a critical admin login failure by debugging database connection strings and password hashing mismatches.
+-   **Bug Fix: Duplicate Headers**:
+    -   Removed all legacy/duplicate headers from individual pages after the global header was implemented.
+-   **Bug Fix: Timeline Display**:
+    -   Fixed an issue where manually assigned timeline files from R2 were not being displayed in the app.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly in the past. This has not been investigated further.
+-   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly. Not investigated.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -98,84 +114,85 @@ code-server: started.
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Boto3 for Cloudflare R2,  for parsing, Jinja2 for admin templates,  for Stripe.
--   **Frontend**: React Native (Expo Web),  for navigation, React Context API for state management.
+-   **Backend**: FastAPI, Boto3 for Cloudflare R2,  for parsing, Jinja2 for admin templates.
+-   **Frontend**: React Native (Expo Web),  for navigation, React Context API,  for responsive design.
 -   **Database**: MongoDB.
 
 **key DB schema**
--   **settings**: New collection to store global settings like .
--   **historical_contexts**: New collection to store content from parsed DOCX files, linked to  or .
--   **timelines**: New collection to store metadata for HTML timelines from R2, linked to .
--   **audio_resources**: New collection to store metadata for conference audio files from R2, linked to .
+-   **audio_resources**: Extended with editable , ,  fields.
+-   **historical_contexts**: Extended with editable , ,  fields.
+-   **timeline_resources**: Extended with an editable  field.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   **Environment Blocker**:  (Check for ngrok errors).
--   **Pending Frontend Work**:
-    -   
-    -   
+-   **Pending Issue (Frontend Env)**: 
+-   **Pending Task (Multi-timeline)**: , 
+-   **Pending Issue (Audio Player)**: 
+-   **Pending Issue (Doc Title Color)**: 
 -   **Recently Created/Modified**:
-    -   
-    -   
-    -   
-    -   
-    -   
-    -   
+    -    (New)
+    -    (Modified)
+    -    (Modified)
+    -    (Modified)
+    -    (Modified)
 
 **Areas that need refactoring**:
--   ****: This file is now critically oversized and complex. It urgently needs to be broken down into smaller modules using FastAPI's  for better maintainability.
--   **Admin Templates**: Multiple admin templates (, , etc.) contain duplicated navigation HTML. While the agent patched this with a script, the correct long-term solution is to use Jinja2's template inheritance () to centralize the navigation menu.
+-   ****: This file is a large monolith and should be broken into smaller modules using FastAPI .
+-   **Admin Templates**: Multiple admin templates contain duplicated navigation HTML. They should be refactored to use Jinja2's template inheritance ().
 
 **key api endpoints**
--   **Stats**: 
--   **Highlight**: , , 
--   **Resources**: , , , , .
+-   : **NEW**, updates audio metadata.
+-   : **NEW**, updates context doc metadata.
+-   : **NEW**, updates timeline title.
+-   : **NEW**, gets all timelines for a specific cursus.
+-   : **MODIFIED** to accept a .
+-   : **MODIFIED** to check the database for a manually assigned timeline file.
 
 **Critical Info for New Agent**
--   **Your #1 priority is to stabilize the frontend preview environment.** The user cannot test anything, and you cannot complete frontend tasks until the  issue is resolved. Investigate the  tunnel errors in the frontend logs.
--   After fixing the environment, your next task is to complete the frontend integration for the new resource types (Audio Conferences and Context Documents) in the Ressources tab of the Cursus/Cours detail pages.
--   The backend and admin panel are functional for all new features. The user's Stripe account is using LIVE keys.
+-   **Your #1 priority is to stabilize the frontend preview environment.** The  error is a recurring P0 blocker.
+-   The admin login credentials have changed. Use **Email:**  and **Password:** . The credentials from the previous handoff are obsolete.
+-   After stabilizing the environment, your priority should be to complete the pending tasks and fix the reported issues, starting with the multi-timeline display on the Cursus page.
+-   The next new feature request from the user is an animated splash screen.
 
 **documents and test reports created in this job**
--    (updated with completed features).
+-    (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports the frontend is down (). (IN PROGRESS)
-2.  **User**: Informs that they have split the context  files by module and re-uploaded them. Asks the agent to proceed with the HTML timeline integration first. (DONE)
-3.  **User**: Again reports the app is down. (IN PROGRESS)
-4.  **User**: Reports the app is still down but asks to check the newly uploaded DOCX files in the  folder. (DONE)
-5.  **User**: Reports an error when clicking Synchroniser R2 on the new admin page: . Asks to rename the page from Ressources Timeline to just Timeline. (DONE, VERIFICATION PENDING)
-6.  **User**: Asks the agent to implement the rest of the features even if the preview environment is off. (ACKNOWLEDGED)
-7.  **User**: Reports adding a new HTML file () which is not being assigned to a Cursus automatically and asks for a way to assign it manually. (DONE)
-8.  **User**: Asks to integrate supplementary audio resources (conferences), mentioning a test file has been uploaded to the R2  folder. (IN PROGRESS)
-9.  All issues related to logout, subscription checks, and payment flow were resolved and confirmed by the user.
-10. All stats and highlight features were implemented and confirmed by the agent via screenshots.
+1.  **User**: I want to display all timeline files for a cursus and edit their titles in the admin. (IN PROGRESS)
+2.  **User**: Okay, I've uploaded the map file. Now I have two files for Cursus A, but only the map is showing. (ACKNOWLEDGED)
+3.  **User**: I want both timelines (and any future ones) to be displayed. (IN PROGRESS)
+4.  **User**: The HTML timeline map is assigned to Cursus A but I don't see it in the app under Frise chronologique. (RESOLVED)
+5.  **User**: Lists several requests: fix legacy logos, add promo code field, fix audio player error, allow editing of DOCX resource metadata, and change purple titles to green. (PARTIALLY RESOLVED, 3 issues pending)
+6.  **User**: Asks for an animated splash screen for the app startup. (ACKNOWLEDGED, UPCOMING)
+7.  **User**: Asks if the green dot logo design was kept in the rebranding. (RESOLVED)
+8.  **User**: Confirms the Sijill Project branding update is good. (RESOLVED)
+9.  **User**: Requests to rebrand the app to Sijill Project and update the login screen tagline. (RESOLVED)
+10. **User**: Confirms the admin panel Ressources page works correctly for editing audios. (RESOLVED)
 
 **Project Health Check:**
--   **Broken**: The frontend preview environment is highly unstable and often inaccessible due to  tunneling issues. This is a P0 blocker for all frontend work.
+-   **Broken**: The frontend preview environment is highly unstable and often inaccessible due to  tunneling issues.
 -   **Mocked**: The Apple Sign-in button on the authentication screen is a non-functional placeholder.
 
 **3rd Party Integrations**
--   **Cloudflare R2**: Used for storing all media (audio, images, , ) in the  bucket.
--   **Stripe**: Integrated via  for handling web-based subscriptions. The user's LIVE key and a webhook are configured.
+-   **Cloudflare R2**: Used for storing all media (audio, images, , ).
+-   **Stripe**: Integrated via  for handling subscriptions.
 -   **Google Fonts**: For Cinzel and EB Garamond fonts.
--   **python-docx**: Used in the backend to parse bibliography and context Word documents.
+-   **python-docx**: Used in the backend to parse Word documents.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: The unstable frontend environment is a major new regression in this session.
+-   **Known regressions**: The unstable frontend environment is a major regression that appeared and persisted throughout this session.
 
 **Credentials to test flow:**
 -   **Admin Panel (Web)**: 
 -   **Admin Email**: 
 -   **Admin Password**: 
--   **Test User Email (non-subscribed)**: 
--   **Test User Password**: 
+-   **Test User Email (subscribed)**:  (password unknown)
 
 **What agent forgot to execute**
--   The agent did not properly refactor the admin templates to use Jinja2 inheritance, instead opting for a script to patch the duplicated navigation menus. This is a technical debt that should be addressed.
--   The agent was unable to permanently resolve the frontend environment instability, which is a major blocker.</analysis>
+-   The user's request to change the purple titles in the document viewer to green has not been implemented.
+-   The agent continued to patch duplicated code in admin templates with  scripts instead of performing a proper refactor using Jinja2 inheritance, increasing technical debt.</analysis>

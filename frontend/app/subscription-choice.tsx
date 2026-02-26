@@ -70,7 +70,7 @@ export default function SubscriptionChoiceScreen() {
     setLoading(true);
     try {
       // Create checkout session
-      const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://islamic-studies-lab.preview.emergentagent.com';
+      const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sijill-preview-1.preview.emergentagent.com';
       console.log('Creating checkout session for plan:', planId);
       
       const response = await fetch(`${API_URL}/api/checkout/create`, {
