@@ -91,8 +91,7 @@ export default function LoginScreen() {
           <View style={styles.logoSection} testID="login-logo">
             <Text style={styles.logoSijill}>SIJILL</Text>
             <View style={styles.logoProjectRow}>
-              <Text style={styles.logoProject}>PROJECT</Text>
-              <View style={styles.logoDot} />
+              <Text style={styles.logoProject}>PROJECT<Text style={styles.logoDotText}>•</Text></Text>
             </View>
             <View style={styles.goldLine} />
           </View>
