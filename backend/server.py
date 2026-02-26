@@ -2648,19 +2648,25 @@ async def list_audio_resources():
             
             resource_id = filename.rsplit('.', 1)[0].lower().replace(' ', '-').replace('_', '-')
             
-            resources.append({
+            # Check for custom data in DB
+            db_entry = await db.audio_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+            
+            resource_data = {
                 'id': resource_id,
                 'filename': filename,
                 'r2_key': key,
-                'subject': subject,
-                'speaker': speaker,
-                'module_number': module_num,
-                'title': f"Conférence : {subject}" + (f" par {speaker}" if speaker else ""),
+                'subject': db_entry.get('subject', subject) if db_entry else subject,
+                'speaker': db_entry.get('speaker', speaker) if db_entry else speaker,
+                'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
+                'title': db_entry.get('title', f"Conférence : {subject}" + (f" par {speaker}" if speaker else "")) if db_entry else f"Conférence : {subject}" + (f" par {speaker}" if speaker else ""),
+                'description': db_entry.get('description', '') if db_entry else '',
+                'credits': db_entry.get('credits', '') if db_entry else '',
                 'size': obj['Size'],
                 'size_mb': round(obj['Size'] / (1024*1024), 1),
                 'format': ext,
                 'stream_url': f'/api/resources/audio/stream/{filename}'
-            })
+            }
+            resources.append(resource_data)
         
         # Sort by module number then subject
         resources.sort(key=lambda x: (x['module_number'], x['subject']))
