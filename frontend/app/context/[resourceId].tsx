@@ -39,6 +39,13 @@ const CURSUS_COLORS: Record<string, string> = {
   'E': '#3B82F6',
 };
 
+// Section titles to detect
+const SECTION_TITLES = [
+  'Contexte dynastique',
+  'Contexte intellectuel',
+  'Chronologie biographique',
+];
+
 export default function ContextScreen() {
   const { resourceId } = useLocalSearchParams<{ resourceId: string }>();
   const router = useRouter();
@@ -86,19 +93,81 @@ export default function ContextScreen() {
     }
   };
 
-  const renderContent = () => {
-    if (!resource?.content) return null;
+  // Parse content to extract module info, thinker name, and sections
+  const parseContent = () => {
+    if (!resource?.content) return { moduleInfo: '', thinkerName: '', epochInfo: '', sections: [] };
 
-    return resource.content.map((block, index) => {
+    const content = resource.content;
+    let moduleInfo = '';
+    let thinkerName = '';
+    let epochInfo = '';
+    const sections: { title: string; content: ContentBlock[] }[] = [];
+    let currentSection: { title: string; content: ContentBlock[] } | null = null;
+
+    for (let i = 0; i < content.length; i++) {
+      const block = content[i];
+      const text = block.text.trim();
+
+      // First paragraph is usually module info
+      if (i === 0 && text.startsWith('Module')) {
+        moduleInfo = text;
+        continue;
+      }
+
+      // Second paragraph is usually thinker name with dates
+      if (i === 1 && !text.startsWith('Module')) {
+        thinkerName = text;
+        continue;
+      }
+
+      // Third paragraph is usually epoch info
+      if (i === 2 && text.includes('·')) {
+        epochInfo = text;
+        continue;
+      }
+
+      // Check if this is a section title
+      const isSectionTitle = SECTION_TITLES.some(title => 
+        text.toLowerCase() === title.toLowerCase()
+      );
+
+      if (isSectionTitle) {
+        // Save previous section
+        if (currentSection && currentSection.content.length > 0) {
+          sections.push(currentSection);
+        }
+        // Start new section
+        currentSection = { title: text, content: [] };
+      } else if (currentSection) {
+        // Add to current section
+        currentSection.content.push(block);
+      } else {
+        // Before any section, add to intro
+        if (!sections.find(s => s.title === 'Introduction')) {
+          sections.unshift({ title: 'Introduction', content: [] });
+        }
+        sections[0].content.push(block);
+      }
+    }
+
+    // Don't forget the last section
+    if (currentSection && currentSection.content.length > 0) {
+      sections.push(currentSection);
+    }
+
+    return { moduleInfo, thinkerName, epochInfo, sections };
+  };
+
+  const { moduleInfo, thinkerName, epochInfo, sections } = parseContent();
+
+  const renderSectionContent = (content: ContentBlock[]) => {
+    return content.map((block, index) => {
       switch (block.type) {
         case 'heading':
           return (
-            <View key={index} style={styles.headingContainer}>
-              <View style={[styles.headingDivider, { backgroundColor: `${cursusColor}40` }]} />
-              <Text style={[styles.mainHeading, { color: cursusColor }]}>
-                {block.text}
-              </Text>
-            </View>
+            <Text key={index} style={styles.subHeading}>
+              {block.text}
+            </Text>
           );
         case 'list_item':
           return (
@@ -161,7 +230,7 @@ export default function ContextScreen() {
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={[styles.headerEyebrow, { color: cursusColor }]}>CONTEXTE HISTORIQUE</Text>
-          <Text style={styles.headerTitle}>Module {resource.module_number}</Text>
+          <Text style={styles.headerTitle}>Cursus {resource.cursus_letter || 'A'}</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIconBtn}>
@@ -176,34 +245,52 @@ export default function ContextScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title Block */}
-        <View style={styles.titleBlock}>
-          <View style={[styles.titleAccent, { backgroundColor: cursusColor }]} />
-          <Text style={styles.contextTitle}>{resource.subject}</Text>
+        {/* Hero Section - Module Info */}
+        {moduleInfo && (
+          <View style={styles.moduleInfoContainer}>
+            <Text style={[styles.moduleInfoText, { color: cursusColor }]}>
+              {moduleInfo}
+            </Text>
+          </View>
+        )}
+
+        {/* Thinker Name - Centered */}
+        <View style={styles.thinkerContainer}>
+          <Text style={styles.thinkerName}>
+            {thinkerName || resource.subject}
+          </Text>
+          {epochInfo && (
+            <Text style={styles.epochInfo}>{epochInfo}</Text>
+          )}
         </View>
 
-        {/* Divider */}
+        {/* Decorative Divider */}
         <View style={styles.dividerRow}>
-          <View style={[styles.dividerLine, { backgroundColor: '#1A1A1A' }]} />
+          <View style={[styles.dividerLine, { backgroundColor: '#222' }]} />
           <View style={[styles.dividerDiamond, { backgroundColor: cursusColor }]} />
-          <View style={[styles.dividerLine, { backgroundColor: cursusColor }]} />
+          <View style={[styles.dividerLine, { backgroundColor: '#222' }]} />
         </View>
 
-        {/* Cursus Info */}
-        <Text style={[styles.sectionLabel, { color: cursusColor }]}>
-          CURSUS {resource.cursus_letter || 'A'}
-        </Text>
-        <Text style={styles.moduleLabel}>
-          Module {resource.module_number} — {resource.subject}
-        </Text>
-
-        {/* Document Content */}
-        <View style={styles.contentContainer}>
-          {renderContent()}
-        </View>
+        {/* Document Sections */}
+        {sections.map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.sectionContainer}>
+            {section.title !== 'Introduction' && (
+              <View style={styles.sectionTitleContainer}>
+                <View style={[styles.sectionTitleBar, { backgroundColor: cursusColor }]} />
+                <Text style={[styles.sectionTitle, { color: cursusColor }]}>
+                  {section.title}
+                </Text>
+              </View>
+            )}
+            <View style={styles.sectionContent}>
+              {renderSectionContent(section.content)}
+            </View>
+          </View>
+        ))}
 
         {/* Footer */}
         <View style={styles.footer}>
+          <View style={styles.footerDivider} />
           <Text style={styles.footerText}>
             Sijill Project — Sciences Islamiques
           </Text>
@@ -250,7 +337,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontFamily: 'Cinzel',
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 2,
     color: '#C9A84C',
     textTransform: 'uppercase',
@@ -278,7 +365,7 @@ const styles = StyleSheet.create({
   },
   headerEyebrow: {
     fontFamily: 'Cinzel',
-    fontSize: 8,
+    fontSize: 9,
     letterSpacing: 4,
     color: '#04D182',
     textTransform: 'uppercase',
@@ -305,36 +392,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 32,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
 
-  // Title Block
-  titleBlock: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  // Module Info
+  moduleInfoContainer: {
+    alignItems: 'center',
     marginBottom: 24,
   },
-  titleAccent: {
-    width: 3,
-    height: '100%',
-    minHeight: 40,
-    marginRight: 16,
-  },
-  contextTitle: {
-    flex: 1,
+  moduleInfoText: {
     fontFamily: 'Cinzel',
-    fontSize: 20,
+    fontSize: 12,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+
+  // Thinker Section
+  thinkerContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  thinkerName: {
+    fontFamily: 'Cinzel',
+    fontSize: 24,
     fontWeight: '400',
     color: '#F5F0E8',
-    lineHeight: 30,
-    letterSpacing: 0.5,
+    textAlign: 'center',
+    letterSpacing: 1,
+    lineHeight: 34,
+    marginBottom: 8,
+  },
+  epochInfo: {
+    fontFamily: 'EB Garamond',
+    fontStyle: 'italic',
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    letterSpacing: 1,
   },
 
   // Divider
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   dividerLine: {
     flex: 1,
@@ -344,57 +445,57 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     transform: [{ rotate: '45deg' }],
-    marginHorizontal: 12,
+    marginHorizontal: 16,
   },
 
-  // Section labels
-  sectionLabel: {
-    fontFamily: 'Cinzel',
-    fontSize: 11,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  moduleLabel: {
-    fontFamily: 'Cinzel',
-    fontSize: 13,
-    color: '#C9A84C',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+  // Sections
+  sectionContainer: {
     marginBottom: 32,
   },
-
-  // Content
-  contentContainer: {
-    paddingBottom: 20,
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
   },
-  headingContainer: {
-    marginTop: 24,
-    marginBottom: 16,
+  sectionTitleBar: {
+    width: 3,
+    height: 18,
+    marginRight: 12,
   },
-  headingDivider: {
-    height: 1,
-    marginBottom: 16,
-  },
-  mainHeading: {
+  sectionTitle: {
     fontFamily: 'Cinzel',
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
+  sectionContent: {
+    paddingLeft: 0,
+  },
+  subHeading: {
+    fontFamily: 'Cinzel',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#C9A84C',
+    letterSpacing: 1,
+    marginTop: 16,
+    marginBottom: 12,
+  },
   paragraph: {
     fontFamily: 'EB Garamond',
     fontSize: 17,
-    color: '#F5F0E8',
+    color: '#E8E4DC',
     lineHeight: 30,
-    marginBottom: 20,
+    marginBottom: 18,
     textAlign: 'justify',
   },
   listItem: {
     flexDirection: 'row',
-    paddingLeft: 8,
-    marginBottom: 12,
+    paddingLeft: 4,
+    marginBottom: 14,
   },
   listBullet: {
     fontFamily: 'EB Garamond',
@@ -406,7 +507,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'EB Garamond',
     fontSize: 17,
-    color: '#F5F0E8',
+    color: '#E8E4DC',
     lineHeight: 30,
   },
 
@@ -414,15 +515,19 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     paddingTop: 40,
-    borderTopWidth: 1,
-    borderTopColor: '#1A1A1A',
     marginTop: 20,
+  },
+  footerDivider: {
+    width: 60,
+    height: 1,
+    backgroundColor: '#222',
+    marginBottom: 20,
   },
   footerText: {
     fontFamily: 'Cinzel',
     fontSize: 10,
     color: '#555',
-    letterSpacing: 2,
+    letterSpacing: 3,
     textTransform: 'uppercase',
   },
 });
