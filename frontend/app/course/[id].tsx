@@ -1060,6 +1060,15 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingHorizontal: 20,
   },
+  resourceSection: {
+    marginBottom: 24,
+  },
+  resourceCard: {
+    backgroundColor: '#111111',
+    marginBottom: 10,
+    padding: 16,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
   sectionSubtitle: {
     fontFamily: 'Cinzel',
     fontSize: 8,
