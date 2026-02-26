@@ -5816,12 +5816,12 @@ async def admin_get_transactions(request: Request, limit: int = 50):
     return transactions
 
 @api_router.get("/admin-panel/pricing", response_class=HTMLResponse)
-async def admin_panel_pricing():
+async def admin_panel_pricing(request: Request):
     """Admin panel pricing management page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'pricing.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template pricing non trouve")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "pricing_new.html",
+        {"request": request, "active_page": "pricing"}
+    )
 
 # ─── Promo Codes & Free Trial ─────────────────────────────────────────────────
 
@@ -5991,12 +5991,12 @@ async def start_free_trial(body: StartTrialRequest, request: Request):
     }
 
 @api_router.get("/admin-panel/promos", response_class=HTMLResponse)
-async def admin_panel_promos():
+async def admin_panel_promos(request: Request):
     """Admin panel promo codes management page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'promos.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template promos non trouve")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "promos_new.html",
+        {"request": request, "active_page": "promos"}
+    )
 
 # ─── Legal Pages API ──────────────────────────────────────────────────────────
 
