@@ -221,7 +221,19 @@ export default function CursusCoursesScreen() {
 
       if (contextRes.ok) {
         const contextData = await contextRes.json();
-        setContextResources(contextData.resources || []);
+        // Filter context resources by cursus letter
+        const cursusLetterMap: Record<string, string> = {
+          'cursus-falsafa': 'A',
+          'cursus-theologie': 'B',
+          'cursus-sciences-islamiques': 'C',
+          'cursus-arts': 'D',
+          'cursus-spiritualites': 'E',
+        };
+        const currentLetter = cursusLetterMap[id || ''] || '';
+        const filteredContext = (contextData.resources || []).filter(
+          (ctx: ContextResource) => ctx.cursus_letter === currentLetter
+        );
+        setContextResources(filteredContext);
       }
 
       if (audioRes.ok) {
