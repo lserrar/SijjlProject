@@ -3,206 +3,701 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sijill Project - Plateforme Académique - Sciences Islamiques</title>
-  <meta name="description" content="Sijill Project - Plateforme académique de sciences islamiques. Découvrez nos cours de philosophie islamique, théologie, soufisme et plus encore.">
+  <title>Sijill Project - Plateforme académique · Sciences islamiques</title>
+  <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* Home page specific styles */
+    .home-section {
+      padding: var(--spacing-xl) 0;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+      padding: 0 var(--spacing-xl);
+    }
+    
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    
+    .section-link {
+      font-size: 0.75rem;
+      color: var(--brand-primary);
+      text-decoration: none;
+    }
+    
+    /* Featured Course */
+    .featured-course {
+      margin: var(--spacing-xl);
+      padding: var(--spacing-xl);
+      background: var(--bg-card);
+      border-left: 2px solid var(--brand-primary);
+    }
+    
+    .featured-eyebrow {
+      font-family: var(--font-display);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--brand-gold);
+      text-transform: uppercase;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .featured-content {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: var(--spacing-xl);
+      align-items: start;
+    }
+    
+    .featured-letter-box {
+      width: 100px;
+      height: 100px;
+      border: 1px solid var(--brand-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .featured-letter {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      color: var(--brand-primary);
+    }
+    
+    .featured-info h2 {
+      font-size: 1.25rem;
+      margin: 0 0 var(--spacing-sm);
+      color: var(--text-primary);
+    }
+    
+    .featured-info p {
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .featured-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    
+    /* Horizontal Scroll Sections */
+    .scroll-container {
+      display: flex;
+      gap: var(--spacing-md);
+      overflow-x: auto;
+      padding: 0 var(--spacing-xl) var(--spacing-md);
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* Episode Card */
+    .episode-card {
+      flex: 0 0 280px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: var(--spacing-md);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .episode-card:hover {
+      border-color: var(--brand-primary);
+    }
+    
+    .episode-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .episode-letter {
+      width: 32px;
+      height: 32px;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+    }
+    
+    .episode-cursus {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    
+    .episode-title {
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
+      line-height: 1.4;
+    }
+    
+    .episode-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    /* Cursus Scroll Card */
+    .cursus-scroll-card {
+      flex: 0 0 200px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: var(--spacing-md);
+      cursor: pointer;
+      transition: border-color 0.2s;
+      text-align: center;
+    }
+    
+    .cursus-scroll-card:hover {
+      border-color: var(--brand-primary);
+    }
+    
+    .cursus-scroll-letter {
+      width: 48px;
+      height: 48px;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      margin: 0 auto var(--spacing-sm);
+    }
+    
+    .cursus-scroll-name {
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .cursus-scroll-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    
+    /* Top 5 Section */
+    .top5-list {
+      padding: 0 var(--spacing-xl);
+    }
+    
+    .top5-item {
+      display: grid;
+      grid-template-columns: 32px 48px 1fr auto;
+      gap: var(--spacing-md);
+      align-items: center;
+      padding: var(--spacing-md) 0;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+    }
+    
+    .top5-item:hover {
+      background: var(--bg-card);
+    }
+    
+    .top5-rank {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    
+    .top5-letter {
+      width: 48px;
+      height: 48px;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+    }
+    
+    .top5-info h4 {
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      margin: 0 0 4px;
+    }
+    
+    .top5-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    
+    .top5-play {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--brand-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-primary);
+    }
+    
+    /* Domains Section */
+    .domains-section {
+      padding: var(--spacing-2xl) var(--spacing-xl);
+      border-top: 1px solid var(--border-subtle);
+      margin-top: var(--spacing-2xl);
+    }
+    
+    .domains-title {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--brand-gold);
+      margin-bottom: var(--spacing-lg);
+      text-align: center;
+    }
+    
+    .domains-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--spacing-sm);
+      max-width: 800px;
+      margin: 0 auto var(--spacing-2xl);
+    }
+    
+    .domain-tag {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      padding: 8px 16px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    
+    .domain-tag:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+    }
+    
+    .ambition-section {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      padding: var(--spacing-xl) 0;
+    }
+    
+    .ambition-title {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--brand-gold);
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .ambition-text {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    
+    @media (max-width: 768px) {
+      .featured-content {
+        grid-template-columns: 1fr;
+      }
+      
+      .featured-letter-box {
+        width: 60px;
+        height: 60px;
+      }
+      
+      .featured-letter {
+        font-size: 1.5rem;
+      }
+      
+      .top5-item {
+        grid-template-columns: 24px 40px 1fr;
+      }
+      
+      .top5-play {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body data-page="home">
-  
   <!-- Header -->
   <header class="header">
-    <div class="header-inner">
-      <a href="/" class="logo">
-        <span class="logo-text">Sijill Project</span>
+    <div class="container header-content">
+      <a href="/api/site/" class="logo">
+        <span class="logo-text">SIJILL PROJECT</span>
         <span class="logo-dot"></span>
       </a>
       
       <nav class="nav" id="main-nav">
-        <a href="/" class="nav-link active">Accueil</a>
+        <a href="/api/site/" class="nav-link active">Accueil</a>
         <a href="pages/cursus.html" class="nav-link">Cursus</a>
         <a href="pages/professeurs.html" class="nav-link">Professeurs</a>
         <a href="pages/a-propos.html" class="nav-link">À propos</a>
       </nav>
       
       <div class="header-actions">
-        <button class="btn btn-icon" id="auth-btn" onclick="showLoginModal()">
+        <button class="icon-btn" id="auth-btn" onclick="showLoginModal()">
           <i class="fas fa-user"></i>
         </button>
         <a href="pages/abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
-        <button class="menu-toggle" aria-label="Menu" onclick="toggleNav()">
-          <span></span><span></span><span></span>
-        </button>
       </div>
+      
+      <button class="mobile-menu-btn" onclick="toggleNav()">
+        <i class="fas fa-bars"></i>
+      </button>
     </div>
   </header>
-  
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content">
-      <!-- Logo like app login screen -->
-      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: var(--spacing-sm);">
-        <span style="font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--text-primary);">SIJILL PROJECT</span>
-        <span class="logo-dot"></span>
+
+  <main>
+    <!-- Featured Course Section -->
+    <section class="home-section" id="featured-section">
+      <div class="featured-course" id="featured-container">
+        <div style="text-align: center; padding: var(--spacing-xl);">
+          <div class="loading-spinner"></div>
+        </div>
       </div>
-      <p style="font-family: var(--font-body); font-size: 0.9rem; color: var(--text-secondary); margin-bottom: var(--spacing-2xl);">Plateforme académique · Sciences islamiques</p>
+    </section>
+    
+    <!-- New Episodes Section -->
+    <section class="home-section" id="episodes-section">
+      <div class="section-header">
+        <span class="section-title">Nouveaux épisodes</span>
+      </div>
+      <div class="scroll-container" id="episodes-container">
+        <div style="text-align: center; padding: var(--spacing-xl); width: 100%;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Cursus Section (horizontal scroll) -->
+    <section class="home-section" id="cursus-section">
+      <div class="section-header">
+        <span class="section-title">Nos Cursus</span>
+        <a href="pages/cursus.html" class="section-link">Voir tout →</a>
+      </div>
+      <div class="scroll-container" id="cursus-container">
+        <div style="text-align: center; padding: var(--spacing-xl); width: 100%;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Top 5 Section -->
+    <section class="home-section" id="top5-section">
+      <div class="section-header">
+        <span class="section-title">Top 5 du mois</span>
+      </div>
+      <div class="top5-list" id="top5-container">
+        <div style="text-align: center; padding: var(--spacing-xl);">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Domains Section -->
+    <section class="domains-section">
+      <h3 class="domains-title">Domaines explorés</h3>
+      <div class="domains-grid">
+        <span class="domain-tag">Falsafa</span>
+        <span class="domain-tag">Kalām</span>
+        <span class="domain-tag">Soufisme</span>
+        <span class="domain-tag">Exégèse</span>
+        <span class="domain-tag">Poésie mystique</span>
+        <span class="domain-tag">Philosophie politique</span>
+        <span class="domain-tag">Sciences du hadith</span>
+        <span class="domain-tag">Ismaélisme</span>
+        <span class="domain-tag">Mathématiques</span>
+        <span class="domain-tag">Astronomie</span>
+        <span class="domain-tag">Médecine</span>
+        <span class="domain-tag">Géographie</span>
+        <span class="domain-tag">Muʿtazilisme</span>
+        <span class="domain-tag">Ashʿarisme</span>
+        <span class="domain-tag">Philosophie persane</span>
+      </div>
       
-      <p class="hero-intro">
-        Explorez les sciences islamiques à travers des cours dispensés par des universitaires reconnus. 
-        Philosophie, théologie, soufisme, histoire et bien plus encore.
-      </p>
-      
-      <div class="hero-actions">
-        <a href="pages/cursus.html" class="btn btn-primary">Découvrir les cursus</a>
-        <a href="pages/abonnement.html" class="btn btn-secondary">Découvrir nos offres</a>
+      <div class="ambition-section">
+        <h3 class="ambition-title">Notre ambition</h3>
+        <p class="ambition-text">
+          Montrer comment, à travers ces échanges, s'est formée ce que l'on pourrait appeler 
+          une « civilisation de la pensée », où le débat, la dissension et la controverse 
+          étaient des moteurs de la créativité intellectuelle.
+        </p>
       </div>
-    </div>
-  </section>
-  
-  <!-- Separator -->
-  <div class="separator">
-    <span class="separator-line"></span>
-    <span class="separator-diamond"></span>
-    <span class="separator-line"></span>
-  </div>
-  
-  <!-- Highlight Section -->
-  <section class="section">
-    <div class="container">
-      <div id="highlight-container">
-        <div class="loading"><div class="spinner"></div></div>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Separator -->
-  <div class="separator">
-    <span class="separator-line"></span>
-    <span class="separator-diamond"></span>
-    <span class="separator-line"></span>
-  </div>
-  
-  <!-- Cursus Section -->
-  <section class="section">
-    <div class="container">
-      <div class="section-title-row">
-        <span class="section-title-gray">Nos Cursus</span>
-        <span class="section-title-line"></span>
-      </div>
-      <div id="cursus-list" class="cards-grid">
-        <div class="loading"><div class="spinner"></div></div>
-      </div>
-      <div style="text-align: center; margin-top: var(--spacing-xl);">
-        <a href="pages/cursus.html" class="btn btn-secondary">Voir tous les cursus</a>
-      </div>
-    </div>
-  </section>
-  
+    </section>
+  </main>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a href="/" class="logo">
-            <span class="logo-text">Sijill Project</span>
+          <div class="footer-logo">
+            <span class="logo-text">SIJILL PROJECT</span>
             <span class="logo-dot"></span>
-          </a>
+          </div>
           <p>Plateforme académique dédiée à l'enseignement des sciences islamiques par des universitaires reconnus.</p>
         </div>
-        <div>
-          <h4 class="footer-title">Navigation</h4>
-          <ul class="footer-links">
-            <li><a href="/">Accueil</a></li>
+        
+        <div class="footer-links">
+          <h4>Navigation</h4>
+          <ul>
+            <li><a href="/api/site/">Accueil</a></li>
             <li><a href="pages/cursus.html">Cursus</a></li>
             <li><a href="pages/professeurs.html">Professeurs</a></li>
             <li><a href="pages/a-propos.html">À propos</a></li>
           </ul>
         </div>
-        <div>
-          <h4 class="footer-title">Légal</h4>
-          <ul class="footer-links">
-            <li><a href="pages/mentions-legales.html">Mentions légales</a></li>
-            <li><a href="pages/cgv.html">CGV</a></li>
-            <li><a href="pages/confidentialite.html">Confidentialité</a></li>
+        
+        <div class="footer-links">
+          <h4>Légal</h4>
+          <ul>
+            <li><a href="#">Mentions légales</a></li>
+            <li><a href="#">CGV</a></li>
+            <li><a href="#">Confidentialité</a></li>
           </ul>
         </div>
-        <div>
-          <h4 class="footer-title">Contact</h4>
-          <ul class="footer-links">
+        
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <ul>
             <li><a href="mailto:contact@sijillproject.com">contact@sijillproject.com</a></li>
           </ul>
         </div>
       </div>
+      
       <div class="footer-bottom">
         <p>&copy; 2026 Sijill Project. Tous droits réservés.</p>
-        <p class="footer-devise">Rigueur · Pluralité · Transmission</p>
+        <p class="footer-tagline">Rigueur · Pluralité · Transmission</p>
       </div>
     </div>
   </footer>
-  
+
   <!-- Auth Modal -->
-  <div class="modal-overlay" id="auth-modal" onclick="if(event.target === this) hideModal()">
-    <div class="modal" style="position: relative;">
+  <div class="modal" id="auth-modal">
+    <div class="modal-overlay" onclick="hideModal()"></div>
+    <div class="modal-content">
       <button class="modal-close" onclick="hideModal()">&times;</button>
-      <div class="modal-header">
-        <h2 id="modal-title">Connexion</h2>
-        <p style="color: var(--text-secondary); font-size: 0.9rem;">Accédez à votre espace</p>
+      
+      <h2 id="modal-title">Connexion</h2>
+      <p class="modal-subtitle">Accédez à votre espace</p>
+      
+      <div id="form-error" style="display: none;"></div>
+      
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="votre@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Mot de passe</label>
+          <input type="password" id="login-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+      </form>
+      
+      <!-- Register Form -->
+      <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
+        <div class="form-group">
+          <label for="register-name">Nom complet</label>
+          <input type="text" id="register-name" placeholder="Votre nom" required>
+        </div>
+        <div class="form-group">
+          <label for="register-email">Email</label>
+          <input type="email" id="register-email" placeholder="votre@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="register-password">Mot de passe</label>
+          <input type="password" id="register-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">S'inscrire</button>
+      </form>
+      
+      <div class="social-divider">
+        <span>ou</span>
       </div>
-      <div class="modal-body">
-        <div id="form-error" style="display: none; background: rgba(220, 53, 69, 0.1); border: 1px solid #dc3545; color: #dc3545; padding: 12px; margin-bottom: 16px; font-size: 0.9rem;"></div>
-        
-        <form id="login-form" onsubmit="handleLoginSubmit(event)">
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input type="email" id="login-email" class="form-input" placeholder="votre@email.com" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mot de passe</label>
-            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
-        </form>
-        
-        <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
-          <div class="form-group">
-            <label class="form-label">Nom complet</label>
-            <input type="text" id="register-name" class="form-input" placeholder="Votre nom" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input type="email" id="register-email" class="form-input" placeholder="votre@email.com" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mot de passe</label>
-            <input type="password" id="register-password" class="form-input" placeholder="••••••••" required minlength="6">
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">S'inscrire</button>
-        </form>
-        
-        <div class="social-divider">ou</div>
-        
-        <button class="social-btn" onclick="loginWithGoogle()">
-          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9.003 18c2.43 0 4.467-.806 5.956-2.18l-2.909-2.26c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z"/><path fill="#FBBC05" d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.002 0 5.482 0 2.438 2.017.957 4.958l3.007 2.332c.708-2.127 2.692-3.71 5.036-3.71z"/></svg>
-          Continuer avec Google
+      
+      <div class="social-buttons">
+        <button type="button" class="btn btn-social" onclick="loginWithGoogle()">
+          <i class="fab fa-google"></i> Continuer avec Google
         </button>
-        <button class="social-btn" onclick="loginWithApple()">
-          <i class="fab fa-apple"></i>
-          Continuer avec Apple
+        <button type="button" class="btn btn-social" onclick="loginWithApple()">
+          <i class="fab fa-apple"></i> Continuer avec Apple
         </button>
       </div>
-      <div class="modal-footer" id="modal-switch">
+      
+      <p class="modal-switch" id="modal-switch">
         Pas encore de compte ? <a href="#" onclick="showRegisterModal(); return false;">S'inscrire</a>
-      </div>
+      </p>
     </div>
   </div>
-  
+
   <script src="js/app.js"></script>
   <script>
-    function toggleNav() {
-      document.getElementById('main-nav').classList.toggle('active');
+    function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
+    
+    // Cursus config
+    const CURSUS_CONFIG = {
+      'cursus-falsafa': { color: '#04D182', letter: 'A' },
+      'cursus-theologie': { color: '#8B5CF6', letter: 'B' },
+      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C' },
+      'cursus-arts': { color: '#EC4899', letter: 'D' },
+      'cursus-spiritualites': { color: '#06B6D4', letter: 'E' }
+    };
+    
+    function getCursusConfig(cursusId) {
+      return CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?' };
+    }
+    
+    // Load all home page data
+    document.addEventListener('DOMContentLoaded', async () => {
+      const API_URL = 'https://learn-quran-10.preview.emergentagent.com/api';
+      
+      try {
+        const [homeData, cursusData] = await Promise.all([
+          fetch(`${API_URL}/home`).then(r => r.json()),
+          fetch(`${API_URL}/cursus`).then(r => r.json())
+        ]);
+        
+        // Render featured course
+        const featured = homeData.featured_hero || homeData.featured_course;
+        if (featured) {
+          renderFeatured(featured, homeData.scholars);
+        } else {
+          document.getElementById('featured-section').style.display = 'none';
+        }
+        
+        // Render new episodes
+        if (homeData.recent_episodes && homeData.recent_episodes.length > 0) {
+          renderEpisodes(homeData.recent_episodes);
+        } else {
+          document.getElementById('episodes-section').style.display = 'none';
+        }
+        
+        // Render cursus scroll
+        if (cursusData && cursusData.length > 0) {
+          renderCursusScroll(cursusData);
+        }
+        
+        // Render top 5
+        if (homeData.top5_courses && homeData.top5_courses.length > 0) {
+          renderTop5(homeData.top5_courses);
+        } else if (homeData.recommendations && homeData.recommendations.length > 0) {
+          renderTop5(homeData.recommendations.slice(0, 5));
+        }
+        
+      } catch (error) {
+        console.error('Failed to load home data:', error);
+      }
+    });
+    
+    function renderFeatured(course, scholars) {
+      const container = document.getElementById('featured-container');
+      const config = getCursusConfig(course.cursus_id);
+      const scholar = scholars?.find(s => s.id === course.scholar_id);
+      
+      container.innerHTML = `
+        <span class="featured-eyebrow">À la une</span>
+        <div class="featured-content">
+          <div class="featured-letter-box" style="border-color: ${config.color};">
+            <span class="featured-letter" style="color: ${config.color};">${config.letter}</span>
+          </div>
+          <div class="featured-info">
+            <h2>${course.title}</h2>
+            <p>${course.description || ''}</p>
+            <div class="featured-meta">
+              ${scholar ? `<span>Par <strong>${scholar.name}</strong></span>` : course.scholar_name ? `<span>Par <strong>${course.scholar_name}</strong></span>` : ''}
+              ${course.modules_count ? `<span><i class="fas fa-headphones"></i> ${course.modules_count} épisodes</span>` : ''}
+            </div>
+            <button class="btn btn-primary" onclick="requireAuth('pages/abonnement.html')">
+              <i class="fas fa-play"></i> Écouter
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderEpisodes(episodes) {
+      const container = document.getElementById('episodes-container');
+      
+      container.innerHTML = episodes.slice(0, 10).map(ep => {
+        const config = getCursusConfig(ep.cursus_id);
+        return `
+          <div class="episode-card" onclick="requireAuth('pages/abonnement.html')">
+            <div class="episode-header">
+              <div class="episode-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
+              <span class="episode-cursus" style="color: ${config.color};">${ep.cursus_name || ''}</span>
+            </div>
+            <h4 class="episode-title">${ep.title}</h4>
+            <p class="episode-meta">${ep.scholar_name || ''}</p>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderCursusScroll(cursus) {
+      const container = document.getElementById('cursus-container');
+      
+      container.innerHTML = cursus.map(c => {
+        const config = getCursusConfig(c.id);
+        return `
+          <div class="cursus-scroll-card" onclick="requireAuth('pages/abonnement.html')" style="border-left: 2px solid ${config.color};">
+            <div class="cursus-scroll-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
+            <h4 class="cursus-scroll-name">${c.name}</h4>
+            <p class="cursus-scroll-count">${c.course_count || 0} cours</p>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderTop5(courses) {
+      const container = document.getElementById('top5-container');
+      
+      container.innerHTML = courses.slice(0, 5).map((course, index) => {
+        const config = getCursusConfig(course.cursus_id);
+        return `
+          <div class="top5-item" onclick="requireAuth('pages/abonnement.html')">
+            <span class="top5-rank">${index + 1}</span>
+            <div class="top5-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
+            <div class="top5-info">
+              <h4>${course.title}</h4>
+              <p>${course.scholar_name || ''} · ${course.modules_count || 0} épisodes</p>
+            </div>
+            <div class="top5-play">
+              <i class="fas fa-play"></i>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
   </script>
 </body>
