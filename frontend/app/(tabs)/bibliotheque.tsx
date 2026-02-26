@@ -119,19 +119,6 @@ export default function BibliothequeScreen() {
         }
       >
         {/* ═══════════════════════════════════════════════════════════════════════
-            BARRE DE NAVIGATION HAUTE (sticky)
-        ═══════════════════════════════════════════════════════════════════════ */}
-        <View style={styles.navBar}>
-          <View style={styles.navLogo}>
-            <Text style={styles.navLogoText}>SIJILL</Text>
-            <View style={styles.navLogoDot} />
-          </View>
-          <TouchableOpacity style={styles.navMoreBtn}>
-            <Ionicons name="ellipsis-horizontal" size={20} color="rgba(245,240,232,0.6)" />
-          </TouchableOpacity>
-        </View>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
             BLOC PROFIL UTILISATEUR
         ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.profileBlock}>
