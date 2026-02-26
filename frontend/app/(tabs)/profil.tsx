@@ -250,7 +250,7 @@ export default function ProfilScreen() {
 
         {/* Brand footer */}
         <View style={styles.brandFooter}>
-          <Text style={styles.brandName}>Sijill</Text>
+          <Text style={styles.brandName}>Sijill Project</Text>
           <Text style={styles.brandByLM}></Text>
           <Text style={styles.brandVersion}>v1.0.0 · Prototype</Text>
         </View>

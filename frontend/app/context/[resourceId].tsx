@@ -179,7 +179,7 @@ export default function ContextScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Sijill Project — Études Islamiques
+            Sijill Project — Sciences Islamiques
           </Text>
         </View>
       </ScrollView>
