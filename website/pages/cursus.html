@@ -147,5 +147,55 @@
   </div>
   
   <script src="../js/app.js"></script>
+  <script>
+    function toggleNav() { document.getElementById('main-nav')?.classList.toggle('active'); }
+    
+    // Override renderCursusGrid for this page with correct colors
+    const CURSUS_COLORS = {
+      'cursus-falsafa': { color: '#04D182', letter: 'F' },
+      'cursus-theologie': { color: '#8B5CF6', letter: 'K' },
+      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'S' },
+      'cursus-arts': { color: '#EC4899', letter: 'A' },
+      'cursus-spiritualites': { color: '#06B6D4', letter: 'P' }
+    };
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const API_URL = 'https://learn-quran-10.preview.emergentagent.com/api';
+        const response = await fetch(`${API_URL}/cursus`);
+        const cursusList = await response.json();
+        
+        const container = document.getElementById('cursus-grid');
+        if (!container) return;
+        
+        if (!cursusList || cursusList.length === 0) {
+          container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Aucun cursus disponible.</p>';
+          return;
+        }
+        
+        container.innerHTML = cursusList.map(cursus => {
+          const config = CURSUS_COLORS[cursus.id] || { color: '#04D182', letter: cursus.name?.charAt(0)?.toUpperCase() || '?' };
+          return `
+            <div class="card" style="border-left-color: ${config.color}; cursor: pointer;" onclick="requireAuth('abonnement.html')">
+              <div class="card-content">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+                  <div class="cursus-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
+                  <span style="font-family: var(--font-display); font-size: 0.6rem; letter-spacing: 0.15em; color: ${config.color}; text-transform: uppercase;">Cursus</span>
+                </div>
+                <h3 class="card-title">${cursus.name}</h3>
+                <p class="card-description">${cursus.description || ''}</p>
+              </div>
+              <div class="card-footer">
+                <span class="card-stat"><i class="fas fa-book"></i> ${cursus.course_count || 0} cours</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Failed to load cursus:', error);
+        document.getElementById('cursus-grid').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Erreur lors du chargement.</p>';
+      }
+    });
+  </script>
 </body>
 </html>
