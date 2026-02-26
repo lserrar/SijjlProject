@@ -175,12 +175,13 @@ export default function CursusCoursesScreen() {
   // ─── Load Data ──────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
-      const [cursusRes, coursesRes, progressRes, scholarsRes, biblioRes] = await Promise.all([
+      const [cursusRes, coursesRes, progressRes, scholarsRes, biblioRes, contextRes] = await Promise.all([
         apiRequest('/cursus', token),
         apiRequest(`/courses?cursus_id=${id}`, token),
         token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
         apiRequest(`/cursus/${id}/scholars`, token),
         apiRequest(`/bibliographies?cursus_id=${id}`, token),
+        apiRequest('/resources/context', token),
       ]);
 
       if (cursusRes.ok) {
@@ -199,6 +200,11 @@ export default function CursusCoursesScreen() {
         // Filter only new format bibliographies (with content field)
         const newBiblios = (biblioData || []).filter((b: any) => b.content && b.module_number);
         setBibliographies(newBiblios);
+      }
+
+      if (contextRes.ok) {
+        const contextData = await contextRes.json();
+        setContextResources(contextData.resources || []);
       }
 
       // Build progress map
