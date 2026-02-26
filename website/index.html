@@ -622,17 +622,17 @@
   <script>
     function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
     
-    // Cursus config (like app)
+    // Cursus config (colors and letters only - names come from API)
     const HOME_CURSUS_CONFIG = {
-      'cursus-falsafa': { color: '#04D182', letter: 'A', shortName: 'Falsafa', title: 'Philosophie islamique', desc: "D'Al-Kindī à Ibn Khaldūn — la grande tradition philosophique de l'Islam classique." },
-      'cursus-theologie': { color: '#8B5CF6', letter: 'B', shortName: 'Kalām', title: 'Théologie & Droit', desc: 'Les grandes écoles de théologie rationnelle et les fondements du droit islamique.' },
-      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C', shortName: 'Sciences', title: 'Sciences islamiques', desc: 'Coran, hadith, historiographie — les sciences qui ont structuré la civilisation islamique.' },
-      'cursus-arts': { color: '#EC4899', letter: 'D', shortName: 'Arts', title: 'Arts, Sciences & Géographie', desc: 'Poésie, médecine, géographie, musique — les arts et les sciences de la civilisation arabo-islamique.' },
-      'cursus-spiritualites': { color: '#06B6D4', letter: 'E', shortName: 'Connexions', title: 'Philosophies connectées', desc: 'Dialogue entre Islam, christianisme oriental, soufisme, ismaélisme et judaïsme médiéval.' }
+      'cursus-falsafa': { color: '#04D182', letter: 'A', shortName: 'Falsafa' },
+      'cursus-theologie': { color: '#8B5CF6', letter: 'B', shortName: 'Kalām' },
+      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C', shortName: 'Sciences' },
+      'cursus-arts': { color: '#EC4899', letter: 'D', shortName: 'Arts' },
+      'cursus-spiritualites': { color: '#06B6D4', letter: 'E', shortName: 'Connexions' }
     };
     
     function getHomeCursusConfig(cursusId) {
-      return HOME_CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?', shortName: '', title: '', desc: '' };
+      return HOME_CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?', shortName: '' };
     }
     
     // Load all home page data
