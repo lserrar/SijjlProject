@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: 'Cinzel',
-    fontSize: 8,
+    fontSize: 12,
     letterSpacing: 4,
     color: '#04D182',
     textTransform: 'uppercase',
@@ -452,9 +452,9 @@ const styles = StyleSheet.create({
   },
   sectionText: {
     fontFamily: 'EBGaramond',
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(245,240,232,0.60)',
-    lineHeight: 25.2,
+    lineHeight: 27,
   },
   textBold: {
     fontFamily: 'EBGaramond',
@@ -484,10 +484,10 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     fontFamily: 'EBGaramond',
-    fontSize: 14,
+    fontSize: 16,
     fontStyle: 'italic',
     color: 'rgba(245,240,232,0.75)',
-    lineHeight: 24.5,
+    lineHeight: 27,
     paddingTop: 12,
   },
   quoteDivider: {
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   quoteAttribution: {
     fontFamily: 'Cinzel',
-    fontSize: 7,
+    fontSize: 12,
     letterSpacing: 2,
     color: '#C9A84C',
     textTransform: 'uppercase',
