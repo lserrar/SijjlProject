@@ -20,6 +20,21 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
+### Session actuelle - Gestion des Timelines Admin
+
+#### 1. Édition des titres et ordre des timelines HTML ✅ (NEW)
+- **Admin Panel**: Interface complète pour éditer titre, cursus et ordre d'affichage des timelines
+- **Modal d'édition**: Titre affiché, sélection cursus (A-E), ordre numérique
+- **Backend**: Endpoint `PUT /api/admin/resources/timeline/{filename}` avec upsert MongoDB
+- **Frontend Public**: Les titres personnalisés s'affichent dans l'ordre configuré sur la page Cursus
+- **Test validé**: 
+  - "Frise chronologique - La Falsafa" (ordre 1)
+  - "Carte des penseurs - La Falsafa" (ordre 2)
+
+---
+
+## Travail Accompli (sessions précédentes)
+
 ### Session actuelle - Splash Screen & Améliorations
 
 #### 1. Écran de démarrage animé ✅ (NEW)
