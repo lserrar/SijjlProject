@@ -296,8 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   tagline: {
-    fontFamily: 'EBGaramond',
-    fontStyle: 'italic',
+    fontFamily: 'EB Garamond Italic',
     fontWeight: '400',
     fontSize: 11,
     letterSpacing: 11 * 0.08,
