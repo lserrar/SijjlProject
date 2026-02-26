@@ -633,33 +633,7 @@ export default function CursusCoursesScreen() {
 
         {activeTab === 'ressources' && (
           <View style={styles.resourcesTab}>
-            {/* 1. Bibliographies Section - FIRST */}
-            {bibliographies.length > 0 && (
-              <View style={styles.resourceSection}>
-                <Text style={styles.sectionSubtitle}>Bibliographies</Text>
-                {bibliographies.map((biblio) => (
-                  <TouchableOpacity
-                    key={biblio.id}
-                    style={styles.biblioCard}
-                    onPress={() => router.push(`/bibliography/${biblio.id}` as any)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.biblioHeader}>
-                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
-                        <Ionicons name="book-outline" size={18} color={cursusColor} />
-                      </View>
-                      <View style={styles.biblioTitleContainer}>
-                        <Text style={styles.biblioTitle}>{biblio.title}</Text>
-                        <Text style={styles.biblioMeta}>Module {biblio.module_number} · Bibliographie</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color="#888" />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* 2. Timeline Section - SECOND */}
+            {/* 1. Timeline Section - FIRST */}
             <View style={styles.resourceSection}>
               <Text style={styles.sectionSubtitle}>Frise chronologique</Text>
               {timelines && timelines.length > 0 ? (
@@ -704,7 +678,7 @@ export default function CursusCoursesScreen() {
               )}
             </View>
 
-            {/* 3. Context Documents Section - THIRD */}
+            {/* 2. Context Documents Section - SECOND */}
             {contextResources.length > 0 && (
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Contexte historique</Text>
@@ -730,7 +704,7 @@ export default function CursusCoursesScreen() {
               </View>
             )}
 
-            {/* 4. Audio Conferences Section - LAST */}
+            {/* 3. Audio Conferences Section - THIRD */}
             {audioConferences.length > 0 && (
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Conférences Audio</Text>
@@ -750,6 +724,32 @@ export default function CursusCoursesScreen() {
                         <Text style={styles.biblioMeta}>
                           {conf.speaker} · Module {conf.module_number} · {conf.size_mb} Mo
                         </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* 4. Bibliographies Section - LAST */}
+            {bibliographies.length > 0 && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Bibliographies</Text>
+                {bibliographies.map((biblio) => (
+                  <TouchableOpacity
+                    key={biblio.id}
+                    style={styles.biblioCard}
+                    onPress={() => router.push(`/bibliography/${biblio.id}` as any)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="book-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{biblio.title}</Text>
+                        <Text style={styles.biblioMeta}>Module {biblio.module_number} · Bibliographie</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={20} color="#888" />
                     </View>
