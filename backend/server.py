@@ -2810,6 +2810,20 @@ async def admin_list_timeline_resources(request: Request):
                     file_info['module_number'] = int(match.group(1))
                     file_info['subject'] = match.group(2).replace('_', ' ').replace('-', ' ')
                     file_info['type'] = 'context_docx'
+                    
+                    # Check for custom data in DB
+                    resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+                    db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+                    
+                    if db_entry:
+                        file_info['title'] = db_entry.get('title', '')
+                        file_info['description'] = db_entry.get('description', '')
+                        file_info['credits'] = db_entry.get('credits', '')
+                        if db_entry.get('module_number'):
+                            file_info['module_number'] = db_entry['module_number']
+                        if db_entry.get('subject'):
+                            file_info['subject'] = db_entry['subject']
+                
                 docx_files.append(file_info)
         
         # Get audio files from audio/ folder
