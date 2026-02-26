@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>À propos - Sijill Project</title>
+  <meta name="description" content="Découvrez Sijill Project, une plateforme académique dédiée à l'enseignement des sciences islamiques.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="../" class="logo">
+        <span class="logo-text">Sijill Project</span>
+        <span class="logo-tagline">Sciences Islamiques</span>
+      </a>
+      <nav class="nav">
+        <a href="../" class="nav-link">Accueil</a>
+        <a href="cursus.html" class="nav-link">Cursus</a>
+        <a href="professeurs.html" class="nav-link">Professeurs</a>
+        <a href="a-propos.html" class="nav-link active">À propos</a>
+      </nav>
+      <div class="header-actions">
+        <button class="btn btn-icon" id="auth-btn" onclick="showLoginModal()">
+          <i class="fas fa-user"></i>
+        </button>
+        <a href="abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
+        <button class="menu-toggle" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>À <span class="text-gold">propos</span></h1>
+      <p style="color: var(--text-secondary);">Notre mission et notre vision</p>
+    </div>
+  </section>
+  
+  <!-- About Content -->
+  <section class="section">
+    <div class="container" style="max-width: 800px;">
+      <div style="margin-bottom: var(--spacing-3xl);">
+        <h2 style="margin-bottom: var(--spacing-lg);">Notre <span class="text-gold">mission</span></h2>
+        <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: var(--spacing-md);">
+          Sijill Project est une plateforme académique dédiée à la diffusion des sciences islamiques 
+          à travers des cours audio de qualité universitaire. Notre objectif est de rendre accessible 
+          à tous un savoir traditionnellement réservé aux cercles universitaires.
+        </p>
+        <p style="font-size: 1.1rem; line-height: 1.8;">
+          Nous collaborons avec des professeurs et chercheurs reconnus pour proposer des contenus 
+          rigoureux sur la philosophie islamique, la théologie, le soufisme, l'histoire et bien 
+          d'autres domaines des sciences islamiques.
+        </p>
+      </div>
+      
+      <div style="margin-bottom: var(--spacing-3xl);">
+        <h2 style="margin-bottom: var(--spacing-lg);">Notre <span class="text-gold">approche</span></h2>
+        <div class="cards-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="card">
+            <div class="card-content">
+              <i class="fas fa-university" style="font-size: 2rem; color: var(--brand-primary); margin-bottom: var(--spacing-md);"></i>
+              <h3 class="card-title">Rigueur académique</h3>
+              <p class="card-description">Chaque cours est dispensé par un spécialiste reconnu dans son domaine.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-content">
+              <i class="fas fa-headphones-alt" style="font-size: 2rem; color: var(--brand-primary); margin-bottom: var(--spacing-md);"></i>
+              <h3 class="card-title">Format accessible</h3>
+              <p class="card-description">Des cours audio à écouter où et quand vous le souhaitez.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-content">
+              <i class="fas fa-book" style="font-size: 2rem; color: var(--brand-primary); margin-bottom: var(--spacing-md);"></i>
+              <h3 class="card-title">Ressources complémentaires</h3>
+              <p class="card-description">Bibliographies, chronologies et documents pour approfondir.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-content">
+              <i class="fas fa-users" style="font-size: 2rem; color: var(--brand-primary); margin-bottom: var(--spacing-md);"></i>
+              <h3 class="card-title">Communauté</h3>
+              <p class="card-description">Rejoignez une communauté passionnée par les sciences islamiques.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; padding: var(--spacing-2xl); background: var(--bg-secondary); border-radius: 8px;">
+        <h2 style="margin-bottom: var(--spacing-md);">Prêt à <span class="text-gold">commencer</span> ?</h2>
+        <p style="margin-bottom: var(--spacing-lg);">Rejoignez-nous et accédez à l'ensemble de nos contenus.</p>
+        <a href="abonnement.html" class="btn btn-primary">Voir les offres</a>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="../" class="logo"><span class="logo-text">Sijill Project</span></a>
+          <p>Plateforme académique dédiée à l'enseignement des sciences islamiques.</p>
+        </div>
+        <div>
+          <h4 class="footer-title">Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="../">Accueil</a></li>
+            <li><a href="cursus.html">Cursus</a></li>
+            <li><a href="professeurs.html">Professeurs</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-title">Légal</h4>
+          <ul class="footer-links">
+            <li><a href="mentions-legales.html">Mentions légales</a></li>
+            <li><a href="cgv.html">CGV</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-title">Contact</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:contact@sijillproject.com">contact@sijillproject.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Sijill Project. Tous droits réservés.</p>
+      </div>
+    </div>
+  </footer>
+  
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="auth-modal" onclick="if(event.target === this) hideModal()">
+    <div class="modal" style="position: relative;">
+      <button class="modal-close" onclick="hideModal()">&times;</button>
+      <div class="modal-header"><h2 id="modal-title">Connexion</h2></div>
+      <div class="modal-body">
+        <div id="form-error" style="display: none;"></div>
+        <form id="login-form" onsubmit="handleLoginSubmit(event)">
+          <div class="form-group"><label class="form-label">Email</label><input type="email" id="login-email" class="form-input" required></div>
+          <div class="form-group"><label class="form-label">Mot de passe</label><input type="password" id="login-password" class="form-input" required></div>
+          <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+        </form>
+        <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
+          <div class="form-group"><label class="form-label">Nom</label><input type="text" id="register-name" class="form-input" required></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" id="register-email" class="form-input" required></div>
+          <div class="form-group"><label class="form-label">Mot de passe</label><input type="password" id="register-password" class="form-input" required></div>
+          <button type="submit" class="btn btn-primary btn-full">S'inscrire</button>
+        </form>
+        <div class="social-divider">ou</div>
+        <button class="social-btn" onclick="loginWithGoogle()"><i class="fab fa-google"></i> Google</button>
+        <button class="social-btn" onclick="loginWithApple()"><i class="fab fa-apple"></i> Apple</button>
+      </div>
+      <div class="modal-footer" id="modal-switch">Pas de compte ? <a href="#" onclick="showRegisterModal(); return false;">S'inscrire</a></div>
+    </div>
+  </div>
+  
+  <script src="../js/app.js"></script>
+</body>
+</html>
