@@ -3258,7 +3258,7 @@ async def update_context_resource(resource_id: str, request: Request):
     }
     
     # Allow updating these fields
-    allowed_fields = ['title', 'description', 'credits', 'subject', 'module_number', 'cursus_id']
+    allowed_fields = ['title', 'description', 'credits', 'subject', 'module_number', 'cursus_id', 'cursus_letter']
     for field in allowed_fields:
         if field in body:
             update_data[field] = body[field]
@@ -3270,7 +3270,7 @@ async def update_context_resource(resource_id: str, request: Request):
     )
     
     return {
-        'message': 'Document mis à jour',
+        'message': 'Fiche mise à jour',
         'resource_id': resource_id,
         'updated_fields': [f for f in allowed_fields if f in body]
     }
