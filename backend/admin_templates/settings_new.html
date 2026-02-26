@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres - Sijill Admin{% endblock %}
+
+{% block content %}
+<style>
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 1200px) { .settings-grid { grid-template-columns: 1fr; } }
+.settings-section { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 24px; margin-bottom: 24px; }
+.section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
+.section-icon { width: 48px; height: 48px; background: rgba(4, 209, 130, 0.1); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--brand-primary); }
+.section-title { font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-primary); }
+.section-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.price-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+.price-card { background: var(--bg-tertiary); padding: 20px; border: 1px solid #333; }
+.price-card-title { font-family: 'Cinzel', serif; font-size: 11px; color: var(--brand-primary); letter-spacing: 2px; margin-bottom: 12px; }
+.price-card-value { font-family: 'Cinzel', serif; font-size: 24px; color: var(--text-primary); }
+.price-card-period { font-size: 12px; color: var(--text-muted); }
+.toggle-group { display: flex; align-items: center; gap: 12px; }
+.toggle { position: relative; width: 48px; height: 24px; background: #333; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+.toggle.active { background: var(--brand-primary); }
+.toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; }
+.toggle.active::after { transform: translateX(24px); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Paramètres</h1>
+        <p class="page-description">Configuration de la plateforme</p>
+    </div>
+</div>
+
+<div class="settings-grid">
+    <div>
+        <!-- Stripe Configuration -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="fab fa-stripe-s"></i></div>
+                <div>
+                    <div class="section-title">Configuration Stripe</div>
+                    <div class="section-subtitle">Clés API pour les paiements</div>
+                </div>
+                <span class="status" id="stripeStatus" style="margin-left: auto;">Vérification...</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Clé API (Secret Key)</label>
+                <input type="password" id="stripeApiKey" class="form-input" placeholder="sk_live_...">
+                <p class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">Utilisez votre clé secrète Stripe (sk_live_... ou sk_test_...)</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Webhook Secret (optionnel)</label>
+                <input type="password" id="stripeWebhookSecret" class="form-input" placeholder="whsec_...">
+                <p class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">Webhook URL : <code style="color: var(--brand-primary);">/api/webhooks/stripe</code></p>
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveStripeConfig()">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+        </div>
+
+        <!-- Subscription Plans -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="fas fa-crown"></i></div>
+                <div>
+                    <div class="section-title">Plans d'abonnement</div>
+                    <div class="section-subtitle">Configurez les tarifs et durées</div>
+                </div>
+            </div>
+            
+            <div class="price-cards">
+                <div class="price-card">
+                    <div class="price-card-title">ESSAI GRATUIT</div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="number" id="trialDays" class="form-input" value="3" min="0" max="30">
+                        <p class="form-hint" style="margin-top: 4px;">jours</p>
+                    </div>
+                </div>
+                <div class="price-card">
+                    <div class="price-card-title">MENSUEL</div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="number" id="monthlyPrice" class="form-input" value="9.99" step="0.01" min="0">
+                        <p class="form-hint" style="margin-top: 4px;">€ / mois</p>
+                    </div>
+                </div>
+                <div class="price-card">
+                    <div class="price-card-title">ANNUEL</div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="number" id="annualPrice" class="form-input" value="89.99" step="0.01" min="0">
+                        <p class="form-hint" style="margin-top: 4px;">€ / an</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="savePricingConfig()">
+                    <i class="fas fa-save"></i> Enregistrer les tarifs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <!-- Referral Configuration -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="fas fa-gift"></i></div>
+                <div>
+                    <div class="section-title">Système de parrainage</div>
+                    <div class="section-subtitle">Récompenses pour les parrains et filleuls</div>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Récompense parrain</label>
+                    <input type="number" id="referrerReward" class="form-input" value="1" min="0" max="12">
+                    <p class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">mois gratuit(s) quand un filleul s'abonne</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Récompense filleul</label>
+                    <input type="number" id="refereeReward" class="form-input" value="1" min="0" max="12">
+                    <p class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">mois gratuit(s) à l'inscription avec code</p>
+                </div>
+            </div>
+            
+            <div class="toggle-group" style="margin: 20px 0;">
+                <div id="referralToggle" class="toggle active" onclick="toggleReferral()"></div>
+                <span style="font-size: 13px; color: var(--text-primary);">Système de parrainage activé</span>
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveReferralConfig()">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+        </div>
+
+        <!-- Referral Stats -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="fas fa-chart-line"></i></div>
+                <div>
+                    <div class="section-title">Statistiques parrainages</div>
+                    <div class="section-subtitle">Vue d'ensemble du programme</div>
+                </div>
+            </div>
+            
+            <div class="price-cards">
+                <div class="price-card">
+                    <div class="price-card-title">TOTAL</div>
+                    <div class="price-card-value" id="totalReferrals">-</div>
+                    <div class="price-card-period">parrainages</div>
+                </div>
+                <div class="price-card">
+                    <div class="price-card-title">CONVERTIS</div>
+                    <div class="price-card-value" id="convertedReferrals" style="color: var(--brand-primary);">-</div>
+                    <div class="price-card-period">abonnés</div>
+                </div>
+                <div class="price-card">
+                    <div class="price-card-title">EN ATTENTE</div>
+                    <div class="price-card-value" id="pendingReferrals" style="color: var(--warning);">-</div>
+                    <div class="price-card-period">non convertis</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="/api/admin-panel/users" class="btn btn-secondary">
+                    <i class="fas fa-users"></i> Voir tous les utilisateurs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadSettings();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let settings = {};
+
+async function loadSettings() {
+    try {
+        settings = await apiRequest('/admin/settings') || {};
+        
+        // Stripe
+        document.getElementById('stripeApiKey').value = settings.stripe_api_key ? '••••••••' : '';
+        document.getElementById('stripeWebhookSecret').value = settings.stripe_webhook_secret ? '••••••••' : '';
+        updateStripeStatus(settings.stripe_configured);
+        
+        // Pricing
+        document.getElementById('trialDays').value = settings.trial_days ?? 3;
+        document.getElementById('monthlyPrice').value = settings.monthly_price ?? 9.99;
+        document.getElementById('annualPrice').value = settings.annual_price ?? 89.99;
+        
+        // Referral
+        document.getElementById('referrerReward').value = settings.referrer_reward_months ?? 1;
+        document.getElementById('refereeReward').value = settings.referee_reward_months ?? 1;
+        const referralEnabled = settings.referral_enabled !== false;
+        document.getElementById('referralToggle').classList.toggle('active', referralEnabled);
+        
+        // Stats
+        document.getElementById('totalReferrals').textContent = settings.total_referrals ?? 0;
+        document.getElementById('convertedReferrals').textContent = settings.converted_referrals ?? 0;
+        document.getElementById('pendingReferrals').textContent = settings.pending_referrals ?? 0;
+        
+    } catch (error) {
+        showToast('Erreur de chargement des paramètres', 'error');
+    }
+}
+
+function updateStripeStatus(configured) {
+    const el = document.getElementById('stripeStatus');
+    if (configured) {
+        el.className = 'status status-active';
+        el.textContent = 'Configuré';
+    } else {
+        el.className = 'status status-inactive';
+        el.textContent = 'Non configuré';
+    }
+}
+
+async function saveStripeConfig() {
+    const apiKey = document.getElementById('stripeApiKey').value;
+    const webhookSecret = document.getElementById('stripeWebhookSecret').value;
+    
+    if (apiKey === '••••••••' && webhookSecret === '••••••••') {
+        showToast('Aucune modification détectée', 'info');
+        return;
+    }
+    
+    try {
+        const data = {};
+        if (apiKey && apiKey !== '••••••••') data.stripe_api_key = apiKey;
+        if (webhookSecret && webhookSecret !== '••••••••') data.stripe_webhook_secret = webhookSecret;
+        
+        await apiRequest('/admin/settings/stripe', 'PUT', data);
+        showToast('Configuration Stripe enregistrée');
+        loadSettings();
+    } catch (error) {
+        showToast(error.message || 'Erreur', 'error');
+    }
+}
+
+async function savePricingConfig() {
+    try {
+        await apiRequest('/admin/settings/pricing', 'PUT', {
+            trial_days: parseInt(document.getElementById('trialDays').value) || 0,
+            monthly_price: parseFloat(document.getElementById('monthlyPrice').value) || 9.99,
+            annual_price: parseFloat(document.getElementById('annualPrice').value) || 89.99
+        });
+        showToast('Tarifs enregistrés');
+    } catch (error) {
+        showToast(error.message || 'Erreur', 'error');
+    }
+}
+
+function toggleReferral() {
+    const toggle = document.getElementById('referralToggle');
+    toggle.classList.toggle('active');
+}
+
+async function saveReferralConfig() {
+    try {
+        await apiRequest('/admin/settings/referral', 'PUT', {
+            referral_enabled: document.getElementById('referralToggle').classList.contains('active'),
+            referrer_reward_months: parseInt(document.getElementById('referrerReward').value) || 1,
+            referee_reward_months: parseInt(document.getElementById('refereeReward').value) || 1
+        });
+        showToast('Configuration parrainage enregistrée');
+    } catch (error) {
+        showToast(error.message || 'Erreur', 'error');
+    }
+}
+</script>
+{% endblock %}
