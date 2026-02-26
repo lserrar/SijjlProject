@@ -37,6 +37,7 @@ def generate_apple_client_secret() -> str:
     Generate a JWT client secret for Apple OAuth server communication.
     This secret proves our server's identity to Apple.
     """
+    config = get_apple_config()
     if not is_apple_auth_configured():
         raise ValueError("Apple Sign-In not configured")
     
@@ -44,20 +45,20 @@ def generate_apple_client_secret() -> str:
     
     headers = {
         "alg": "ES256",
-        "kid": APPLE_KEY_ID,
+        "kid": config['key_id'],
         "typ": "JWT"
     }
     
     payload = {
-        "iss": APPLE_TEAM_ID,
+        "iss": config['team_id'],
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=5)).timestamp()),
         "aud": "https://appleid.apple.com",
-        "sub": APPLE_SERVICE_ID
+        "sub": config['service_id']
     }
     
     # The private key should be the full PEM content
-    private_key = APPLE_PRIVATE_KEY.replace('\\n', '\n')
+    private_key = config['private_key'].replace('\\n', '\n')
     
     client_secret = jwt.encode(
         payload,
@@ -79,14 +80,15 @@ async def exchange_apple_code_for_tokens(auth_code: str) -> Dict:
     Returns:
         dict containing id_token, access_token, refresh_token, etc.
     """
+    config = get_apple_config()
     client_secret = generate_apple_client_secret()
     
     data = {
-        "client_id": APPLE_SERVICE_ID,
+        "client_id": config['service_id'],
         "client_secret": client_secret,
         "code": auth_code,
         "grant_type": "authorization_code",
-        "redirect_uri": APPLE_REDIRECT_URI
+        "redirect_uri": config['redirect_uri']
     }
     
     async with httpx.AsyncClient() as client:
@@ -113,6 +115,8 @@ async def validate_apple_identity_token(id_token: str) -> Dict:
     Returns:
         dict containing user info (sub, email, etc.)
     """
+    config = get_apple_config()
+    
     # Fetch Apple's public keys
     async with httpx.AsyncClient() as client:
         response = await client.get("https://appleid.apple.com/auth/keys")
@@ -142,7 +146,7 @@ async def validate_apple_identity_token(id_token: str) -> Dict:
             id_token,
             public_key,
             algorithms=["RS256"],
-            audience=APPLE_SERVICE_ID,
+            audience=config['service_id'],
             issuer="https://appleid.apple.com"
         )
         return decoded
