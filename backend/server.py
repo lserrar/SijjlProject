@@ -3004,25 +3004,47 @@ async def admin_list_timeline_resources(request: Request):
                 
                 html_files.append(file_info)
             elif filename.endswith('.docx'):
-                # Parse module and subject
-                match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
-                if match:
-                    file_info['module_number'] = int(match.group(1))
-                    file_info['subject'] = match.group(2).replace('_', ' ').replace('-', ' ')
-                    file_info['type'] = 'context_docx'
-                    
-                    # Check for custom data in DB
-                    resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
-                    db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
-                    
-                    if db_entry:
-                        file_info['title'] = db_entry.get('title', '')
-                        file_info['description'] = db_entry.get('description', '')
-                        file_info['credits'] = db_entry.get('credits', '')
-                        if db_entry.get('module_number'):
-                            file_info['module_number'] = db_entry['module_number']
-                        if db_entry.get('subject'):
-                            file_info['subject'] = db_entry['subject']
+                # Skip temp files
+                if filename.startswith('~$'):
+                    continue
+                
+                file_info['type'] = 'context_docx'
+                
+                # Parse new format: sijill_{cursus}_m{NN}_{penseur}.docx
+                new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+                # Parse old format: Timeline_Module{N}_{Penseur}.docx
+                old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+                
+                if new_match:
+                    file_info['cursus_letter'] = new_match.group(1).upper()
+                    file_info['module_number'] = int(new_match.group(2))
+                    subject_raw = new_match.group(3)
+                    file_info['subject'] = subject_raw.replace('-', ' ').replace('_', ' ').title()
+                elif old_match:
+                    file_info['module_number'] = int(old_match.group(1))
+                    file_info['subject'] = old_match.group(2).replace('_', ' ').replace('-', ' ')
+                else:
+                    file_info['module_number'] = 0
+                    file_info['subject'] = filename.replace('.docx', '').replace('_', ' ')
+                
+                # Check for custom data in DB
+                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+                
+                if db_entry:
+                    file_info['title'] = db_entry.get('title', file_info.get('subject', ''))
+                    file_info['description'] = db_entry.get('description', '')
+                    file_info['credits'] = db_entry.get('credits', '')
+                    if db_entry.get('module_number'):
+                        file_info['module_number'] = db_entry['module_number']
+                    if db_entry.get('subject'):
+                        file_info['subject'] = db_entry['subject']
+                    if db_entry.get('cursus_letter'):
+                        file_info['cursus_letter'] = db_entry['cursus_letter']
+                else:
+                    file_info['title'] = file_info.get('subject', filename.replace('.docx', ''))
+                    file_info['description'] = ''
+                    file_info['credits'] = ''
                 
                 docx_files.append(file_info)
         
