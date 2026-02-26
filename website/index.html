@@ -748,7 +748,7 @@
       container.innerHTML = courses.slice(0, 5).map((course, index) => {
         const config = getHomeCursusConfig(course.cursus_id);
         return `
-          <div class="top5-item" onclick="requireAuth('pages/abonnement.html')">
+          <div class="top5-item" onclick="handleContentClick()">
             <span class="top5-rank">${index + 1}</span>
             <div class="top5-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
             <div class="top5-info">
@@ -761,6 +761,28 @@
           </div>
         `;
       }).join('');
+    }
+    
+    // Handle content click - check auth and subscription
+    function handleContentClick() {
+      if (!currentUser) {
+        // Not logged in - show login modal
+        showLoginModal();
+        return;
+      }
+      
+      // Check if user has active subscription
+      const hasSubscription = currentUser.subscription_end_date && 
+        new Date(currentUser.subscription_end_date) > new Date();
+      
+      if (hasSubscription || currentUser.is_admin) {
+        // Has subscription or is admin - redirect to app
+        alert('Vous êtes abonné ! Pour accéder aux cours, veuillez utiliser l\'application mobile ou télécharger l\'application sur votre appareil.');
+        // Optionally redirect to app: window.location.href = 'https://learn-quran-10.preview.emergentagent.com/';
+      } else {
+        // No subscription - redirect to subscription page
+        window.location.href = 'pages/abonnement.html';
+      }
     }
   </script>
 </body>
