@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Professeurs - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Professeurs</h1>
+        <p class="page-description">Gérez les professeurs et intervenants</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="syncPhotos()" data-testid="sync-photos-btn">
+            <i class="fas fa-sync"></i> Sync Photos R2
+        </button>
+        <button class="btn btn-primary" onclick="openModal()" data-testid="add-professor-btn">
+            <i class="fas fa-plus"></i> Nouveau professeur
+        </button>
+    </div>
+</div>
+
+<div class="toolbar" style="margin-bottom: 20px;">
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" class="search-input" placeholder="Rechercher un professeur..." id="searchInput" oninput="filterProfessors()" data-testid="search-professor-input">
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container" id="professorsTable" data-testid="professors-table">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Nouveau professeur</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="professorForm" onsubmit="saveProfessor(event)">
+            <div class="modal-body">
+                <input type="hidden" id="professorId">
+                <div class="form-group">
+                    <label class="form-label">Nom complet *</label>
+                    <input type="text" class="form-input" id="name" required placeholder="Ex: Prof. Mohammed Al-Fassi" data-testid="professor-name-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Université / Institution</label>
+                    <input type="text" class="form-input" id="university" placeholder="Ex: Université Paris I Panthéon-Sorbonne" data-testid="professor-university-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Biographie</label>
+                    <textarea class="form-textarea" id="bio" placeholder="Biographie du professeur..." data-testid="professor-bio-input"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL de la photo</label>
+                    <input type="url" class="form-input" id="photo" placeholder="https://exemple.com/photo.jpg" data-testid="professor-photo-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Spécialisations (séparées par des virgules)</label>
+                    <input type="text" class="form-input" id="specializations" placeholder="Ex: Fiqh, Philosophie islamique, Kalam" data-testid="professor-specializations-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary" id="saveBtn" data-testid="save-professor-btn">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadProfessors();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let professors = [];
+
+function openModal(professor = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = professor ? 'Modifier le professeur' : 'Nouveau professeur';
+    
+    if (professor) {
+        document.getElementById('professorId').value = professor.id;
+        document.getElementById('name').value = professor.name || '';
+        document.getElementById('university').value = professor.university || '';
+        document.getElementById('bio').value = professor.bio || '';
+        document.getElementById('photo').value = professor.photo || '';
+        document.getElementById('specializations').value = (professor.specializations || []).join(', ');
+    } else {
+        document.getElementById('professorForm').reset();
+        document.getElementById('professorId').value = '';
+    }
+}
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+async function saveProfessor(event) {
+    event.preventDefault();
+    const id = document.getElementById('professorId').value;
+    const data = {
+        name: document.getElementById('name').value,
+        university: document.getElementById('university').value,
+        bio: document.getElementById('bio').value,
+        photo: document.getElementById('photo').value,
+        specializations: document.getElementById('specializations').value.split(',').map(s => s.trim()).filter(s => s)
+    };
+
+    try {
+        if (id) {
+            await apiRequest(`/admin/scholars/${id}`, 'PUT', data);
+            showToast('Professeur modifié avec succès');
+        } else {
+            await apiRequest('/admin/scholars', 'POST', data);
+            showToast('Professeur créé avec succès');
+        }
+        closeModal();
+        loadProfessors();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function deleteProfessor(id, name) {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${name}" ?`)) return;
+    try {
+        await apiRequest(`/admin/scholars/${id}`, 'DELETE');
+        showToast('Professeur supprimé');
+        loadProfessors();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function toggleProfessor(id) {
+    try {
+        await apiRequest(`/admin/scholars/${id}/toggle`, 'PATCH');
+        loadProfessors();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+function filterProfessors() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = professors.filter(s => 
+        s.name.toLowerCase().includes(query) || 
+        (s.university && s.university.toLowerCase().includes(query))
+    );
+    renderProfessors(filtered);
+}
+
+function renderProfessors(data) {
+    if (data.length === 0) {
+        document.getElementById('professorsTable').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-user-graduate"></i>
+                <h3>Aucun professeur</h3>
+                <p>Ajoutez votre premier professeur pour commencer</p>
+            </div>
+        `;
+        return;
+    }
+    document.getElementById('professorsTable').innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Professeur</th>
+                    <th>Spécialisations</th>
+                    <th>Contenus</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(s => `
+                    <tr data-testid="professor-row-${s.id}">
+                        <td>
+                            <div class="table-cell-flex">
+                                <img src="${s.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name) + '&background=04D182&color=000'}" class="table-avatar">
+                                <div>
+                                    <div class="table-cell-text">${s.name}</div>
+                                    <div class="table-cell-subtext">${s.university || '-'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><div class="table-cell-subtext">${(s.specializations || []).slice(0, 3).join(', ') || '-'}</div></td>
+                        <td>${s.content_count || 0}</td>
+                        <td>
+                            <span class="status ${s.is_active !== false ? 'status-active' : 'status-inactive'}">
+                                ${s.is_active !== false ? 'Actif' : 'Inactif'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="editProfessor('${s.id}')" title="Modifier" data-testid="edit-professor-${s.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleProfessor('${s.id}')" title="Activer/Désactiver" data-testid="toggle-professor-${s.id}">
+                                    <i class="fas fa-toggle-${s.is_active !== false ? 'on' : 'off'}"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm btn-icon" onclick="deleteProfessor('${s.id}', '${s.name.replace(/'/g, "\\'")}')" title="Supprimer" data-testid="delete-professor-${s.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function editProfessor(id) {
+    const professor = professors.find(p => p.id === id);
+    if (professor) openModal(professor);
+}
+
+async function loadProfessors() {
+    try {
+        professors = await apiRequest('/admin/scholars') || [];
+        renderProfessors(professors);
+    } catch (error) {
+        showToast('Erreur de chargement', 'error');
+    }
+}
+
+async function syncPhotos() {
+    if (!confirm('Synchroniser les photos des professeurs depuis R2 (dossier Prof/) ?')) return;
+    
+    try {
+        showToast('Synchronisation en cours...', 'info');
+        const result = await apiRequest('/admin/sync-professor-photos', 'POST');
+        showToast(`${result.photos_updated} photo(s) synchronisée(s)`, 'success');
+        loadProfessors();
+    } catch (error) {
+        showToast(error.message || 'Erreur de synchronisation', 'error');
+    }
+}
+</script>
+{% endblock %}
