@@ -864,10 +864,18 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
+            // Set active nav from template variable
+            {% if active_page %}
+            setActiveNav('{{ active_page }}');
+            {% endif %}
+            
             if (await checkAuth()) {
-                // Page-specific initialization will be added in page templates
+                // Page-specific initialization
+                {% block page_init %}{% endblock %}
             }
         });
     </script>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>
