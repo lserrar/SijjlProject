@@ -425,32 +425,38 @@
             // Render timelines table
             const timelinesTable = document.getElementById('timelinesTable');
             if (resourcesData.timelines.length === 0) {
-                timelinesTable.innerHTML = '<tr><td colspan="4" class="empty-state">Aucune timeline trouvée</td></tr>';
+                timelinesTable.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune timeline trouvée</td></tr>';
             } else {
-                timelinesTable.innerHTML = resourcesData.timelines.map(t => `
+                // Sort by display_order
+                const sortedTimelines = [...resourcesData.timelines].sort((a, b) => (a.display_order || 99) - (b.display_order || 99));
+                timelinesTable.innerHTML = sortedTimelines.map(t => `
                     <tr>
                         <td>
-                            <span class="cursus-badge ${t.cursus_letter ? '' : 'unassigned'}" 
-                                  onclick="openAssignModal('${t.filename}', '${t.cursus_letter || ''}')"
-                                  title="Cliquez pour modifier">
+                            <span class="order-badge">${t.display_order || '-'}</span>
+                        </td>
+                        <td>
+                            <span class="cursus-badge ${t.cursus_letter ? '' : 'unassigned'}">
                                 ${t.cursus_letter ? 'Cursus ' + t.cursus_letter : 'Non assigné'}
-                                <i class="fas fa-pencil-alt" style="font-size: 10px; margin-left: 6px;"></i>
                             </span>
                         </td>
-                        <td class="table-cell-text">${t.filename}</td>
+                        <td class="table-cell-text">
+                            <div class="audio-title-main">${t.title || t.filename.replace('.html', '').replace(/_/g, ' ')}</div>
+                        </td>
+                        <td><small style="color: var(--text-tertiary)">${t.filename}</small></td>
                         <td>${t.size_kb} KB</td>
                         <td>
                             <div class="action-btns">
+                                <button class="btn btn-sm btn-primary" onclick="openEditTimelineModal('${t.filename}', '${t.cursus_letter || ''}', '${(t.title || '').replace(/'/g, "\\'")}', ${t.display_order || 99})" title="Éditer">
+                                    <i class="fas fa-edit"></i>
+                                </button>
                                 ${t.cursus_letter ? `
                                 <button class="btn btn-sm btn-secondary" onclick="previewTimeline('${t.cursus_letter}')" title="Aperçu">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <a href="/api/timeline/${t.cursus_letter}" target="_blank" class="btn btn-sm btn-secondary" title="Ouvrir">
+                                <a href="/api/timeline/file/${t.filename}" target="_blank" class="btn btn-sm btn-secondary" title="Ouvrir">
                                     <i class="fas fa-external-link-alt"></i>
                                 </a>
-                                ` : `
-                                <span style="color: var(--text-muted); font-size: 12px;">Assignez un cursus</span>
-                                `}
+                                ` : ''}
                             </div>
                         </td>
                     </tr>
