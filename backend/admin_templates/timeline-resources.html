@@ -43,16 +43,61 @@
         <table>
             <thead>
                 <tr>
+                    <th>Ordre</th>
                     <th>Cursus</th>
+                    <th>Titre</th>
                     <th>Fichier</th>
                     <th>Taille</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="timelinesTable">
-                <tr><td colspan="4" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+                <tr><td colspan="6" class="loading"><div class="spinner"></div>Chargement...</td></tr>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Edit Timeline Modal -->
+<div id="editTimelineModal" class="modal" style="display: none;">
+    <div class="modal-content modal-medium">
+        <div class="modal-header">
+            <h2 class="modal-title">Éditer la timeline</h2>
+            <button class="modal-close" onclick="closeEditTimelineModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editTimelineFilename" value="">
+            <p id="editTimelineFileDisplay" style="color: var(--text-secondary); margin-bottom: 16px; font-size: 12px;"></p>
+            
+            <div class="form-group">
+                <label>Titre affiché</label>
+                <input type="text" id="editTimelineTitle" class="form-input" placeholder="Ex: Carte des Penseurs Musulmans">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cursus</label>
+                    <select id="editTimelineCursus" class="form-select">
+                        <option value="">— Non assigné —</option>
+                        <option value="A">A - La Falsafa</option>
+                        <option value="B">B - Théologie et Droit</option>
+                        <option value="C">C - Sciences islamiques</option>
+                        <option value="D">D - Arts, Littérature</option>
+                        <option value="E">E - Spiritualités</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ordre d'affichage</label>
+                    <input type="number" id="editTimelineOrder" class="form-input" min="1" max="99" placeholder="1, 2, 3...">
+                    <small style="color: var(--text-muted);">1 = premier affiché</small>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeEditTimelineModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveTimelineEdit()">Enregistrer</button>
+            </div>
+        </div>
     </div>
 </div>
 
