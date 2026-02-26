@@ -856,7 +856,7 @@ function CourseCard({
               <View style={[styles.scholarAvatar, { backgroundColor: `${cursusColor}1A` }]}>
                 <Text style={[styles.scholarInitials, { color: cursusColor }]}>{scholarInitials}</Text>
               </View>
-              <Text style={styles.scholarName}>{course.scholar_name}</Text>
+              <Text style={styles.courseScholarName}>{course.scholar_name}</Text>
             </View>
           )}
 
