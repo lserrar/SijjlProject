@@ -51,6 +51,18 @@ interface ContextResource {
   url: string;
 }
 
+interface AudioConference {
+  id: string;
+  filename: string;
+  subject: string;
+  speaker: string;
+  module_number: number;
+  title: string;
+  size_mb: number;
+  format: string;
+  stream_url: string;
+}
+
 interface Course {
   id: string;
   title: string;
