@@ -143,11 +143,15 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 - [x] `users_new.html` - Gestion des utilisateurs (~59% code reduction)
 - [x] `cursus_new.html` - Gestion des cursus (~52% code reduction)
 - [x] `modules_new.html` - Gestion des modules (~53% code reduction)
+- [x] `bibliographies_new.html` - Gestion des bibliographies (~55% code reduction)
+- [x] `highlight.html` - Corrigé pour utiliser Jinja2
+- [x] `timeline-resources.html` - Corrigé pour utiliser Jinja2
+- [x] Suppression de `masterclasses.html` et son endpoint
 
 ### Templates Admin Restants (non migrés)
-- [ ] `audios.html` - 935 lignes (complexe avec modaux R2)
-- [ ] `bibliographies.html`, `settings.html`, `highlight.html`
-- [ ] `resources.html`, `promos.html`, `pricing.html`
+- [ ] `audios.html` - 935 lignes (très complexe avec R2 browser)
+- [ ] `settings.html`, `promos.html`, `pricing.html`
+- [ ] `listening-stats.html`, `audio-categories.html`
 
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
