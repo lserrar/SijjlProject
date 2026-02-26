@@ -222,6 +222,11 @@ export default function CursusCoursesScreen() {
         setContextResources(contextData.resources || []);
       }
 
+      if (audioRes.ok) {
+        const audioData = await audioRes.json();
+        setAudioConferences(audioData.resources || []);
+      }
+
       // Build progress map
       const progressMap: Record<string, any> = {};
       if (progressRes.ok) {
