@@ -173,16 +173,6 @@ export default function ProfesseursScreen() {
         }
       >
         {/* ═══════════════════════════════════════════════════════════════════════
-            BARRE DE NAVIGATION HAUTE (sticky)
-        ═══════════════════════════════════════════════════════════════════════ */}
-        <View style={styles.navBar}>
-          <View style={styles.navLogo}>
-            <Text style={styles.navLogoText}>SIJILL</Text>
-            <View style={styles.navLogoDot} />
-          </View>
-        </View>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
             EN-TÊTE DE PAGE
         ═══════════════════════════════════════════════════════════════════════ */}
         <View style={styles.header}>
