@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,10 @@ import { API_URL } from '../constants/api';
 export default function SubscriptionChoiceScreen() {
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'trial' | 'monthly' | 'annual' | null>(null);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoValidating, setPromoValidating] = useState(false);
+  const [promoValid, setPromoValid] = useState<boolean | null>(null);
+  const [promoMessage, setPromoMessage] = useState('');
   const { user, token, refreshUser } = useAuth();
   const router = useRouter();
 
