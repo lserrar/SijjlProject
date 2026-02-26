@@ -1424,6 +1424,16 @@ const styles = StyleSheet.create({
   resourcesTab: {
     paddingBottom: 20,
   },
+  sectionSubtitle: {
+    fontFamily: 'Cinzel',
+    fontSize: 10,
+    letterSpacing: 3,
+    color: '#C9A84C',
+    textTransform: 'uppercase',
+    marginBottom: 16,
+    marginTop: 10,
+    paddingHorizontal: 16,
+  },
   
   // ─── BIBLIOGRAPHY STYLES ──────────────────────────────────────────────────────
   biblioCard: {
