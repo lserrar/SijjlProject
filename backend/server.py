@@ -24,6 +24,15 @@ from utils.email_service import (
     send_subscription_confirmation
 )
 
+# Apple Sign-In
+from utils.apple_auth import (
+    is_apple_auth_configured,
+    get_apple_auth_url,
+    exchange_apple_code_for_tokens,
+    validate_apple_identity_token,
+    decode_apple_user_data
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
