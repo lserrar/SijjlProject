@@ -1,15 +1,15 @@
 <analysis>**original_problem_statement**: The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system. Recent work focused on fixing bugs, implementing a full-featured admin panel for content management, and integrating new content types like bibliographies from a Cloudflare R2 bucket. The most recent user requests involved creating a full-screen bibliography reader, implementing a full subscription and referral system with Stripe, and allowing admin configuration of payment settings.
+The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system. Recent work focused on fixing bugs, implementing a full-featured admin panel for content management, and integrating new content types like bibliographies, timelines, historical context documents, and conference audios from a Cloudflare R2 bucket.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill Project
 -   **Language**: French
 -   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend.
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
--   **Content Storage**: Audio files, professor images, and bibliographies are stored in the  Cloudflare R2 bucket.
--   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts, a specific color palette ( green,  gold), and a zero border-radius policy.
--   **Admin Panel**: A powerful admin panel to manage all content, users, and settings (including payments and referrals).
+-   **Content Storage**: All media files (audios, images, bibliographies, timelines) are stored in the  Cloudflare R2 bucket.
+-   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts and a specific color palette.
+-   **Admin Panel**: A powerful admin panel to manage all content, users, and settings (including payments, referrals, stats, and homepage features).
 -   **Monetization**: Subscriptions (Monthly, Annual) via Stripe and a user referral system.
 
 **User's preferred language**: French
@@ -17,39 +17,52 @@ The project has undergone several phases, culminating in the current one: a comp
 **what currently exists?**
 A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend. The app features a prestige dark-mode design and has implemented several core functionalities:
 
--   **Content Management**: A full-featured admin panel allows management of audios, professors, and bibliographies, including synchronization from a Cloudflare R2 bucket.
--   **Subscription System**: A complete subscription flow is integrated using Stripe. New users (via email or Google Auth) are correctly redirected to a subscription page. An admin page allows for configuration of Stripe keys, webhook secrets, and plan pricing. The user's live Stripe key is configured.
--   **Referral System**: A parrainage system is fully implemented on both the backend and frontend. Users can find their unique referral code on a dedicated profile page, and new users can apply a code during registration to receive a free month.
--   **Frontend Features**: The app includes a detailed course page with tabs for episodes, professors, and resources. A full-screen, mobile-optimized bibliography reader has been created to enhance the user experience.
--   **Data Integrity**: Legacy data has been cleaned up, and content like bibliography titles has been standardized and correctly linked across the database.
+-   **Content Management**: An extensive admin panel allows management of audios, professors, bibliographies, and users.
+-   **Advanced Admin Features**:
+    -   **Listening Stats Dashboard**: A dedicated page () with charts and tables showing listening activity by professor, cursus, course, and episode.
+    -   **Homepage Highlight**: An admin page () to control the featured content on the homepage, allowing manual selection of a course/cursus or a random mode.
+    -   **Resource Management**: A new admin page () to synchronize and manage new resource types (HTML Timelines, DOCX Context documents, Audio Conferences) from the Cloudflare R2 bucket, with the ability to manually assign resources to a Cursus.
+-   **Subscription & Referral System**: A complete subscription flow using Stripe and a user referral system are fully implemented and have been tested by the user.
+-   **Frontend Features**: The app includes detailed course/cursus pages with a Ressources tab designed to hold bibliographies, timelines, and historical context documents. Viewers for bibliographies and timelines have been created.
 
 **Last working item**:
--   **Last item agent was working**: Fixing two critical bugs reported by the user:
-    1.  The Se déconnecter (Logout) button was not working on the web.
-    2.  Existing users could log in and access content without being checked for an active subscription, bypassing the paywall.
-    The agent identified the root causes (web-platform-specific code for logout, missing subscription check in the login flow) and implemented fixes in , , and .
+-   **Last item agent was working**: Integrating audio conferences as a new resource type. The user uploaded a test file () to the R2 bucket. The agent successfully created the backend endpoints to list and stream these audio files and updated the Timeline admin page to display and manage these new audio resources.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent.
-    -   **Test Case 1 (Login Flow)**: Log in as an existing user **without** a subscription. **Expected**: The user should be redirected to the  page.
-    -   **Test Case 2 (Logout Flow)**: Log in as any user. Navigate to the profile and click the Se déconnecter button. **Expected**: The user should be successfully logged out and redirected to the login screen.
+-   **Agent Testing Done**: Y (Backend and Admin Panel only)
+-   **Which testing method agent to use?**: frontend testing agent. The next step is to integrate an audio player into the frontend Ressources tab on the Cursus and Cours detail pages.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Verify fixes for the subscription check and logout flows (P0)
-    -   **Description**: The agent has implemented code changes to fix two bugs: users bypassing the paywall on login, and the logout button not working. These fixes need to be verified to confirm they work as expected.
+-   **Issue 1**: The frontend preview environment is unstable (P0)
+    -   **Description**: The user and the agent have repeatedly encountered a  error when trying to access the application URL (). This blocks all frontend development and user testing.
+    -   **Attempted fixes**: The agent tried multiple frontend: ERROR (no such process)
+frontend: ERROR (no such process) commands, killing  processes, and restarting the entire environment. These fixes worked only intermittently. The issue appears to be related to the  tunnel connection ( - endpoint already in use).
     -   **Next debug checklist**:
-        1.  Restart the frontend service: frontend: ERROR (no such process)
-frontend: ERROR (no such process).
-        2.  Test the login flow: Log in with user  (password: ). Confirm redirection to .
-        3.  Test the logout flow: After logging in, navigate to the profile tab and click the logout button. Confirm redirection to the login screen.
-    -   **Why fix this issue and what will be achieved with the fix?**: These are critical user experience and security bugs. Fixing them ensures the application's monetization strategy is enforced and basic functionality works correctly.
+        1.  Check frontend: ERROR (no such process).
+        2.  Check frontend logs: . Look for  tunnel errors.
+        3.  If blocked, attempt a full restart: nginx-code-proxy: stopped
+mongodb: stopped
+backend: started
+expo: started
+mongodb: started
+nginx-code-proxy: started
+code-server: started.
+        4.  If the issue persists, this may be a platform-level problem. The next agent should prioritize resolving this environment instability before proceeding with any frontend tasks.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker. Fixing it will unblock all pending frontend tasks and allow the user to test the application.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   None.
+-   **Task 1**: Complete Frontend Integration for New Resources (P1)
+    -   **Where to resume**: The backend and admin panel functionalities for Timeline, Context Documents, and Audio Conferences are complete. The next steps are purely on the frontend:
+        1.  **Audio Conferences**: Integrate the new audio conference resources into the Ressources tab of both the Cursus () and Cours () detail pages. This will require adding an audio player component.
+        2.  **Context Documents**: The code to display context documents in the Ressources tab has been added, but it has never been tested due to the environment instability. This needs to be verified and potentially debugged.
+    -   **What will be achieved with this?**: Users will be able to access all three new resource types (Timelines, Context, Audio Conferences) directly from the relevant Cursus and Cours pages, completing the feature request.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on something**: Blocked by Issue 1: The frontend preview environment is unstable.
 
 **Upcoming and Future Tasks**
 -   **Future Tasks:**
@@ -58,26 +71,22 @@ frontend: ERROR (no such process).
     -   **(P2) Admin Dashboard for Referrals**: Enhance the admin panel to provide more detailed views and management of the referral system.
 
 **Completed work in this session**
--   **Subscription & Monetization System (Stripe)**:
-    -   Integrated the user's live Stripe key and created an admin settings page () to manage API keys, webhooks, and subscription pricing.
-    -   Built a subscription choice page () and integrated the Stripe Checkout flow for web.
-    -   Updated the Stripe webhook () to correctly grant access upon payment and trigger referral rewards.
--   **Referral (Parrainage) System**:
-    -   Implemented the complete backend logic for generating referral codes, validating them on signup, and tracking rewards ().
-    -   Created a Parrainage page in the user's profile () to display their code and stats.
-    -   Added a referral code input field to the registration form ().
--   **Feature: Full-Screen Bibliography Reader**:
-    -   Created a new dedicated page () with a mobile-first, prestige design for reading bibliographies.
-    -   Updated the Ressources tabs in the Cursus and Cours detail pages to link to this new reader.
--   **Feature: Course Detail Page Completion**:
-    -   Added the Professeurs and Ressources tabs to the  detail page (), bringing it to feature parity with the Cursus page.
--   **Admin & Data Cleanup**:
-    -   Added Sync R2 and Uniformiser titres buttons to the admin bibliography page.
-    -   Deleted 22 outdated legacy bibliography entries.
-    -   Corrected and standardized all bibliography data, linking them to the appropriate courses and cursus.
 -   **Critical Bug Fixes**:
-    -   Fixed a bug where new users signing up via Google Auth could bypass the subscription page.
-    -   Fixed an issue where the Start Free Trial button was not working correctly on the web platform.
+    -   Fixed the Se déconnecter (Logout) button, which was not working on the web.
+    -   Fixed a major paywall bypass bug where existing, non-subscribed users could access content after logging in.
+    -   Fixed a white screen bug that occurred during the redirection to the Stripe payment page.
+-   **Feature: Listening Stats Dashboard**:
+    -   Implemented a new admin page () with a chart and detailed tables to track listening activity (hours, plays) by professor, cursus, course, and episode, including time-based filters.
+-   **Feature: Homepage Highlight Management**:
+    -   Implemented a new admin page () allowing the admin to feature a specific Cursus or Cours on the homepage or enable a random mode that selects one at random for each user session.
+-   **Feature: Advanced Resource Integration (Backend & Admin)**:
+    -   Created a unified admin page () to manage three new resource types from Cloudflare R2: HTML Timelines, DOCX Context Documents, and Audio Conferences.
+    -   Implemented backend logic to parse and serve these resources via API endpoints.
+    -   Added a Sync from R2 feature in the admin panel.
+    -   Added the ability for admins to manually assign a Cursus to any timeline resource directly from the UI.
+-   **Admin UI/UX Improvements**:
+    -   Fixed an issue where new admin page links (Stats, Highlight, Timeline) were not appearing in the main navigation menu by updating all relevant HTML templates.
+    -   Renamed Ressources Timeline to Timeline as requested by the user.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly in the past. This has not been investigated further.
@@ -94,68 +103,71 @@ frontend: ERROR (no such process).
 -   **Database**: MongoDB.
 
 **key DB schema**
--   **users**: New fields added:  (str),  (ObjectId),  (list of ObjectId),  (int),  (datetime),  (bool).
--   **bibliographies**: New field  (ObjectId) added and populated;  values corrected.
+-   **settings**: New collection to store global settings like .
+-   **historical_contexts**: New collection to store content from parsed DOCX files, linked to  or .
+-   **timelines**: New collection to store metadata for HTML timelines from R2, linked to .
+-   **audio_resources**: New collection to store metadata for conference audio files from R2, linked to .
 
 **changes in tech stack**
--   None in this session.
+-   None.
 
 **All files of reference**
--   **Files with unverified fixes**:
-    -    (Logout fix)
-    -    (Login subscription redirect fix)
-    -    (Supporting logic for login fix)
--   **Recently completed features**:
-    -    (Bibliography reader)
-    -    (Referral page)
-    -    (Subscription choice page)
-    -    (Admin settings page)
-    -    (Contains all new backend logic)
+-   **Environment Blocker**:  (Check for ngrok errors).
+-   **Pending Frontend Work**:
+    -   
+    -   
+-   **Recently Created/Modified**:
+    -   
+    -   
+    -   
+    -   
+    -   
+    -   
 
 **Areas that need refactoring**:
--    is now extremely large (>2500 lines) and contains logic for users, content, payments, and referrals. It is the highest priority for refactoring into smaller, manageable modules using FastAPI's .
+-   ****: This file is now critically oversized and complex. It urgently needs to be broken down into smaller modules using FastAPI's  for better maintainability.
+-   **Admin Templates**: Multiple admin templates (, , etc.) contain duplicated navigation HTML. While the agent patched this with a script, the correct long-term solution is to use Jinja2's template inheritance () to centralize the navigation menu.
 
 **key api endpoints**
--   **Referral**: , , 
--   **Subscription/Stripe**: , , 
--   **Admin Settings**: , 
--   **Bibliography**: , 
+-   **Stats**: 
+-   **Highlight**: , , 
+-   **Resources**: , , , , .
 
 **Critical Info for New Agent**
--   Your immediate priority is to **verify the two bug fixes** for the post-login subscription check and the logout button. The user cannot test payments until the subscription check is confirmed to be working for all login methods.
--   The user has configured their **LIVE Stripe key**. The webhook endpoint is also configured. All payment-related testing must be done using Stripe's official test card numbers to avoid real charges.
--   The user is highly engaged. After verifying the current fixes, be prepared to receive feedback on the new subscription and referral systems and potentially start on the backend refactoring task.
+-   **Your #1 priority is to stabilize the frontend preview environment.** The user cannot test anything, and you cannot complete frontend tasks until the  issue is resolved. Investigate the  tunnel errors in the frontend logs.
+-   After fixing the environment, your next task is to complete the frontend integration for the new resource types (Audio Conferences and Context Documents) in the Ressources tab of the Cursus/Cours detail pages.
+-   The backend and admin panel are functional for all new features. The user's Stripe account is using LIVE keys.
 
 **documents and test reports created in this job**
--    (updated multiple times to reflect completed work)
+-    (updated with completed features).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Asks for full-screen bibliography reader. (Implemented)
-2.  **User**: Asks for advice on subscriptions (family vs. referral). (Agent advised referral)
-3.  **User**: Agrees to referral system and using Stripe for web/mobile. (Implemented)
-4.  **User**: Asks how to configure their own Stripe account and provides a **live key**. (Implemented)
-5.  **User**: Asks for help with Stripe webhook setup. (Agent provided step-by-step guidance)
-6.  **User**: Confirms webhook setup is done.
-7.  **User**: Reports free trial button doesn't work and Google Auth gives free access. (Fixes implemented)
-8.  **User**: Asks for step-by-step guide for Stripe setup. (Agent provided)
-9.  **User**: Asks for clarification on a step in the Stripe setup. (Agent clarified)
-10. **User**: Reports that the logout button is broken and that after logging in, users are not prompted for a subscription, preventing payment testing. (**This is the current task.**)
+1.  **User**: Reports the frontend is down (). (IN PROGRESS)
+2.  **User**: Informs that they have split the context  files by module and re-uploaded them. Asks the agent to proceed with the HTML timeline integration first. (DONE)
+3.  **User**: Again reports the app is down. (IN PROGRESS)
+4.  **User**: Reports the app is still down but asks to check the newly uploaded DOCX files in the  folder. (DONE)
+5.  **User**: Reports an error when clicking Synchroniser R2 on the new admin page: . Asks to rename the page from Ressources Timeline to just Timeline. (DONE, VERIFICATION PENDING)
+6.  **User**: Asks the agent to implement the rest of the features even if the preview environment is off. (ACKNOWLEDGED)
+7.  **User**: Reports adding a new HTML file () which is not being assigned to a Cursus automatically and asks for a way to assign it manually. (DONE)
+8.  **User**: Asks to integrate supplementary audio resources (conferences), mentioning a test file has been uploaded to the R2  folder. (IN PROGRESS)
+9.  All issues related to logout, subscription checks, and payment flow were resolved and confirmed by the user.
+10. All stats and highlight features were implemented and confirmed by the agent via screenshots.
 
 **Project Health Check:**
--   **Broken**: The login flow for existing non-subscribed users is broken (bypasses paywall). The logout button is broken on the web. Fixes have been coded but not yet verified.
+-   **Broken**: The frontend preview environment is highly unstable and often inaccessible due to  tunneling issues. This is a P0 blocker for all frontend work.
 -   **Mocked**: The Apple Sign-in button on the authentication screen is a non-functional placeholder.
 
 **3rd Party Integrations**
--   **Cloudflare R2**: Used for storing all media (audio, images,  bibliographies) in the  bucket.
--   **Stripe**: Integrated via  for handling web-based subscriptions. The user's live key and a webhook are configured.
+-   **Cloudflare R2**: Used for storing all media (audio, images, , ) in the  bucket.
+-   **Stripe**: Integrated via  for handling web-based subscriptions. The user's LIVE key and a webhook are configured.
 -   **Google Fonts**: For Cinzel and EB Garamond fonts.
--   **python-docx**: Used in the backend to parse bibliography Word documents.
+-   **python-docx**: Used in the backend to parse bibliography and context Word documents.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: The two bugs currently being fixed (logout and login subscription check) are recent regressions.
+-   **Known regressions**: The unstable frontend environment is a major new regression in this session.
 
 **Credentials to test flow:**
 -   **Admin Panel (Web)**: 
@@ -165,4 +177,5 @@ frontend: ERROR (no such process).
 -   **Test User Password**: 
 
 **What agent forgot to execute**
--   The agent has been thorough. The main pending action is to verify the last set of implemented fixes before finishing.</analysis>
+-   The agent did not properly refactor the admin templates to use Jinja2 inheritance, instead opting for a script to patch the duplicated navigation menus. This is a technical debt that should be addressed.
+-   The agent was unable to permanently resolve the frontend environment instability, which is a major blocker.</analysis>
