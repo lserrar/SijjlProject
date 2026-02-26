@@ -90,7 +90,8 @@ export default function RegisterScreen() {
           {/* Logo */}
           <View style={styles.logoSection}>
             <View style={styles.logoRow}>
-              <Text style={styles.logoText}>SIJILL PROJECT</Text>
+              <Text style={styles.logoText}>SIJILL PROJEC</Text>
+              <Text style={styles.logoTextFinal}>T</Text>
               <View style={styles.logoDotContainer}>
                 <View style={styles.logoDot} />
               </View>
@@ -217,7 +218,8 @@ const styles = StyleSheet.create({
   logoSection: { marginBottom: 8 },
   logoRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 },
   logoText: { fontFamily: 'Cinzel', fontSize: 30, fontWeight: '400', color: '#F5F0E8', letterSpacing: 14 },
-  logoDotContainer: { marginLeft: -14, justifyContent: 'flex-end', paddingBottom: 8 },
+  logoTextFinal: { fontFamily: 'Cinzel', fontSize: 30, fontWeight: '400', color: '#F5F0E8', letterSpacing: 0 },
+  logoDotContainer: { marginLeft: 3, justifyContent: 'flex-end', paddingBottom: 8 },
   logoDot: {
     width: 7, height: 7, backgroundColor: '#04D182', borderRadius: 4,
     shadowColor: '#04D182', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8,
