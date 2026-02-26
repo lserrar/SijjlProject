@@ -1247,7 +1247,7 @@ const styles = StyleSheet.create({
     fontSize: 7,
     fontWeight: '600',
   },
-  scholarName: {
+  courseScholarName: {
     fontFamily: 'EBGaramond',
     fontSize: 12,
     fontStyle: 'italic',
