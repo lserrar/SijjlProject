@@ -695,7 +695,7 @@
           ${scholar ? `<span>Par <strong>${scholar.name}</strong></span>` : course.scholar_name ? `<span>Par <strong>${course.scholar_name}</strong></span>` : ''}
           ${course.modules_count ? `<span><i class="fas fa-headphones"></i> ${course.modules_count} épisodes</span>` : ''}
         </div>
-        <button class="btn btn-primary featured-btn" onclick="requireAuth('pages/abonnement.html')">
+        <button class="btn btn-primary featured-btn" onclick="handleContentClick()">
           <i class="fas fa-play"></i> Écouter
         </button>
       `;
