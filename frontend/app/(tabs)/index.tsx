@@ -532,7 +532,7 @@ const s = StyleSheet.create({
   sectionLink: {
     fontFamily: 'EB Garamond',
     fontStyle: 'italic',
-    fontSize: 13,
+    fontSize: 15,
     color: '#C9A84C',
   },
   hList: { paddingHorizontal: 20, gap: 10 },
@@ -548,23 +548,23 @@ const s = StyleSheet.create({
   } as any,
   epLabel: {
     fontFamily: 'Cinzel',
-    fontSize: 7,
+    fontSize: 9,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 8,
   },
   epTitle: {
     fontFamily: 'EB Garamond',
-    fontSize: 13,
+    fontSize: 15,
     color: '#F5F0E8',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   epDesc: {
     fontFamily: 'EB Garamond',
     fontStyle: 'italic',
-    fontSize: 11,
+    fontSize: 13,
     color: 'rgba(245,240,232,0.50)',
-    lineHeight: 16,
+    lineHeight: 18,
     marginTop: 6,
     flex: 1,
   },
@@ -576,7 +576,7 @@ const s = StyleSheet.create({
   },
   epMeta: {
     fontFamily: 'Cinzel',
-    fontSize: 7,
+    fontSize: 9,
     color: '#777777',
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -593,9 +593,9 @@ const s = StyleSheet.create({
   } as any,
   recoTitle: {
     fontFamily: 'EB Garamond',
-    fontSize: 13,
+    fontSize: 15,
     color: '#F5F0E8',
-    lineHeight: 18,
+    lineHeight: 20,
     flex: 1,
   },
   recoReasonWrap: {
