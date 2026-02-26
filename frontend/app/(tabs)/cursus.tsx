@@ -189,11 +189,11 @@ export default function CursusScreen() {
           {cursus.map((c, idx) => {
             const letter = CURSUS_LETTERS[Math.min(idx, CURSUS_LETTERS.length - 1)];
             const color = CURSUS_COLORS[letter] || '#04D182';
-            const shortName = CURSUS_SHORT_NAMES[letter] || c.name?.split(' ')[0] || '';
-            const staticData = CURSUS_DATA[letter];
             
-            const title = staticData?.title || c.name || `Cursus ${letter}`;
-            const description = staticData?.description || c.description || '';
+            // Use data from API/database first, then fallback to static data
+            const shortName = c.short_name || CURSUS_SHORT_NAMES[letter] || c.name?.split(' ')[0] || '';
+            const title = c.name || CURSUS_DATA[letter]?.title || `Cursus ${letter}`;
+            const description = c.description || CURSUS_DATA[letter]?.description || '';
             const episodesCount = c.episodes_count || 0;
             const durationMinutes = c.total_duration || 0;
             const progress = c.progress || 0;
