@@ -2550,7 +2550,8 @@ async def get_context_resource(resource_id: str):
         response = r2_client.get_object(Bucket=R2_BUCKET, Key=target_key)
         docx_content = response['Body'].read()
         
-        doc = Document(BytesIO(docx_content))
+        from docx import Document as DocxDocument
+        doc = DocxDocument(BytesIO(docx_content))
         
         # Parse document content
         content_blocks = []
