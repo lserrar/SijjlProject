@@ -622,7 +622,7 @@
     
     function renderFeatured(course, scholars) {
       const container = document.getElementById('featured-container');
-      const config = getCursusConfig(course.cursus_id);
+      const config = getHomeCursusConfig(course.cursus_id);
       const scholar = scholars?.find(s => s.id === course.scholar_id);
       
       container.innerHTML = `
@@ -650,7 +650,7 @@
       const container = document.getElementById('episodes-container');
       
       container.innerHTML = episodes.slice(0, 10).map(ep => {
-        const config = getCursusConfig(ep.cursus_id);
+        const config = getHomeCursusConfig(ep.cursus_id);
         return `
           <div class="episode-card" onclick="requireAuth('pages/abonnement.html')">
             <div class="episode-header">
@@ -668,7 +668,7 @@
       const container = document.getElementById('cursus-container');
       
       container.innerHTML = cursus.map(c => {
-        const config = getCursusConfig(c.id);
+        const config = getHomeCursusConfig(c.id);
         return `
           <div class="cursus-scroll-card" onclick="requireAuth('pages/abonnement.html')" style="border-left: 2px solid ${config.color};">
             <div class="cursus-scroll-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
@@ -683,7 +683,7 @@
       const container = document.getElementById('top5-container');
       
       container.innerHTML = courses.slice(0, 5).map((course, index) => {
-        const config = getCursusConfig(course.cursus_id);
+        const config = getHomeCursusConfig(course.cursus_id);
         return `
           <div class="top5-item" onclick="requireAuth('pages/abonnement.html')">
             <span class="top5-rank">${index + 1}</span>
