@@ -193,6 +193,47 @@ export default function SubscriptionChoiceScreen() {
           <View style={styles.dividerLine} />
         </View>
 
+        {/* Promo Code Section */}
+        <View style={styles.promoSection}>
+          <Text style={styles.promoLabel}>Code promo</Text>
+          <View style={styles.promoInputRow}>
+            <TextInput
+              style={[
+                styles.promoInput,
+                promoValid === true && styles.promoInputValid,
+                promoValid === false && styles.promoInputInvalid,
+              ]}
+              placeholder="Entrez votre code"
+              placeholderTextColor="#666"
+              value={promoCode}
+              onChangeText={(text) => {
+                setPromoCode(text.toUpperCase());
+                setPromoValid(null);
+                setPromoMessage('');
+              }}
+              autoCapitalize="characters"
+            />
+            {promoCode.length > 0 && (
+              <View style={styles.promoStatus}>
+                {promoValid === true && (
+                  <Ionicons name="checkmark-circle" size={20} color={colors.brand.primary} />
+                )}
+                {promoValid === false && (
+                  <Ionicons name="close-circle" size={20} color="#FF4444" />
+                )}
+              </View>
+            )}
+          </View>
+          {promoMessage ? (
+            <Text style={[
+              styles.promoMessage,
+              promoValid === true ? styles.promoMessageValid : styles.promoMessageInvalid
+            ]}>
+              {promoMessage}
+            </Text>
+          ) : null}
+        </View>
+
         {/* Subscription Plans */}
         <View style={styles.plansRow}>
           {/* Monthly */}
