@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontFamily: 'EB Garamond',
     fontSize: 17,
-    color: colors.text.secondary,
+    color: 'rgba(245,240,232,0.85)',
     lineHeight: 28,
     marginBottom: spacing.md,
     textAlign: 'justify',
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'EB Garamond',
     fontSize: 17,
-    color: colors.text.secondary,
+    color: 'rgba(245,240,232,0.85)',
     lineHeight: 28,
   },
   footer: {
