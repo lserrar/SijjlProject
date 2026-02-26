@@ -769,6 +769,11 @@
     // Context Document Edit Functions
     let currentEditContextId = null;
     
+    function openEditContextModalById(docId, filename) {
+        const docData = window.contextDocsData[docId] || {};
+        openEditContextModal(docId, filename, docData);
+    }
+    
     function openEditContextModal(docId, filename, docData) {
         currentEditContextId = docId;
         document.getElementById('editContextId').value = docId;
