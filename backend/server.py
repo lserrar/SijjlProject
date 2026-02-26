@@ -5220,12 +5220,12 @@ async def admin_panel_courses():
     return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
 
 @api_router.get("/admin-panel/users", response_class=HTMLResponse)
-async def admin_panel_users():
+async def admin_panel_users(request: Request):
     """Admin panel users page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'users.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template users non trouvé")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "users_new.html",
+        {"request": request, "active_page": "users"}
+    )
 
 @api_router.get("/admin-panel/listening-stats", response_class=HTMLResponse)
 async def admin_panel_listening_stats():
