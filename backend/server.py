@@ -537,8 +537,17 @@ async def register(body: RegisterRequest):
 @api_router.post("/auth/login")
 async def login(body: LoginRequest):
     user = await db.users.find_one({'email': body.email}, {'_id': 0})
-    if not user or user.get('password_hash') != hash_password(body.password):
+    logger.info(f"Login attempt: email={body.email}, user_found={user is not None}")
+    if not user:
         raise HTTPException(401, "Email ou mot de passe incorrect")
+    
+    stored_hash = user.get('password_hash')
+    computed_hash = hash_password(body.password)
+    logger.info(f"Login: stored_hash={stored_hash[:20]}..., computed_hash={computed_hash[:20]}...")
+    
+    if stored_hash != computed_hash:
+        raise HTTPException(401, "Email ou mot de passe incorrect")
+    
     now = datetime.now(timezone.utc)
     token = create_jwt({'user_id': user['user_id'], 'exp': int((now + timedelta(days=7)).timestamp())})
     user.pop('password_hash', None)
