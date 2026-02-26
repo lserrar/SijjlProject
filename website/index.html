@@ -704,10 +704,11 @@
     function renderEpisodes(episodes) {
       const container = document.getElementById('episodes-container');
       
-      container.innerHTML = episodes.slice(0, 10).map(ep => {
+      // Only show 4 episodes (2x2 grid)
+      container.innerHTML = episodes.slice(0, 4).map(ep => {
         const config = getHomeCursusConfig(ep.cursus_id);
         return `
-          <div class="episode-card" style="border-left-color: ${config.color};" onclick="requireAuth('pages/abonnement.html')">
+          <div class="episode-card" style="border-left-color: ${config.color};" onclick="handleContentClick()">
             <div class="episode-header">
               <div class="episode-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
               <span class="episode-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
@@ -722,10 +723,11 @@
     function renderCursusScroll(cursus) {
       const container = document.getElementById('cursus-container');
       
-      container.innerHTML = cursus.map(c => {
+      // Only show 4 cursus (2x2 grid)
+      container.innerHTML = cursus.slice(0, 4).map(c => {
         const config = getHomeCursusConfig(c.id);
         return `
-          <div class="cursus-card" style="border-left-color: ${config.color};" onclick="requireAuth('pages/abonnement.html')">
+          <div class="cursus-card" style="border-left-color: ${config.color};" onclick="handleContentClick()">
             <div class="cursus-card-header">
               <span class="cursus-card-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
               <span class="cursus-card-stats">${c.course_count || 0} cours</span>
