@@ -2625,10 +2625,43 @@ async def list_context_resources():
             if filename.startswith('~$') or not filename.endswith('.docx'):
                 continue
             
-            # Parse filename: Timeline_Module1_Traduction.docx or Timeline_Module2_Al-Kindi.docx
+            # Parse filename: 
+            # New format: sijill_{cursus}_{module}_{penseur}.docx (e.g., sijill_a_m01_traduction.docx)
+            # Old format: Timeline_Module{N}_{Penseur}.docx
             import re
-            match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
-            if match:
+            
+            # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
+            new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+            # Try old format: Timeline_Module{N}_{Penseur}.docx
+            old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+            
+            if new_match:
+                cursus_letter = new_match.group(1).upper()
+                module_num = int(new_match.group(2))
+                subject_raw = new_match.group(3)
+                # Clean up subject name: al-kindi -> Al Kindi
+                subject = subject_raw.replace('-', ' ').replace('_', ' ').title()
+                
+                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+                
+                # Check for custom data in DB
+                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+                
+                resource_data = {
+                    'id': resource_id,
+                    'filename': filename,
+                    'r2_key': key,
+                    'cursus_letter': cursus_letter,
+                    'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
+                    'subject': db_entry.get('subject', subject) if db_entry else subject,
+                    'title': db_entry.get('title', f"{subject}") if db_entry else f"{subject}",
+                    'description': db_entry.get('description', '') if db_entry else '',
+                    'credits': db_entry.get('credits', '') if db_entry else '',
+                    'size': obj['Size'],
+                    'url': f'/api/resources/context/{filename.replace(".docx", "")}'
+                }
+                resources.append(resource_data)
+            elif old_match:
                 module_num = int(match.group(1))
                 subject_raw = match.group(2)
                 # Clean up subject name: Al-Kindi -> Al-Kindī, etc.
