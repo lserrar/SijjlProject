@@ -141,6 +141,13 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 - [x] `professors_new.html` - Gestion des professeurs (~51% code reduction)
 - [x] `courses_new.html` - Gestion des cours (~52% code reduction)
 - [x] `users_new.html` - Gestion des utilisateurs (~59% code reduction)
+- [x] `cursus_new.html` - Gestion des cursus (~52% code reduction)
+- [x] `modules_new.html` - Gestion des modules (~53% code reduction)
+
+### Templates Admin Restants (non migrés)
+- [ ] `audios.html` - 935 lignes (complexe avec modaux R2)
+- [ ] `bibliographies.html`, `settings.html`, `highlight.html`
+- [ ] `resources.html`, `promos.html`, `pricing.html`
 
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
