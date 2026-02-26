@@ -2475,6 +2475,267 @@ async def list_available_timelines():
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+# ─── Context Resources (Word Documents) ────────────────────────────────────────
+
+@api_router.get("/resources/context")
+async def list_context_resources():
+    """List all context (Word) resources from the Timeline folder."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
+        resources = []
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            
+            # Skip temp files and non-docx
+            if filename.startswith('~$') or not filename.endswith('.docx'):
+                continue
+            
+            # Parse filename: Timeline_Module1_Traduction.docx or Timeline_Module2_Al-Kindi.docx
+            import re
+            match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+            if match:
+                module_num = int(match.group(1))
+                subject_raw = match.group(2)
+                # Clean up subject name: Al-Kindi -> Al-Kindī, etc.
+                subject = subject_raw.replace('_', ' ').replace('-', ' ')
+                
+                resources.append({
+                    'id': filename.replace('.docx', '').lower().replace(' ', '-'),
+                    'filename': filename,
+                    'r2_key': key,
+                    'module_number': module_num,
+                    'subject': subject,
+                    'title': f"Contexte historique : {subject}",
+                    'size': obj['Size'],
+                    'url': f'/api/resources/context/{filename.replace(".docx", "")}'
+                })
+        
+        # Sort by module number then subject
+        resources.sort(key=lambda x: (x['module_number'], x['subject']))
+        return {'resources': resources, 'count': len(resources)}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/resources/context/{resource_id}")
+async def get_context_resource(resource_id: str):
+    """Get a specific context resource content (parsed from Word document)."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Find the matching file
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
+        target_key = None
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            if filename.startswith('~$'):
+                continue
+            # Match by resource_id
+            file_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+            if file_id == resource_id.lower() or filename.replace('.docx', '') == resource_id:
+                target_key = key
+                break
+        
+        if not target_key:
+            raise HTTPException(404, f"Ressource non trouvée: {resource_id}")
+        
+        # Download and parse the Word document
+        response = r2_client.get_object(Bucket=R2_BUCKET, Key=target_key)
+        docx_content = response['Body'].read()
+        
+        doc = Document(BytesIO(docx_content))
+        
+        # Parse document content
+        content_blocks = []
+        current_section = None
+        
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if not text:
+                continue
+            
+            style = para.style.name if para.style else 'Normal'
+            
+            # Detect headings and sections
+            if 'Heading' in style or text.startswith('🏛') or text.startswith('🧠') or text.startswith('📅'):
+                current_section = text
+                content_blocks.append({
+                    'type': 'heading',
+                    'text': text,
+                    'level': 1 if 'Heading 1' in style else 2
+                })
+            elif text.startswith('•') or text.startswith('-'):
+                content_blocks.append({
+                    'type': 'list_item',
+                    'text': text.lstrip('•- '),
+                    'section': current_section
+                })
+            else:
+                content_blocks.append({
+                    'type': 'paragraph',
+                    'text': text,
+                    'section': current_section
+                })
+        
+        # Extract metadata from filename
+        filename = target_key.split('/')[-1]
+        import re
+        match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+        module_num = int(match.group(1)) if match else 0
+        subject = match.group(2).replace('_', ' ').replace('-', ' ') if match else filename
+        
+        return {
+            'id': resource_id,
+            'title': f"Contexte historique : {subject}",
+            'module_number': module_num,
+            'subject': subject,
+            'r2_key': target_key,
+            'content': content_blocks
+        }
+        
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+        if error_code == 'NoSuchKey':
+            raise HTTPException(404, f"Ressource non trouvée: {resource_id}")
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.get("/admin/resources/timeline")
+async def admin_list_timeline_resources(request: Request):
+    """Admin: List all timeline resources (HTML + DOCX) for management."""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
+        
+        html_files = []
+        docx_files = []
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            
+            # Skip temp files
+            if filename.startswith('~$'):
+                continue
+            
+            file_info = {
+                'key': key,
+                'filename': filename,
+                'size': obj['Size'],
+                'size_kb': round(obj['Size'] / 1024, 1),
+                'last_modified': obj['LastModified'].isoformat() if obj.get('LastModified') else None
+            }
+            
+            if filename.endswith('.html'):
+                # Parse cursus letter
+                import re
+                match = re.search(r'cursus_([a-e])\.html', filename.lower())
+                if match:
+                    file_info['cursus_letter'] = match.group(1).upper()
+                    file_info['type'] = 'timeline_html'
+                html_files.append(file_info)
+            elif filename.endswith('.docx'):
+                # Parse module and subject
+                match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+                if match:
+                    file_info['module_number'] = int(match.group(1))
+                    file_info['subject'] = match.group(2).replace('_', ' ').replace('-', ' ')
+                    file_info['type'] = 'context_docx'
+                docx_files.append(file_info)
+        
+        # Sort
+        html_files.sort(key=lambda x: x.get('cursus_letter', 'Z'))
+        docx_files.sort(key=lambda x: (x.get('module_number', 99), x.get('subject', '')))
+        
+        return {
+            'timelines': html_files,
+            'context_docs': docx_files,
+            'total_timelines': len(html_files),
+            'total_context_docs': len(docx_files)
+        }
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+@api_router.post("/admin/resources/sync-timeline")
+async def admin_sync_timeline_resources(request: Request):
+    """Admin: Sync timeline resources to database for linking with courses/modules."""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
+        
+        synced_timelines = 0
+        synced_contexts = 0
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            
+            if filename.startswith('~$'):
+                continue
+            
+            if filename.endswith('.html') and 'timeline' in filename.lower():
+                # Sync timeline HTML
+                import re
+                match = re.search(r'cursus_([a-e])\.html', filename.lower())
+                if match:
+                    letter = match.group(1).upper()
+                    await db.timeline_resources.update_one(
+                        {'type': 'timeline', 'cursus_letter': letter},
+                        {'$set': {
+                            'type': 'timeline',
+                            'cursus_letter': letter,
+                            'r2_key': key,
+                            'filename': filename,
+                            'updated_at': datetime.now(timezone.utc).isoformat()
+                        }},
+                        upsert=True
+                    )
+                    synced_timelines += 1
+                    
+            elif filename.endswith('.docx'):
+                # Sync context document
+                match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
+                if match:
+                    module_num = int(match.group(1))
+                    subject = match.group(2).replace('_', ' ').replace('-', ' ')
+                    resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+                    
+                    await db.timeline_resources.update_one(
+                        {'type': 'context', 'resource_id': resource_id},
+                        {'$set': {
+                            'type': 'context',
+                            'resource_id': resource_id,
+                            'module_number': module_num,
+                            'subject': subject,
+                            'title': f"Contexte historique : {subject}",
+                            'r2_key': key,
+                            'filename': filename,
+                            'updated_at': datetime.now(timezone.utc).isoformat()
+                        }},
+                        upsert=True
+                    )
+                    synced_contexts += 1
+        
+        return {
+            'message': 'Synchronisation terminée',
+            'synced_timelines': synced_timelines,
+            'synced_contexts': synced_contexts
+        }
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
 @api_router.post("/admin/courses/{course_id}/sync-r2")
 async def sync_course_with_r2(course_id: str, body: SyncR2FolderRequest, request: Request):
     """
