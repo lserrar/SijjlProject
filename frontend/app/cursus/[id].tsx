@@ -214,9 +214,13 @@ export default function CursusCoursesScreen() {
 
       if (biblioRes.ok) {
         const biblioData = await biblioRes.json();
+        console.log('Biblio data received:', biblioData?.length, 'items');
         // Filter only new format bibliographies (with content field)
         const newBiblios = (biblioData || []).filter((b: any) => b.content && b.module_number);
+        console.log('Filtered biblios:', newBiblios.length, 'items');
         setBibliographies(newBiblios);
+      } else {
+        console.log('Biblio API failed:', biblioRes.status);
       }
 
       if (contextRes.ok) {
