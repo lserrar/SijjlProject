@@ -2794,9 +2794,21 @@ async def get_context_resource(resource_id: str):
             module_num = 0
             subject = filename.replace('.docx', '').replace('_', ' ').replace('-', ' ').title()
         
+        # Check for custom metadata in DB
+        db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+        custom_title = subject
+        if db_entry:
+            custom_title = db_entry.get('title', subject)
+            if db_entry.get('cursus_letter'):
+                cursus_letter = db_entry['cursus_letter']
+            if db_entry.get('module_number'):
+                module_num = db_entry['module_number']
+            if db_entry.get('subject'):
+                subject = db_entry['subject']
+        
         return {
             'id': resource_id,
-            'title': subject,
+            'title': custom_title,
             'module_number': module_num,
             'subject': subject,
             'cursus_letter': cursus_letter,
