@@ -381,6 +381,55 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border.default },
   dividerText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: colors.text.tertiary, marginHorizontal: spacing.md },
 
+  // Promo Code Styles
+  promoSection: {
+    marginBottom: spacing.lg,
+  },
+  promoLabel: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 13,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  promoInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  promoInput: {
+    flex: 1,
+    height: 48,
+    backgroundColor: colors.background.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    paddingHorizontal: spacing.md,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text.primary,
+    letterSpacing: 1,
+  },
+  promoInputValid: {
+    borderColor: colors.brand.primary,
+  },
+  promoInputInvalid: {
+    borderColor: '#FF4444',
+  },
+  promoStatus: {
+    position: 'absolute',
+    right: 12,
+  },
+  promoMessage: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    marginTop: 6,
+  },
+  promoMessageValid: {
+    color: colors.brand.primary,
+  },
+  promoMessageInvalid: {
+    color: '#FF4444',
+  },
+
   plansRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
   subCard: { flex: 1, alignItems: 'center', paddingVertical: spacing.xl },
   annualCard: {},
