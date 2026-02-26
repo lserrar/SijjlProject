@@ -169,7 +169,6 @@ export default function CursusScreen() {
     <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#04D182" />
         }
