@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '400',
     color: '#F5F0E8',
-    letterSpacing: 28 * 0.16,
+    letterSpacing: 0,
   },
   logoDotText: {
     color: '#04D182',
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#04D182',
     borderRadius: 3,
-    marginLeft: -8,
+    marginLeft: 3,
     shadowColor: '#04D182',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
