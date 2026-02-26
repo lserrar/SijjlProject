@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   },
   eyebrowText: {
     fontFamily: 'Cinzel',
-    fontSize: 7,
+    fontSize: 10,
     letterSpacing: 4,
     color: '#C9A84C',
     textTransform: 'uppercase',
@@ -387,26 +387,26 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: 'Cinzel',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '400',
     letterSpacing: 0.5,
     color: '#F5F0E8',
-    lineHeight: 25,
+    lineHeight: 28,
   },
   heroTitleItalic: {
     fontFamily: 'EBGaramond',
-    fontSize: 17,
+    fontSize: 19,
     fontStyle: 'italic',
     color: 'rgba(245,240,232,0.70)',
-    lineHeight: 24,
+    lineHeight: 26,
   },
 
   // Introduction
   heroIntro: {
     fontFamily: 'EBGaramond',
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(245,240,232,0.55)',
-    lineHeight: 24.5,
+    lineHeight: 26,
   },
 
   // ─── SÉPARATEUR DIAMANT ─────────────────────────────────────────────────────
