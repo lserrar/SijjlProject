@@ -229,6 +229,12 @@ export default function CursusCoursesScreen() {
         setAudioConferences(audioData.resources || []);
       }
 
+      // Handle timelines data
+      if (timelinesRes.ok) {
+        const timelinesData = await timelinesRes.json();
+        setTimelines(timelinesData.timelines || timelinesData || []);
+      }
+
       // Build progress map
       const progressMap: Record<string, any> = {};
       if (progressRes.ok) {
