@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Modules - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Modules</h1>
+        <p class="page-description">Gérez les modules et leurs épisodes</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()" data-testid="add-module-btn">
+        <i class="fas fa-plus"></i> Nouveau module
+    </button>
+</div>
+
+<div class="toolbar" style="margin-bottom: 20px; display: flex; gap: 16px; align-items: center;">
+    <div class="search-box" style="flex: 1;">
+        <i class="fas fa-search"></i>
+        <input type="text" class="search-input" placeholder="Rechercher un module..." id="searchInput" oninput="filterModules()" data-testid="search-module-input">
+    </div>
+    <select class="form-select" id="courseFilter" onchange="filterModules()" style="width: 200px;" data-testid="course-filter">
+        <option value="">Tous les cours</option>
+    </select>
+</div>
+
+<div id="bulkActions" class="bulk-actions hidden" style="margin-bottom: 16px; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
+    <span id="selectedCount" style="color: var(--text-secondary);">0 sélectionné(s)</span>
+    <button class="btn btn-secondary btn-sm" onclick="bulkToggle(true)"><i class="fas fa-toggle-on"></i> Activer</button>
+    <button class="btn btn-secondary btn-sm" onclick="bulkToggle(false)"><i class="fas fa-toggle-off"></i> Désactiver</button>
+</div>
+
+<div class="card">
+    <div class="table-container" id="modulesTable" data-testid="modules-table">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Nouveau module</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="moduleForm" onsubmit="saveModule(event)">
+            <div class="modal-body">
+                <input type="hidden" id="moduleId">
+                <div class="form-group">
+                    <label class="form-label">Nom du module *</label>
+                    <input type="text" class="form-input" id="name" required placeholder="Ex: Introduction à la philosophie" data-testid="module-name-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="description" placeholder="Description du module..." data-testid="module-desc-input"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cours parent *</label>
+                    <select class="form-select" id="course_id" required data-testid="module-course-select"></select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Intervenant</label>
+                        <input type="text" class="form-input" id="scholar_name" placeholder="Nom de l'intervenant" data-testid="module-scholar-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ordre</label>
+                        <input type="number" class="form-input" id="order" value="1" min="1" data-testid="module-order-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nombre d'épisodes prévus</label>
+                    <input type="number" class="form-input" id="episode_count" value="2" min="1" data-testid="module-episode-count-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary" data-testid="module-save-btn">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadModules();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let modules = [];
+let courses = [];
+let selectedIds = new Set();
+
+function getCourseName(courseId) {
+    const course = courses.find(c => c.id === courseId);
+    return course ? course.title : '-';
+}
+
+function populateCourseSelect() {
+    const select = document.getElementById('course_id');
+    const filterSelect = document.getElementById('courseFilter');
+    select.innerHTML = '<option value="">-- Sélectionner un cours --</option>' + courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+    filterSelect.innerHTML = '<option value="">Tous les cours</option>' + courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+}
+
+function openModal(module = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = module ? 'Modifier le module' : 'Nouveau module';
+    populateCourseSelect();
+    
+    if (module) {
+        document.getElementById('moduleId').value = module.id;
+        document.getElementById('name').value = module.name || '';
+        document.getElementById('description').value = module.description || '';
+        document.getElementById('course_id').value = module.course_id || '';
+        document.getElementById('scholar_name').value = module.scholar_name || '';
+        document.getElementById('order').value = module.order || 1;
+        document.getElementById('episode_count').value = module.episode_count || 2;
+    } else {
+        document.getElementById('moduleForm').reset();
+        document.getElementById('moduleId').value = '';
+        document.getElementById('order').value = 1;
+        document.getElementById('episode_count').value = 2;
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = urlParams.get('course');
+        if (courseId) document.getElementById('course_id').value = courseId;
+    }
+}
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+async function saveModule(event) {
+    event.preventDefault();
+    const id = document.getElementById('moduleId').value;
+    const data = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        course_id: document.getElementById('course_id').value,
+        scholar_name: document.getElementById('scholar_name').value,
+        order: parseInt(document.getElementById('order').value) || 1,
+        episode_count: parseInt(document.getElementById('episode_count').value) || 2
+    };
+    try {
+        if (id) {
+            await apiRequest(`/admin/modules/${id}`, 'PUT', data);
+            showToast('Module modifié avec succès');
+        } else {
+            await apiRequest('/admin/modules', 'POST', data);
+            showToast('Module créé avec succès');
+        }
+        closeModal();
+        loadModules();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function deleteModule(id, name) {
+    if (!confirm(`Supprimer "${name}" ?\n\nAttention: tous les audios liés doivent d'abord être supprimés ou déplacés.`)) return;
+    try {
+        await apiRequest(`/admin/modules/${id}`, 'DELETE');
+        showToast('Module supprimé');
+        loadModules();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function toggleModule(id) {
+    try {
+        await apiRequest(`/admin/modules/${id}/toggle`, 'PATCH');
+        loadModules();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function toggleCheckbox(id) {
+    if (selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+    updateBulkActions();
+}
+
+function toggleSelectAll() {
+    const allCheckbox = document.getElementById('selectAll');
+    const filteredModules = getFilteredModules();
+    if (allCheckbox.checked) filteredModules.forEach(item => selectedIds.add(item.id));
+    else selectedIds.clear();
+    updateBulkActions();
+    renderModules(filteredModules);
+}
+
+function updateBulkActions() {
+    const bulkActions = document.getElementById('bulkActions');
+    if (selectedIds.size > 0) {
+        bulkActions.classList.remove('hidden');
+        document.getElementById('selectedCount').textContent = `${selectedIds.size} sélectionné(s)`;
+    } else {
+        bulkActions.classList.add('hidden');
+    }
+}
+
+async function bulkToggle(isActive) {
+    if (selectedIds.size === 0) return;
+    try {
+        await apiRequest('/admin/modules/bulk-toggle', 'POST', { ids: Array.from(selectedIds), is_active: isActive });
+        showToast(`${selectedIds.size} modules ${isActive ? 'activés' : 'désactivés'}`);
+        selectedIds.clear();
+        updateBulkActions();
+        loadModules();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function getFilteredModules() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const courseFilter = document.getElementById('courseFilter').value;
+    return modules.filter(m => {
+        const matchQuery = m.name.toLowerCase().includes(query) || (m.scholar_name && m.scholar_name.toLowerCase().includes(query));
+        const matchCourse = !courseFilter || m.course_id === courseFilter;
+        return matchQuery && matchCourse;
+    });
+}
+
+function filterModules() {
+    renderModules(getFilteredModules());
+}
+
+function renderModules(data) {
+    if (data.length === 0) {
+        document.getElementById('modulesTable').innerHTML = `<div class="empty-state"><i class="fas fa-cubes"></i><h3>Aucun module</h3><p>Créez un module pour commencer à organiser vos audios</p></div>`;
+        return;
+    }
+    document.getElementById('modulesTable').innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                    <th>#</th>
+                    <th>Module</th>
+                    <th>Cours</th>
+                    <th>Intervenant</th>
+                    <th>Épisodes</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(m => `
+                    <tr data-testid="module-row-${m.id}">
+                        <td><input type="checkbox" ${selectedIds.has(m.id) ? 'checked' : ''} onchange="toggleCheckbox('${m.id}')"></td>
+                        <td><span style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">${m.order || '-'}</span></td>
+                        <td>
+                            <div class="table-cell-text">${m.name}</div>
+                            <div class="table-cell-subtext">${(m.description || '').substring(0, 50)}${m.description && m.description.length > 50 ? '...' : ''}</div>
+                        </td>
+                        <td><span style="color: var(--brand-primary);">${getCourseName(m.course_id)}</span></td>
+                        <td>${m.scholar_name || '-'}</td>
+                        <td><a href="/api/admin-panel/audios?module=${m.id}" class="btn btn-secondary btn-sm"><i class="fas fa-headphones"></i> ${m.episode_count_actual || 0} / ${m.episode_count || 2}</a></td>
+                        <td><span class="status ${m.is_active ? 'status-active' : 'status-inactive'}">${m.is_active ? 'Actif' : 'Inactif'}</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="editModule('${m.id}')"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleModule('${m.id}')"><i class="fas fa-toggle-${m.is_active ? 'on' : 'off'}"></i></button>
+                                <button class="btn btn-danger btn-sm btn-icon" onclick="deleteModule('${m.id}', '${m.name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function editModule(id) {
+    const module = modules.find(m => m.id === id);
+    if (module) openModal(module);
+}
+
+async function loadModules() {
+    try {
+        [modules, courses] = await Promise.all([apiRequest('/admin/modules'), apiRequest('/admin/courses')]);
+        modules = modules || [];
+        courses = courses || [];
+        populateCourseSelect();
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = urlParams.get('course');
+        if (courseId) document.getElementById('courseFilter').value = courseId;
+        filterModules();
+    } catch (error) { showToast('Erreur de chargement', 'error'); }
+}
+</script>
+{% endblock %}

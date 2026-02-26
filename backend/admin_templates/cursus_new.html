@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Cursus - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Cursus</h1>
+        <p class="page-description">Gérez les cursus et thématiques</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()" data-testid="add-cursus-btn">
+        <i class="fas fa-plus"></i> Nouveau cursus
+    </button>
+</div>
+
+<div id="bulkActions" class="bulk-actions hidden" style="margin-bottom: 16px; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
+    <span id="selectedCount" style="color: var(--text-secondary);">0 sélectionné(s)</span>
+    <button class="btn btn-secondary btn-sm" onclick="bulkToggle(true)"><i class="fas fa-toggle-on"></i> Activer</button>
+    <button class="btn btn-secondary btn-sm" onclick="bulkToggle(false)"><i class="fas fa-toggle-off"></i> Désactiver</button>
+</div>
+
+<div class="card">
+    <div class="table-container" id="dataTable" data-testid="cursus-table">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Nouveau cursus</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="dataForm" onsubmit="saveData(event)">
+            <div class="modal-body">
+                <input type="hidden" id="itemId">
+                <div class="form-group">
+                    <label class="form-label">Nom *</label>
+                    <input type="text" class="form-input" id="name" required placeholder="Ex: Philosophie islamique" data-testid="cursus-name-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="description" placeholder="Description du cursus..." data-testid="cursus-desc-input"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ordre d'affichage</label>
+                    <input type="number" class="form-input" id="order" value="1" min="1" data-testid="cursus-order-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icône (FontAwesome)</label>
+                    <input type="text" class="form-input" id="icon" placeholder="book" value="book" data-testid="cursus-icon-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary" data-testid="cursus-save-btn">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadData();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let items = [];
+let selectedIds = new Set();
+
+function openModal(item = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = item ? 'Modifier le cursus' : 'Nouveau cursus';
+    if (item) {
+        document.getElementById('itemId').value = item.id;
+        document.getElementById('name').value = item.name || '';
+        document.getElementById('description').value = item.description || '';
+        document.getElementById('order').value = item.order || 1;
+        document.getElementById('icon').value = item.icon || 'book';
+    } else {
+        document.getElementById('dataForm').reset();
+        document.getElementById('itemId').value = '';
+        document.getElementById('order').value = items.length + 1;
+    }
+}
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+async function saveData(event) {
+    event.preventDefault();
+    const id = document.getElementById('itemId').value;
+    const data = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        order: parseInt(document.getElementById('order').value) || 1,
+        icon: document.getElementById('icon').value || 'book'
+    };
+    try {
+        if (id) {
+            await apiRequest(`/admin/cursus/${id}`, 'PUT', data);
+            showToast('Cursus modifié');
+        } else {
+            await apiRequest('/admin/cursus', 'POST', data);
+            showToast('Cursus créé');
+        }
+        closeModal();
+        loadData();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function deleteItem(id, name) {
+    if (!confirm(`Supprimer "${name}" ?\n\nAttention: tous les cours liés doivent d'abord être supprimés.`)) return;
+    try {
+        await apiRequest(`/admin/cursus/${id}`, 'DELETE');
+        showToast('Cursus supprimé');
+        loadData();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function toggleItem(id) {
+    try {
+        await apiRequest(`/admin/cursus/${id}/toggle`, 'PATCH');
+        loadData();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function toggleCheckbox(id) {
+    if (selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+    updateBulkActions();
+}
+
+function toggleSelectAll() {
+    const allCheckbox = document.getElementById('selectAll');
+    if (allCheckbox.checked) items.forEach(item => selectedIds.add(item.id));
+    else selectedIds.clear();
+    updateBulkActions();
+    renderData(items);
+}
+
+function updateBulkActions() {
+    const bulkActions = document.getElementById('bulkActions');
+    if (selectedIds.size > 0) {
+        bulkActions.classList.remove('hidden');
+        document.getElementById('selectedCount').textContent = `${selectedIds.size} sélectionné(s)`;
+    } else {
+        bulkActions.classList.add('hidden');
+    }
+}
+
+async function bulkToggle(isActive) {
+    if (selectedIds.size === 0) return;
+    try {
+        await apiRequest('/admin/cursus/bulk-toggle', 'POST', { ids: Array.from(selectedIds), is_active: isActive });
+        showToast(`${selectedIds.size} cursus ${isActive ? 'activés' : 'désactivés'}`);
+        selectedIds.clear();
+        updateBulkActions();
+        loadData();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+function renderData(data) {
+    if (data.length === 0) {
+        document.getElementById('dataTable').innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Aucun cursus. Cliquez sur "Nouveau cursus" pour commencer.</p>`;
+        return;
+    }
+    document.getElementById('dataTable').innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                    <th>#</th>
+                    <th>Cursus</th>
+                    <th>Description</th>
+                    <th>Cours</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(item => `
+                    <tr data-testid="cursus-row-${item.id}">
+                        <td><input type="checkbox" ${selectedIds.has(item.id) ? 'checked' : ''} onchange="toggleCheckbox('${item.id}')"></td>
+                        <td><span style="background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">${item.order || '-'}</span></td>
+                        <td>
+                            <div class="table-cell-text"><i class="fas fa-${item.icon || 'book'}" style="margin-right:8px;color:var(--brand-primary)"></i>${item.name}</div>
+                        </td>
+                        <td><div class="table-cell-subtext">${(item.description || '-').substring(0, 60)}${item.description && item.description.length > 60 ? '...' : ''}</div></td>
+                        <td><a href="/api/admin-panel/courses?cursus=${item.id}" class="btn btn-secondary btn-sm"><i class="fas fa-book-open"></i> ${item.course_count || 0}</a></td>
+                        <td><span class="status ${item.is_active ? 'status-active' : 'status-inactive'}">${item.is_active ? 'Actif' : 'Inactif'}</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="editItem('${item.id}')"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleItem('${item.id}')"><i class="fas fa-toggle-${item.is_active ? 'on' : 'off'}"></i></button>
+                                <button class="btn btn-danger btn-sm btn-icon" onclick="deleteItem('${item.id}', '${item.name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function editItem(id) {
+    const item = items.find(i => i.id === id);
+    if (item) openModal(item);
+}
+
+async function loadData() {
+    try {
+        items = await apiRequest('/admin/cursus') || [];
+        renderData(items);
+    } catch (error) { showToast('Erreur de chargement', 'error'); }
+}
+</script>
+{% endblock %}
