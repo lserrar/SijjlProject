@@ -102,7 +102,7 @@ p { color: var(--text-secondary); }
   z-index: 1000;
 }
 
-.header-inner {
+.header-inner, .header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
