@@ -90,7 +90,7 @@ export default function RegisterScreen() {
           {/* Logo */}
           <View style={styles.logoSection}>
             <View style={styles.logoRow}>
-              <Text style={styles.logoText}>SIJILL</Text>
+              <Text style={styles.logoText}>SIJILL PROJECT</Text>
               <View style={styles.logoDot} />
             </View>
             <View style={styles.goldLine} />
