@@ -2504,16 +2504,24 @@ async def list_context_resources():
                 # Clean up subject name: Al-Kindi -> Al-Kindī, etc.
                 subject = subject_raw.replace('_', ' ').replace('-', ' ')
                 
-                resources.append({
-                    'id': filename.replace('.docx', '').lower().replace(' ', '-'),
+                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+                
+                # Check for custom data in DB
+                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+                
+                resource_data = {
+                    'id': resource_id,
                     'filename': filename,
                     'r2_key': key,
-                    'module_number': module_num,
-                    'subject': subject,
-                    'title': f"Contexte historique : {subject}",
+                    'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
+                    'subject': db_entry.get('subject', subject) if db_entry else subject,
+                    'title': db_entry.get('title', f"Contexte historique : {subject}") if db_entry else f"Contexte historique : {subject}",
+                    'description': db_entry.get('description', '') if db_entry else '',
+                    'credits': db_entry.get('credits', '') if db_entry else '',
                     'size': obj['Size'],
                     'url': f'/api/resources/context/{filename.replace(".docx", "")}'
-                })
+                }
+                resources.append(resource_data)
         
         # Sort by module number then subject
         resources.sort(key=lambda x: (x['module_number'], x['subject']))
