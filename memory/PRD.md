@@ -20,6 +20,13 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
+### Intégration Conférences Audio ✅ (NEW)
+- Interface `AudioConference` ajoutée aux pages Cursus et Cours
+- API `/resources/audio` intégrée pour récupérer les conférences
+- Lecteur audio natif HTML avec play/pause dans l'onglet Ressources
+- Styles dédiés pour les cartes de conférence (`audioConferenceCard`, `audioPlayBtn`)
+- 1 fichier test uploadé: `Conf_Averroes_Brenet_module4.m4a` (43 Mo)
+
 ### Système de Ressources Timeline ✅
 
 #### Backend (Fonctionnel)
@@ -27,21 +34,25 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 - `GET /api/timeline/{A-E}` - Retourne le HTML d'une timeline
 - `GET /api/resources/context` - Liste les 18 documents de contexte
 - `GET /api/resources/context/{id}` - Contenu parsé d'un document Word
+- `GET /api/resources/audio` - Liste les conférences audio du bucket R2
+- `GET /api/resources/audio/stream/{filename}` - Stream d'une conférence audio
 - `GET /api/admin/resources/timeline` - Liste admin des ressources
 - `POST /api/admin/resources/sync-timeline` - Synchronisation R2 → DB
 
-#### Frontend (Implémenté, à tester quand env disponible)
+#### Frontend (Implémenté)
 - `/app/frontend/app/timeline/[cursusId].tsx` - Page timeline plein écran (iframe)
 - `/app/frontend/app/context/[resourceId].tsx` - Page contexte historique (style Sijill)
-- Onglet "Ressources" mis à jour dans Cursus et Cours avec 3 sections :
+- Onglet "Ressources" mis à jour dans Cursus et Cours avec 4 sections :
   1. **Frise chronologique** → Page timeline interactive
   2. **Contexte historique** → Documents Word par penseur
   3. **Bibliographies** → Documents existants
+  4. **Conférences Audio** → Lecteur intégré
 
 #### Admin Panel
 - `/api/admin-panel/timeline-resources` - Page "Timeline" avec :
   - Liste des 5 timelines HTML (preview + lien externe)
   - Liste des 18 documents de contexte (aperçu intégré)
+  - Liste des conférences audio avec lecteur
   - Bouton "Synchroniser R2" pour mise à jour automatique
 
 ### Autres fonctionnalités de la session
@@ -52,40 +63,29 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ---
 
-## Structure R2 Timeline/
+## Structure R2
 
-### Timelines HTML (5)
+### Timeline/ (5 HTML + 18 DOCX)
 ```
-Timeline/sijill_timeline_cursus_a.html  →  Cursus A (Falsafa)
-Timeline/sijill_timeline_cursus_b.html  →  Cursus B (Théologie)
-Timeline/sijill_timeline_cursus_c.html  →  Cursus C (Sciences)
-Timeline/sijill_timeline_cursus_d.html  →  Cursus D (Arts)
-Timeline/sijill_timeline_cursus_e.html  →  Cursus E (Spiritualités)
+sijill_timeline_cursus_{a-e}.html  →  Timelines interactives
+Timeline_Module{N}_{Penseur}.docx  →  Documents contexte historique
 ```
 
-### Documents Contexte (18)
+### audio/ (Conférences)
 ```
-Format: Timeline_Module{N}_{Penseur}.docx
-
-Module 1: Traduction
-Module 2: Al-Kindi, Al-Farabi, Avicenne
-Module 3: Al-Ghazali, Fakhr al-Din al-Razi, Nasir al-Din al-Tusi
-Module 4: Averroes, Ibn Bajja, Ibn Tufayl
-Module 5: Mir Damad, Mulla Sadra
-Module 6: Suhrawardi
-Module 7: Ibn Khaldun, Miskawayh
+Conf_{Sujet}_{Speaker}_module{N}.m4a  →  Conférences audio
 ```
 
 ---
 
-## Fichiers Frontend Créés
+## Fichiers Frontend Modifiés
 
 | Fichier | Description |
 |---------|-------------|
+| `app/cursus/[id].tsx` | Onglet Ressources avec lecteur audio conférences |
+| `app/course/[id].tsx` | Onglet Ressources avec lecteur audio conférences |
 | `app/timeline/[cursusId].tsx` | Page timeline plein écran (iframe) |
 | `app/context/[resourceId].tsx` | Page contexte historique formatée |
-| `app/cursus/[id].tsx` | Onglet Ressources mis à jour |
-| `app/course/[id].tsx` | Onglet Ressources mis à jour |
 | `app/payment/success.tsx` | Page succès paiement |
 | `app/payment/cancel.tsx` | Page annulation paiement |
 
@@ -96,17 +96,18 @@ Module 7: Ibn Khaldun, Miskawayh
 | `admin_templates/timeline-resources.html` | Page admin Timeline |
 | `admin_templates/listening-stats.html` | Page admin Stats |
 | `admin_templates/highlight.html` | Page admin Highlight |
-| `server.py` | Endpoints timeline et context |
+| `server.py` | Endpoints timeline, context et audio |
 
 ---
 
 ## Backlog
 
 ### P0 (Critique)
-- ⚠️ Environnement preview down (tunnel ngrok ERR_NGROK_334)
+- ⚠️ Environnement preview instable (tunnel ngrok ERR_NGROK_334)
+- Backend API fonctionne ✅, Frontend inaccessible
 
 ### P1 (Important)
-- Tester l'intégration frontend quand env disponible
+- Tester visuellement l'intégration des conférences audio quand env disponible
 - Tester webhook Stripe en production
 - Lier les ressources aux modules spécifiques (pas seulement au cursus)
 
