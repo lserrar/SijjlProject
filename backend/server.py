@@ -2745,6 +2745,78 @@ async def list_context_resources():
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+
+@api_router.get("/resources/context/cursus/{cursus_id}")
+async def list_context_resources_by_cursus(cursus_id: str):
+    """List context (Word) resources filtered by cursus."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Map cursus_id to cursus letter (A, B, C, D, E)
+    cursus_map = {
+        'cursus-falsafa': 'A',
+        'cursus-theologie': 'B', 
+        'cursus-sciences': 'C',
+        'cursus-arts': 'D',
+        'cursus-connexions': 'E'
+    }
+    letter = cursus_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else 'A')
+    
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
+        resources = []
+        
+        for obj in response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            
+            # Skip temp files and non-docx
+            if filename.startswith('~$') or not filename.endswith('.docx'):
+                continue
+            
+            import re
+            
+            # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
+            new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+            
+            if new_match:
+                cursus_letter = new_match.group(1).upper()
+                
+                # Only include resources matching the requested cursus
+                if cursus_letter != letter:
+                    continue
+                
+                module_num = int(new_match.group(2))
+                subject_raw = new_match.group(3)
+                subject = subject_raw.replace('-', ' ').replace('_', ' ').title()
+                
+                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
+                
+                # Check for custom data in DB
+                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+                
+                resource_data = {
+                    'id': resource_id,
+                    'filename': filename,
+                    'r2_key': key,
+                    'cursus_letter': cursus_letter,
+                    'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
+                    'subject': db_entry.get('subject', subject) if db_entry else subject,
+                    'title': db_entry.get('title', f"{subject}") if db_entry else f"{subject}",
+                    'description': db_entry.get('description', '') if db_entry else '',
+                    'credits': db_entry.get('credits', '') if db_entry else '',
+                    'size': obj['Size'],
+                    'url': f'/api/resources/context/{filename.replace(".docx", "")}'
+                }
+                resources.append(resource_data)
+        
+        # Sort by module number then subject
+        resources.sort(key=lambda x: (x['module_number'], x['subject']))
+        return {'resources': resources, 'count': len(resources)}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+
 @api_router.get("/resources/context/{resource_id}")
 async def get_context_resource(resource_id: str):
     """Get a specific context resource content (parsed from Word document)."""
