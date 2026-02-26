@@ -4,16 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const IS_DESKTOP = SCREEN_WIDTH >= 768;
 
 // Navigation items
 const NAV_ITEMS = [
@@ -35,6 +32,10 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = React.useState(false);
+  
+  // Use hook to get dynamic window dimensions
+  const { width: screenWidth } = useWindowDimensions();
+  const isDesktop = screenWidth >= 768;
 
   const isActive = (path: string) => {
     if (path === '/(tabs)') {
