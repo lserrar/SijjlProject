@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     letterSpacing: 14,
   },
   logoDotContainer: {
-    marginLeft: -10,
+    marginLeft: -14,
     justifyContent: 'flex-end',
     paddingBottom: 10,
   },

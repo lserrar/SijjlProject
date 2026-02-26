@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   logoSection: { marginBottom: 8 },
   logoRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 },
   logoText: { fontFamily: 'Cinzel', fontSize: 30, fontWeight: '400', color: '#F5F0E8', letterSpacing: 14 },
-  logoDotContainer: { marginLeft: -10, justifyContent: 'flex-end', paddingBottom: 8 },
+  logoDotContainer: { marginLeft: -14, justifyContent: 'flex-end', paddingBottom: 8 },
   logoDot: {
     width: 7, height: 7, backgroundColor: '#04D182', borderRadius: 4,
     shadowColor: '#04D182', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8,
