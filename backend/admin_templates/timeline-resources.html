@@ -202,6 +202,59 @@
     </div>
 </div>
 
+<!-- Edit Context Document Modal -->
+<div id="editContextModal" class="modal" style="display: none;">
+    <div class="modal-content modal-medium">
+        <div class="modal-header">
+            <h2 class="modal-title">Éditer le document de contexte</h2>
+            <button class="modal-close" onclick="closeEditContextModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editContextId" value="">
+            <p id="editContextFilename" style="color: var(--text-secondary); margin-bottom: 16px; font-size: 12px;"></p>
+            
+            <div class="form-group">
+                <label>Titre personnalisé</label>
+                <input type="text" id="editContextTitle" class="form-input" placeholder="Titre affiché dans l'app">
+            </div>
+            
+            <div class="form-group">
+                <label>Sujet / Penseur</label>
+                <input type="text" id="editContextSubject" class="form-input" placeholder="Ex: Al-Kindi, Avicenne...">
+            </div>
+            
+            <div class="form-group">
+                <label>Module</label>
+                <select id="editContextModule" class="form-select">
+                    <option value="0">— Non spécifié —</option>
+                    <option value="1">Module 1</option>
+                    <option value="2">Module 2</option>
+                    <option value="3">Module 3</option>
+                    <option value="4">Module 4</option>
+                    <option value="5">Module 5</option>
+                    <option value="6">Module 6</option>
+                    <option value="7">Module 7</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editContextDescription" class="form-textarea" rows="3" placeholder="Description du document"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Crédits</label>
+                <textarea id="editContextCredits" class="form-textarea" rows="2" placeholder="Crédits et sources"></textarea>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeEditContextModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveContextEdit()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .modal-large {
         max-width: 900px;
