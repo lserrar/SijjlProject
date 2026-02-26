@@ -4565,6 +4565,20 @@ async def admin_panel_highlight():
     final_html = base_html.replace('<!-- Content will be loaded here -->', highlight_content.replace('{% extends "base.html" %}', '').replace('{% block content %}', '').replace('{% endblock %}', ''))
     return HTMLResponse(content=final_html)
 
+@api_router.get("/admin-panel/timeline-resources", response_class=HTMLResponse)
+async def admin_panel_timeline_resources():
+    """Admin panel timeline resources management page."""
+    template_path = ADMIN_TEMPLATES_DIR / 'timeline-resources.html'
+    if not template_path.exists():
+        raise HTTPException(404, "Template timeline-resources non trouvé")
+    # Load base template and inject content
+    base_path = ADMIN_TEMPLATES_DIR / 'base.html'
+    page_content = template_path.read_text(encoding='utf-8')
+    base_html = base_path.read_text(encoding='utf-8')
+    # Simple template rendering - replace content block
+    final_html = base_html.replace('<!-- Content will be loaded here -->', page_content.replace('{% extends "base.html" %}', '').replace('{% block content %}', '').replace('{% endblock %}', ''))
+    return HTMLResponse(content=final_html)
+
 @api_router.get("/admin-panel/audios", response_class=HTMLResponse)
 async def admin_panel_audios():
     """Admin panel audios page - redirect to scholars for now."""
