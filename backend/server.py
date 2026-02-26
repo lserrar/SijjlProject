@@ -2693,7 +2693,6 @@ async def admin_sync_timeline_resources(request: Request):
             
             if filename.endswith('.html') and 'timeline' in filename.lower():
                 # Sync timeline HTML
-                import re
                 match = re.search(r'cursus_([a-e])\.html', filename.lower())
                 if match:
                     letter = match.group(1).upper()
