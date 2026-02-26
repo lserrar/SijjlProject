@@ -14,7 +14,7 @@ import { colors, spacing } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
 
 export default function TimelineScreen() {
-  const { cursusId } = useLocalSearchParams<{ cursusId: string }>();
+  const { cursusId, file } = useLocalSearchParams<{ cursusId: string; file?: string }>();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,11 @@ export default function TimelineScreen() {
   };
 
   const cursusLetter = getCursusLetter(cursusId || '');
-  const timelineUrl = `${API_URL}/api/timeline/${cursusLetter}`;
+  
+  // If a specific file is provided, use the file endpoint; otherwise, use the legacy letter endpoint
+  const timelineUrl = file 
+    ? `${API_URL}/api/timeline/file/${encodeURIComponent(file)}`
+    : `${API_URL}/api/timeline/${cursusLetter}`;
 
   useEffect(() => {
     // For web, we'll use an iframe to display the HTML
