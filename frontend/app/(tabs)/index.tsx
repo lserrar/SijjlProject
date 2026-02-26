@@ -459,25 +459,25 @@ const s = StyleSheet.create({
   },
   heroEyebrowText: {
     fontFamily: 'Cinzel',
-    fontSize: 8,
+    fontSize: 10,
     letterSpacing: 4,
     textTransform: 'uppercase',
   },
   heroTitle: {
     fontFamily: 'Cinzel',
-    fontSize: 19,
+    fontSize: 22,
     fontWeight: '400',
     color: '#F5F0E8',
-    lineHeight: 26,
+    lineHeight: 30,
     letterSpacing: 1,
     marginBottom: 10,
   },
   heroDesc: {
     fontFamily: 'EB Garamond',
     fontStyle: 'italic',
-    fontSize: 14,
+    fontSize: 16,
     color: 'rgba(245,240,232,0.55)',
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 18,
   },
   heroBtns: {
@@ -496,7 +496,7 @@ const s = StyleSheet.create({
   },
   btnPrimaryText: {
     fontFamily: 'Cinzel',
-    fontSize: 9,
+    fontSize: 11,
     color: '#0A0A0A',
     letterSpacing: 3,
   },
@@ -508,7 +508,7 @@ const s = StyleSheet.create({
   },
   btnSecondaryText: {
     fontFamily: 'Cinzel',
-    fontSize: 9,
+    fontSize: 11,
     color: '#C9A84C',
     letterSpacing: 3,
   },
@@ -524,7 +524,7 @@ const s = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: 'Cinzel',
-    fontSize: 10,
+    fontSize: 12,
     color: '#F5F0E8',
     letterSpacing: 3,
     textTransform: 'uppercase',
