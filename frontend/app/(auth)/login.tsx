@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 28 * 0.62,
     fontWeight: '400',
     color: '#888888',
-    letterSpacing: (28 * 0.62) * 0.22,
+    letterSpacing: (28 * 0.62) * 0.12,
     marginLeft: 6,
   },
   logoDotText: {

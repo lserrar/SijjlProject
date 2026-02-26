@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   logoRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6, flexWrap: 'nowrap' },
   logoProjectRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 },
   logoSijill: { fontFamily: 'Cinzel', fontSize: 24, fontWeight: '400', color: '#F5F0E8', letterSpacing: 24 * 0.16 },
-  logoProject: { fontFamily: 'Cinzel', fontSize: 24 * 0.62, fontWeight: '400', color: '#888888', letterSpacing: (24 * 0.62) * 0.22, marginLeft: 5 },
+  logoProject: { fontFamily: 'Cinzel', fontSize: 24 * 0.62, fontWeight: '400', color: '#888888', letterSpacing: (24 * 0.62) * 0.12, marginLeft: 5 },
   logoDotText: { color: '#04D182', fontSize: 24, letterSpacing: 0 },
   logoDot: {
     width: 5, height: 5, backgroundColor: '#04D182', borderRadius: 3, marginLeft: 0, marginBottom: 3,
