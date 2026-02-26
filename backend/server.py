@@ -2579,34 +2579,43 @@ async def get_timeline_by_filename(filename: str):
             raise HTTPException(404, f"Timeline non trouvée: {filename}")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
-@api_router.put("/admin/resources/timeline/{resource_id}")
+@api_router.put("/admin/resources/timeline/{resource_id:path}")
 async def update_timeline_resource(resource_id: str, request: Request):
-    """Update timeline resource metadata (title)."""
+    """Update timeline resource metadata (title, display_order, cursus_letter)."""
     await require_admin(request)
     
     body = await request.json()
     
-    # Find the entry by filename pattern
-    filename = resource_id.replace('-', '_') + '.html'
+    # Support both formats: filename.html or resource-id without extension
+    filename = resource_id if resource_id.endswith('.html') else resource_id.replace('-', '_') + '.html'
     
     update_data = {
+        'filename': filename,
+        'type': 'timeline',
         'updated_at': datetime.now(timezone.utc).isoformat()
     }
     
     if 'title' in body:
         update_data['title'] = body['title']
+    if 'display_order' in body:
+        update_data['display_order'] = int(body['display_order']) if body['display_order'] else 0
     if 'cursus_letter' in body:
-        update_data['cursus_letter'] = body['cursus_letter']
+        cursus = body['cursus_letter'].upper().strip() if body['cursus_letter'] else None
+        if cursus and cursus not in ['A', 'B', 'C', 'D', 'E']:
+            raise HTTPException(400, "Cursus invalide. Utilisez A, B, C, D ou E.")
+        update_data['cursus_letter'] = cursus
     
     result = await db.timeline_resources.update_one(
-        {'filename': {'$regex': resource_id.replace('-', '_'), '$options': 'i'}},
-        {'$set': update_data}
+        {'filename': filename, 'type': 'timeline'},
+        {'$set': update_data},
+        upsert=True
     )
     
     return {
         'message': 'Timeline mise à jour',
         'resource_id': resource_id,
-        'modified': result.modified_count
+        'filename': filename,
+        'modified': result.modified_count > 0 or result.upserted_id is not None
     }
 
 # ─── Context Resources (Word Documents) ────────────────────────────────────────
