@@ -231,24 +231,30 @@ async function loadPageContent() {
 
 async function loadHomePage() {
   try {
-    const homeData = await fetch(`${API_URL}/home`).then(r => r.json());
+    // Load home data and cursus in parallel
+    const [homeData, cursusData] = await Promise.all([
+      fetch(`${API_URL}/home`).then(r => r.json()),
+      fetch(`${API_URL}/cursus`).then(r => r.json())
+    ]);
     
-    // Render highlight
-    if (homeData.highlight) {
-      renderHighlight(homeData.highlight);
+    // Render highlight from featured_hero or featured_course
+    const highlight = homeData.featured_hero || homeData.featured_course;
+    if (highlight) {
+      renderHighlight({ course: highlight, professor: homeData.scholars?.find(s => s.id === highlight.scholar_id) });
     } else {
-      // No highlight, hide the section
       const container = document.getElementById('highlight-container');
       if (container) container.innerHTML = '';
     }
     
-    // Render cursus list
-    if (homeData.cursus) {
-      renderCursusList(homeData.cursus);
+    // Render cursus list from /api/cursus
+    if (cursusData && cursusData.length > 0) {
+      renderCursusList(cursusData);
+    } else {
+      const container = document.getElementById('cursus-list');
+      if (container) container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Aucun cursus disponible.</p>';
     }
   } catch (error) {
     console.error('Failed to load home page:', error);
-    // Hide loading spinners on error
     const highlightContainer = document.getElementById('highlight-container');
     const cursusContainer = document.getElementById('cursus-list');
     if (highlightContainer) highlightContainer.innerHTML = '';
