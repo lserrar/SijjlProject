@@ -189,14 +189,15 @@ def get_apple_auth_url(state: Optional[str] = None) -> str:
     Returns:
         The full authorization URL to redirect users to
     """
+    config = get_apple_config()
     if not is_apple_auth_configured():
         raise ValueError("Apple Sign-In not configured")
     
     import urllib.parse
     
     params = {
-        "client_id": APPLE_SERVICE_ID,
-        "redirect_uri": APPLE_REDIRECT_URI,
+        "client_id": config['service_id'],
+        "redirect_uri": config['redirect_uri'],
         "response_type": "code id_token",
         "response_mode": "form_post",
         "scope": "name email",
