@@ -20,18 +20,26 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Logo & Polices
+### Session actuelle - Polices, Ressources & Convention DOCX
 
-#### 1. Logo page login/register ✅ (FIXED)
-- Point vert maintenant collé au "T" de "PROJECT" 
-- Utilisation d'un Text inline `•` au lieu d'un View séparé
+#### 1. Logo page login/register ✅
+- Point vert collé au "T" de "PROJECT" via Text inline `•`
 - Structure: SIJILL (ligne 1) + PROJECT• (ligne 2)
 
-#### 2. Augmentation taille des polices ✅ (NEW)
-- Thème mis à jour: xs: 11→13, sm: 13→15, md: 15→17, lg: 17→19, xl: 22→24, xxl: 28→32, xxxl: 36→40
-- Page d'accueil: heroTitle 19→22px, heroDesc 14→16px, epTitle 13→15px, epDesc 11→13px
+#### 2. Tailles de police augmentées ✅ (v2)
+- Thème: xs 14, sm 16, md 18, lg 20, xl 26, xxl 34, xxxl 44px
+- Page d'accueil: heroTitle 24px, heroDesc 17px, epTitle 16px, epDesc 14px
 
-#### 3. Affichage Multi-Timelines par Cursus ✅
+#### 3. Réorganisation onglet Ressources ✅
+- Nouvel ordre: **Frise chronologique** → **Contexte historique** → **Conférences Audio** → **Bibliographies**
+
+#### 4. Nouvelle convention DOCX ✅
+- Format supporté: `sijill_{cursus}_m{NN}_{penseur}.docx`
+- Exemple: `sijill_a_m01_traduction.docx` → Cursus A, Module 1, Traduction
+- 47 ressources contexte historique chargées avec cursus/module corrects
+- Compatibilité maintenue avec l'ancien format `Timeline_Module{N}_{Penseur}.docx`
+
+#### 5. Affichage Multi-Timelines par Cursus ✅
 - **Backend**: API `GET /api/timelines/cursus/{cursus_id}` retourne toutes les timelines associées
 - **Frontend**: Page Cursus affiche dynamiquement la liste des timelines (ex: Cursus A + Cursus A Map)
 - **Timeline Viewer**: Support du paramètre `file` pour charger une timeline spécifique
