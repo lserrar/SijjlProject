@@ -235,6 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         loginWithGoogle,
+        loginWithApple,
         logout,
         exchangeGoogleSession,
       }}
