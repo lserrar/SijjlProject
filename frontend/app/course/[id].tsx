@@ -1123,4 +1123,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
+  emptyText: {
+    fontFamily: 'EBGaramond',
+    fontSize: 13,
+    color: '#444',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
 });
