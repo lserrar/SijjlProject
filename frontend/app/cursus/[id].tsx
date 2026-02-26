@@ -626,6 +626,32 @@ export default function CursusCoursesScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Context Documents Section */}
+            {contextResources.length > 0 && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Contexte historique</Text>
+                {contextResources.map((ctx) => (
+                  <TouchableOpacity
+                    key={ctx.id}
+                    style={styles.resourceCard}
+                    onPress={() => router.push(`/context/${ctx.filename.replace('.docx', '')}` as any)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="time-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{ctx.subject}</Text>
+                        <Text style={styles.biblioMeta}>Module {ctx.module_number} · Contexte historique</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             {/* Bibliographies Section */}
             {bibliographies.length > 0 && (
               <View style={styles.resourceSection}>
@@ -643,7 +669,7 @@ export default function CursusCoursesScreen() {
                       </View>
                       <View style={styles.biblioTitleContainer}>
                         <Text style={styles.biblioTitle}>{biblio.title}</Text>
-                        <Text style={styles.biblioMeta}>Module {biblio.module_number} · Appuyez pour lire</Text>
+                        <Text style={styles.biblioMeta}>Module {biblio.module_number} · Bibliographie</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={20} color="#888" />
                     </View>
@@ -652,14 +678,14 @@ export default function CursusCoursesScreen() {
               </View>
             )}
 
-            {/* Empty state only if no resources at all */}
-            {bibliographies.length === 0 && (
+            {/* Empty state only if no bibliographies and no context */}
+            {bibliographies.length === 0 && contextResources.length === 0 && (
               <View style={styles.resourceSection}>
-                <Text style={styles.sectionSubtitle}>Bibliographies</Text>
+                <Text style={styles.sectionSubtitle}>Documents</Text>
                 <View style={styles.emptyStateSmall}>
                   <Ionicons name="library-outline" size={32} color="#333" />
                   <Text style={styles.emptyTextSmall}>
-                    Les bibliographies seront disponibles prochainement.
+                    Les documents seront disponibles prochainement.
                   </Text>
                 </View>
               </View>
