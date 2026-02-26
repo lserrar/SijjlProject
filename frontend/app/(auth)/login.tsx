@@ -397,4 +397,15 @@ const styles = StyleSheet.create({
     color: '#04D182',
     letterSpacing: 2,
   },
+  forgotPassword: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    paddingVertical: 8,
+  },
+  forgotPasswordText: {
+    fontFamily: 'EB Garamond',
+    fontSize: 14,
+    color: '#888888',
+    textDecorationLine: 'underline',
+  },
 });
