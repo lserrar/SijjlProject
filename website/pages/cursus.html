@@ -353,7 +353,7 @@
           const duration = cursus.total_duration || (episodesCount * 30); // Estimate 30 min per episode
           
           return `
-            <div class="cursus-card" style="border-left-color: ${data.color};" onclick="requireAuth('abonnement.html')">
+            <div class="cursus-card" style="border-left-color: ${data.color};" onclick="handleCursusClick()">
               <div class="cursus-card-header">
                 <span class="cursus-card-tag" style="color: ${data.color};">Cursus ${data.letter} · ${data.shortName}</span>
                 <span class="cursus-card-stats">${cursus.course_count || 0} cours · ${formatDuration(duration)}</span>
@@ -383,6 +383,23 @@
         document.getElementById('cursus-list').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Erreur lors du chargement.</p>';
       }
     });
+    
+    // Handle cursus click - check auth and subscription
+    function handleCursusClick() {
+      if (!currentUser) {
+        showLoginModal();
+        return;
+      }
+      
+      const hasSubscription = currentUser.subscription_end_date && 
+        new Date(currentUser.subscription_end_date) > new Date();
+      
+      if (hasSubscription || currentUser.is_admin) {
+        alert('Vous êtes abonné ! Pour accéder aux cours, veuillez utiliser l\'application mobile ou télécharger l\'application sur votre appareil.');
+      } else {
+        window.location.href = 'abonnement.html';
+      }
+    }
   </script>
 </body>
 </html>
