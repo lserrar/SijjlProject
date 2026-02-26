@@ -4,135 +4,318 @@
 
 {% block content %}
 <style>
-.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px; }
-.pricing-card { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 32px; text-align: center; transition: all 0.3s; }
-.pricing-card:hover { border-color: var(--brand-primary); }
-.pricing-card.featured { border-color: var(--brand-primary); background: linear-gradient(135deg, rgba(4, 209, 130, 0.05) 0%, rgba(4, 209, 130, 0.02) 100%); }
-.pricing-card .plan-name { font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 16px; }
-.pricing-card .plan-price { font-family: 'Cinzel', serif; font-size: 48px; color: var(--text-primary); margin-bottom: 8px; }
-.pricing-card .plan-period { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
-.pricing-card .plan-features { list-style: none; padding: 0; margin: 0 0 24px 0; text-align: left; }
-.pricing-card .plan-features li { padding: 8px 0; border-bottom: 1px solid var(--border-subtle); font-size: 14px; color: var(--text-secondary); }
-.pricing-card .plan-features li i { color: var(--brand-primary); margin-right: 8px; }
-@media (max-width: 1000px) { .pricing-grid { grid-template-columns: 1fr; } }
+.plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-bottom: 32px; }
+.plan-card { background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; position: relative; transition: all 0.3s; }
+.plan-card:hover { border-color: var(--border-hover); }
+.plan-card.featured { border-color: var(--brand-primary); }
+.plan-badge { position: absolute; top: -10px; right: 20px; background: var(--brand-primary); color: var(--bg-primary); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.plan-type { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.plan-name { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.plan-price { font-size: 36px; font-weight: 700; color: var(--brand-primary); }
+.plan-price span { font-size: 16px; color: var(--text-secondary); font-weight: 400; }
+.plan-duration { color: var(--text-secondary); font-size: 14px; margin-bottom: 16px; }
+.plan-description { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; min-height: 40px; }
+.plan-actions { display: flex; gap: 8px; }
+.transactions-table { width: 100%; border-collapse: collapse; }
+.transactions-table th, .transactions-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-subtle); }
+.transactions-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 600; }
+.transactions-table tr:hover { background: var(--bg-tertiary); }
+@media (max-width: 768px) { .plans-grid { grid-template-columns: 1fr; } }
 </style>
 
 <div class="page-header">
     <div>
         <h1 class="page-title">Tarification</h1>
-        <p class="page-description">Configurez les plans et les prix</p>
+        <p class="page-description">Gérez les abonnements et les achats uniques</p>
     </div>
-    <button class="btn btn-primary" onclick="savePricing()">
-        <i class="fas fa-save"></i> Enregistrer les modifications
+    <button class="btn btn-primary" onclick="openModal()" data-testid="new-plan-btn">
+        <i class="fas fa-plus"></i> Nouveau plan
     </button>
 </div>
 
-<div class="pricing-grid">
-    <div class="pricing-card">
-        <div class="plan-name">Essai Gratuit</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
-            <input type="number" id="trialDays" class="form-input" value="3" min="0" max="30" style="width: 80px; text-align: center; font-size: 32px; font-family: 'Cinzel', serif;">
-        </div>
-        <div class="plan-period">jours gratuits</div>
-        <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Accès complet au catalogue</li>
-            <li><i class="fas fa-check"></i> Écoute illimitée</li>
-            <li><i class="fas fa-check"></i> Sans engagement</li>
-        </ul>
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Plans d'abonnement</h2>
     </div>
-    
-    <div class="pricing-card featured">
-        <div class="plan-name" style="color: var(--brand-primary);">Mensuel</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 8px;">
-            <input type="number" id="monthlyPrice" class="form-input" value="9.99" step="0.01" min="0" style="width: 120px; text-align: center; font-size: 32px; font-family: 'Cinzel', serif;">
-            <span style="font-size: 18px; color: var(--text-muted);">€</span>
-        </div>
-        <div class="plan-period">par mois</div>
-        <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Accès complet au catalogue</li>
-            <li><i class="fas fa-check"></i> Nouveaux contenus chaque semaine</li>
-            <li><i class="fas fa-check"></i> Résiliable à tout moment</li>
-            <li><i class="fas fa-check"></i> Support prioritaire</li>
-        </ul>
-    </div>
-    
-    <div class="pricing-card">
-        <div class="plan-name">Annuel</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 8px;">
-            <input type="number" id="annualPrice" class="form-input" value="89.99" step="0.01" min="0" style="width: 120px; text-align: center; font-size: 32px; font-family: 'Cinzel', serif;">
-            <span style="font-size: 18px; color: var(--text-muted);">€</span>
-        </div>
-        <div class="plan-period">par an <span id="savingsLabel" style="color: var(--brand-primary); font-size: 12px;"></span></div>
-        <ul class="plan-features">
-            <li><i class="fas fa-check"></i> Tout le plan mensuel</li>
-            <li><i class="fas fa-check"></i> Économisez jusqu'à 25%</li>
-            <li><i class="fas fa-check"></i> Accès anticipé aux nouveautés</li>
-            <li><i class="fas fa-check"></i> Contenu exclusif</li>
-        </ul>
+    <div class="plans-grid" id="plansGrid">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
     </div>
 </div>
 
-<div class="card" style="padding: 24px;">
-    <h3 style="font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;">Configuration Stripe</h3>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <div class="form-group">
-            <label class="form-label">Product ID Mensuel (Stripe)</label>
-            <input type="text" class="form-input" id="monthlyProductId" placeholder="price_...">
-            <div class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">ID du prix Stripe pour l'abonnement mensuel</div>
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Transactions récentes</h2>
+    </div>
+    <div id="transactionsTable">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Nouveau plan</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
-        <div class="form-group">
-            <label class="form-label">Product ID Annuel (Stripe)</label>
-            <input type="text" class="form-input" id="annualProductId" placeholder="price_...">
-            <div class="form-hint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">ID du prix Stripe pour l'abonnement annuel</div>
-        </div>
+        <form id="planForm" onsubmit="savePlan(event)">
+            <div class="modal-body">
+                <input type="hidden" id="editingPlanId">
+                <div class="form-group">
+                    <label class="form-label">ID du plan *</label>
+                    <input type="text" class="form-input" id="planId" required placeholder="Ex: monthly, annual, course_123" data-testid="plan-id-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nom *</label>
+                    <input type="text" class="form-input" id="planName" required placeholder="Ex: Abonnement Mensuel" data-testid="plan-name-input">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Prix (EUR) *</label>
+                        <input type="number" step="0.01" class="form-input" id="planPrice" required placeholder="9.99" data-testid="plan-price-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Durée (jours) *</label>
+                        <input type="number" class="form-input" id="planDuration" required placeholder="30" data-testid="plan-duration-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type *</label>
+                    <select class="form-select" id="planType" required data-testid="plan-type-select">
+                        <option value="subscription">Abonnement</option>
+                        <option value="course_purchase">Achat de cours</option>
+                        <option value="cursus_purchase">Achat de cursus</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Essai gratuit (jours)</label>
+                    <input type="number" class="form-input" id="planTrialDays" placeholder="0 = pas d'essai" data-testid="plan-trial-input">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Nombre de jours d'essai gratuit pour les nouveaux utilisateurs</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stripe Price ID</label>
+                    <input type="text" class="form-input" id="stripePriceId" placeholder="price_...">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">ID du prix Stripe pour ce plan</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="planDescription" rows="2" placeholder="Description du plan..." data-testid="plan-description-input"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary" data-testid="save-plan-btn">Enregistrer</button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block page_init %}
-loadPricing();
-updateSavingsLabel();
-document.getElementById('monthlyPrice').addEventListener('input', updateSavingsLabel);
-document.getElementById('annualPrice').addEventListener('input', updateSavingsLabel);
+loadPlans();
 {% endblock %}
 
 {% block scripts %}
 <script>
-function updateSavingsLabel() {
-    const monthly = parseFloat(document.getElementById('monthlyPrice').value) || 0;
-    const annual = parseFloat(document.getElementById('annualPrice').value) || 0;
-    const yearlyMonthly = monthly * 12;
-    const savings = yearlyMonthly > 0 ? Math.round((1 - annual / yearlyMonthly) * 100) : 0;
-    document.getElementById('savingsLabel').textContent = savings > 0 ? `(−${savings}%)` : '';
+let allPlansData = [];
+
+function getTypeLabel(type) {
+    const labels = {
+        'subscription': 'Abonnement',
+        'course_purchase': 'Cours',
+        'cursus_purchase': 'Cursus'
+    };
+    return labels[type] || type;
 }
 
-async function loadPricing() {
-    try {
-        const settings = await apiRequest('/admin/settings') || {};
-        document.getElementById('trialDays').value = settings.trial_days ?? 3;
-        document.getElementById('monthlyPrice').value = settings.monthly_price ?? 9.99;
-        document.getElementById('annualPrice').value = settings.annual_price ?? 89.99;
-        document.getElementById('monthlyProductId').value = settings.stripe_monthly_price_id || '';
-        document.getElementById('annualProductId').value = settings.stripe_annual_price_id || '';
-        updateSavingsLabel();
-    } catch (error) {
-        showToast('Erreur de chargement', 'error');
+function openModal(plan = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = plan ? 'Modifier le plan' : 'Nouveau plan';
+    
+    if (plan) {
+        document.getElementById('editingPlanId').value = plan.plan_id;
+        document.getElementById('planId').value = plan.plan_id;
+        document.getElementById('planId').disabled = true;
+        document.getElementById('planName').value = plan.name || '';
+        document.getElementById('planPrice').value = plan.price || '';
+        document.getElementById('planDuration').value = plan.duration_days || '';
+        document.getElementById('planType').value = plan.type || 'subscription';
+        document.getElementById('planTrialDays').value = plan.trial_days || '';
+        document.getElementById('stripePriceId').value = plan.stripe_price_id || '';
+        document.getElementById('planDescription').value = plan.description || '';
+    } else {
+        document.getElementById('planForm').reset();
+        document.getElementById('editingPlanId').value = '';
+        document.getElementById('planId').disabled = false;
     }
 }
 
-async function savePricing() {
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+async function savePlan(event) {
+    event.preventDefault();
+    const editingId = document.getElementById('editingPlanId').value;
+    const trialDays = document.getElementById('planTrialDays').value;
+    const data = {
+        plan_id: document.getElementById('planId').value,
+        name: document.getElementById('planName').value,
+        price: parseFloat(document.getElementById('planPrice').value),
+        duration_days: parseInt(document.getElementById('planDuration').value),
+        type: document.getElementById('planType').value,
+        trial_days: trialDays ? parseInt(trialDays) : 0,
+        stripe_price_id: document.getElementById('stripePriceId').value || null,
+        description: document.getElementById('planDescription').value,
+        is_active: true
+    };
+
     try {
-        await apiRequest('/admin/settings/pricing', 'PUT', {
-            trial_days: parseInt(document.getElementById('trialDays').value) || 0,
-            monthly_price: parseFloat(document.getElementById('monthlyPrice').value) || 9.99,
-            annual_price: parseFloat(document.getElementById('annualPrice').value) || 89.99,
-            stripe_monthly_price_id: document.getElementById('monthlyProductId').value,
-            stripe_annual_price_id: document.getElementById('annualProductId').value
-        });
-        showToast('Configuration enregistrée');
+        if (editingId) {
+            await apiRequest(`/admin/plans/${editingId}`, 'PUT', data);
+            showToast('Plan modifié avec succès');
+        } else {
+            await apiRequest('/admin/plans', 'POST', data);
+            showToast('Plan créé avec succès');
+        }
+        closeModal();
+        loadPlans();
     } catch (error) {
-        showToast(error.message || 'Erreur', 'error');
+        showToast(error.message, 'error');
+    }
+}
+
+function editPlan(planId) {
+    const plan = allPlansData.find(p => p.plan_id === planId);
+    if (plan) openModal(plan);
+}
+
+async function deletePlan(planId) {
+    const plan = allPlansData.find(p => p.plan_id === planId);
+    if (!confirm(`Supprimer le plan "${plan?.name || planId}" ?`)) return;
+    try {
+        await apiRequest(`/admin/plans/${planId}`, 'DELETE');
+        showToast('Plan supprimé');
+        loadPlans();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function togglePlanStatus(planId) {
+    const plan = allPlansData.find(p => p.plan_id === planId);
+    if (!plan) return;
+    
+    try {
+        await apiRequest(`/admin/plans/${planId}`, 'PUT', {
+            ...plan,
+            is_active: !plan.is_active
+        });
+        showToast(plan.is_active ? 'Plan désactivé' : 'Plan activé');
+        loadPlans();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+function renderPlans(data) {
+    allPlansData = data || [];
+    
+    if (allPlansData.length === 0) {
+        document.getElementById('plansGrid').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-credit-card"></i>
+                <h3>Aucun plan</h3>
+                <p>Créez votre premier plan tarifaire</p>
+            </div>
+        `;
+        return;
+    }
+    
+    document.getElementById('plansGrid').innerHTML = allPlansData.map(p => `
+        <div class="plan-card ${p.plan_id === 'annual' ? 'featured' : ''}" data-testid="plan-card-${p.plan_id}">
+            ${p.plan_id === 'annual' ? '<div class="plan-badge">Populaire</div>' : ''}
+            <div class="plan-type">${getTypeLabel(p.type)}</div>
+            <div class="plan-name">${p.name}</div>
+            <div class="plan-price">${p.price.toFixed(2)}€ <span>/ ${p.duration_days} jours</span></div>
+            ${p.trial_days ? `<div style="color: var(--brand-primary); font-size: 13px; margin-bottom: 8px;"><i class="fas fa-gift"></i> ${p.trial_days} jours d'essai gratuit</div>` : ''}
+            <div class="plan-description">${p.description || ''}</div>
+            <div style="margin-bottom: 16px;">
+                <span class="status ${p.is_active !== false ? 'status-active' : 'status-inactive'}">
+                    ${p.is_active !== false ? 'Actif' : 'Inactif'}
+                </span>
+            </div>
+            <div class="plan-actions">
+                <button class="btn btn-secondary btn-sm" onclick="editPlan('${p.plan_id}')" data-testid="edit-plan-${p.plan_id}">
+                    <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="togglePlanStatus('${p.plan_id}')" title="${p.is_active !== false ? 'Désactiver' : 'Activer'}">
+                    <i class="fas fa-${p.is_active !== false ? 'eye-slash' : 'eye'}"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deletePlan('${p.plan_id}')" data-testid="delete-plan-${p.plan_id}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderTransactions(transactions) {
+    if (!transactions || transactions.length === 0) {
+        document.getElementById('transactionsTable').innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-receipt"></i>
+                <h3>Aucune transaction</h3>
+                <p>Les transactions apparaîtront ici</p>
+            </div>
+        `;
+        return;
+    }
+    
+    document.getElementById('transactionsTable').innerHTML = `
+        <table class="transactions-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Utilisateur</th>
+                    <th>Produit</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${transactions.map(t => `
+                    <tr>
+                        <td>${new Date(t.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>${t.user_email || '-'}</td>
+                        <td>${t.product_name || '-'}</td>
+                        <td><strong>${t.amount?.toFixed(2) || '0.00'}€</strong></td>
+                        <td>
+                            <span class="status ${t.payment_status === 'paid' ? 'status-active' : 'status-inactive'}">
+                                ${t.payment_status === 'paid' ? 'Payé' : t.payment_status || 'En attente'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+async function loadPlans() {
+    try {
+        const [plansData, transactionsData] = await Promise.all([
+            apiRequest('/admin/plans'),
+            apiRequest('/admin/transactions')
+        ]);
+        
+        renderPlans(plansData || []);
+        renderTransactions(transactionsData || []);
+    } catch (error) {
+        showToast('Erreur de chargement', 'error');
+        document.getElementById('plansGrid').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erreur de chargement</p></div>';
     }
 }
 </script>
