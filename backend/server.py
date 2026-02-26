@@ -5284,28 +5284,28 @@ async def admin_panel_articles():
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
 @api_router.get("/admin-panel/thematiques", response_class=HTMLResponse)
-async def admin_panel_thematiques():
+async def admin_panel_thematiques(request: Request):
     """Admin panel thematiques page - redirects to cursus."""
-    template_path = ADMIN_TEMPLATES_DIR / 'cursus.html'
-    if template_path.exists():
-        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
-    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "cursus_new.html",
+        {"request": request, "active_page": "cursus"}
+    )
 
 @api_router.get("/admin-panel/cursus", response_class=HTMLResponse)
-async def admin_panel_cursus():
+async def admin_panel_cursus(request: Request):
     """Admin panel cursus page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'cursus.html'
-    if template_path.exists():
-        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
-    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "cursus_new.html",
+        {"request": request, "active_page": "cursus"}
+    )
 
 @api_router.get("/admin-panel/modules", response_class=HTMLResponse)
-async def admin_panel_modules():
+async def admin_panel_modules(request: Request):
     """Admin panel modules page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'modules.html'
-    if template_path.exists():
-        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
-    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "modules_new.html",
+        {"request": request, "active_page": "modules"}
+    )
 
 @api_router.get("/admin-panel/bibliographies", response_class=HTMLResponse)
 async def admin_panel_bibliographies():
