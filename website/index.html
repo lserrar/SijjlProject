@@ -723,7 +723,7 @@
     function renderCursusScroll(cursus) {
       const container = document.getElementById('cursus-container');
       
-      // Only show 4 cursus (2x2 grid)
+      // Only show 4 cursus (2x2 grid) - use real names from API
       container.innerHTML = cursus.slice(0, 4).map(c => {
         const config = getHomeCursusConfig(c.id);
         return `
@@ -732,8 +732,8 @@
               <span class="cursus-card-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
               <span class="cursus-card-stats">${c.course_count || 0} cours</span>
             </div>
-            <h4 class="cursus-card-title">${config.title || c.name}</h4>
-            <p class="cursus-card-desc">${config.desc || c.description?.substring(0, 100) || ''}</p>
+            <h4 class="cursus-card-title">${c.name}</h4>
+            <p class="cursus-card-desc">${c.description?.substring(0, 100) || ''}...</p>
             <div class="cursus-card-footer">
               <span class="cursus-card-stat"><i class="fas fa-play-circle"></i> ${c.episodes_count || (c.course_count * 5) || 0} épisodes</span>
             </div>
