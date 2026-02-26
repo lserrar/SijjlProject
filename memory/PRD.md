@@ -167,10 +167,27 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 
 ### Templates Admin Restants (non critiques)
 - [x] `promos_new.html` - Migrée vers Jinja2 (Fév 2026)
-- [x] `pricing_new.html` - Migrée vers Jinja2 (Fév 2026)
+- [x] `pricing_new.html` - Migrée vers Jinja2 avec fonctionnalités complètes (Fév 2026)
 - [x] `listening-stats.html` - Corrigée pour utiliser Jinja2 (Fév 2026)
 - [x] `referrals.html` - Nouvelle page créée (Fév 2026)
 - [ ] `audio-categories.html`
+
+### Email Notifications (SendPulse) - Préparé (Fév 2026)
+- [x] Service email créé (`utils/email_service.py`)
+- [x] Templates HTML pour notifications parrainage
+- [x] Intégration dans register et convert_referral
+- [ ] Activation (en attente du domaine et credentials SendPulse)
+- Variables à configurer dans `.env`:
+  - `SENDPULSE_CLIENT_ID`
+  - `SENDPULSE_CLIENT_SECRET`
+  - `SENDPULSE_SENDER_EMAIL`
+  - `SENDPULSE_SENDER_NAME`
+
+### Backend Refactoring - En cours (Fév 2026)
+- [x] Structure créée (`routes/`, `routes/dependencies.py`)
+- [ ] Migration des routes auth vers `routes/auth.py`
+- [ ] Migration des routes admin vers `routes/admin.py`
+- [ ] Migration des routes content vers `routes/content.py`
 
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
