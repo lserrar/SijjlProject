@@ -342,48 +342,21 @@ const styles = StyleSheet.create({
     width: 50,
     alignItems: 'flex-end',
   },
-  hamburger: {
-    width: 20,
-    height: 14,
-    justifyContent: 'space-between',
+  avatarBtnMobile: {
+    padding: 4,
   },
-  hamburgerLine: {
-    width: 20,
-    height: 2,
-    backgroundColor: '#F5F0E8',
-  },
-
-  // ─── MOBILE MENU ─────────────────────────────────────────────────────────────
-  mobileMenu: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    backgroundColor: '#0A0A0A',
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
-    zIndex: 999,
-    paddingVertical: 8,
-  },
-  mobileMenuItem: {
-    flexDirection: 'row',
+  avatarMobile: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#04D182',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    justifyContent: 'center',
   },
-  mobileMenuText: {
+  avatarTextMobile: {
     fontFamily: 'Cinzel',
-    fontSize: 11,
-    letterSpacing: 11 * 0.15,
-    textTransform: 'uppercase',
-    color: '#888888',
-  },
-  mobileMenuTextActive: {
-    color: '#F5F0E8',
-  },
-  mobileMenuDivider: {
-    height: 1,
-    backgroundColor: '#222222',
-    marginVertical: 8,
-    marginHorizontal: 24,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0A0A0A',
   },
 });
