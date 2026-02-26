@@ -2742,7 +2742,7 @@ async def stream_audio_resource(filename: str, request: Request):
 
 @api_router.get("/admin/resources/timeline")
 async def admin_list_timeline_resources(request: Request):
-    """Admin: List all timeline resources (HTML + DOCX) for management."""
+    """Admin: List all timeline resources (HTML + DOCX + Audio) for management."""
     await require_admin(request)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
@@ -2750,6 +2750,7 @@ async def admin_list_timeline_resources(request: Request):
     import re
     
     try:
+        # Get Timeline folder files
         response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
         
         html_files = []
@@ -2797,15 +2798,65 @@ async def admin_list_timeline_resources(request: Request):
                     file_info['type'] = 'context_docx'
                 docx_files.append(file_info)
         
+        # Get audio files from audio/ folder
+        audio_response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='audio/', MaxKeys=200)
+        audio_files = []
+        
+        for obj in audio_response.get('Contents', []):
+            key = obj['Key']
+            filename = key.split('/')[-1]
+            
+            # Skip non-audio files
+            if not any(filename.lower().endswith(ext) for ext in ['.mp3', '.m4a', '.wav', '.ogg', '.aac']):
+                continue
+            
+            resource_id = filename.rsplit('.', 1)[0].lower().replace(' ', '-').replace('_', '-')
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            
+            # Parse filename: Conf_Averroes_Brenet_module4.m4a
+            match = re.match(r'Conf_([^_]+)_([^_]+)_module(\d+)\.(mp3|m4a|wav|ogg|aac)', filename, re.IGNORECASE)
+            
+            if match:
+                subject = match.group(1).replace('-', ' ')
+                speaker = match.group(2).replace('-', ' ')
+                module_num = int(match.group(3))
+            else:
+                subject = filename.replace('_', ' ').rsplit('.', 1)[0]
+                speaker = ''
+                module_num = 0
+            
+            # Check for custom data in DB
+            db_entry = await db.audio_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+            
+            audio_info = {
+                'id': resource_id,
+                'filename': filename,
+                'r2_key': key,
+                'subject': db_entry.get('subject', subject) if db_entry else subject,
+                'speaker': db_entry.get('speaker', speaker) if db_entry else speaker,
+                'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
+                'title': db_entry.get('title', f"Conférence : {subject}") if db_entry else f"Conférence : {subject}",
+                'description': db_entry.get('description', '') if db_entry else '',
+                'credits': db_entry.get('credits', '') if db_entry else '',
+                'size': obj['Size'],
+                'size_mb': round(obj['Size'] / (1024*1024), 1),
+                'format': ext,
+                'stream_url': f'/api/resources/audio/stream/{filename}'
+            }
+            audio_files.append(audio_info)
+        
         # Sort
         html_files.sort(key=lambda x: x.get('cursus_letter', 'Z'))
         docx_files.sort(key=lambda x: (x.get('module_number', 99), x.get('subject', '')))
+        audio_files.sort(key=lambda x: (x['module_number'], x['subject']))
         
         return {
             'timelines': html_files,
             'context_docs': docx_files,
+            'audio_resources': audio_files,
             'total_timelines': len(html_files),
-            'total_context_docs': len(docx_files)
+            'total_context_docs': len(docx_files),
+            'total_audios': len(audio_files)
         }
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
