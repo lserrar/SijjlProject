@@ -159,6 +159,7 @@ export default function CursusCoursesScreen() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [scholars, setScholars] = useState<any[]>([]);
   const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
+  const [contextResources, setContextResources] = useState<ContextResource[]>([]);
   const [userProgress, setUserProgress] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
