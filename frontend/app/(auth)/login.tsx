@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#F5F0E8',
     letterSpacing: 14,
-    marginRight: -12,
+    marginRight: -14,
   },
   logoDot: {
     width: 8,
