@@ -173,6 +173,7 @@ export default function CursusCoursesScreen() {
   const [bibliographies, setBibliographies] = useState<Bibliography[]>([]);
   const [contextResources, setContextResources] = useState<ContextResource[]>([]);
   const [audioConferences, setAudioConferences] = useState<AudioConference[]>([]);
+  const [timelines, setTimelines] = useState<any[]>([]);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [userProgress, setUserProgress] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
