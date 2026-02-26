@@ -5196,20 +5196,20 @@ async def admin_panel_dashboard(request: Request):
     )
 
 @api_router.get("/admin-panel/scholars", response_class=HTMLResponse)
-async def admin_panel_scholars():
+async def admin_panel_scholars(request: Request):
     """Admin panel scholars page - redirect to professors."""
-    template_path = ADMIN_TEMPLATES_DIR / 'professors.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template professors non trouve")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "professors_new.html",
+        {"request": request, "active_page": "professors"}
+    )
 
 @api_router.get("/admin-panel/professors", response_class=HTMLResponse)
-async def admin_panel_professors():
+async def admin_panel_professors(request: Request):
     """Admin panel professors page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'professors.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template professors non trouve")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "professors_new.html",
+        {"request": request, "active_page": "professors"}
+    )
 
 @api_router.get("/admin-panel/courses", response_class=HTMLResponse)
 async def admin_panel_courses():
