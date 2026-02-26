@@ -655,8 +655,68 @@ export default function CourseDetailScreen() {
               </View>
             )}
 
+            {/* Audio Conferences Section */}
+            {audioConferences.length > 0 && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionSubtitle}>Conférences Audio</Text>
+                {audioConferences.map((conf) => (
+                  <View key={conf.id} style={styles.audioConferenceCard}>
+                    <View style={styles.audioConferenceHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="headset-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{conf.title}</Text>
+                        <Text style={styles.biblioSubtitle}>
+                          {conf.speaker} · Module {conf.module_number} · {conf.size_mb} Mo
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        testID={`play-conference-${conf.id}`}
+                        style={[
+                          styles.audioPlayBtn,
+                          playingAudioId === conf.id && styles.audioPlayBtnActive,
+                          { borderColor: cursusColor }
+                        ]}
+                        onPress={() => {
+                          if (playingAudioId === conf.id) {
+                            setPlayingAudioId(null);
+                          } else {
+                            setPlayingAudioId(conf.id);
+                          }
+                        }}
+                      >
+                        <Ionicons
+                          name={playingAudioId === conf.id ? 'pause' : 'play'}
+                          size={14}
+                          color={cursusColor}
+                          style={playingAudioId !== conf.id ? { marginLeft: 2 } : {}}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    {playingAudioId === conf.id && (
+                      <View style={styles.audioPlayerContainer}>
+                        <audio
+                          src={`${process.env.EXPO_PUBLIC_BACKEND_URL}${conf.stream_url}`}
+                          controls
+                          autoPlay
+                          style={{
+                            width: '100%',
+                            height: 40,
+                            marginTop: 12,
+                            borderRadius: 4,
+                            backgroundColor: '#1A1A1A',
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* Empty state only if no resources at all */}
-            {bibliographies.length === 0 && contextResources.length === 0 && !cursus && (
+            {bibliographies.length === 0 && contextResources.length === 0 && audioConferences.length === 0 && !cursus && (
               <View style={styles.emptyState}>
                 <Ionicons name="library-outline" size={40} color="#333" />
                 <Text style={styles.emptyTitle}>Ressources à venir</Text>
