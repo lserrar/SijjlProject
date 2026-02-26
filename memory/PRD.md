@@ -20,7 +20,14 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Intégration Conférences Audio ✅ (NEW)
+### Admin Panel - Page "Ressources" ✅ (26/02 - Session actuelle)
+- **Renommage**: "Timeline" → "Ressources" dans la navigation et le titre de page
+- **Audios chargés**: L'endpoint `/admin/resources/timeline` charge maintenant les 3 types de ressources (HTML, DOCX, Audio)
+- **Édition des audios**: Nouveau modal d'édition avec champs Titre, Description, Crédits, Conférencier, Sujet, Module
+- **Endpoint PUT**: `/admin/resources/audio/{resource_id}` pour sauvegarder les modifications
+- **API publique mise à jour**: `/resources/audio` utilise les données DB si disponibles (titre/description personnalisés)
+
+### Intégration Conférences Audio ✅
 - Interface `AudioConference` ajoutée aux pages Cursus et Cours
 - API `/resources/audio` intégrée pour récupérer les conférences
 - Lecteur audio natif HTML avec play/pause dans l'onglet Ressources
@@ -36,8 +43,9 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 - `GET /api/resources/context/{id}` - Contenu parsé d'un document Word
 - `GET /api/resources/audio` - Liste les conférences audio du bucket R2
 - `GET /api/resources/audio/stream/{filename}` - Stream d'une conférence audio
-- `GET /api/admin/resources/timeline` - Liste admin des ressources
+- `GET /api/admin/resources/timeline` - Liste admin des ressources (HTML + DOCX + Audio)
 - `POST /api/admin/resources/sync-timeline` - Synchronisation R2 → DB
+- `PUT /api/admin/resources/audio/{resource_id}` - Éditer métadonnées audio
 
 #### Frontend (Implémenté)
 - `/app/frontend/app/timeline/[cursusId].tsx` - Page timeline plein écran (iframe)
