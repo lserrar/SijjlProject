@@ -20,7 +20,7 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Admin + UI Mobile + Auth + Contexte
+### Session actuelle
 
 #### 1. Édition des titres des Timelines HTML ✅
 - Admin Panel: Interface pour éditer titre, cursus et ordre d'affichage
@@ -34,18 +34,20 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 #### 5. Réinitialisation de mot de passe ✅
 - Page `/forgot-password` avec design prestige
-- Backend endpoint `POST /api/auth/forgot-password`
 
-#### 6. Filtrage des ressources par Cursus ✅ (NEW)
-- Les fiches de contexte sont maintenant filtrées par cursus (A, B, C, D, E)
-- Seules les fiches correspondant au cursus actuel sont affichées
+#### 6. Filtrage des ressources par Cursus ✅
+- **Fiches de contexte** : Filtrées par cursus_letter (A-E)
+- **Conférences audio** : Filtrées par cursus_letter
+- **Timelines HTML** : Filtrées par cursus (ajout des entrées DB manquantes)
 
-#### 7. Nouvelle mise en page des fiches de contexte ✅ (NEW)
-- **Module et penseur centrés** en haut
-- **Titres de sections** mis en valeur : "Contexte dynastique", "Contexte intellectuel", "Chronologie biographique"
-- **Barre verte** à côté de chaque titre de section
-- **Police augmentée** à 17px pour une lecture confortable
-- **Design prestige** cohérent avec le reste de l'app
+#### 7. Nouvelle mise en page des fiches de contexte ✅
+- Module et penseur centrés en haut
+- Titres de sections mis en valeur avec barre verte
+- Police augmentée à 17px
+
+#### 8. Corrections de données ✅
+- Ajout de toutes les timelines HTML manquantes en DB (Cursus B, C, D, E)
+- Ajout du cursus_letter pour les conférences audio
 
 ---
 
