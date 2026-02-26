@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontFamily: 'Cinzel',
-    fontSize: 7,
+    fontSize: 10,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   },
   visionLabel: {
     fontFamily: 'Cinzel',
-    fontSize: 8,
+    fontSize: 12,
     letterSpacing: 4,
     color: '#C9A84C',
     textTransform: 'uppercase',
@@ -643,10 +643,10 @@ const styles = StyleSheet.create({
   },
   visionText: {
     fontFamily: 'EBGaramond',
-    fontSize: 14,
+    fontSize: 16,
     fontStyle: 'italic',
     color: 'rgba(245,240,232,0.65)',
-    lineHeight: 25.2,
+    lineHeight: 27,
   },
   visionBold: {
     fontFamily: 'EBGaramond',
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   },
   footerLogo: {
     fontFamily: 'Cinzel',
-    fontSize: 13,
+    fontSize: 14,
     letterSpacing: 5,
     color: 'rgba(245,240,232,0.15)',
   },
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
   },
   footerDevise: {
     fontFamily: 'EBGaramond',
-    fontSize: 12,
+    fontSize: 14,
     fontStyle: 'italic',
     color: '#777777',
     textAlign: 'center',
