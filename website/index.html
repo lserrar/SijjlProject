@@ -116,26 +116,15 @@
       margin-top: var(--spacing-md);
     }
     
-    /* Horizontal Scroll Sections */
-    .scroll-container {
-      display: flex;
+    /* Grid Layout for Episodes and Cursus (2x2) */
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: var(--spacing-md);
-      overflow-x: auto;
-      padding-bottom: var(--spacing-md);
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      margin: 0 calc(-1 * var(--spacing-lg));
-      padding-left: var(--spacing-lg);
-      padding-right: var(--spacing-lg);
-    }
-    
-    .scroll-container::-webkit-scrollbar {
-      display: none;
     }
     
     /* Episode Card */
     .episode-card {
-      flex: 0 0 260px;
       background: var(--bg-card);
       border-left: 3px solid var(--brand-primary);
       padding: var(--spacing-md);
