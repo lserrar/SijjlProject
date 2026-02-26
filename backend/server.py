@@ -5188,12 +5188,12 @@ async def admin_panel_login():
     return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
 
 @api_router.get("/admin-panel/", response_class=HTMLResponse)
-async def admin_panel_dashboard():
+async def admin_panel_dashboard(request: Request):
     """Admin panel dashboard page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'dashboard.html'
-    if not template_path.exists():
-        raise HTTPException(404, "Template dashboard non trouvé")
-    return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "dashboard_new.html",
+        {"request": request, "active_page": "dashboard"}
+    )
 
 @api_router.get("/admin-panel/scholars", response_class=HTMLResponse)
 async def admin_panel_scholars():
