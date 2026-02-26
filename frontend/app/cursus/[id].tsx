@@ -758,8 +758,8 @@ export default function CursusCoursesScreen() {
               </View>
             )}
 
-            {/* Empty state only if no bibliographies and no context */}
-            {bibliographies.length === 0 && contextResources.length === 0 && (
+            {/* Empty state only if no resources at all */}
+            {bibliographies.length === 0 && contextResources.length === 0 && audioConferences.length === 0 && (
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Documents</Text>
                 <View style={styles.emptyStateSmall}>
