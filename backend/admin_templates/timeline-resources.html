@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Ressources Timeline</h1>
+        <p class="page-description">Gérez les timelines HTML et documents de contexte historique</p>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-primary" onclick="syncResources()">
+            <i class="fas fa-sync-alt"></i> Synchroniser R2
+        </button>
+        <button class="btn btn-secondary" onclick="loadResources()">
+            <i class="fas fa-refresh"></i> Actualiser
+        </button>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-map"></i></div>
+        <div class="stat-value" id="totalTimelines">-</div>
+        <div class="stat-label">Timelines HTML</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-file-word"></i></div>
+        <div class="stat-value" id="totalContextDocs">-</div>
+        <div class="stat-label">Documents de contexte</div>
+    </div>
+</div>
+
+<!-- Timelines Section -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-map-marked-alt"></i> Timelines HTML (par Cursus)</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cursus</th>
+                    <th>Fichier</th>
+                    <th>Taille</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="timelinesTable">
+                <tr><td colspan="4" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Context Documents Section -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-book-open"></i> Documents de Contexte Historique</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Module</th>
+                    <th>Sujet / Penseur</th>
+                    <th>Fichier</th>
+                    <th>Taille</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="contextDocsTable">
+                <tr><td colspan="5" class="loading"><div class="spinner"></div>Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal" style="display: none;">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2 class="modal-title" id="previewTitle">Prévisualisation</h2>
+            <button class="modal-close" onclick="closePreview()">&times;</button>
+        </div>
+        <div class="modal-body" id="previewContent">
+            <div class="loading"><div class="spinner"></div>Chargement...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-large {
+        max-width: 900px;
+        max-height: 80vh;
+    }
+    .modal-body {
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    .preview-content {
+        font-family: 'EB Garamond', serif;
+        line-height: 1.8;
+        color: var(--text-primary);
+    }
+    .preview-content h1, .preview-content h2 {
+        font-family: 'Cinzel', serif;
+        color: var(--brand-secondary);
+        margin-top: 24px;
+        margin-bottom: 12px;
+    }
+    .preview-content h1 { font-size: 20px; }
+    .preview-content h2 { font-size: 16px; }
+    .preview-content p {
+        margin-bottom: 12px;
+        text-align: justify;
+    }
+    .preview-content .list-item {
+        padding-left: 20px;
+        margin-bottom: 8px;
+        position: relative;
+    }
+    .preview-content .list-item:before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: var(--brand-primary);
+    }
+    .cursus-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        background: var(--brand-primary);
+        color: var(--bg-primary);
+        font-weight: 600;
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+    .module-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        font-size: 12px;
+        border: 1px solid var(--border-subtle);
+    }
+</style>
+
+<script>
+    let resourcesData = null;
+    
+    async function loadResources() {
+        try {
+            resourcesData = await apiRequest('/admin/resources/timeline');
+            
+            // Update stats
+            document.getElementById('totalTimelines').textContent = resourcesData.total_timelines;
+            document.getElementById('totalContextDocs').textContent = resourcesData.total_context_docs;
+            
+            // Render timelines table
+            const timelinesTable = document.getElementById('timelinesTable');
+            if (resourcesData.timelines.length === 0) {
+                timelinesTable.innerHTML = '<tr><td colspan="4" class="empty-state">Aucune timeline trouvée</td></tr>';
+            } else {
+                timelinesTable.innerHTML = resourcesData.timelines.map(t => `
+                    <tr>
+                        <td><span class="cursus-badge">Cursus ${t.cursus_letter || '?'}</span></td>
+                        <td class="table-cell-text">${t.filename}</td>
+                        <td>${t.size_kb} KB</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-secondary" onclick="previewTimeline('${t.cursus_letter}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <a href="/api/timeline/${t.cursus_letter}" target="_blank" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Render context docs table
+            const contextTable = document.getElementById('contextDocsTable');
+            if (resourcesData.context_docs.length === 0) {
+                contextTable.innerHTML = '<tr><td colspan="5" class="empty-state">Aucun document trouvé</td></tr>';
+            } else {
+                contextTable.innerHTML = resourcesData.context_docs.map(d => `
+                    <tr>
+                        <td><span class="module-badge">Module ${d.module_number || '?'}</span></td>
+                        <td class="table-cell-text">${d.subject || d.filename}</td>
+                        <td><small style="color: var(--text-tertiary)">${d.filename}</small></td>
+                        <td>${d.size_kb} KB</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-secondary" onclick="previewContext('${d.filename.replace('.docx', '')}')">
+                                    <i class="fas fa-eye"></i> Aperçu
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+        } catch (e) {
+            showToast('Erreur lors du chargement: ' + e.message, 'error');
+        }
+    }
+    
+    async function syncResources() {
+        try {
+            const result = await apiRequest('/admin/resources/sync-timeline', 'POST');
+            showToast(`Synchronisation terminée: ${result.synced_timelines} timelines, ${result.synced_contexts} documents`, 'success');
+            loadResources();
+        } catch (e) {
+            showToast('Erreur lors de la synchronisation: ' + e.message, 'error');
+        }
+    }
+    
+    function previewTimeline(cursusLetter) {
+        document.getElementById('previewTitle').textContent = `Timeline Cursus ${cursusLetter}`;
+        document.getElementById('previewContent').innerHTML = `
+            <iframe src="/api/timeline/${cursusLetter}" style="width: 100%; height: 500px; border: none;"></iframe>
+        `;
+        document.getElementById('previewModal').style.display = 'flex';
+    }
+    
+    async function previewContext(resourceId) {
+        document.getElementById('previewTitle').textContent = 'Chargement...';
+        document.getElementById('previewContent').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+        document.getElementById('previewModal').style.display = 'flex';
+        
+        try {
+            const data = await apiRequest(`/resources/context/${resourceId}`);
+            document.getElementById('previewTitle').textContent = data.title;
+            
+            // Render content
+            let html = '<div class="preview-content">';
+            for (const block of data.content) {
+                if (block.type === 'heading') {
+                    const tag = block.level === 1 ? 'h1' : 'h2';
+                    html += `<${tag}>${block.text}</${tag}>`;
+                } else if (block.type === 'list_item') {
+                    html += `<div class="list-item">${block.text}</div>`;
+                } else {
+                    html += `<p>${block.text}</p>`;
+                }
+            }
+            html += '</div>';
+            
+            document.getElementById('previewContent').innerHTML = html;
+        } catch (e) {
+            document.getElementById('previewContent').innerHTML = `<div class="error-state">Erreur: ${e.message}</div>`;
+        }
+    }
+    
+    function closePreview() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+    
+    // Close modal on outside click
+    document.getElementById('previewModal').addEventListener('click', function(e) {
+        if (e.target === this) closePreview();
+    });
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        setActiveNav('timeline-resources');
+        loadResources();
+    });
+</script>
+{% endblock %}
