@@ -4548,10 +4548,10 @@ async def admin_save_referral_settings(body: ReferralSettingsRequest, request: R
 @api_router.get("/admin-panel/settings")
 async def admin_panel_settings(request: Request):
     """Serve the settings admin page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'settings.html'
-    with open(template_path, 'r') as f:
-        html_content = f.read()
-    return HTMLResponse(content=html_content)
+    return templates.TemplateResponse(
+        "settings_new.html",
+        {"request": request, "active_page": "settings"}
+    )
 
 # ─── Admin: Thematiques CRUD ───────────────────────────────────────────────────
 
