@@ -1526,6 +1526,15 @@ async def convert_referral(referee_id: str, request: Request):
             }
         )
         logger.info(f"Referrer {referral['referrer_id']} rewarded with 1 free month")
+        
+        # Send conversion notification to referrer (if email configured)
+        if is_email_configured():
+            send_referral_conversion_notification(
+                referrer_email=referrer.get('email', ''),
+                referrer_name=referrer.get('name', 'Membre'),
+                referee_name=referral.get('referee_name', 'Votre filleul'),
+                free_months=1
+            )
     
     return {'message': 'Parrainage converti, parrain récompensé'}
 
