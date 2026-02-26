@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Utilisateurs - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Utilisateurs</h1>
+        <p class="page-description">Gérez les utilisateurs et leurs abonnements</p>
+    </div>
+</div>
+
+<div class="toolbar" style="margin-bottom: 20px; display: flex; gap: 16px; align-items: center;">
+    <div class="search-box" style="flex: 1;">
+        <i class="fas fa-search"></i>
+        <input type="text" class="search-input" placeholder="Rechercher un utilisateur..." id="searchInput" oninput="filterUsers()" data-testid="search-user-input">
+    </div>
+    <select class="form-select" id="statusFilter" onchange="filterUsers()" style="width: 200px;">
+        <option value="">Tous les statuts</option>
+        <option value="subscription">Abonnés</option>
+        <option value="trial">Essai gratuit</option>
+        <option value="free">Accès gratuit</option>
+        <option value="expired">Expirés</option>
+        <option value="none">Sans accès</option>
+    </select>
+</div>
+
+<div class="card">
+    <div class="table-container" id="usersTable" data-testid="users-table">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Gérer l'abonnement</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="user-detail" style="margin-bottom: 12px;">
+                <div class="user-detail-label" style="font-size: 12px; color: var(--text-secondary);">Utilisateur</div>
+                <div class="user-detail-value" id="modalUserEmail" style="font-weight: 500;">-</div>
+            </div>
+            <div class="user-detail" style="margin-bottom: 12px;">
+                <div class="user-detail-label" style="font-size: 12px; color: var(--text-secondary);">Statut actuel</div>
+                <div class="user-detail-value" id="modalCurrentStatus">-</div>
+            </div>
+            <div class="user-detail" id="modalExpiresContainer" style="display:none; margin-bottom: 20px;">
+                <div class="user-detail-label" style="font-size: 12px; color: var(--text-secondary);">Expire le</div>
+                <div class="user-detail-value" id="modalExpires">-</div>
+            </div>
+            
+            <input type="hidden" id="modalUserId">
+            
+            <div class="form-group">
+                <label class="form-label">Action</label>
+                <select class="form-select" id="actionType" onchange="updateActionFields()">
+                    <option value="extend">Prolonger l'abonnement</option>
+                    <option value="grant_subscription">Accorder un abonnement</option>
+                    <option value="grant_free">Accorder accès gratuit permanent</option>
+                    <option value="revoke">Révoquer l'accès</option>
+                </select>
+            </div>
+            
+            <div id="extendFields">
+                <div class="form-group">
+                    <label class="form-label">Durée à ajouter</label>
+                    <select class="form-select" id="extendDuration">
+                        <option value="7">7 jours</option>
+                        <option value="30" selected>30 jours (1 mois)</option>
+                        <option value="90">90 jours (3 mois)</option>
+                        <option value="180">180 jours (6 mois)</option>
+                        <option value="365">365 jours (1 an)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="subscriptionFields" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">Type d'abonnement</label>
+                    <select class="form-select" id="subscriptionPlan">
+                        <option value="monthly">Mensuel (30 jours)</option>
+                        <option value="annual">Annuel (365 jours)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+            <button type="button" class="btn btn-primary" onclick="executeAction()">Confirmer</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadUsers();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let users = [];
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getSubscriptionStatus(user) {
+    const now = new Date();
+    
+    if (user.subscription && user.subscription.expires_at) {
+        const expires = new Date(user.subscription.expires_at);
+        if (expires > now) {
+            const daysLeft = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
+            let label = user.subscription.plan_id === 'annual' ? 'Annuel' : 'Mensuel';
+            if (user.subscription.plan_id === 'manual') label = 'Manuel';
+            return { type: 'subscription', label: label, badge: 'badge-subscription', expires: user.subscription.expires_at, daysLeft: daysLeft };
+        } else {
+            return { type: 'expired', label: 'Expiré', badge: 'badge-expired', expires: user.subscription.expires_at };
+        }
+    }
+    
+    if (user.trial && user.trial.expires_at) {
+        const expires = new Date(user.trial.expires_at);
+        if (expires > now) {
+            const daysLeft = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
+            return { type: 'trial', label: 'Essai gratuit', badge: 'badge-trial', expires: user.trial.expires_at, daysLeft: daysLeft };
+        }
+    }
+    
+    if (user.role === 'admin') return { type: 'admin', label: 'Admin', badge: 'badge-admin', expires: null };
+    if (user.free_access || user.has_free_access) return { type: 'free', label: 'Accès gratuit', badge: 'badge-free', expires: null };
+    
+    return { type: 'none', label: 'Aucun', badge: 'badge-none', expires: null };
+}
+
+function filterUsers() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    let filtered = users;
+    if (query) {
+        filtered = filtered.filter(u => 
+            (u.email && u.email.toLowerCase().includes(query)) || 
+            (u.name && u.name.toLowerCase().includes(query))
+        );
+    }
+    if (statusFilter) {
+        filtered = filtered.filter(u => getSubscriptionStatus(u).type === statusFilter);
+    }
+    renderUsers(filtered);
+}
+
+function renderUsers(data) {
+    if (data.length === 0) {
+        document.getElementById('usersTable').innerHTML = `<p style="color: var(--text-secondary); text-align: center; padding: 40px;">Aucun utilisateur trouvé</p>`;
+        return;
+    }
+    document.getElementById('usersTable').innerHTML = `
+        <table>
+            <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Abonnement</th><th>Expiration</th><th>Inscription</th><th>Actions</th></tr></thead>
+            <tbody>
+                ${data.map(u => {
+                    const status = getSubscriptionStatus(u);
+                    let expiresDisplay = '-';
+                    let expiresClass = '';
+                    
+                    if (status.expires) {
+                        expiresDisplay = formatDate(status.expires);
+                        if (status.daysLeft !== undefined) {
+                            expiresClass = status.daysLeft <= 7 ? 'expiring' : '';
+                            expiresDisplay += ` (${status.daysLeft}j)`;
+                        }
+                        if (status.type === 'expired') expiresClass = 'expired';
+                    }
+                    
+                    return `
+                    <tr>
+                        <td>
+                            <div class="table-cell-flex">
+                                <img src="${u.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(u.name || u.email)}" class="table-avatar">
+                                <div>
+                                    <div class="table-cell-text">${u.name || '-'}</div>
+                                    <div class="table-cell-subtext">${u.email}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role === 'admin' ? 'Admin' : 'Utilisateur'}</span></td>
+                        <td><span class="badge ${status.badge}">${status.label}</span></td>
+                        <td><span style="color: ${expiresClass === 'expired' ? 'var(--danger)' : expiresClass === 'expiring' ? 'var(--warning)' : 'inherit'}">${expiresDisplay}</span></td>
+                        <td>${formatDate(u.created_at)}</td>
+                        <td>
+                            <div class="actions">
+                                ${u.role !== 'admin' ? `
+                                    <button class="btn btn-secondary btn-sm" onclick="openSubscriptionModal('${u.user_id}')" title="Gérer l'abonnement">
+                                        <i class="fas fa-crown"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `}).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function openSubscriptionModal(userId) {
+    const user = users.find(u => u.user_id === userId);
+    if (!user) return;
+    
+    const status = getSubscriptionStatus(user);
+    document.getElementById('modalUserId').value = userId;
+    document.getElementById('modalUserEmail').textContent = user.email;
+    document.getElementById('modalCurrentStatus').textContent = status.label;
+    
+    if (status.expires) {
+        document.getElementById('modalExpiresContainer').style.display = 'block';
+        document.getElementById('modalExpires').textContent = formatDate(status.expires);
+    } else {
+        document.getElementById('modalExpiresContainer').style.display = 'none';
+    }
+    
+    if (status.type === 'subscription' || status.type === 'trial') {
+        document.getElementById('actionType').value = 'extend';
+    } else if (status.type === 'free') {
+        document.getElementById('actionType').value = 'revoke';
+    } else {
+        document.getElementById('actionType').value = 'grant_subscription';
+    }
+    
+    updateActionFields();
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function updateActionFields() {
+    const action = document.getElementById('actionType').value;
+    document.getElementById('extendFields').style.display = (action === 'extend') ? 'block' : 'none';
+    document.getElementById('subscriptionFields').style.display = (action === 'grant_subscription') ? 'block' : 'none';
+}
+
+async function executeAction() {
+    const userId = document.getElementById('modalUserId').value;
+    const action = document.getElementById('actionType').value;
+    
+    try {
+        if (action === 'extend') {
+            const days = parseInt(document.getElementById('extendDuration').value);
+            await apiRequest(`/admin/users/${userId}/extend-subscription`, 'POST', { days: days });
+            showToast(`Abonnement prolongé de ${days} jours`);
+        } else if (action === 'grant_subscription') {
+            const plan = document.getElementById('subscriptionPlan').value;
+            await apiRequest(`/admin/users/${userId}/grant-subscription`, 'POST', { plan_id: plan });
+            showToast('Abonnement accordé');
+        } else if (action === 'grant_free') {
+            await apiRequest(`/admin/users/${userId}/grant-access`, 'POST');
+            showToast('Accès gratuit accordé');
+        } else if (action === 'revoke') {
+            await apiRequest(`/admin/users/${userId}/revoke-access`, 'POST');
+            showToast('Accès révoqué');
+        }
+        
+        closeModal();
+        loadUsers();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function loadUsers() {
+    try {
+        users = await apiRequest('/admin/users') || [];
+        renderUsers(users);
+    } catch (error) {
+        showToast('Erreur de chargement', 'error');
+    }
+}
+</script>
+{% endblock %}
