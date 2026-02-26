@@ -3193,42 +3193,6 @@ async def assign_timeline_cursus(filename: str, request: Request):
         'cursus_letter': cursus_letter if cursus_letter else None
     }
 
-@api_router.put("/admin/resources/timeline/{filename:path}")
-async def update_timeline_resource(filename: str, request: Request):
-    """Update timeline HTML resource metadata (title and display_order)."""
-    await require_admin(request)
-    
-    body = await request.json()
-    
-    update_data = {
-        'filename': filename,
-        'type': 'timeline',
-        'updated_at': datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Allow updating these fields
-    if 'title' in body:
-        update_data['title'] = body['title']
-    if 'display_order' in body:
-        update_data['display_order'] = int(body['display_order']) if body['display_order'] else 0
-    if 'cursus_letter' in body:
-        cursus = body['cursus_letter'].upper().strip() if body['cursus_letter'] else None
-        if cursus and cursus not in ['A', 'B', 'C', 'D', 'E']:
-            raise HTTPException(400, "Cursus invalide. Utilisez A, B, C, D ou E.")
-        update_data['cursus_letter'] = cursus
-    
-    result = await db.timeline_resources.update_one(
-        {'filename': filename, 'type': 'timeline'},
-        {'$set': update_data},
-        upsert=True
-    )
-    
-    return {
-        'message': f'Timeline "{filename}" mise à jour',
-        'filename': filename,
-        'modified': result.modified_count > 0
-    }
-
 @api_router.put("/admin/resources/audio/{resource_id}")
 async def update_audio_resource(resource_id: str, request: Request):
     """Update audio resource metadata (title, description, credits, etc.)."""
