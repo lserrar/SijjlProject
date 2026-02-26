@@ -116,7 +116,17 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 
 ### Bug Fixes
 - [x] Fixed Cursus page scroll behavior (removed sticky header causing overlap)
-- [x] Validated font size increase on About page
+- [x] **Fixed resource filtering on Course detail page** - Timelines, context documents, and audio conferences are now correctly filtered by cursus when opening a course from the homepage
+- [x] **Custom titles display** - Timeline and context document titles from admin panel are now correctly displayed
+
+### Backend Changes
+- [x] Added `/api/resources/context/cursus/{cursus_id}` endpoint to filter DOCX files by cursus
+
+### Frontend Changes (course/[id].tsx)
+- [x] Refactored `loadData()` to fetch cursus info first, then apply proper filtering
+- [x] Added timelines fetching via `/timelines/cursus/{cursus_id}`
+- [x] Client-side audio conference filtering by `cursus_letter`
+- [x] Display custom titles for timelines and context documents
 
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
