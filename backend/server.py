@@ -2983,9 +2983,15 @@ async def admin_list_timeline_resources(request: Request):
                 
                 # Check if we have a manual assignment in DB
                 db_entry = await db.timeline_resources.find_one({'filename': filename, 'type': 'timeline'}, {'_id': 0})
-                if db_entry and db_entry.get('cursus_letter'):
-                    file_info['cursus_letter'] = db_entry['cursus_letter']
-                    file_info['manual_assignment'] = True
+                if db_entry:
+                    if db_entry.get('cursus_letter'):
+                        file_info['cursus_letter'] = db_entry['cursus_letter']
+                        file_info['manual_assignment'] = True
+                    if db_entry.get('title'):
+                        file_info['title'] = db_entry['title']
+                    file_info['display_order'] = db_entry.get('display_order', 99)
+                else:
+                    file_info['display_order'] = 99
                 
                 html_files.append(file_info)
             elif filename.endswith('.docx'):
