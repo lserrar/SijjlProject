@@ -997,14 +997,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     flex: 1,
   },
-  emptyText: {
-    fontFamily: 'EBGaramond',
-    fontSize: 14,
-    color: '#777777',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 40,
-  },
 
   // EPISODE ROW
   episodeRow: {
