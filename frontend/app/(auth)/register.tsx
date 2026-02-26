@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   logoText: { fontFamily: 'Cinzel', fontSize: 30, fontWeight: '400', color: '#F5F0E8', letterSpacing: 14 },
   logoDot: {
     width: 7, height: 7, backgroundColor: '#04D182', borderRadius: 4,
-    marginLeft: 4, marginBottom: 10,
+    marginLeft: -10, marginBottom: 10,
     shadowColor: '#04D182', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8,
   },
   goldLine: { height: 1, width: '100%', backgroundColor: '#C9A84C', opacity: 0.3, marginBottom: 10 },
