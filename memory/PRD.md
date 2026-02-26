@@ -20,26 +20,34 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Polices, Ressources & Convention DOCX
+### Session actuelle - Splash Screen & Améliorations
 
-#### 1. Logo page login/register ✅
+#### 1. Écran de démarrage animé ✅ (NEW)
+- Animation séquencée : SIJILL → PROJECT• → lignes → tagline → fade out
+- Halo vert subtil en arrière-plan
+- Point vert qui pulse avec glow effect
+- Losange vert au centre
+- Tagline "Sciences Islamiques" en doré
+- Responsive (desktop + mobile)
+
+#### 2. Logo page login/register ✅
 - Point vert collé au "T" de "PROJECT" via Text inline `•`
 - Structure: SIJILL (ligne 1) + PROJECT• (ligne 2)
 
-#### 2. Tailles de police augmentées ✅ (v2)
+#### 3. Tailles de police augmentées ✅ (v2)
 - Thème: xs 14, sm 16, md 18, lg 20, xl 26, xxl 34, xxxl 44px
 - Page d'accueil: heroTitle 24px, heroDesc 17px, epTitle 16px, epDesc 14px
 
-#### 3. Réorganisation onglet Ressources ✅
-- Nouvel ordre: **Frise chronologique** → **Contexte historique** → **Conférences Audio** → **Bibliographies**
+#### 4. Réorganisation onglet Ressources ✅
+- Nouvel ordre: Frise chronologique → Contexte historique → Conférences Audio → Bibliographies
 
-#### 4. Nouvelle convention DOCX ✅
-- Format supporté: `sijill_{cursus}_m{NN}_{penseur}.docx`
-- Exemple: `sijill_a_m01_traduction.docx` → Cursus A, Module 1, Traduction
-- 47 ressources contexte historique chargées avec cursus/module corrects
-- Compatibilité maintenue avec l'ancien format `Timeline_Module{N}_{Penseur}.docx`
+#### 5. Nouvelle convention DOCX ✅
+- Format: `sijill_{cursus}_m{NN}_{penseur}.docx`
+- 47 ressources chargées avec cursus/module corrects
 
-#### 5. Affichage Multi-Timelines par Cursus ✅
+#### 6. Fiches contexte historique redessinées ✅
+- Format similaire à la bibliographie
+- Titres en vert, labels en doré, texte lisible
 - **Backend**: API `GET /api/timelines/cursus/{cursus_id}` retourne toutes les timelines associées
 - **Frontend**: Page Cursus affiche dynamiquement la liste des timelines (ex: Cursus A + Cursus A Map)
 - **Timeline Viewer**: Support du paramètre `file` pour charger une timeline spécifique
