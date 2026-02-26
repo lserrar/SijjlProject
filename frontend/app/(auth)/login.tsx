@@ -228,6 +228,7 @@ const styles = StyleSheet.create({
   logoProjectRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
   },
   logoSijill: {
     fontFamily: 'Cinzel',
@@ -254,7 +255,7 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#04D182',
     borderRadius: 3,
-    marginLeft: -10,
+    marginLeft: -8,
     shadowColor: '#04D182',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
