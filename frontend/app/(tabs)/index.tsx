@@ -100,10 +100,14 @@ export default function HomeScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Logo SIJILL + dot (centre) */}
-        <View style={s.logoRow}>
-          <Text style={s.logoText}>SIJILL</Text>
-          <View style={s.logoDot} />
+        {/* Logo SIJILL PROJECT + dot (centre) */}
+        <View style={s.logoContainer}>
+          <View style={s.logoRow}>
+            <Text style={s.logoText}>SIJILL</Text>
+            <Text style={s.logoProject}>PROJECT</Text>
+            <View style={s.logoDot} />
+          </View>
+          <Text style={s.logoTagline}>Études islamiques · Plateforme académique</Text>
         </View>
 
         {/* Search (droite) */}
