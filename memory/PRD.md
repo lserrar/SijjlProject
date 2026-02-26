@@ -20,24 +20,29 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Gestion des ressources Admin
+### Session actuelle - Gestion des ressources Admin + UI Mobile
 
 #### 1. Édition des titres des Timelines HTML ✅
 - **Admin Panel**: Interface complète pour éditer titre, cursus et ordre d'affichage
 - **Modal d'édition**: Titre affiché, sélection cursus (A-E), ordre numérique
 - **Backend**: Endpoint `PUT /api/admin/resources/timeline/{filename}` avec upsert MongoDB
-- **Test validé**: 
-  - "Frise chronologique - La Falsafa" (ordre 1)
-  - "Carte des penseurs - La Falsafa" (ordre 2)
 
-#### 2. Édition des titres des Fiches de Contexte (DOCX) ✅ (NEW)
+#### 2. Édition des titres des Fiches de Contexte (DOCX) ✅
 - **Admin Panel**: Modal d'édition complet pour les 47 fiches DOCX
 - **Champs éditables**: Titre affiché, Cursus, Module, Sujet/Penseur, Description, Crédits
-- **Backend**: Endpoint `PUT /api/admin/resources/context/{resource_id}` avec normalisation ID (tirets)
+- **Backend**: Endpoint `PUT /api/admin/resources/context/{resource_id}` avec normalisation ID
 - **Synchronisation DB ↔ API publique**: Les titres personnalisés s'affichent sur l'app
-- **Test validé**:
-  - "Le Mouvement de Traduction — VIIIe-Xe siècle" (M1)
-  - "Al-Kindī — Le Philosophe des Arabes" (M2)
+
+#### 3. Suppression du Splash Screen animé ✅ (NEW)
+- Supprimé le composant AnimatedSplash de `_layout.tsx`
+- L'app affiche directement la page de login élégante
+
+#### 4. Header Mobile style Spotify ✅ (NEW)
+- **Avatar vert** à gauche avec l'initiale de l'utilisateur
+- **Logo SIJILL PROJECT•** au centre
+- **Icône de recherche** à droite
+- **Suppression** du menu hamburger et du menu déroulant
+- Navigation uniquement via les onglets en bas
 
 ---
 
