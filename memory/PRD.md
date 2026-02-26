@@ -20,16 +20,24 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Gestion des Timelines Admin
+### Session actuelle - Gestion des ressources Admin
 
-#### 1. Édition des titres et ordre des timelines HTML ✅ (NEW)
-- **Admin Panel**: Interface complète pour éditer titre, cursus et ordre d'affichage des timelines
+#### 1. Édition des titres des Timelines HTML ✅
+- **Admin Panel**: Interface complète pour éditer titre, cursus et ordre d'affichage
 - **Modal d'édition**: Titre affiché, sélection cursus (A-E), ordre numérique
 - **Backend**: Endpoint `PUT /api/admin/resources/timeline/{filename}` avec upsert MongoDB
-- **Frontend Public**: Les titres personnalisés s'affichent dans l'ordre configuré sur la page Cursus
 - **Test validé**: 
   - "Frise chronologique - La Falsafa" (ordre 1)
   - "Carte des penseurs - La Falsafa" (ordre 2)
+
+#### 2. Édition des titres des Fiches de Contexte (DOCX) ✅ (NEW)
+- **Admin Panel**: Modal d'édition complet pour les 47 fiches DOCX
+- **Champs éditables**: Titre affiché, Cursus, Module, Sujet/Penseur, Description, Crédits
+- **Backend**: Endpoint `PUT /api/admin/resources/context/{resource_id}` avec normalisation ID (tirets)
+- **Synchronisation DB ↔ API publique**: Les titres personnalisés s'affichent sur l'app
+- **Test validé**:
+  - "Le Mouvement de Traduction — VIIIe-Xe siècle" (M1)
+  - "Al-Kindī — Le Philosophe des Arabes" (M2)
 
 ---
 
