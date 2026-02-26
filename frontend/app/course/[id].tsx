@@ -613,26 +613,29 @@ export default function CourseDetailScreen() {
         {/* TAB CONTENT: Ressources */}
         {activeTab === 'ressources' && (
           <View style={styles.resourcesTab}>
-            {/* Timeline Section - Link to cursus timeline if available */}
-            {cursus && (
+            {/* Timeline Section - Show all timelines for this cursus */}
+            {timelines.length > 0 && (
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Frise chronologique</Text>
-                <TouchableOpacity
-                  style={styles.resourceCard}
-                  onPress={() => router.push(`/timeline/${cursus.id}` as any)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.biblioHeader}>
-                    <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
-                      <Ionicons name="map-outline" size={18} color={cursusColor} />
+                {timelines.map((timeline) => (
+                  <TouchableOpacity
+                    key={timeline.filename}
+                    style={styles.resourceCard}
+                    onPress={() => router.push(`/timeline-view/${encodeURIComponent(timeline.filename)}` as any)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.biblioHeader}>
+                      <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
+                        <Ionicons name="map-outline" size={18} color={cursusColor} />
+                      </View>
+                      <View style={styles.biblioTitleContainer}>
+                        <Text style={styles.biblioTitle}>{timeline.title}</Text>
+                        <Text style={styles.biblioSubtitle}>Timeline interactive · Plein écran</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
                     </View>
-                    <View style={styles.biblioTitleContainer}>
-                      <Text style={styles.biblioTitle}>Carte des Penseurs</Text>
-                      <Text style={styles.biblioSubtitle}>Timeline interactive · Plein écran</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#888" />
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
 
