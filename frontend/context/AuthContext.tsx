@@ -175,6 +175,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithApple = async (): Promise<any> => {
+    try {
+      // Get Apple auth URL from backend
+      const resp = await fetch(`${BACKEND_URL}/api/auth/apple/login`);
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || 'Apple Sign-In non disponible');
+      }
+      const { auth_url } = await resp.json();
+      
+      if (Platform.OS === 'web') {
+        // For web, redirect to Apple auth page
+        // Apple will POST back to our callback URL
+        window.location.href = auth_url;
+        return;
+      }
+      
+      // For mobile, open auth session
+      const redirectUrl = Linking.createURL('apple-callback');
+      const result = await WebBrowser.openAuthSessionAsync(auth_url, redirectUrl, {
+        showInRecents: true,
+        preferEphemeralSession: false,
+      });
+      
+      if (result.type === 'success' && result.url) {
+        // Parse the callback URL for token/user data
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.search);
+        const token = params.get('token');
+        const userStr = params.get('user');
+        
+        if (token && userStr) {
+          const userData = JSON.parse(decodeURIComponent(userStr));
+          await storeAuth(token, userData);
+          return userData;
+        } else {
+          throw new Error("Données d'authentification non trouvées");
+        }
+      } else if (result.type === 'cancel') {
+        throw new Error("Authentification annulée");
+      }
+    } catch (e: any) {
+      throw new Error(e.message || 'Connexion Apple échouée');
+    }
+  };
+
   const logout = async () => {
     await clearAuth();
   };
