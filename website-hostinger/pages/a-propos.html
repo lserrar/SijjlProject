@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   
@@ -22,13 +22,13 @@
       </a>
       <nav class="nav" id="main-nav">
         <a href="../" class="nav-link">Accueil</a>
-        <a href="cursus.html" class="nav-link">Cursus</a>
-        <a href="professeurs.html" class="nav-link">Professeurs</a>
-        <a href="a-propos.html" class="nav-link active">À propos</a>
+        <a href="/pages/cursus.html" class="nav-link">Cursus</a>
+        <a href="/pages/professeurs.html" class="nav-link">Professeurs</a>
+        <a href="/pages/a-propos.html" class="nav-link active">À propos</a>
       </nav>
       <div class="header-actions">
         <button class="btn btn-icon" id="auth-btn" onclick="showLoginModal()"><i class="fas fa-user"></i></button>
-        <a href="abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
+        <a href="/pages/abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
         <button class="menu-toggle" onclick="toggleNav()"><span></span><span></span><span></span></button>
       </div>
     </div>
@@ -189,8 +189,8 @@
           <h4 class="footer-title">Navigation</h4>
           <ul class="footer-links">
             <li><a href="../">Accueil</a></li>
-            <li><a href="cursus.html">Cursus</a></li>
-            <li><a href="professeurs.html">Professeurs</a></li>
+            <li><a href="/pages/cursus.html">Cursus</a></li>
+            <li><a href="/pages/professeurs.html">Professeurs</a></li>
           </ul>
         </div>
         <div>
@@ -240,7 +240,7 @@
     </div>
   </div>
   
-  <script src="../js/app.js"></script>
+  <script src="/js/app.js"></script>
   <script>function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }</script>
 </body>
 </html>
