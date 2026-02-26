@@ -28,16 +28,13 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 - **Timeline Viewer**: Support du paramètre `file` pour charger une timeline spécifique
 - Test: 2 timelines affichées pour Cursus A (Cursus A, Cursus A Map)
 
-#### 2. Lecteur Audio Conférence ✅ (VERIFIED)
-- Page `/conference/[id].tsx` entièrement fonctionnelle
-- Lecteur avec: waveform, play/pause, skip ±15s/30s, vitesse (1x/1.25x/1.5x/2x)
-- Métadonnées: titre, intervenant, description, taille fichier
-- Style cohérent avec le design Sijill
+#### 2. Réorganisation onglet Ressources ✅ (NEW)
+- Ordre modifié : **Bibliographies** → **Frise chronologique** → **Contexte historique** → **Conférences Audio**
+- Tous les éléments utilisent le même style de carte (`biblioCard`)
 
-#### 3. Couleur Titres Documents ✅ (FIXED)
-- Les titres de section dans `/context/[resourceId].tsx` sont maintenant en vert `#04D182`
-- Avant: violet `#8B5CF6` (colors.brand.secondary)
-- Après: vert `#04D182` (Cursus A accent color)
+#### 3. Couleur du texte Documents DOCX ✅ (FIXED)
+- Le texte des paragraphes est maintenant en crème clair `rgba(245,240,232,0.85)` (comme bibliographie)
+- Les titres de section restent en vert `#04D182`
 
 #### 4. Bug Fix: Variable undefined ✅
 - Corrigé référence à `currentCursus` → `id` dans le lien conference
