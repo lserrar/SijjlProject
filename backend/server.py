@@ -527,6 +527,7 @@ async def register(body: RegisterRequest):
                 'id': f"ref_{uuid.uuid4().hex[:12]}",
                 'referrer_id': referrer_user['user_id'],
                 'referrer_name': referrer_user.get('name', ''),
+                'referrer_email': referrer_user.get('email', ''),
                 'referee_id': user_id,
                 'referee_name': body.name,
                 'referee_email': body.email,
@@ -536,6 +537,22 @@ async def register(body: RegisterRequest):
                 'converted_at': None,  # When referee subscribes
             })
             logger.info(f"Referral created: {referrer_user['user_id']} -> {user_id}")
+            
+            # Send notification emails (if configured)
+            if is_email_configured():
+                # Notify referrer that someone signed up
+                send_referral_signup_notification(
+                    referrer_email=referrer_user.get('email', ''),
+                    referrer_name=referrer_user.get('name', 'Membre'),
+                    referee_name=body.name
+                )
+                # Welcome email to new user with referral bonus info
+                send_referee_welcome_notification(
+                    referee_email=body.email,
+                    referee_name=body.name,
+                    referrer_name=referrer_user.get('name', 'Un membre Sijill'),
+                    free_months=1
+                )
     
     await db.users.insert_one(user_doc)
     token = create_jwt({'user_id': user_id, 'exp': int((now + timedelta(days=7)).timestamp())})
