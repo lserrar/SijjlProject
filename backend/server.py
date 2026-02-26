@@ -2428,7 +2428,18 @@ async def get_timeline_html(cursus_letter: str):
     if letter not in ['A', 'B', 'C', 'D', 'E']:
         raise HTTPException(400, "Cursus invalide. Utilisez A, B, C, D ou E.")
     
-    r2_key = f"Timeline/sijill_timeline_cursus_{letter.lower()}.html"
+    # First, check if there's a manual assignment in the database
+    db_entry = await db.timeline_resources.find_one(
+        {'cursus_letter': letter, 'type': 'timeline'},
+        {'_id': 0}
+    )
+    
+    if db_entry and db_entry.get('filename'):
+        # Use the manually assigned file
+        r2_key = f"Timeline/{db_entry['filename']}"
+    else:
+        # Default to the standard naming convention
+        r2_key = f"Timeline/sijill_timeline_cursus_{letter.lower()}.html"
     
     try:
         response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
