@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>À propos - Sijill Project</title>
+  <meta name="description" content="Découvrez Sijill Project, une plateforme académique dédiée à l'enseignement des sciences islamiques.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="../" class="logo">
+        <span class="logo-text">Sijill Project</span>
+        <span class="logo-dot"></span>
+      </a>
+      <nav class="nav" id="main-nav">
+        <a href="../" class="nav-link">Accueil</a>
+        <a href="cursus.html" class="nav-link">Cursus</a>
+        <a href="professeurs.html" class="nav-link">Professeurs</a>
+        <a href="a-propos.html" class="nav-link active">À propos</a>
+      </nav>
+      <div class="header-actions">
+        <button class="btn btn-icon" id="auth-btn" onclick="showLoginModal()"><i class="fas fa-user"></i></button>
+        <a href="abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
+        <button class="menu-toggle" onclick="toggleNav()"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Hero Manifeste -->
+  <section class="hero" style="min-height: auto; padding: calc(var(--header-height) + 50px) 20px 40px;">
+    <div class="hero-content" style="max-width: 700px; text-align: left;">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-line"></span>
+        <span class="hero-eyebrow-text">Notre identité</span>
+      </div>
+      
+      <h1 style="text-transform: none; letter-spacing: 0.02em; font-size: 1.5rem; margin-bottom: 8px;">Comprendre, transmettre,</h1>
+      <p style="font-family: 'EB Garamond', serif; font-size: 1.25rem; font-style: italic; color: var(--text-secondary); margin-bottom: var(--spacing-lg);">penser la pluralité des savoirs islamiques</p>
+      
+      <p class="hero-intro" style="text-align: left; margin: 0;">
+        Une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches et les plus féconds de l'humanité.
+      </p>
+    </div>
+  </section>
+  
+  <!-- Separator -->
+  <div class="separator"><span class="separator-line"></span><span class="separator-diamond"></span><span class="separator-line"></span></div>
+  
+  <!-- Section Pourquoi -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container" style="max-width: 700px;">
+      <span class="section-label">Pourquoi Sijill Project ?</span>
+      <p style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 12px;">
+        Parce que comprendre les savoirs du monde islamique est <strong style="color: var(--text-primary);">essentiel pour comprendre l'histoire globale des idées</strong>. 
+        Parce qu'il existe aujourd'hui un besoin profond d'accéder à ces héritages autrement que par des récits simplifiés, confessionnels ou polarisés.
+      </p>
+      <p style="color: var(--text-secondary); line-height: 1.8;">
+        Parce que ces savoirs continuent d'inspirer des recherches contemporaines en philosophie, théologie, anthropologie, sciences historiques et études comparées.
+      </p>
+    </div>
+  </section>
+  
+  <!-- Citation Shlomo Pines -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container" style="max-width: 700px;">
+      <div class="quote-block">
+        <span class="quote-guillemet">"</span>
+        <p class="quote-text">
+          La civilisation musulmane, dès ses débuts, a inclus un nombre bien plus important d'éléments d'origines diverses que la civilisation européenne. Elle n'a pas, de façon générale, éliminé les systèmes divergents : elle leur a plutôt permis de coexister côte à côte.
+        </p>
+        <div class="quote-divider"></div>
+        <p class="quote-attribution">Shlomo Pines · Philosophe et historien des sciences</p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Separator -->
+  <div class="separator"><span class="separator-line"></span><span class="separator-diamond"></span><span class="separator-line"></span></div>
+  
+  <!-- Les 4 Principes -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container" style="max-width: 700px;">
+      <div class="section-title-row">
+        <span class="section-title-gray">Quatre principes</span>
+        <span class="section-title-line"></span>
+      </div>
+      
+      <div class="principle-card">
+        <span class="principle-num">01</span>
+        <span class="principle-ghost">1</span>
+        <h3 class="principle-title">La rigueur scientifique comme exigence première</h3>
+        <p class="principle-desc">Tous les contenus sont conçus par des chercheurs reconnus. Une transmission fondée sur les textes, les manuscrits et les travaux académiques contemporains.</p>
+      </div>
+      
+      <div class="principle-card">
+        <span class="principle-num">02</span>
+        <span class="principle-ghost">2</span>
+        <h3 class="principle-title">Une vision globale des savoirs islamiques</h3>
+        <p class="principle-desc">L'Islam classique ne s'est jamais développé dans une seule direction. Falsafa, kalām, soufisme, sciences naturelles, arts — un tissu intellectuel cohérent dans sa diversité.</p>
+      </div>
+      
+      <div class="principle-card">
+        <span class="principle-num">03</span>
+        <span class="principle-ghost">3</span>
+        <h3 class="principle-title">Une contextualisation historique précise</h3>
+        <p class="principle-desc">Comprendre Avicenne sans le mouvement de traduction du grec, ou Ibn ʿArabī sans la crise des savoirs du XIe siècle, est impossible. Chaque œuvre replacée dans son époque.</p>
+      </div>
+      
+      <div class="principle-card">
+        <span class="principle-num">04</span>
+        <span class="principle-ghost">4</span>
+        <h3 class="principle-title">Une pédagogie adaptée aux rythmes contemporains</h3>
+        <p class="principle-desc">Capsules de 6 à 21 minutes, chacune centrée sur une question précise. Un accès progressif à des matières exigeantes, sans sacrifier la complexité.</p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Separator -->
+  <div class="separator"><span class="separator-line"></span><span class="separator-diamond"></span><span class="separator-line"></span></div>
+  
+  <!-- Domaines explorés -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container" style="max-width: 700px;">
+      <div class="section-title-row">
+        <span class="section-title-gray">Domaines explorés</span>
+        <span class="section-title-line"></span>
+      </div>
+      
+      <div class="tags-grid">
+        <span class="tag" style="border-color: rgba(4,209,130,0.4); color: #04D182;">Falsafa</span>
+        <span class="tag" style="border-color: rgba(139,92,246,0.4); color: #8B5CF6;">Kalām</span>
+        <span class="tag" style="border-color: rgba(6,182,212,0.4); color: #06B6D4;">Soufisme</span>
+        <span class="tag" style="border-color: rgba(245,158,11,0.4); color: #F59E0B;">Exégèse</span>
+        <span class="tag" style="border-color: rgba(236,72,153,0.4); color: #EC4899;">Poésie mystique</span>
+        <span class="tag" style="border-color: rgba(201,168,76,0.4); color: #C9A84C;">Philosophie politique</span>
+        <span class="tag" style="border-color: rgba(4,209,130,0.4); color: #04D182;">Sciences du hadith</span>
+        <span class="tag" style="border-color: rgba(139,92,246,0.4); color: #8B5CF6;">Ismaélisme</span>
+        <span class="tag" style="border-color: rgba(245,158,11,0.4); color: #F59E0B;">Mathématiques</span>
+        <span class="tag" style="border-color: rgba(6,182,212,0.4); color: #06B6D4;">Astronomie</span>
+        <span class="tag" style="border-color: rgba(236,72,153,0.4); color: #EC4899;">Médecine</span>
+        <span class="tag" style="border-color: rgba(201,168,76,0.4); color: #C9A84C;">Géographie</span>
+        <span class="tag" style="border-color: rgba(4,209,130,0.4); color: #04D182;">Muʿtazilisme</span>
+        <span class="tag" style="border-color: rgba(139,92,246,0.4); color: #8B5CF6;">Ashʿarisme</span>
+        <span class="tag" style="border-color: rgba(6,182,212,0.4); color: #06B6D4;">Philosophie persane</span>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Vision Block -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container" style="max-width: 700px;">
+      <div class="vision-block">
+        <span class="vision-label">Notre ambition</span>
+        <p class="vision-text">
+          Montrer comment, à travers ces échanges, s'est formée ce que l'on pourrait appeler une <span class="vision-bold">« civilisation de la pensée »</span>, où le débat, la dissension et la controverse étaient des moteurs de la créativité intellectuelle.
+        </p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer Logo -->
+  <section class="section" style="text-align: center; padding-bottom: 40px;">
+    <div style="width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--brand-gold), transparent); margin: 0 auto 16px;"></div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px;">
+      <span style="font-family: 'Cinzel', serif; font-size: 0.9rem; letter-spacing: 0.3em; color: rgba(245,240,232,0.15);">SIJILL PROJECT</span>
+      <span class="logo-dot"></span>
+    </div>
+    <p class="footer-devise">Rigueur · Pluralité · Transmission</p>
+    <div style="width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--brand-gold), transparent); margin: 16px auto 0;"></div>
+  </section>
+  
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="../" class="logo"><span class="logo-text">Sijill Project</span><span class="logo-dot"></span></a>
+          <p>Plateforme académique dédiée à l'enseignement des sciences islamiques.</p>
+        </div>
+        <div>
+          <h4 class="footer-title">Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="../">Accueil</a></li>
+            <li><a href="cursus.html">Cursus</a></li>
+            <li><a href="professeurs.html">Professeurs</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-title">Légal</h4>
+          <ul class="footer-links">
+            <li><a href="mentions-legales.html">Mentions légales</a></li>
+            <li><a href="cgv.html">CGV</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-title">Contact</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:contact@sijillproject.com">contact@sijillproject.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Sijill Project. Tous droits réservés.</p>
+        <p class="footer-devise">Rigueur · Pluralité · Transmission</p>
+      </div>
+    </div>
+  </footer>
+  
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="auth-modal" onclick="if(event.target === this) hideModal()">
+    <div class="modal" style="position: relative;">
+      <button class="modal-close" onclick="hideModal()">&times;</button>
+      <div class="modal-header"><h2 id="modal-title">Connexion</h2></div>
+      <div class="modal-body">
+        <div id="form-error" style="display: none;"></div>
+        <form id="login-form" onsubmit="handleLoginSubmit(event)">
+          <div class="form-group"><label class="form-label">Email</label><input type="email" id="login-email" class="form-input" required></div>
+          <div class="form-group"><label class="form-label">Mot de passe</label><input type="password" id="login-password" class="form-input" required></div>
+          <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+        </form>
+        <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
+          <div class="form-group"><label class="form-label">Nom</label><input type="text" id="register-name" class="form-input" required></div>
+          <div class="form-group"><label class="form-label">Email</label><input type="email" id="register-email" class="form-input" required></div>
+          <div class="form-group"><label class="form-label">Mot de passe</label><input type="password" id="register-password" class="form-input" required></div>
+          <button type="submit" class="btn btn-primary btn-full">S'inscrire</button>
+        </form>
+        <div class="social-divider">ou</div>
+        <button class="social-btn" onclick="loginWithGoogle()"><i class="fab fa-google"></i> Google</button>
+        <button class="social-btn" onclick="loginWithApple()"><i class="fab fa-apple"></i> Apple</button>
+      </div>
+      <div class="modal-footer" id="modal-switch">Pas de compte ? <a href="#" onclick="showRegisterModal(); return false;">S'inscrire</a></div>
+    </div>
+  </div>
+  
+  <script src="../js/app.js"></script>
+  <script>function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }</script>
+</body>
+</html>

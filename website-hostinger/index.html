@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sijill Project - Plateforme académique · Sciences islamiques</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* Home page specific styles */
+    main {
+      margin-top: var(--header-height);
+      max-width: var(--max-width);
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 var(--spacing-lg);
+    }
+    
+    .home-section {
+      padding: var(--spacing-xl) 0;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .section-title-small {
+      font-family: var(--font-display);
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    
+    .section-link {
+      font-size: 0.7rem;
+      color: var(--brand-primary);
+      text-decoration: none;
+      letter-spacing: 0.1em;
+    }
+    
+    /* Featured Course - Centered and elegant */
+    .featured-wrapper {
+      max-width: 600px;
+      margin: 0 auto var(--spacing-xl);
+    }
+    
+    .featured-course {
+      padding: var(--spacing-lg);
+      background: var(--bg-card);
+      border-left: 3px solid var(--brand-primary);
+    }
+    
+    .featured-eyebrow {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.25em;
+      color: var(--brand-gold);
+      text-transform: uppercase;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .featured-header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .featured-letter {
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--brand-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--brand-primary);
+      flex-shrink: 0;
+    }
+    
+    .featured-info h2 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+      margin: 0 0 4px;
+    }
+    
+    .featured-info p {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+    
+    .featured-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    
+    .featured-btn {
+      margin-top: var(--spacing-md);
+    }
+    
+    /* Grid Layout for Episodes and Cursus (2x2) */
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-md);
+    }
+    
+    /* Episode Card */
+    .episode-card {
+      background: var(--bg-card);
+      border-left: 3px solid var(--brand-primary);
+      padding: var(--spacing-md);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .episode-card:hover {
+      background: #1A1A1A;
+    }
+    
+    .episode-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .episode-letter {
+      width: 28px;
+      height: 28px;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+    }
+    
+    .episode-tag {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    
+    .episode-title {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    
+    .episode-meta {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    /* Cursus Card in Grid */
+    .cursus-card {
+      background: var(--bg-card);
+      border-left: 3px solid var(--brand-primary);
+      padding: var(--spacing-md);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .cursus-card:hover {
+      background: #1A1A1A;
+    }
+    
+    .cursus-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .cursus-card-tag {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    
+    .cursus-card-stats {
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    
+    .cursus-card-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .cursus-card-desc {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: rgba(245,240,232,0.6);
+      line-height: 1.5;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .cursus-card-footer {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+    }
+    
+    .cursus-card-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    
+    /* Top 5 Section */
+    .top5-list {
+      /* Container */
+    }
+    
+    .top5-item {
+      display: grid;
+      grid-template-columns: 28px 40px 1fr auto;
+      gap: var(--spacing-md);
+      align-items: center;
+      padding: var(--spacing-md) 0;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .top5-item:hover {
+      background: var(--bg-card);
+      margin: 0 calc(-1 * var(--spacing-sm));
+      padding-left: var(--spacing-sm);
+      padding-right: var(--spacing-sm);
+    }
+    
+    .top5-rank {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    
+    .top5-letter {
+      width: 40px;
+      height: 40px;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1rem;
+    }
+    
+    .top5-info h4 {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin: 0 0 2px;
+    }
+    
+    .top5-info p {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    
+    .top5-play {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--brand-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-primary);
+      font-size: 0.8rem;
+    }
+    
+    @media (max-width: 768px) {
+      main {
+        padding: 0 var(--spacing-md);
+      }
+      
+      .featured-wrapper {
+        max-width: 100%;
+      }
+      
+      .episode-card {
+        flex: 0 0 220px;
+      }
+      
+      .cursus-card {
+        flex: 0 0 260px;
+      }
+      
+      .top5-item {
+        grid-template-columns: 24px 36px 1fr;
+      }
+      
+      .top5-play {
+        display: none;
+      }
+      
+      .nav {
+        display: none;
+        position: absolute;
+        top: var(--header-height);
+        left: 0;
+        right: 0;
+        background: var(--bg-primary);
+        flex-direction: column;
+        padding: var(--spacing-md);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      
+      .nav.active {
+        display: flex;
+      }
+      
+      .header-actions {
+        display: none;
+      }
+      
+      .mobile-menu-btn {
+        display: block;
+      }
+    }
+    
+    @media (min-width: 769px) {
+      .mobile-menu-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body data-page="home">
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-content">
+      <a href="/api/site/" class="logo">
+        <span class="logo-text">SIJILL PROJECT</span>
+        <span class="logo-dot"></span>
+      </a>
+      
+      <nav class="nav" id="main-nav">
+        <a href="/api/site/" class="nav-link active">Accueil</a>
+        <a href="pages/cursus.html" class="nav-link">Cursus</a>
+        <a href="pages/professeurs.html" class="nav-link">Professeurs</a>
+        <a href="pages/a-propos.html" class="nav-link">À propos</a>
+      </nav>
+      
+      <div class="header-actions">
+        <button class="icon-btn" id="auth-btn" onclick="showLoginModal()">
+          <i class="fas fa-user"></i>
+        </button>
+        <a href="pages/abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
+      </div>
+      
+      <button class="mobile-menu-btn" onclick="toggleNav()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Identity Section (same as À propos) -->
+    <section class="hero" style="min-height: auto; padding: 40px 20px;">
+      <div class="hero-content" style="max-width: 700px; text-align: left;">
+        <div class="hero-eyebrow">
+          <span class="hero-eyebrow-line"></span>
+          <span class="hero-eyebrow-text">Notre identité</span>
+        </div>
+        
+        <h1 style="text-transform: none; letter-spacing: 0.02em; font-size: 1.4rem; margin-bottom: 6px;">Comprendre, transmettre,</h1>
+        <p style="font-family: 'EB Garamond', serif; font-size: 1.15rem; font-style: italic; color: var(--text-secondary); margin-bottom: var(--spacing-md);">penser la pluralité des savoirs islamiques</p>
+        
+        <p class="hero-intro" style="text-align: left; margin: 0; font-size: 0.95rem;">
+          Une plateforme académique née d'une conviction : l'histoire intellectuelle du monde islamique constitue l'un des patrimoines les plus riches et les plus féconds de l'humanité.
+        </p>
+      </div>
+    </section>
+
+    <!-- Featured Course Section -->
+    <section class="home-section" id="featured-section">
+      <div class="featured-wrapper">
+        <div class="featured-course" id="featured-container">
+          <div style="text-align: center; padding: var(--spacing-lg);">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- New Episodes Section -->
+    <section class="home-section" id="episodes-section">
+      <div class="section-header">
+        <span class="section-title-small">Nouveaux épisodes</span>
+      </div>
+      <div class="grid-container" id="episodes-container">
+        <div style="text-align: center; padding: var(--spacing-xl); grid-column: span 2;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Cursus Section (2x2 grid) -->
+    <section class="home-section" id="cursus-section">
+      <div class="section-header">
+        <span class="section-title-small">Nos Cursus</span>
+        <a href="pages/cursus.html" class="section-link">Voir tout →</a>
+      </div>
+      <div class="grid-container" id="cursus-container">
+        <div style="text-align: center; padding: var(--spacing-xl); grid-column: span 2;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Top 5 Section -->
+    <section class="home-section" id="top5-section">
+      <div class="section-header">
+        <span class="section-title-small">Top 5 du mois</span>
+      </div>
+      <div class="top5-list" id="top5-container">
+        <div style="text-align: center; padding: var(--spacing-xl);">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Separator -->
+    <div class="separator"><span class="separator-line"></span><span class="separator-diamond"></span><span class="separator-line"></span></div>
+    
+    <!-- Domaines explorés (same as À propos) -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container" style="max-width: 700px;">
+        <div class="section-title-row">
+          <span class="section-title-gray">Domaines explorés</span>
+          <span class="section-title-line"></span>
+        </div>
+        
+        <div class="tags-grid">
+          <span class="tag" style="border-color: rgba(4,209,130,0.4); color: #04D182;">Falsafa</span>
+          <span class="tag" style="border-color: rgba(139,92,246,0.4); color: #8B5CF6;">Kalām</span>
+          <span class="tag" style="border-color: rgba(6,182,212,0.4); color: #06B6D4;">Soufisme</span>
+          <span class="tag" style="border-color: rgba(245,158,11,0.4); color: #F59E0B;">Exégèse</span>
+          <span class="tag" style="border-color: rgba(236,72,153,0.4); color: #EC4899;">Poésie mystique</span>
+          <span class="tag" style="border-color: rgba(201,168,76,0.4); color: #C9A84C;">Philosophie politique</span>
+          <span class="tag" style="border-color: rgba(4,209,130,0.4); color: #04D182;">Sciences du hadith</span>
+          <span class="tag" style="border-color: rgba(139,92,246,0.4); color: #8B5CF6;">Ismaélisme</span>
+          <span class="tag" style="border-color: rgba(245,158,11,0.4); color: #F59E0B;">Mathématiques</span>
+          <span class="tag" style="border-color: rgba(6,182,212,0.4); color: #06B6D4;">Astronomie</span>
+          <span class="tag" style="border-color: rgba(236,72,153,0.4); color: #EC4899;">Médecine</span>
+          <span class="tag" style="border-color: rgba(201,168,76,0.4); color: #C9A84C;">Géographie</span>
+          <span class="tag" style="border-color: rgba(4,209,130,0.4); color: #04D182;">Muʿtazilisme</span>
+          <span class="tag" style="border-color: rgba(139,92,246,0.4); color: #8B5CF6;">Ashʿarisme</span>
+          <span class="tag" style="border-color: rgba(6,182,212,0.4); color: #06B6D4;">Philosophie persane</span>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Vision Block (same as À propos) -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container" style="max-width: 700px;">
+        <div class="vision-block">
+          <span class="vision-label">Notre ambition</span>
+          <p class="vision-text">
+            Montrer comment, à travers ces échanges, s'est formée ce que l'on pourrait appeler une <span class="vision-bold">« civilisation de la pensée »</span>, où le débat, la dissension et la controverse étaient des moteurs de la créativité intellectuelle.
+          </p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Footer Logo -->
+    <section class="section" style="text-align: center; padding-bottom: 40px;">
+      <div style="width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--brand-gold), transparent); margin: 0 auto 16px;"></div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px;">
+        <span style="font-family: 'Cinzel', serif; font-size: 0.9rem; letter-spacing: 0.3em; color: rgba(245,240,232,0.15);">SIJILL PROJECT</span>
+        <span class="logo-dot"></span>
+      </div>
+      <p class="footer-devise">Rigueur · Pluralité · Transmission</p>
+      <div style="width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--brand-gold), transparent); margin: 16px auto 0;"></div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <span class="logo-text">SIJILL PROJECT</span>
+            <span class="logo-dot"></span>
+          </div>
+          <p>Plateforme académique dédiée à l'enseignement des sciences islamiques par des universitaires reconnus.</p>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Navigation</h4>
+          <ul>
+            <li><a href="/api/site/">Accueil</a></li>
+            <li><a href="pages/cursus.html">Cursus</a></li>
+            <li><a href="pages/professeurs.html">Professeurs</a></li>
+            <li><a href="pages/a-propos.html">À propos</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Légal</h4>
+          <ul>
+            <li><a href="#">Mentions légales</a></li>
+            <li><a href="#">CGV</a></li>
+            <li><a href="#">Confidentialité</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:contact@sijillproject.com">contact@sijillproject.com</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2026 Sijill Project. Tous droits réservés.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="auth-modal" onclick="if(event.target === this) hideModal()">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal()">&times;</button>
+      <div class="modal-header">
+        <h2 id="modal-title">Connexion</h2>
+        <p class="modal-subtitle">Accédez à votre espace</p>
+      </div>
+      <div class="modal-body">
+        <div id="form-error" style="display: none;"></div>
+        
+        <form id="login-form" onsubmit="handleLoginSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="login-email" class="form-input" placeholder="votre@email.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+        </form>
+        
+        <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">Nom complet</label>
+            <input type="text" id="register-name" class="form-input" placeholder="Votre nom" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="register-email" class="form-input" placeholder="votre@email.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <input type="password" id="register-password" class="form-input" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">S'inscrire</button>
+        </form>
+        
+        <div class="social-divider">ou</div>
+        
+        <button class="social-btn" onclick="loginWithGoogle()">
+          <i class="fab fa-google"></i> Continuer avec Google
+        </button>
+        <button class="social-btn" onclick="loginWithApple()">
+          <i class="fab fa-apple"></i> Continuer avec Apple
+        </button>
+      </div>
+      <div class="modal-footer" id="modal-switch">
+        Pas encore de compte ? <a href="#" onclick="showRegisterModal(); return false;">S'inscrire</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
+    
+    // Cursus config (colors and letters only - names come from API)
+    const HOME_CURSUS_CONFIG = {
+      'cursus-falsafa': { color: '#04D182', letter: 'A', shortName: 'Falsafa' },
+      'cursus-theologie': { color: '#8B5CF6', letter: 'B', shortName: 'Kalām' },
+      'cursus-sciences-islamiques': { color: '#F59E0B', letter: 'C', shortName: 'Sciences' },
+      'cursus-arts': { color: '#EC4899', letter: 'D', shortName: 'Arts' },
+      'cursus-spiritualites': { color: '#06B6D4', letter: 'E', shortName: 'Connexions' }
+    };
+    
+    function getHomeCursusConfig(cursusId) {
+      return HOME_CURSUS_CONFIG[cursusId] || { color: '#04D182', letter: '?', shortName: '' };
+    }
+    
+    // Load all home page data
+    document.addEventListener('DOMContentLoaded', async () => {
+      const API_URL = 'https://learn-quran-10.preview.emergentagent.com/api';
+      
+      try {
+        const [homeData, cursusData] = await Promise.all([
+          fetch(`${API_URL}/home`).then(r => r.json()),
+          fetch(`${API_URL}/cursus`).then(r => r.json())
+        ]);
+        
+        // Render featured course
+        const featured = homeData.featured_hero || homeData.featured_course;
+        if (featured) {
+          renderFeatured(featured, homeData.scholars);
+        } else {
+          document.getElementById('featured-section').style.display = 'none';
+        }
+        
+        // Render new episodes
+        if (homeData.recent_episodes && homeData.recent_episodes.length > 0) {
+          renderEpisodes(homeData.recent_episodes);
+        } else {
+          document.getElementById('episodes-section').style.display = 'none';
+        }
+        
+        // Render cursus scroll (like app)
+        if (cursusData && cursusData.length > 0) {
+          renderCursusScroll(cursusData);
+        }
+        
+        // Render top 5
+        if (homeData.top5_courses && homeData.top5_courses.length > 0) {
+          renderTop5(homeData.top5_courses);
+        } else if (homeData.recommendations && homeData.recommendations.length > 0) {
+          renderTop5(homeData.recommendations.slice(0, 5));
+        }
+        
+      } catch (error) {
+        console.error('Failed to load home data:', error);
+      }
+    });
+    
+    function renderFeatured(course, scholars) {
+      const container = document.getElementById('featured-container');
+      const config = getHomeCursusConfig(course.cursus_id);
+      const scholar = scholars?.find(s => s.id === course.scholar_id);
+      
+      container.innerHTML = `
+        <span class="featured-eyebrow">À la une</span>
+        <div class="featured-header">
+          <div class="featured-letter" style="border-color: ${config.color}; color: ${config.color};">${config.letter}</div>
+          <div class="featured-info">
+            <h2>${course.title}</h2>
+            <p>${course.description?.substring(0, 120) || ''}...</p>
+          </div>
+        </div>
+        <div class="featured-meta">
+          ${scholar ? `<span>Par <strong>${scholar.name}</strong></span>` : course.scholar_name ? `<span>Par <strong>${course.scholar_name}</strong></span>` : ''}
+          ${course.modules_count ? `<span><i class="fas fa-headphones"></i> ${course.modules_count} épisodes</span>` : ''}
+        </div>
+        <button class="btn btn-primary featured-btn" onclick="handleContentClick()">
+          <i class="fas fa-play"></i> Écouter
+        </button>
+      `;
+    }
+    
+    function renderEpisodes(episodes) {
+      const container = document.getElementById('episodes-container');
+      
+      // Only show 4 episodes (2x2 grid)
+      container.innerHTML = episodes.slice(0, 4).map(ep => {
+        const config = getHomeCursusConfig(ep.cursus_id);
+        return `
+          <div class="episode-card" style="border-left-color: ${config.color};" onclick="handleContentClick()">
+            <div class="episode-header">
+              <div class="episode-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
+              <span class="episode-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
+            </div>
+            <h4 class="episode-title">${ep.title}</h4>
+            <p class="episode-meta">${ep.scholar_name || ''}</p>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderCursusScroll(cursus) {
+      const container = document.getElementById('cursus-container');
+      
+      // Only show 4 cursus (2x2 grid) - use real names from API
+      container.innerHTML = cursus.slice(0, 4).map(c => {
+        const config = getHomeCursusConfig(c.id);
+        return `
+          <div class="cursus-card" style="border-left-color: ${config.color};" onclick="handleContentClick()">
+            <div class="cursus-card-header">
+              <span class="cursus-card-tag" style="color: ${config.color};">Cursus ${config.letter} · ${config.shortName}</span>
+              <span class="cursus-card-stats">${c.course_count || 0} cours</span>
+            </div>
+            <h4 class="cursus-card-title">${c.name}</h4>
+            <p class="cursus-card-desc">${c.description?.substring(0, 100) || ''}...</p>
+            <div class="cursus-card-footer">
+              <span class="cursus-card-stat"><i class="fas fa-play-circle"></i> ${c.episodes_count || (c.course_count * 5) || 0} épisodes</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function renderTop5(courses) {
+      const container = document.getElementById('top5-container');
+      
+      container.innerHTML = courses.slice(0, 5).map((course, index) => {
+        const config = getHomeCursusConfig(course.cursus_id);
+        return `
+          <div class="top5-item" onclick="handleContentClick()">
+            <span class="top5-rank">${index + 1}</span>
+            <div class="top5-letter" style="color: ${config.color}; border-color: ${config.color};">${config.letter}</div>
+            <div class="top5-info">
+              <h4>${course.title}</h4>
+              <p>${course.scholar_name || ''} · ${course.modules_count || 0} épisodes</p>
+            </div>
+            <div class="top5-play">
+              <i class="fas fa-play"></i>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // Handle content click - check auth and subscription
+    function handleContentClick() {
+      if (!currentUser) {
+        // Not logged in - show login modal
+        showLoginModal();
+        return;
+      }
+      
+      // Check if user has active subscription
+      const hasSubscription = currentUser.subscription_end_date && 
+        new Date(currentUser.subscription_end_date) > new Date();
+      
+      if (hasSubscription || currentUser.is_admin) {
+        // Has subscription or is admin - redirect to app
+        alert('Vous êtes abonné ! Pour accéder aux cours, veuillez utiliser l\'application mobile ou télécharger l\'application sur votre appareil.');
+        // Optionally redirect to app: window.location.href = 'https://learn-quran-10.preview.emergentagent.com/';
+      } else {
+        // No subscription - redirect to subscription page
+        window.location.href = 'pages/abonnement.html';
+      }
+    }
+  </script>
+</body>
+</html>
