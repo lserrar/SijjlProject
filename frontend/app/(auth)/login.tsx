@@ -90,11 +90,8 @@ export default function LoginScreen() {
           {/* Logo SIJILL PROJECT */}
           <View style={styles.logoSection} testID="login-logo">
             <View style={styles.logoRow}>
-              <Text style={styles.logoText}>SIJILL PROJEC</Text>
-              <Text style={styles.logoTextFinal}>T</Text>
-              <View style={styles.logoDotContainer}>
-                <View style={styles.logoDot} />
-              </View>
+              <Text style={styles.logoText}>SIJILL PROJECT</Text>
+              <View style={styles.logoDot} />
             </View>
             <View style={styles.goldLine} />
           </View>
@@ -232,24 +229,14 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#F5F0E8',
     letterSpacing: 14,
-  },
-  logoTextFinal: {
-    fontFamily: 'Cinzel',
-    fontSize: 36,
-    fontWeight: '400',
-    color: '#F5F0E8',
-    letterSpacing: 0,
-  },
-  logoDotContainer: {
-    marginLeft: 3,
-    justifyContent: 'flex-end',
-    paddingBottom: 10,
+    marginRight: -12,
   },
   logoDot: {
     width: 8,
     height: 8,
     backgroundColor: '#04D182',
     borderRadius: 4,
+    marginBottom: 10,
     shadowColor: '#04D182',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
