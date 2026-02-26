@@ -2640,12 +2640,21 @@ async def admin_list_timeline_resources(request: Request):
             }
             
             if filename.endswith('.html'):
-                # Parse cursus letter
-                import re
-                match = re.search(r'cursus_([a-e])\.html', filename.lower())
+                # Parse cursus letter - support formats like:
+                # sijill_timeline_cursus_a.html
+                # sijill_timeline_cursus_a_map.html
+                # cursus_a.html, etc.
+                match = re.search(r'cursus_([a-e])(?:_[a-z]+)?\.html', filename.lower())
                 if match:
                     file_info['cursus_letter'] = match.group(1).upper()
-                    file_info['type'] = 'timeline_html'
+                file_info['type'] = 'timeline_html'
+                
+                # Check if we have a manual assignment in DB
+                db_entry = await db.timeline_resources.find_one({'filename': filename, 'type': 'timeline'}, {'_id': 0})
+                if db_entry and db_entry.get('cursus_letter'):
+                    file_info['cursus_letter'] = db_entry['cursus_letter']
+                    file_info['manual_assignment'] = True
+                
                 html_files.append(file_info)
             elif filename.endswith('.docx'):
                 # Parse module and subject
