@@ -2547,9 +2547,13 @@ async def get_cursus_timelines(cursus_id: str):
                 'filename': filename,
                 'title': entry.get('title') or filename.replace('.html', '').replace('_', ' ').replace('sijill timeline ', '').title(),
                 'cursus_letter': letter,
+                'display_order': entry.get('display_order', 99),
                 'url': f'/api/timeline/file/{filename}',
                 'updated_at': entry.get('updated_at')
             })
+    
+    # Sort by display_order
+    timelines.sort(key=lambda x: x.get('display_order', 99))
     
     return {'timelines': timelines, 'count': len(timelines)}
 
