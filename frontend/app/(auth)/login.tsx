@@ -243,6 +243,10 @@ const styles = StyleSheet.create({
     color: '#F5F0E8',
     letterSpacing: 28 * 0.16,
   },
+  logoDotText: {
+    color: '#04D182',
+    fontSize: 28,
+    letterSpacing: 0,
   },
   logoDot: {
     width: 6,
