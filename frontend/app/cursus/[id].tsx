@@ -238,7 +238,34 @@ export default function CursusCoursesScreen() {
 
       if (audioRes.ok) {
         const audioData = await audioRes.json();
-        setAudioConferences(audioData.resources || []);
+        // Filter audio conferences by cursus
+        const cursusLetterMapAudio: Record<string, string> = {
+          'cursus-falsafa': 'A',
+          'cursus-theologie': 'B', 
+          'cursus-sciences-islamiques': 'C',
+          'cursus-arts': 'D',
+          'cursus-spiritualites': 'E',
+        };
+        const currentLetterAudio = cursusLetterMapAudio[id || ''] || '';
+        const allAudios = audioData.resources || [];
+        // Filter by cursus_letter if available, otherwise check module ranges
+        const filteredAudios = allAudios.filter((audio: any) => {
+          // If cursus_letter is set, use it
+          if (audio.cursus_letter) {
+            return audio.cursus_letter === currentLetterAudio;
+          }
+          // Otherwise filter by module number ranges per cursus
+          const moduleNum = audio.module_number || 0;
+          switch (currentLetterAudio) {
+            case 'A': return moduleNum >= 1 && moduleNum <= 4;
+            case 'B': return moduleNum >= 5 && moduleNum <= 8;
+            case 'C': return moduleNum >= 9 && moduleNum <= 12;
+            case 'D': return moduleNum >= 13 && moduleNum <= 16;
+            case 'E': return moduleNum >= 17 && moduleNum <= 20;
+            default: return true;
+          }
+        });
+        setAudioConferences(filteredAudios);
       }
 
       // Handle timelines data
