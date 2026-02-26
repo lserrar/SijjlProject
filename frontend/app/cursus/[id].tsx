@@ -703,7 +703,12 @@ export default function CursusCoursesScreen() {
               <View style={styles.resourceSection}>
                 <Text style={styles.sectionSubtitle}>Conférences Audio</Text>
                 {audioConferences.map((conf) => (
-                  <View key={conf.id} style={styles.audioConferenceCard}>
+                  <TouchableOpacity
+                    key={conf.id}
+                    style={styles.audioConferenceCard}
+                    onPress={() => router.push(`/conference/${conf.id}?cursusId=${currentCursus?.id || ''}` as any)}
+                    activeOpacity={0.85}
+                  >
                     <View style={styles.audioConferenceHeader}>
                       <View style={[styles.biblioIcon, { backgroundColor: `${cursusColor}1A` }]}>
                         <Ionicons name="headset-outline" size={18} color={cursusColor} />
@@ -714,46 +719,9 @@ export default function CursusCoursesScreen() {
                           {conf.speaker} · Module {conf.module_number} · {conf.size_mb} Mo
                         </Text>
                       </View>
-                      <TouchableOpacity
-                        testID={`play-conference-${conf.id}`}
-                        style={[
-                          styles.audioPlayBtn,
-                          playingAudioId === conf.id && styles.audioPlayBtnActive,
-                          { borderColor: cursusColor }
-                        ]}
-                        onPress={() => {
-                          if (playingAudioId === conf.id) {
-                            setPlayingAudioId(null);
-                          } else {
-                            setPlayingAudioId(conf.id);
-                          }
-                        }}
-                      >
-                        <Ionicons
-                          name={playingAudioId === conf.id ? 'pause' : 'play'}
-                          size={14}
-                          color={cursusColor}
-                          style={playingAudioId !== conf.id ? { marginLeft: 2 } : {}}
-                        />
-                      </TouchableOpacity>
+                      <Ionicons name="chevron-forward" size={20} color="#888" />
                     </View>
-                    {playingAudioId === conf.id && (
-                      <View style={styles.audioPlayerContainer}>
-                        <audio
-                          src={`${process.env.EXPO_PUBLIC_BACKEND_URL}${conf.stream_url}`}
-                          controls
-                          autoPlay
-                          style={{
-                            width: '100%',
-                            height: 40,
-                            marginTop: 12,
-                            borderRadius: 4,
-                            backgroundColor: '#1A1A1A',
-                          }}
-                        />
-                      </View>
-                    )}
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
