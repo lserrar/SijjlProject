@@ -215,10 +215,10 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: spacing.xl, width: 44, height: 44, justifyContent: 'center' },
   logoSection: { marginBottom: 8 },
   logoRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 6 },
-  logoSijill: { fontFamily: 'Cinzel', fontSize: 30, fontWeight: '400', color: '#F5F0E8', letterSpacing: 30 * 0.16 },
-  logoProject: { fontFamily: 'Cinzel', fontSize: 30, fontWeight: '400', color: '#F5F0E8', letterSpacing: 30 * 0.16, marginLeft: 12 },
+  logoSijill: { fontFamily: 'Cinzel', fontSize: 28, fontWeight: '400', color: '#F5F0E8', letterSpacing: 28 * 0.16 },
+  logoProject: { fontFamily: 'Cinzel', fontSize: 28 * 0.62, fontWeight: '400', color: '#888888', letterSpacing: (28 * 0.62) * 0.22, marginLeft: 5 },
   logoDot: {
-    width: 7, height: 7, backgroundColor: '#04D182', borderRadius: 4, marginLeft: 2, marginBottom: 8,
+    width: 5, height: 5, backgroundColor: '#04D182', borderRadius: 3, marginLeft: 1, marginBottom: 5,
     shadowColor: '#04D182', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8,
   },
   goldLine: { height: 1, width: '100%', backgroundColor: '#C9A84C', opacity: 0.3, marginBottom: 10 },
