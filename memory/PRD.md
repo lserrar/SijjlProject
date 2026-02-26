@@ -18,73 +18,93 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ---
 
-## Travail Accompli (25 février 2026)
+## Travail Accompli (26 février 2026)
 
 ### Nouvelles Fonctionnalités ✅
 
 #### 1. Dashboard Stats d'écoute
 - **Page** : `/api/admin-panel/listening-stats`
-- Stats globales (heures totales, lectures, utilisateurs actifs)
-- Graphique d'évolution temporelle (style YouTube)
+- Stats globales + graphique d'évolution temporelle
 - Tableaux par Professeur, Cursus, Cours, Épisode (Top 20)
 - Filtres : 7 jours, mois, année, tout
 
 #### 2. Highlight Page d'accueil
 - **Page** : `/api/admin-panel/highlight`
-- **Mode Manuel** : Sélectionner un cours OU un cursus à mettre en avant
-- **Mode Aléatoire** : Contenu différent à chaque connexion utilisateur
+- Mode Manuel ou Aléatoire pour le contenu en vedette
 - Interface visuelle avec grilles cliquables
-- Bouton "Effacer" pour retirer le highlight
+
+#### 3. Ressources Timeline (NOUVEAU)
+- **Page Admin** : `/api/admin-panel/timeline-resources`
+- Gestion des 5 timelines HTML (par cursus A-E)
+- Gestion des 18 documents de contexte historique (par module/penseur)
+- Aperçu intégré des documents Word
+- Bouton "Synchroniser R2" pour mise à jour automatique
+
+### API Endpoints Timeline
+- `GET /api/timelines` - Liste toutes les timelines
+- `GET /api/timeline/{cursus_letter}` - Retourne le HTML de la timeline
+- `GET /api/resources/context` - Liste tous les documents de contexte
+- `GET /api/resources/context/{resource_id}` - Contenu parsé d'un document
+- `GET /api/admin/resources/timeline` - Liste admin des ressources
+- `POST /api/admin/resources/sync-timeline` - Synchronisation R2
 
 ### Bugs Corrigés ✅
-1. **Bouton "Se déconnecter"** → Fonctionne maintenant sur web
-2. **Bypass paywall** → Utilisateurs sans abonnement redirigés vers subscription
-3. **Pages paiement** → Créé `/payment/success` et `/payment/cancel`
-4. **Flux Stripe** → Testé et fonctionnel
+1. Bouton "Se déconnecter" sur web
+2. Bypass paywall corrigé
+3. Pages paiement créées
 
 ---
 
-## API Endpoints Ajoutés
+## Structure des fichiers Timeline (R2)
 
-### Highlight
-- `GET /api/admin/highlight` - Config actuelle
-- `PUT /api/admin/highlight/mode` - Changer mode (manual/random)
-- `PATCH /api/admin/cursus/{id}/set-featured` - Mettre cursus en avant
-- `PATCH /api/admin/courses/{id}/set-featured` - Mettre cours en avant
-- `DELETE /api/admin/highlight/clear` - Effacer highlight
+### Timelines HTML (5 fichiers)
+- `sijill_timeline_cursus_a.html` - Cursus A
+- `sijill_timeline_cursus_b.html` - Cursus B
+- `sijill_timeline_cursus_c.html` - Cursus C
+- `sijill_timeline_cursus_d.html` - Cursus D
+- `sijill_timeline_cursus_e.html` - Cursus E
 
-### Stats d'écoute
-- `GET /api/admin/listening-stats?period=7days|month|year|all`
+### Documents Contexte (18 fichiers)
+Format: `Timeline_Module{N}_{Sujet}.docx`
+- Module 1: Traduction
+- Module 2: Al-Kindi, Al-Farabi, Avicenne
+- Module 3: Al-Ghazali, Fakhr al-Din al-Razi, Nasir al-Din al-Tusi
+- Module 4: Averroes, Ibn Bajja, Ibn Tufayl
+- Module 5: Mir Damad, Mulla Sadra
+- Module 6: Suhrawardi
+- Module 7: Ibn Khaldun, Miskawayh
 
 ---
 
 ## Fichiers Créés/Modifiés
 
-### Nouveaux
-- `/app/backend/admin_templates/listening-stats.html`
-- `/app/backend/admin_templates/highlight.html`
-- `/app/frontend/app/payment/success.tsx`
-- `/app/frontend/app/payment/cancel.tsx`
+### Backend
+- `server.py` - Endpoints timeline et context resources
+- `admin_templates/timeline-resources.html` - Page admin
+- `admin_templates/listening-stats.html`
+- `admin_templates/highlight.html`
 
-### Modifiés
-- `/app/backend/server.py` (endpoints highlight + stats)
-- `/app/backend/admin_templates/base.html` (menu navigation)
-- `/app/frontend/app/(tabs)/profil.tsx` (logout fix)
+### Frontend
+- `app/timeline/[cursusId].tsx` - Page timeline plein écran
+- `app/cursus/[id].tsx` - Onglet Ressources mis à jour
+- `app/payment/success.tsx` et `cancel.tsx`
 
 ---
 
 ## Backlog
 
 ### P0 (Critique)
-- Aucun bug bloquant connu
+- ⚠️ Résoudre problème tunnel ngrok (environnement frontend inaccessible)
 
 ### P1 (Important)
-- Tester webhook Stripe en production avec vrai paiement
+- Créer page frontend pour afficher les documents de contexte
+- Lier les ressources aux cours/modules dans l'onglet Ressources
+- Tester webhook Stripe en production
 
 ### P2 (Futur)
-- **Refactoriser backend/server.py** en modules FastAPI Router (>5000 lignes)
-- **Implémenter Apple Sign-In** (placeholder)
-- **Dashboard admin parrainages** amélioré
+- Refactoriser backend/server.py en modules FastAPI Router
+- Implémenter Apple Sign-In
+- Dashboard admin parrainages amélioré
 
 ---
 
