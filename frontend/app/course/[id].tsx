@@ -155,31 +155,45 @@ export default function CourseDetailScreen() {
   // Load Data
   const loadData = useCallback(async () => {
     try {
-      const [courseRes, playlistRes, progressRes, allCursusRes, scholarsRes, biblioRes, contextRes, audioRes] = await Promise.all([
-        apiRequest(`/courses/${id}`, token),
-        apiRequest(`/courses/${id}/playlist`, token),
-        token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
-        apiRequest('/cursus', token),
-        apiRequest('/scholars', token),
-        apiRequest(`/bibliographies?course_id=${id}`, token),
-        apiRequest('/resources/context', token),
-        apiRequest('/resources/audio', token),
-      ]);
-
+      // First, get course data to know cursus_id
+      const courseRes = await apiRequest(`/courses/${id}`, token);
+      
       let courseData = null;
+      let foundCursus: any = null;
+      let cursusLetter = 'A';
+      
       if (courseRes.ok) {
         courseData = await courseRes.json();
         setCourse(courseData);
 
         // Find the cursus for this course
+        const allCursusRes = await apiRequest('/cursus', token);
         if (allCursusRes.ok) {
           const allCursus = await allCursusRes.json();
-          const foundCursus = allCursus.find((c: any) => 
+          foundCursus = allCursus.find((c: any) => 
             c.id === courseData.cursus_id || c.id === courseData.thematique_id
           );
           setCursus(foundCursus);
+          
+          // Derive cursus letter from order
+          if (foundCursus) {
+            const cursusOrder = foundCursus.order || 1;
+            cursusLetter = CURSUS_LETTERS[Math.max(0, Math.min(cursusOrder - 1, CURSUS_LETTERS.length - 1))];
+          }
         }
       }
+
+      // Now fetch resources with proper cursus filtering
+      const [playlistRes, progressRes, scholarsRes, biblioRes, contextRes, audioRes] = await Promise.all([
+        apiRequest(`/courses/${id}/playlist`, token),
+        token ? apiRequest('/user/progress', token) : Promise.resolve({ ok: false }),
+        apiRequest('/scholars', token),
+        apiRequest(`/bibliographies?course_id=${id}`, token),
+        // Filter context resources by cursus letter
+        foundCursus ? apiRequest(`/resources/context/cursus/${foundCursus.id}`, token) : Promise.resolve({ ok: false }),
+        // Get all audio and filter client-side by cursus_letter
+        apiRequest('/resources/audio', token),
+      ]);
 
       // Get scholars for this course
       if (scholarsRes.ok && courseData) {
@@ -200,16 +214,25 @@ export default function CourseDetailScreen() {
         setBibliographies(filteredBiblios);
       }
 
-      // Get context resources
+      // Get context resources (already filtered by cursus from API)
       if (contextRes.ok) {
         const contextData = await contextRes.json();
         setContextResources(contextData.resources || []);
+      } else {
+        setContextResources([]);
       }
 
-      // Get audio conferences
+      // Get audio conferences - filter by cursus_letter
       if (audioRes.ok) {
         const audioData = await audioRes.json();
-        setAudioConferences(audioData.resources || []);
+        const allAudio = audioData.resources || [];
+        // Filter audio conferences by cursus_letter
+        const filteredAudio = allAudio.filter((conf: any) => 
+          conf.cursus_letter === cursusLetter
+        );
+        setAudioConferences(filteredAudio);
+      } else {
+        setAudioConferences([]);
       }
 
       // Build progress map
