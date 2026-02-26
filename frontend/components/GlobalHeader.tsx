@@ -125,78 +125,48 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
     );
   }
 
-  // Mobile Header
+  // Mobile Header - Spotify Style (Avatar left, Search right)
   return (
-    <>
-      <View style={[styles.header, styles.headerMobile, { paddingTop: insets.top }]}>
-        <View style={styles.headerInnerMobile}>
-          {/* LEFT: Back Arrow */}
-          <View style={styles.mobileLeft}>
-            {showBackButton ? (
-              <TouchableOpacity style={styles.iconBtn} onPress={handleBack}>
-                <Ionicons name="arrow-back" size={22} color="#F5F0E8" />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.iconPlaceholder} />
-            )}
-          </View>
-
-          {/* CENTER: Logo (wordmark only) */}
-          <TouchableOpacity 
-            style={styles.logoContainerMobile} 
-            onPress={() => router.push('/(tabs)' as any)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.wordmarkRow}>
-              <Text style={[styles.logoSijill, styles.logoSijillMobile]}>SIJILL</Text>
-              <Text style={[styles.logoProject, styles.logoProjectMobile]}>PROJECT</Text>
-              <View style={[styles.logoDot, styles.logoDotMobile]} />
-            </View>
-          </TouchableOpacity>
-
-          {/* RIGHT: Hamburger Menu */}
-          <View style={styles.mobileRight}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuOpen(!menuOpen)}>
-              <View style={styles.hamburger}>
-                <View style={styles.hamburgerLine} />
-                <View style={styles.hamburgerLine} />
-                <View style={styles.hamburgerLine} />
+    <View style={[styles.header, styles.headerMobile, { paddingTop: insets.top }]}>
+      <View style={styles.headerInnerMobile}>
+        {/* LEFT: Avatar / Back Button */}
+        <View style={styles.mobileLeft}>
+          {showBackButton ? (
+            <TouchableOpacity style={styles.iconBtn} onPress={handleBack}>
+              <Ionicons name="arrow-back" size={22} color="#F5F0E8" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.avatarBtnMobile} onPress={handleProfile}>
+              <View style={styles.avatarMobile}>
+                <Text style={styles.avatarTextMobile}>
+                  {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                </Text>
               </View>
             </TouchableOpacity>
-          </View>
+          )}
         </View>
-      </View>
 
-      {/* Mobile Menu Overlay */}
-      {menuOpen && (
-        <View style={[styles.mobileMenu, { top: 52 + insets.top }]}>
-          {NAV_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.path}
-              style={styles.mobileMenuItem}
-              onPress={() => handleNavPress(item.path)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.mobileMenuText,
-                isActive(item.path) && styles.mobileMenuTextActive
-              ]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <View style={styles.mobileMenuDivider} />
-          <TouchableOpacity
-            style={styles.mobileMenuItem}
-            onPress={() => { setMenuOpen(false); handleSearch(); }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="search" size={18} color="#888888" style={{ marginRight: 12 }} />
-            <Text style={styles.mobileMenuText}>Rechercher</Text>
+        {/* CENTER: Logo (wordmark only) */}
+        <TouchableOpacity 
+          style={styles.logoContainerMobile} 
+          onPress={() => router.push('/(tabs)' as any)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.wordmarkRow}>
+            <Text style={[styles.logoSijill, styles.logoSijillMobile]}>SIJILL</Text>
+            <Text style={[styles.logoProject, styles.logoProjectMobile]}>PROJECT</Text>
+            <View style={[styles.logoDot, styles.logoDotMobile]} />
+          </View>
+        </TouchableOpacity>
+
+        {/* RIGHT: Search */}
+        <View style={styles.mobileRight}>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleSearch}>
+            <Ionicons name="search" size={22} color="#888888" />
           </TouchableOpacity>
         </View>
-      )}
-    </>
+      </View>
+    </View>
   );
 }
 
