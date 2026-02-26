@@ -188,6 +188,25 @@ p { color: var(--text-secondary); }
 .menu-toggle { display: none; flex-direction: column; gap: 5px; padding: 10px; }
 .menu-toggle span { width: 24px; height: 2px; background: var(--text-primary); }
 
+.mobile-menu-btn {
+  display: none;
+  padding: 10px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+}
+
+.icon-btn {
+  padding: 10px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.icon-btn:hover { color: var(--text-primary); }
+
 /* ─── Hero Section ──────────────────────────────────────────────────────── */
 .hero {
   min-height: 100vh;
