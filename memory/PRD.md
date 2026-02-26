@@ -20,12 +20,34 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Admin Panel - Page "Ressources" ✅ (26/02 - Session actuelle)
+### Session actuelle - Corrections multiples
+
+#### 1. Header Global "SIJILL PROJECT" ✅
+- Composant GlobalHeader créé avec logo, navigation et icons
+- Suppression des logos legacy dupliqués sur cursus, bibliothèque, live, about
+- Layout responsive: Desktop (logo+nav+icons) / Mobile (logo centré+hamburger)
+
+#### 2. Page Abonnement - Code Promo ✅
+- Ajout du champ "Code promo" sur la page subscription-choice
+- Le code est passé à l'endpoint `/checkout/create` lors du paiement
+
+#### 3. Admin Panel - Ressources ✅
+- Renommage "Timeline" → "Ressources"
+- Édition des audios ET des documents .docx (titre, description, crédits)
+- Endpoints PUT pour audio et context
+
+#### 4. Page Conférence Audio ✅
+- Nouvelle page `/conference/[id].tsx` avec lecteur style Sijill
+- Waveform, contrôles, vitesse de lecture
+- Navigation depuis l'onglet Ressources des pages Cursus/Cours
+
+### Admin Panel - Page "Ressources" ✅ (26/02)
 - **Renommage**: "Timeline" → "Ressources" dans la navigation et le titre de page
-- **Audios chargés**: L'endpoint `/admin/resources/timeline` charge maintenant les 3 types de ressources (HTML, DOCX, Audio)
-- **Édition des audios**: Nouveau modal d'édition avec champs Titre, Description, Crédits, Conférencier, Sujet, Module
-- **Endpoint PUT**: `/admin/resources/audio/{resource_id}` pour sauvegarder les modifications
-- **API publique mise à jour**: `/resources/audio` utilise les données DB si disponibles (titre/description personnalisés)
+- **Audios chargés**: L'endpoint `/admin/resources/timeline` charge les 3 types (HTML, DOCX, Audio)
+- **Édition des audios**: Modal d'édition avec Titre, Description, Crédits, Conférencier, Sujet, Module
+- **Édition des documents**: Modal d'édition pour .docx avec Titre, Description, Crédits
+- **Endpoint PUT**: `/admin/resources/audio/{resource_id}` et `/admin/resources/context/{resource_id}`
+- **API publique**: `/resources/audio` et `/resources/context` utilisent les données DB
 
 ### Intégration Conférences Audio ✅
 - Interface `AudioConference` ajoutée aux pages Cursus et Cours
