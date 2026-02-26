@@ -2435,28 +2435,38 @@ async def get_timeline_html(cursus_letter: str):
         {'cursus_letter': letter, 'type': 'timeline'}
     ).sort('updated_at', -1).to_list(10)
     
-    r2_key = None
+    r2_keys_to_try = []
     if db_entries:
         # Prioritize map files, otherwise use the most recently updated
         map_entry = next((e for e in db_entries if 'map' in e.get('filename', '').lower()), None)
         if map_entry and map_entry.get('filename'):
-            r2_key = f"Timeline/{map_entry['filename']}"
-        elif db_entries[0].get('filename'):
-            r2_key = f"Timeline/{db_entries[0]['filename']}"
+            r2_keys_to_try.append(f"Timeline/{map_entry['filename']}")
+        # Add all other files as fallbacks
+        for entry in db_entries:
+            key = f"Timeline/{entry.get('filename', '')}"
+            if key not in r2_keys_to_try:
+                r2_keys_to_try.append(key)
     
-    if not r2_key:
-        # Default to the standard naming convention
-        r2_key = f"Timeline/sijill_timeline_cursus_{letter.lower()}.html"
+    # Always add the default as last fallback
+    default_key = f"Timeline/sijill_timeline_cursus_{letter.lower()}.html"
+    if default_key not in r2_keys_to_try:
+        r2_keys_to_try.append(default_key)
     
-    try:
-        response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
-        html_content = response['Body'].read().decode('utf-8')
-        return HTMLResponse(content=html_content, media_type="text/html")
-    except ClientError as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-        if error_code == 'NoSuchKey':
-            raise HTTPException(404, f"Timeline non trouvée pour le cursus {letter}")
-        raise HTTPException(500, f"Erreur R2: {str(e)}")
+    # Try each key until we find one that works
+    for r2_key in r2_keys_to_try:
+        try:
+            response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+            html_content = response['Body'].read().decode('utf-8')
+            return HTMLResponse(content=html_content, media_type="text/html")
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            if error_code != 'NoSuchKey':
+                raise HTTPException(500, f"Erreur R2: {str(e)}")
+            # File not found, try next one
+            continue
+    
+    # None of the files were found
+    raise HTTPException(404, f"Timeline non trouvée pour le cursus {letter}")
 
 @api_router.get("/timelines")
 async def list_available_timelines():
