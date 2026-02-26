@@ -206,6 +206,12 @@ export default function CourseDetailScreen() {
         setContextResources(contextData.resources || []);
       }
 
+      // Get audio conferences
+      if (audioRes.ok) {
+        const audioData = await audioRes.json();
+        setAudioConferences(audioData.resources || []);
+      }
+
       // Build progress map
       const progressMap: Record<string, any> = {};
       if (progressRes.ok) {
