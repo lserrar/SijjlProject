@@ -131,6 +131,11 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 ### Frontend Changes (cursus.tsx)
 - [x] **Fixed cursus titles/descriptions from admin panel** - Now uses database values instead of hardcoded static data
 
+### Refactoring (P2) - Phase 1
+- [x] **Admin Templates Jinja2 Inheritance**: Modified `base.html` with blocks, created `dashboard_new.html`
+- [x] **Backend Structure**: Created `/app/backend/config.py`, `/app/backend/utils/helpers.py`, `/app/backend/routes/`
+- [x] Configured `Jinja2Templates` in `server.py`
+
 ### Previous Session Work
 - [x] Admin Panel - Timeline Management (edit title, order)
 - [x] Admin Panel - Context Document Management (edit metadata)
