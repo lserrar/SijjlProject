@@ -1,164 +1,165 @@
-# Sijill Project - PRD
+# Sijill Project - Product Requirements Document
 
-## Description
-Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus → Cours → Modules → Audios
+## Original Problem Statement
+Build "Sijill", an Islamic studies e-learning platform with a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-## Stack Technique
-- **Frontend**: React Native (Expo Web)
-- **Backend**: FastAPI
-- **Base de données**: MongoDB
-- **Stockage**: Cloudflare R2 (bucket: sijill-project)
-- **Paiement**: Stripe (clé LIVE configurée)
-- **Auth**: Email/Password + Google OAuth (Emergent Auth)
+## Product Requirements
+- **App Name**: Sijill Project
+- **Language**: French
+- **Platform**: React Native (Expo Web) Frontend + FastAPI Backend
+- **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes)
+- **Content Storage**: All media files (audios, images, bibliographies, timelines) stored in `sijill-project` Cloudflare R2 bucket
+- **Design**: Strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts
+- **Admin Panel**: Full content management including payments, referrals, stats, homepage features
+- **Monetization**: Subscriptions (Monthly, Annual) via Stripe + referral system
 
-## Design System
-- Mode sombre, police Cinzel + EB Garamond
-- Couleurs: `#04D182` (vert), `#C9A84C` (or)
-- Zero border-radius policy
+## User Personas
+1. **Students** - Access courses, track progress, subscribe for premium content
+2. **Administrators** - Manage content, users, payments, and analytics via admin panel
 
----
+## Core Features Implemented
 
-## Travail Accompli (26 février 2026)
+### Authentication
+- [x] User registration and login
+- [x] Forgot password flow (UI + backend)
+- [x] JWT-based authentication
+- [ ] Apple Sign-In (placeholder only)
 
-### Session actuelle
+### Content Management
+- [x] Cursus listing and navigation
+- [x] Course details and playlists
+- [x] Audio episode playback with progress tracking
+- [x] Bibliography display
+- [x] Timeline resources (HTML)
+- [x] Historical context documents (DOCX)
+- [x] Audio conferences
 
-#### 1. Édition des titres des Timelines HTML ✅
-- Admin Panel: Interface pour éditer titre, cursus et ordre d'affichage
+### Admin Panel (/api/admin-panel/)
+- [x] Dashboard with stats
+- [x] User management
+- [x] Course management
+- [x] Timeline editing (title, order)
+- [x] Context document editing (title, cursus, module, subject)
+- [x] Payment/subscription management
+- [x] Referral system management
 
-#### 2. Édition des titres des Fiches de Contexte (DOCX) ✅
-- Admin Panel: Modal d'édition complet pour les 47 fiches DOCX
+### UI/UX
+- [x] Dark-mode "prestige" design system
+- [x] Spotify-style header (profile left, search right)
+- [x] Resource filtering by Cursus
+- [x] Prestige context document viewer
 
-#### 3. Suppression du Splash Screen animé ✅
+## Code Architecture
 
-#### 4. Header Mobile style Spotify ✅
-
-#### 5. Réinitialisation de mot de passe ✅
-- Page `/forgot-password` avec design prestige
-
-#### 6. Filtrage des ressources par Cursus ✅
-- **Fiches de contexte** : Filtrées par cursus_letter (A-E)
-- **Conférences audio** : Filtrées par cursus_letter
-- **Timelines HTML** : Filtrées par cursus (ajout des entrées DB manquantes)
-
-#### 7. Nouvelle mise en page des fiches de contexte ✅
-- Module et penseur centrés en haut
-- Titres de sections mis en valeur avec barre verte
-- Police augmentée à 17px
-
-#### 8. Corrections de données ✅
-- Ajout de toutes les timelines HTML manquantes en DB (Cursus B, C, D, E)
-- Ajout du cursus_letter pour les conférences audio
-
----
-
-## Travail Accompli (sessions précédentes)
-
-### Session actuelle - Splash Screen & Améliorations
-
-#### 1. Écran de démarrage animé ✅ (NEW)
-- Animation séquencée : SIJILL → PROJECT• → lignes → tagline → fade out
-- Halo vert subtil en arrière-plan
-- Point vert qui pulse avec glow effect
-- Losange vert au centre
-- Tagline "Sciences Islamiques" en doré
-- Responsive (desktop + mobile)
-
-#### 2. Logo page login/register ✅
-- Point vert collé au "T" de "PROJECT" via Text inline `•`
-- Structure: SIJILL (ligne 1) + PROJECT• (ligne 2)
-
-#### 3. Tailles de police augmentées ✅ (v2)
-- Thème: xs 14, sm 16, md 18, lg 20, xl 26, xxl 34, xxxl 44px
-- Page d'accueil: heroTitle 24px, heroDesc 17px, epTitle 16px, epDesc 14px
-
-#### 4. Réorganisation onglet Ressources ✅
-- Nouvel ordre: Frise chronologique → Contexte historique → Conférences Audio → Bibliographies
-
-#### 5. Nouvelle convention DOCX ✅
-- Format: `sijill_{cursus}_m{NN}_{penseur}.docx`
-- 47 ressources chargées avec cursus/module corrects
-
-#### 6. Fiches contexte historique redessinées ✅
-- Format similaire à la bibliographie
-- Titres en vert, labels en doré, texte lisible
-- **Backend**: API `GET /api/timelines/cursus/{cursus_id}` retourne toutes les timelines associées
-- **Frontend**: Page Cursus affiche dynamiquement la liste des timelines (ex: Cursus A + Cursus A Map)
-- **Timeline Viewer**: Support du paramètre `file` pour charger une timeline spécifique
-- Test: 2 timelines affichées pour Cursus A (Cursus A, Cursus A Map)
-
-#### 2. Réorganisation onglet Ressources ✅ (NEW)
-- Ordre modifié : **Bibliographies** → **Frise chronologique** → **Contexte historique** → **Conférences Audio**
-- Tous les éléments utilisent le même style de carte (`biblioCard`)
-
-#### 3. Couleur du texte Documents DOCX ✅ (FIXED)
-- Le texte des paragraphes est maintenant en crème clair `rgba(245,240,232,0.85)` (comme bibliographie)
-- Les titres de section restent en vert `#04D182`
-
-#### 4. Bug Fix: Variable undefined ✅
-- Corrigé référence à `currentCursus` → `id` dans le lien conference
-
-### Fonctionnalités Précédentes
-
-#### Header Global "SIJILL PROJECT" ✅
-- Composant GlobalHeader créé avec logo, navigation et icons
-- Layout responsive: Desktop (logo+nav+icons) / Mobile (logo centré+hamburger)
-
-#### Admin Panel - Ressources ✅
-- Renommage "Timeline" → "Ressources"
-- Édition des audios ET des documents .docx (titre, description, crédits)
-
-#### Page Conférence Audio ✅
-- Nouvelle page `/conference/[id].tsx` avec lecteur style Sijill
-- Waveform, contrôles, vitesse de lecture
-
----
-
-## Structure R2
-
-### Timeline/ (5 HTML + 18 DOCX)
 ```
-sijill_timeline_cursus_{a-e}.html  →  Timelines interactives
-sijill_timeline_cursus_a_map.html  →  Timeline carte (NEW)
-Timeline_Module{N}_{Penseur}.docx  →  Documents contexte historique
+/app
+├── backend
+│   ├── .env                    # Environment variables (MONGO_URL, DB_NAME, etc.)
+│   ├── server.py               # Main FastAPI server (3000+ lines - needs refactoring)
+│   ├── requirements.txt
+│   └── templates/admin/        # Jinja2 admin templates
+│       └── resources.html      # Timeline/Context doc management
+├── frontend
+│   ├── app
+│   │   ├── (auth)/             # Login, forgot-password pages
+│   │   ├── (tabs)/             # Main app tabs (index, cursus, about, profil)
+│   │   ├── context/[resourceId].tsx  # Context document viewer
+│   │   ├── cursus/[id].tsx     # Individual cursus page
+│   │   └── audio/[id].tsx      # Audio player
+│   ├── components/
+│   │   └── GlobalHeader.tsx    # Spotify-style header
+│   └── context/AuthContext.tsx # Authentication context
+└── memory/
+    └── PRD.md                  # This file
 ```
-
-### audio/ (Conférences)
-```
-Conf_{Sujet}_{Speaker}_module{N}.m4a  →  Conférences audio
-```
-
----
 
 ## Key API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/timelines/cursus/{cursus_id}` | Liste les timelines d'un cursus |
-| `GET /api/timeline/file/{filename}` | Retourne le HTML d'une timeline spécifique |
-| `GET /api/resources/audio` | Liste les conférences audio |
-| `GET /api/resources/context/{id}` | Contenu parsé d'un document Word |
+### Public
+- `GET /api/cursus` - List all cursus
+- `GET /api/courses` - List courses (with filters)
+- `GET /api/courses/{id}/playlist` - Get course episodes
+- `GET /api/timelines/cursus/{id}` - Get timelines for cursus
+- `GET /api/resources/context/{id}` - Get context document
+- `GET /api/resources/context/cursus/{id}` - Get context docs by cursus
+- `GET /api/resources/audio` - Get audio conferences
 
----
+### Auth
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/forgot-password` - Request password reset
 
-## Backlog
+### Admin
+- `PUT /api/admin/resources/timeline/{id}` - Update timeline metadata
+- `PUT /api/admin/resources/context/{id}` - Update context doc metadata
 
-### P0 (Critique) - RESOLVED
-- ~~Environnement preview instable~~ → Stabilisé
+## Database Schema (MongoDB)
 
-### P1 (Important)
-- Écran de démarrage animé "SIJILL PROJECT" (demandé par user)
-- Tester webhook Stripe en production
+### Collections
+- **users**: {email, hashed_password, name, subscription, ...}
+- **courses**: {id, title, cursus_id, modules_count, ...}
+- **cursus**: {id, name, order, ...}
+- **timeline_resources**: {resource_id, title, display_order, cursus_letter}
+- **context_resources**: {resource_id, title, cursus_letter, module_number, subject}
+- **password_reset_tokens**: {email, token, expires_at}
+- **user_progress**: {user_id, content_id, progress, completed}
 
-### P2 (Futur)
-- Refactoriser backend/server.py en modules FastAPI Router (>5000 lignes)
-- Refactoriser templates admin avec héritage Jinja2
-- Implémenter Apple Sign-In
-- Dashboard admin parrainages amélioré
+## Test Credentials
+- **Admin Panel**: `/api/admin-panel/login`
+  - Email: `loubna.serrar@gmail.com`
+  - Password: `Admin123!`
+- **Test User**:
+  - Email: `loubniz@hotmail.com`
+  - Password: `Test123!`
 
----
+## Completed Work (Latest Session - Feb 2026)
 
-## Credentials Test
-- **Admin Panel**: `/admin-panel/login`
-- **Admin Email**: `loubna.serrar@gmail.com`
-- **Admin Password**: `Admin123!`
-- **Test User**: `testuser@hikma.com` / `TestUser123!`
+### Bug Fixes
+- [x] Fixed Cursus page scroll behavior (removed sticky header causing overlap)
+- [x] Validated font size increase on About page
+
+### Previous Session Work
+- [x] Admin Panel - Timeline Management (edit title, order)
+- [x] Admin Panel - Context Document Management (edit metadata)
+- [x] Resource filtering by Cursus on frontend
+- [x] Redesigned context document viewer (prestige layout)
+- [x] Removed animated splash screen
+- [x] Spotify-style header redesign
+- [x] Increased font sizes on About page
+- [x] Fixed user login issues (DB/JWT key mismatches)
+- [x] Implemented Forgot Password flow
+
+## Known Issues
+
+### P2 - Frontend Environment Instability
+- **Description**: Intermittent 502 Bad Gateway errors
+- **Workaround**: Restart frontend service via supervisor
+- **Status**: NOT FIXED (platform-level issue)
+
+### P3 - Data Inconsistency ("Pierre Marchal")
+- **Description**: Unexpected user name appeared in data
+- **Status**: NOT INVESTIGATED
+
+## Future Tasks (Prioritized)
+
+### P2 - Technical Debt
+1. **Refactor Backend**: Break `server.py` into FastAPI Router modules
+2. **Refactor Admin Templates**: Use Jinja2 inheritance, external JS files
+3. **Implement Apple Sign-In**: Currently placeholder button
+
+### P2 - Features
+4. **Enhanced Referral Dashboard**: Detailed views and management
+5. **Improved Progress Tracking**: Cross-device sync
+
+## 3rd Party Integrations
+- **Cloudflare R2**: Media storage
+- **Stripe**: Subscription payments
+- **MongoDB**: Database
+- **Google Fonts**: Cinzel & EB Garamond
+- **python-docx**: DOCX parsing
+
+## Notes
+- Communicate with user in **French**
+- User is detail-oriented on UI - verify visual changes with screenshots
+- Watch for ID format mismatches (`-` vs `_`) when debugging
+- Check environment variables (DB_NAME, JWT_SECRET_KEY) when debugging auth issues
