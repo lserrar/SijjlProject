@@ -6273,10 +6273,10 @@ async def health_check():
 
 app.include_router(api_router)
 
-# Mount static website files
+# Mount static website files at /api/site (accessible via /api/site/)
 WEBSITE_DIR = Path(__file__).parent.parent / "website"
 if WEBSITE_DIR.exists():
-    app.mount("/website", StaticFiles(directory=str(WEBSITE_DIR), html=True), name="website")
+    app.mount("/api/site", StaticFiles(directory=str(WEBSITE_DIR), html=True), name="website")
 
 app.add_middleware(
     CORSMiddleware,
