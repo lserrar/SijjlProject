@@ -20,89 +20,98 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Nouvelles Fonctionnalités ✅
+### Système de Ressources Timeline ✅
 
-#### 1. Dashboard Stats d'écoute
-- **Page** : `/api/admin-panel/listening-stats`
-- Stats globales + graphique d'évolution temporelle
-- Tableaux par Professeur, Cursus, Cours, Épisode (Top 20)
-- Filtres : 7 jours, mois, année, tout
-
-#### 2. Highlight Page d'accueil
-- **Page** : `/api/admin-panel/highlight`
-- Mode Manuel ou Aléatoire pour le contenu en vedette
-- Interface visuelle avec grilles cliquables
-
-#### 3. Ressources Timeline (NOUVEAU)
-- **Page Admin** : `/api/admin-panel/timeline-resources`
-- Gestion des 5 timelines HTML (par cursus A-E)
-- Gestion des 18 documents de contexte historique (par module/penseur)
-- Aperçu intégré des documents Word
-- Bouton "Synchroniser R2" pour mise à jour automatique
-
-### API Endpoints Timeline
-- `GET /api/timelines` - Liste toutes les timelines
-- `GET /api/timeline/{cursus_letter}` - Retourne le HTML de la timeline
-- `GET /api/resources/context` - Liste tous les documents de contexte
-- `GET /api/resources/context/{resource_id}` - Contenu parsé d'un document
+#### Backend (Fonctionnel)
+- `GET /api/timelines` - Liste les 5 timelines HTML
+- `GET /api/timeline/{A-E}` - Retourne le HTML d'une timeline
+- `GET /api/resources/context` - Liste les 18 documents de contexte
+- `GET /api/resources/context/{id}` - Contenu parsé d'un document Word
 - `GET /api/admin/resources/timeline` - Liste admin des ressources
-- `POST /api/admin/resources/sync-timeline` - Synchronisation R2
+- `POST /api/admin/resources/sync-timeline` - Synchronisation R2 → DB
 
-### Bugs Corrigés ✅
-1. Bouton "Se déconnecter" sur web
-2. Bypass paywall corrigé
-3. Pages paiement créées
+#### Frontend (Implémenté, à tester quand env disponible)
+- `/app/frontend/app/timeline/[cursusId].tsx` - Page timeline plein écran (iframe)
+- `/app/frontend/app/context/[resourceId].tsx` - Page contexte historique (style Sijill)
+- Onglet "Ressources" mis à jour dans Cursus et Cours avec 3 sections :
+  1. **Frise chronologique** → Page timeline interactive
+  2. **Contexte historique** → Documents Word par penseur
+  3. **Bibliographies** → Documents existants
 
----
+#### Admin Panel
+- `/api/admin-panel/timeline-resources` - Page "Timeline" avec :
+  - Liste des 5 timelines HTML (preview + lien externe)
+  - Liste des 18 documents de contexte (aperçu intégré)
+  - Bouton "Synchroniser R2" pour mise à jour automatique
 
-## Structure des fichiers Timeline (R2)
-
-### Timelines HTML (5 fichiers)
-- `sijill_timeline_cursus_a.html` - Cursus A
-- `sijill_timeline_cursus_b.html` - Cursus B
-- `sijill_timeline_cursus_c.html` - Cursus C
-- `sijill_timeline_cursus_d.html` - Cursus D
-- `sijill_timeline_cursus_e.html` - Cursus E
-
-### Documents Contexte (18 fichiers)
-Format: `Timeline_Module{N}_{Sujet}.docx`
-- Module 1: Traduction
-- Module 2: Al-Kindi, Al-Farabi, Avicenne
-- Module 3: Al-Ghazali, Fakhr al-Din al-Razi, Nasir al-Din al-Tusi
-- Module 4: Averroes, Ibn Bajja, Ibn Tufayl
-- Module 5: Mir Damad, Mulla Sadra
-- Module 6: Suhrawardi
-- Module 7: Ibn Khaldun, Miskawayh
+### Autres fonctionnalités de la session
+- Dashboard Stats d'écoute (`/api/admin-panel/listening-stats`)
+- Highlight Page d'accueil (`/api/admin-panel/highlight`)
+- Correction bugs déconnexion et paywall
+- Pages paiement success/cancel
 
 ---
 
-## Fichiers Créés/Modifiés
+## Structure R2 Timeline/
 
-### Backend
-- `server.py` - Endpoints timeline et context resources
-- `admin_templates/timeline-resources.html` - Page admin
-- `admin_templates/listening-stats.html`
-- `admin_templates/highlight.html`
+### Timelines HTML (5)
+```
+Timeline/sijill_timeline_cursus_a.html  →  Cursus A (Falsafa)
+Timeline/sijill_timeline_cursus_b.html  →  Cursus B (Théologie)
+Timeline/sijill_timeline_cursus_c.html  →  Cursus C (Sciences)
+Timeline/sijill_timeline_cursus_d.html  →  Cursus D (Arts)
+Timeline/sijill_timeline_cursus_e.html  →  Cursus E (Spiritualités)
+```
 
-### Frontend
-- `app/timeline/[cursusId].tsx` - Page timeline plein écran
-- `app/cursus/[id].tsx` - Onglet Ressources mis à jour
-- `app/payment/success.tsx` et `cancel.tsx`
+### Documents Contexte (18)
+```
+Format: Timeline_Module{N}_{Penseur}.docx
+
+Module 1: Traduction
+Module 2: Al-Kindi, Al-Farabi, Avicenne
+Module 3: Al-Ghazali, Fakhr al-Din al-Razi, Nasir al-Din al-Tusi
+Module 4: Averroes, Ibn Bajja, Ibn Tufayl
+Module 5: Mir Damad, Mulla Sadra
+Module 6: Suhrawardi
+Module 7: Ibn Khaldun, Miskawayh
+```
+
+---
+
+## Fichiers Frontend Créés
+
+| Fichier | Description |
+|---------|-------------|
+| `app/timeline/[cursusId].tsx` | Page timeline plein écran (iframe) |
+| `app/context/[resourceId].tsx` | Page contexte historique formatée |
+| `app/cursus/[id].tsx` | Onglet Ressources mis à jour |
+| `app/course/[id].tsx` | Onglet Ressources mis à jour |
+| `app/payment/success.tsx` | Page succès paiement |
+| `app/payment/cancel.tsx` | Page annulation paiement |
+
+## Fichiers Backend Créés
+
+| Fichier | Description |
+|---------|-------------|
+| `admin_templates/timeline-resources.html` | Page admin Timeline |
+| `admin_templates/listening-stats.html` | Page admin Stats |
+| `admin_templates/highlight.html` | Page admin Highlight |
+| `server.py` | Endpoints timeline et context |
 
 ---
 
 ## Backlog
 
 ### P0 (Critique)
-- ⚠️ Résoudre problème tunnel ngrok (environnement frontend inaccessible)
+- ⚠️ Environnement preview down (tunnel ngrok ERR_NGROK_334)
 
 ### P1 (Important)
-- Créer page frontend pour afficher les documents de contexte
-- Lier les ressources aux cours/modules dans l'onglet Ressources
+- Tester l'intégration frontend quand env disponible
 - Tester webhook Stripe en production
+- Lier les ressources aux modules spécifiques (pas seulement au cursus)
 
 ### P2 (Futur)
-- Refactoriser backend/server.py en modules FastAPI Router
+- Refactoriser backend/server.py en modules FastAPI Router (>5000 lignes)
 - Implémenter Apple Sign-In
 - Dashboard admin parrainages amélioré
 
