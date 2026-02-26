@@ -7,20 +7,29 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Apple Sign-In Configuration
-APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID', '')
-APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID', '')
-APPLE_SERVICE_ID = os.environ.get('APPLE_SERVICE_ID', '')  # Client ID for web
-APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '')
-APPLE_REDIRECT_URI = os.environ.get('APPLE_REDIRECT_URI', '')
+
+def get_apple_config():
+    """Get Apple Sign-In configuration from environment."""
+    return {
+        'team_id': os.environ.get('APPLE_TEAM_ID', ''),
+        'key_id': os.environ.get('APPLE_KEY_ID', ''),
+        'service_id': os.environ.get('APPLE_SERVICE_ID', ''),
+        'private_key': os.environ.get('APPLE_PRIVATE_KEY', ''),
+        'redirect_uri': os.environ.get('APPLE_REDIRECT_URI', '')
+    }
 
 
 def is_apple_auth_configured() -> bool:
     """Check if Apple Sign-In is configured."""
-    return bool(APPLE_TEAM_ID and APPLE_KEY_ID and APPLE_SERVICE_ID and APPLE_PRIVATE_KEY)
+    config = get_apple_config()
+    return bool(config['team_id'] and config['key_id'] and config['service_id'] and config['private_key'])
 
 
 def generate_apple_client_secret() -> str:
