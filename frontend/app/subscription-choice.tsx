@@ -82,6 +82,7 @@ export default function SubscriptionChoiceScreen() {
         body: JSON.stringify({
           plan_id: planId,
           origin_url: currentUrl,
+          promo_code: promoCode.trim() || undefined,
         }),
       });
 
