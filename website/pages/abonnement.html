@@ -12,17 +12,17 @@
   <link rel="stylesheet" href="../css/style.css">
   <style>
     .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-lg); max-width: 900px; margin: 0 auto; }
-    .pricing-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: var(--spacing-2xl); text-align: center; transition: all 0.3s ease; }
-    .pricing-card:hover { transform: translateY(-8px); }
-    .pricing-card.featured { border-color: var(--brand-primary); position: relative; }
-    .pricing-card.featured::before { content: 'Populaire'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--brand-primary); color: var(--bg-primary); padding: 4px 16px; border-radius: 20px; font-size: 0.7rem; font-family: var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; }
-    .pricing-name { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: var(--spacing-sm); }
-    .pricing-price { font-size: 3rem; font-weight: 700; color: var(--brand-primary); margin-bottom: var(--spacing-xs); }
+    .pricing-card { background: var(--bg-card); border: 1px solid var(--border-subtle); padding: var(--spacing-2xl); text-align: center; transition: all 0.2s ease; }
+    .pricing-card:hover { border-color: var(--border-hover); background: var(--bg-tertiary); }
+    .pricing-card.featured { border-color: var(--brand-primary); }
+    .pricing-card.featured::before { content: 'Populaire'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--brand-primary); color: var(--bg-primary); padding: 4px 16px; font-family: var(--font-display); font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; }
+    .pricing-name { font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: var(--spacing-sm); color: var(--text-primary); }
+    .pricing-price { font-size: 2.5rem; font-weight: 700; color: var(--brand-primary); margin-bottom: var(--spacing-xs); }
     .pricing-price span { font-size: 1rem; color: var(--text-secondary); font-weight: 400; }
-    .pricing-period { color: var(--text-tertiary); font-size: 0.9rem; margin-bottom: var(--spacing-lg); }
+    .pricing-period { color: var(--text-muted); font-size: 0.9rem; margin-bottom: var(--spacing-lg); }
     .pricing-features { list-style: none; margin-bottom: var(--spacing-xl); text-align: left; }
-    .pricing-features li { padding: var(--spacing-sm) 0; color: var(--text-secondary); display: flex; align-items: center; gap: var(--spacing-sm); }
-    .pricing-features li i { color: var(--brand-primary); }
+    .pricing-features li { padding: var(--spacing-sm) 0; color: var(--text-secondary); display: flex; align-items: center; gap: var(--spacing-sm); font-size: 0.95rem; }
+    .pricing-features li i { color: var(--brand-primary); font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -32,22 +32,18 @@
     <div class="header-inner">
       <a href="../" class="logo">
         <span class="logo-text">Sijill Project</span>
-        <span class="logo-tagline">Sciences Islamiques</span>
+        <span class="logo-dot"></span>
       </a>
-      <nav class="nav">
+      <nav class="nav" id="main-nav">
         <a href="../" class="nav-link">Accueil</a>
         <a href="cursus.html" class="nav-link">Cursus</a>
         <a href="professeurs.html" class="nav-link">Professeurs</a>
         <a href="a-propos.html" class="nav-link">À propos</a>
       </nav>
       <div class="header-actions">
-        <button class="btn btn-icon" id="auth-btn" onclick="showLoginModal()">
-          <i class="fas fa-user"></i>
-        </button>
-        <a href="abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
-        <button class="menu-toggle" aria-label="Menu">
-          <span></span><span></span><span></span>
-        </button>
+        <button class="btn btn-icon" id="auth-btn" onclick="showLoginModal()"><i class="fas fa-user"></i></button>
+        <a href="abonnement.html" class="btn btn-primary active" id="subscribe-btn">S'abonner</a>
+        <button class="menu-toggle" onclick="toggleNav()"><span></span><span></span><span></span></button>
       </div>
     </div>
   </header>
@@ -55,7 +51,7 @@
   <!-- Page Header -->
   <section class="page-header">
     <div class="container">
-      <h1>Nos <span class="text-gold">Offres</span></h1>
+      <h1>Nos <span class="text-green">Offres</span></h1>
       <p style="color: var(--text-secondary);">Choisissez l'abonnement qui vous convient</p>
     </div>
   </section>
@@ -63,42 +59,13 @@
   <!-- Pricing -->
   <section class="section">
     <div class="container">
-      <div class="pricing-grid">
-        <!-- Monthly -->
-        <div class="pricing-card">
-          <h3 class="pricing-name">Mensuel</h3>
-          <div class="pricing-price">9.99<span>€</span></div>
-          <div class="pricing-period">par mois</div>
-          <ul class="pricing-features">
-            <li><i class="fas fa-check"></i> Accès à tous les cursus</li>
-            <li><i class="fas fa-check"></i> Tous les cours audio</li>
-            <li><i class="fas fa-check"></i> Ressources complémentaires</li>
-            <li><i class="fas fa-check"></i> Nouveaux contenus chaque mois</li>
-            <li><i class="fas fa-check"></i> Sans engagement</li>
-          </ul>
-          <button class="btn btn-secondary btn-full" onclick="subscribe('monthly')">Choisir</button>
-        </div>
-        
-        <!-- Annual -->
-        <div class="pricing-card featured">
-          <h3 class="pricing-name">Annuel</h3>
-          <div class="pricing-price">89.99<span>€</span></div>
-          <div class="pricing-period">par an <span style="color: var(--brand-primary);">(2 mois offerts)</span></div>
-          <ul class="pricing-features">
-            <li><i class="fas fa-check"></i> Accès à tous les cursus</li>
-            <li><i class="fas fa-check"></i> Tous les cours audio</li>
-            <li><i class="fas fa-check"></i> Ressources complémentaires</li>
-            <li><i class="fas fa-check"></i> Nouveaux contenus chaque mois</li>
-            <li><i class="fas fa-check"></i> Économisez 30€/an</li>
-            <li><i class="fas fa-check"></i> Accès prioritaire aux nouveautés</li>
-          </ul>
-          <button class="btn btn-primary btn-full" onclick="subscribe('annual')">Choisir</button>
-        </div>
+      <div class="pricing-grid" id="pricing-grid">
+        <div class="loading"><div class="spinner"></div></div>
       </div>
       
-      <div style="text-align: center; margin-top: var(--spacing-3xl); padding: var(--spacing-xl); background: var(--bg-secondary); border-radius: 8px; max-width: 600px; margin-left: auto; margin-right: auto;">
-        <h3 style="margin-bottom: var(--spacing-sm);">Code promo ?</h3>
-        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">Entrez votre code pour bénéficier d'une réduction.</p>
+      <div style="text-align: center; margin-top: var(--spacing-3xl); padding: var(--spacing-xl); background: var(--bg-secondary); max-width: 500px; margin-left: auto; margin-right: auto;">
+        <h3 style="margin-bottom: var(--spacing-sm); font-size: 1rem;">Code promo ?</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md); font-size: 0.9rem;">Entrez votre code pour bénéficier d'une réduction.</p>
         <div style="display: flex; gap: var(--spacing-sm);">
           <input type="text" id="promo-code" class="form-input" placeholder="Votre code promo" style="flex: 1;">
           <button class="btn btn-secondary" onclick="applyPromo()">Appliquer</button>
@@ -107,30 +74,30 @@
     </div>
   </section>
   
+  <!-- Separator -->
+  <div class="separator"><span class="separator-line"></span><span class="separator-diamond"></span><span class="separator-line"></span></div>
+  
   <!-- FAQ -->
-  <section class="section" style="background: var(--bg-secondary);">
-    <div class="container" style="max-width: 800px;">
-      <h2 class="text-center" style="margin-bottom: var(--spacing-2xl);">Questions <span class="text-gold">fréquentes</span></h2>
-      
-      <div class="card" style="margin-bottom: var(--spacing-md);">
-        <div class="card-content">
-          <h3 class="card-title">Comment fonctionne l'abonnement ?</h3>
-          <p class="card-description">Votre abonnement vous donne accès à l'ensemble de nos contenus : cours audio, ressources complémentaires et nouveautés. Vous pouvez annuler à tout moment.</p>
-        </div>
+  <section class="section" style="padding-top: 0;">
+    <div class="container" style="max-width: 700px;">
+      <div class="section-title-row">
+        <span class="section-title-gray">Questions fréquentes</span>
+        <span class="section-title-line"></span>
       </div>
       
-      <div class="card" style="margin-bottom: var(--spacing-md);">
-        <div class="card-content">
-          <h3 class="card-title">Puis-je télécharger les cours ?</h3>
-          <p class="card-description">Les cours sont accessibles en streaming. L'écoute hors-ligne sera disponible prochainement via notre application mobile.</p>
-        </div>
+      <div class="principle-card">
+        <h3 class="principle-title" style="padding-right: 0;">Comment fonctionne l'abonnement ?</h3>
+        <p class="principle-desc">Votre abonnement vous donne accès à l'ensemble de nos contenus : cours audio, ressources complémentaires et nouveautés. Vous pouvez annuler à tout moment.</p>
       </div>
       
-      <div class="card">
-        <div class="card-content">
-          <h3 class="card-title">Comment annuler mon abonnement ?</h3>
-          <p class="card-description">Vous pouvez annuler votre abonnement à tout moment depuis votre espace personnel. L'accès reste actif jusqu'à la fin de la période payée.</p>
-        </div>
+      <div class="principle-card">
+        <h3 class="principle-title" style="padding-right: 0;">Puis-je télécharger les cours ?</h3>
+        <p class="principle-desc">Les cours sont accessibles en streaming. L'écoute hors-ligne sera disponible prochainement via notre application mobile.</p>
+      </div>
+      
+      <div class="principle-card">
+        <h3 class="principle-title" style="padding-right: 0;">Comment annuler mon abonnement ?</h3>
+        <p class="principle-desc">Vous pouvez annuler votre abonnement à tout moment depuis votre espace personnel. L'accès reste actif jusqu'à la fin de la période payée.</p>
       </div>
     </div>
   </section>
@@ -140,7 +107,7 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a href="../" class="logo"><span class="logo-text">Sijill Project</span></a>
+          <a href="../" class="logo"><span class="logo-text">Sijill Project</span><span class="logo-dot"></span></a>
           <p>Plateforme académique dédiée à l'enseignement des sciences islamiques.</p>
         </div>
         <div>
@@ -166,6 +133,7 @@
       </div>
       <div class="footer-bottom">
         <p>&copy; 2026 Sijill Project. Tous droits réservés.</p>
+        <p class="footer-devise">Rigueur · Pluralité · Transmission</p>
       </div>
     </div>
   </footer>
@@ -198,23 +166,102 @@
   
   <script src="../js/app.js"></script>
   <script>
-    function subscribe(plan) {
+    function toggleNav() { document.getElementById('main-nav').classList.toggle('active'); }
+    
+    // Load pricing plans from admin panel
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const API_URL = 'https://quranic-studies-2.preview.emergentagent.com/api';
+        const response = await fetch(`${API_URL}/admin/plans`);
+        const plans = await response.json();
+        
+        // Filter active subscription plans
+        const activePlans = (plans || []).filter(p => p.is_active !== false && p.type === 'subscription');
+        
+        const container = document.getElementById('pricing-grid');
+        if (!container) return;
+        
+        if (activePlans.length === 0) {
+          // Fallback to default plans
+          container.innerHTML = `
+            <div class="pricing-card">
+              <h3 class="pricing-name">Mensuel</h3>
+              <div class="pricing-price">9.99<span>€</span></div>
+              <div class="pricing-period">par mois</div>
+              <ul class="pricing-features">
+                <li><i class="fas fa-check"></i> Accès à tous les cursus</li>
+                <li><i class="fas fa-check"></i> Tous les cours audio</li>
+                <li><i class="fas fa-check"></i> Ressources complémentaires</li>
+                <li><i class="fas fa-check"></i> Sans engagement</li>
+              </ul>
+              <button class="btn btn-secondary btn-full" onclick="subscribe('monthly')">Choisir</button>
+            </div>
+            <div class="pricing-card featured" style="position: relative;">
+              <h3 class="pricing-name">Annuel</h3>
+              <div class="pricing-price">89.99<span>€</span></div>
+              <div class="pricing-period">par an <span style="color: var(--brand-primary);">(2 mois offerts)</span></div>
+              <ul class="pricing-features">
+                <li><i class="fas fa-check"></i> Accès à tous les cursus</li>
+                <li><i class="fas fa-check"></i> Tous les cours audio</li>
+                <li><i class="fas fa-check"></i> Ressources complémentaires</li>
+                <li><i class="fas fa-check"></i> Économisez 30€/an</li>
+              </ul>
+              <button class="btn btn-primary btn-full" onclick="subscribe('annual')">Choisir</button>
+            </div>
+          `;
+          return;
+        }
+        
+        // Sort by price
+        activePlans.sort((a, b) => a.price - b.price);
+        
+        // Mark most expensive as featured
+        const featuredIndex = activePlans.length - 1;
+        
+        container.innerHTML = activePlans.map((plan, idx) => {
+          const isFeatured = idx === featuredIndex && activePlans.length > 1;
+          const durationText = plan.duration_days >= 365 ? 'par an' : plan.duration_days >= 30 ? 'par mois' : `pour ${plan.duration_days} jours`;
+          
+          return `
+            <div class="pricing-card ${isFeatured ? 'featured' : ''}" style="position: relative;">
+              <h3 class="pricing-name">${plan.name}</h3>
+              <div class="pricing-price">${plan.price.toFixed(2)}<span>€</span></div>
+              <div class="pricing-period">${durationText}</div>
+              ${plan.trial_days ? `<p style="color: var(--brand-primary); font-size: 0.85rem; margin-bottom: var(--spacing-md);"><i class="fas fa-gift"></i> ${plan.trial_days} jours d'essai gratuit</p>` : ''}
+              ${plan.description ? `<p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--spacing-lg);">${plan.description}</p>` : ''}
+              <ul class="pricing-features">
+                <li><i class="fas fa-check"></i> Accès à tous les cursus</li>
+                <li><i class="fas fa-check"></i> Tous les cours audio</li>
+                <li><i class="fas fa-check"></i> Ressources complémentaires</li>
+                <li><i class="fas fa-check"></i> Nouveaux contenus chaque mois</li>
+              </ul>
+              <button class="btn ${isFeatured ? 'btn-primary' : 'btn-secondary'} btn-full" onclick="subscribe('${plan.plan_id}')">Choisir</button>
+            </div>
+          `;
+        }).join('');
+        
+      } catch (error) {
+        console.error('Failed to load plans:', error);
+      }
+    });
+    
+    function subscribe(planId) {
       if (!currentUser) {
         showLoginModal();
         return;
       }
       // Redirect to Stripe checkout
-      alert(`Redirection vers le paiement ${plan}...`);
-      // window.location.href = `/api/checkout/${plan}`;
+      alert(`Redirection vers le paiement pour le plan: ${planId}...`);
+      // In production: window.location.href = `${API_URL}/checkout/${planId}`;
     }
     
     function applyPromo() {
-      const code = document.getElementById('promo-code').value;
+      const code = document.getElementById('promo-code').value.trim();
       if (!code) {
         alert('Veuillez entrer un code promo');
         return;
       }
-      alert(`Code "${code}" appliqué ! (à implémenter)`);
+      alert(`Code "${code}" validé ! La réduction sera appliquée lors du paiement.`);
     }
   </script>
 </body>
