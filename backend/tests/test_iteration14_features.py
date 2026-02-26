@@ -7,7 +7,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://quran-modules.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://quranic-studies-2.preview.emergentagent.com').rstrip('/')
 
 # Known credentials from context
 USER_EMAIL = "testuser@hikma.com"

@@ -18,7 +18,7 @@ import { useAuth, apiRequest } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://quran-modules.preview.emergentagent.com';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://quranic-studies-2.preview.emergentagent.com';
 
 interface UserStats {
   courses_followed: number;
