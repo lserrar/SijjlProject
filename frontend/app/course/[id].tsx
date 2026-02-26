@@ -655,7 +655,7 @@ export default function CourseDetailScreen() {
                         <Ionicons name="time-outline" size={18} color={cursusColor} />
                       </View>
                       <View style={styles.biblioTitleContainer}>
-                        <Text style={styles.biblioTitle}>{ctx.subject}</Text>
+                        <Text style={styles.biblioTitle}>{ctx.title || ctx.subject}</Text>
                         <Text style={styles.biblioSubtitle}>Module {ctx.module_number} · Contexte historique</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={20} color="#888" />
