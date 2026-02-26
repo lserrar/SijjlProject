@@ -2912,6 +2912,7 @@ async def list_audio_resources():
                 'subject': db_entry.get('subject', subject) if db_entry else subject,
                 'speaker': db_entry.get('speaker', speaker) if db_entry else speaker,
                 'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
+                'cursus_letter': db_entry.get('cursus_letter') if db_entry else None,
                 'title': db_entry.get('title', f"Conférence : {subject}" + (f" par {speaker}" if speaker else "")) if db_entry else f"Conférence : {subject}" + (f" par {speaker}" if speaker else ""),
                 'description': db_entry.get('description', '') if db_entry else '',
                 'credits': db_entry.get('credits', '') if db_entry else '',
