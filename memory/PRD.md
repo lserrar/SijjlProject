@@ -54,11 +54,20 @@ Build "Sijill", an Islamic studies e-learning platform with a three-level conten
 ```
 /app
 ├── backend
-│   ├── .env                    # Environment variables (MONGO_URL, DB_NAME, etc.)
-│   ├── server.py               # Main FastAPI server (3000+ lines - needs refactoring)
+│   ├── .env                    # Environment variables (MONGO_URL, DB_NAME, SendPulse, etc.)
+│   ├── server.py               # Main FastAPI server (6000+ lines - refactoring in progress)
 │   ├── requirements.txt
-│   └── templates/admin/        # Jinja2 admin templates
-│       └── resources.html      # Timeline/Context doc management
+│   ├── routes/                 # NEW: FastAPI routers (modularization)
+│   │   ├── __init__.py
+│   │   └── dependencies.py     # Shared DB, auth utilities
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── helpers.py
+│   │   └── email_service.py    # NEW: SendPulse email integration
+│   └── admin_templates/        # Jinja2 admin templates
+│       ├── base.html           # Base template with inheritance
+│       ├── *_new.html          # Migrated templates using Jinja2
+│       └── referrals.html      # NEW: Referral management page
 ├── frontend
 │   ├── app
 │   │   ├── (auth)/             # Login, forgot-password pages
