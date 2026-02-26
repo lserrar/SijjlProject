@@ -5296,12 +5296,12 @@ async def admin_panel_modules(request: Request):
     )
 
 @api_router.get("/admin-panel/bibliographies", response_class=HTMLResponse)
-async def admin_panel_bibliographies():
+async def admin_panel_bibliographies(request: Request):
     """Admin panel bibliographies page."""
-    template_path = ADMIN_TEMPLATES_DIR / 'bibliographies.html'
-    if template_path.exists():
-        return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
-    return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+    return templates.TemplateResponse(
+        "bibliographies_new.html",
+        {"request": request, "active_page": "bibliographies"}
+    )
 
 @api_router.get("/admin-panel/audio-categories", response_class=HTMLResponse)
 async def admin_panel_audio_categories():
