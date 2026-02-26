@@ -20,34 +20,32 @@ Plateforme e-learning d'études islamiques avec hiérarchie de contenu : Cursus 
 
 ## Travail Accompli (26 février 2026)
 
-### Session actuelle - Gestion des ressources Admin + UI Mobile + Auth
+### Session actuelle - Admin + UI Mobile + Auth + Contexte
 
 #### 1. Édition des titres des Timelines HTML ✅
 - Admin Panel: Interface pour éditer titre, cursus et ordre d'affichage
-- Backend: Endpoint `PUT /api/admin/resources/timeline/{filename}`
 
 #### 2. Édition des titres des Fiches de Contexte (DOCX) ✅
 - Admin Panel: Modal d'édition complet pour les 47 fiches DOCX
-- Backend: Endpoint `PUT /api/admin/resources/context/{resource_id}`
 
 #### 3. Suppression du Splash Screen animé ✅
-- L'app affiche directement la page de login élégante
 
 #### 4. Header Mobile style Spotify ✅
-- Avatar vert à gauche → accès profil
-- Logo "SIJILL PROJECT•" au centre
-- Icône de recherche à droite
-- Plus de menu hamburger
 
-#### 5. Réinitialisation de mot de passe ✅ (NEW)
-- **Page "Mot de passe oublié"** (`/forgot-password`) avec design prestige
-- **Lien** sur la page de connexion
-- **Backend** : Endpoint `POST /api/auth/forgot-password` (enregistre les demandes)
-- **Écran de confirmation** élégant après soumission
-- Note : L'envoi d'email réel nécessite l'intégration d'un service (SendGrid, etc.)
+#### 5. Réinitialisation de mot de passe ✅
+- Page `/forgot-password` avec design prestige
+- Backend endpoint `POST /api/auth/forgot-password`
 
-#### 6. Correction compte utilisateur ✅ (NEW)
-- Réinitialisation du mot de passe pour `loubniz@hotmail.com` → `Test123!`
+#### 6. Filtrage des ressources par Cursus ✅ (NEW)
+- Les fiches de contexte sont maintenant filtrées par cursus (A, B, C, D, E)
+- Seules les fiches correspondant au cursus actuel sont affichées
+
+#### 7. Nouvelle mise en page des fiches de contexte ✅ (NEW)
+- **Module et penseur centrés** en haut
+- **Titres de sections** mis en valeur : "Contexte dynastique", "Contexte intellectuel", "Chronologie biographique"
+- **Barre verte** à côté de chaque titre de section
+- **Police augmentée** à 17px pour une lecture confortable
+- **Design prestige** cohérent avec le reste de l'app
 
 ---
 
