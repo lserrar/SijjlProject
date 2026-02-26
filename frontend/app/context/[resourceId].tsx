@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontFamily: 'Cinzel',
-    color: colors.brand.secondary,
+    color: '#04D182',
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
