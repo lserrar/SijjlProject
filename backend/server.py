@@ -2701,22 +2701,27 @@ async def admin_sync_timeline_resources(request: Request):
                 continue
             
             if filename.endswith('.html') and 'timeline' in filename.lower():
-                # Sync timeline HTML
-                match = re.search(r'cursus_([a-e])\.html', filename.lower())
-                if match:
-                    letter = match.group(1).upper()
-                    await db.timeline_resources.update_one(
-                        {'type': 'timeline', 'cursus_letter': letter},
-                        {'$set': {
-                            'type': 'timeline',
-                            'cursus_letter': letter,
-                            'r2_key': key,
-                            'filename': filename,
-                            'updated_at': datetime.now(timezone.utc).isoformat()
-                        }},
-                        upsert=True
-                    )
-                    synced_timelines += 1
+                # Sync timeline HTML - support various naming formats
+                match = re.search(r'cursus_([a-e])(?:_[a-z]+)?\.html', filename.lower())
+                letter = match.group(1).upper() if match else None
+                
+                # Check if manual assignment exists
+                existing = await db.timeline_resources.find_one({'filename': filename, 'type': 'timeline'})
+                if existing and existing.get('cursus_letter'):
+                    letter = existing['cursus_letter']
+                
+                await db.timeline_resources.update_one(
+                    {'filename': filename, 'type': 'timeline'},
+                    {'$set': {
+                        'type': 'timeline',
+                        'cursus_letter': letter,
+                        'r2_key': key,
+                        'filename': filename,
+                        'updated_at': datetime.now(timezone.utc).isoformat()
+                    }},
+                    upsert=True
+                )
+                synced_timelines += 1
                     
             elif filename.endswith('.docx'):
                 # Sync context document
