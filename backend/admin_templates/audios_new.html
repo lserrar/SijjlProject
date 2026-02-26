@@ -1,0 +1,661 @@
+{% extends "base.html" %}
+
+{% block title %}Audios - Sijill Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Audios</h1>
+        <p class="page-description">Gérez les fichiers audio et épisodes</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="openSyncR2Modal()" data-testid="sync-r2-btn">
+            <i class="fas fa-sync"></i> Sync R2
+        </button>
+        <button class="btn btn-primary" onclick="openModal()" data-testid="add-audio-btn">
+            <i class="fas fa-plus"></i> Nouvel audio
+        </button>
+    </div>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div id="bulkActionsBar" style="display: none; margin-bottom: 16px; padding: 12px 20px; background: linear-gradient(135deg, rgba(4, 209, 130, 0.15) 0%, rgba(4, 209, 130, 0.05) 100%); border: 1px solid rgba(4, 209, 130, 0.3); border-radius: 8px;">
+    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 600; color: var(--brand-primary);"><span id="selectedCount">0</span> sélectionné(s)</span>
+            <button class="btn btn-secondary btn-sm" onclick="clearSelection()" style="padding: 4px 8px;"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <select class="form-select" id="bulkScholar" style="padding: 6px 12px; font-size: 13px; width: 200px;"></select>
+            <button class="btn btn-secondary btn-sm" onclick="applyBulkScholar()"><i class="fas fa-user"></i> Appliquer</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <select class="form-select" id="bulkCategory" style="padding: 6px 12px; font-size: 13px; width: 200px;"></select>
+            <button class="btn btn-secondary btn-sm" onclick="applyBulkCategory()"><i class="fas fa-tag"></i> Appliquer</button>
+        </div>
+    </div>
+</div>
+
+<div class="toolbar" style="margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+    <div class="search-box" style="flex: 1; min-width: 200px;">
+        <i class="fas fa-search"></i>
+        <input type="text" class="search-input" placeholder="Rechercher un audio..." id="searchInput" oninput="filterAudios()" data-testid="search-audio-input">
+    </div>
+    <select class="form-select" id="courseFilter" onchange="filterAudios()" style="width: 180px;">
+        <option value="">Tous les cours</option>
+    </select>
+    <select class="form-select" id="categoryFilter" onchange="filterAudios()" style="width: 180px;">
+        <option value="">Toutes les catégories</option>
+    </select>
+    <select class="form-select" id="typeFilter" onchange="filterAudios()" style="width: 150px;">
+        <option value="">Tous les types</option>
+        <option value="podcast">Podcasts</option>
+        <option value="lecture">Conférences</option>
+        <option value="quran">Coran</option>
+        <option value="documentary">Documentaires</option>
+        <option value="music">Musique</option>
+    </select>
+</div>
+
+<div class="card">
+    <div class="table-container" id="audiosTable" data-testid="audios-table">
+        <div class="loading"><div class="spinner"></div> Chargement...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Edit Audio Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Nouvel audio</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="audioForm" onsubmit="saveAudio(event)">
+            <div class="modal-body">
+                <input type="hidden" id="audioId">
+                <div class="form-group">
+                    <label class="form-label">Titre *</label>
+                    <input type="text" class="form-input" id="title" required data-testid="audio-title-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="description" data-testid="audio-desc-input"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Professeur *</label>
+                        <select class="form-select" id="scholar_id" required data-testid="audio-scholar-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Catégorie</label>
+                        <select class="form-select" id="category_id" onchange="onCategoryChange()" data-testid="audio-category-select">
+                            <option value="">-- Aucune catégorie --</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="type" data-testid="audio-type-select">
+                            <option value="podcast">Podcast</option>
+                            <option value="lecture">Conférence</option>
+                            <option value="quran">Coran</option>
+                            <option value="documentary">Documentaire</option>
+                            <option value="music">Musique</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Topic</label>
+                        <input type="text" class="form-input" id="topic" placeholder="Ex: Philosophie islamique">
+                    </div>
+                </div>
+                
+                <!-- Module Link Section -->
+                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--brand-primary);">
+                        <i class="fas fa-link"></i> Liaison à un module (optionnel)
+                    </div>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Module associé</label>
+                            <select class="form-select" id="module_id" data-testid="audio-module-select">
+                                <option value="">-- Aucun module --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">N° Épisode</label>
+                            <input type="number" class="form-input" id="episode_number" placeholder="1" min="1">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Durée (secondes)</label>
+                    <input type="number" class="form-input" id="duration" value="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fichier Audio (R2)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" class="form-input" id="file_key" placeholder="Sélectionnez un fichier ou entrez le chemin" style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="openR2Browser()">
+                            <i class="fas fa-folder-open"></i> R2
+                        </button>
+                    </div>
+                    <div class="form-hint" id="r2FolderHint" style="margin-top: 4px; font-size: 12px; color: var(--text-muted);">Sélectionnez une catégorie pour naviguer dans le dossier R2 associé</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL de la miniature</label>
+                    <input type="url" class="form-input" id="thumbnail">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- R2 Browser Modal -->
+<div class="modal-overlay" id="r2ModalOverlay" onclick="closeR2Browser(event)">
+    <div class="modal" style="max-width: 650px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">Sélectionner un fichier audio</h3>
+            <button class="modal-close" onclick="closeR2Browser()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                <i class="fas fa-folder" style="color: var(--brand-primary); margin-right: 8px;"></i>
+                <span id="r2CurrentPath">-</span>
+            </div>
+            <div id="r2FilesList" style="max-height: 400px; overflow-y: auto;">
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Sélectionnez une catégorie pour parcourir les fichiers</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeR2Browser()">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sync R2 Modal -->
+<div class="modal-overlay" id="syncR2ModalOverlay" onclick="closeSyncR2Modal(event)">
+    <div class="modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fas fa-sync" style="color: var(--brand-primary); margin-right: 8px;"></i> Synchroniser depuis R2</h3>
+            <button class="modal-close" onclick="closeSyncR2Modal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                Importez automatiquement les épisodes depuis un dossier R2 vers un cours.
+            </p>
+            <div class="form-group">
+                <label class="form-label">Cours cible *</label>
+                <select class="form-select" id="syncCourseId" onchange="updateSyncR2Folder()" required></select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Dossier R2 *</label>
+                <input type="text" class="form-input" id="syncR2Folder" placeholder="Ex: Cours/MonCours/">
+                <div class="form-hint">Le dossier contenant les fichiers audio à synchroniser</div>
+            </div>
+            <div id="syncR2Preview" style="display: none; padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 16px;">
+                <div id="syncR2PreviewContent"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeSyncR2Modal()">Annuler</button>
+            <button type="button" class="btn btn-primary" id="syncR2Btn" onclick="executeSyncR2()">
+                <i class="fas fa-sync"></i> Synchroniser
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadAudios();
+{% endblock %}
+
+{% block scripts %}
+<style>
+.selected-row { background: rgba(4, 209, 130, 0.08) !important; }
+.selected-row:hover { background: rgba(4, 209, 130, 0.12) !important; }
+.r2-file-item { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.r2-file-item:hover { background: var(--bg-tertiary); }
+.r2-file-item.folder { color: var(--brand-primary); }
+</style>
+<script>
+let audios = [];
+let scholars = [];
+let categories = [];
+let modules = [];
+let courses = [];
+let selectedAudioIds = new Set();
+let currentR2Folder = '';
+
+function formatDuration(seconds) {
+    if (!seconds) return '-';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function getModuleName(moduleId) {
+    const m = modules.find(x => x.id === moduleId);
+    return m ? m.name : moduleId;
+}
+
+function getCategoryName(categoryId) {
+    const c = categories.find(x => x.id === categoryId);
+    return c ? c.name : '-';
+}
+
+// === MODAL FUNCTIONS ===
+function openModal(audio = null) {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalTitle').textContent = audio ? 'Modifier l\'audio' : 'Nouvel audio';
+    populateCategorySelects();
+    populateScholarSelect();
+    populateModuleSelect();
+    
+    if (audio) {
+        document.getElementById('audioId').value = audio.id;
+        document.getElementById('title').value = audio.title || '';
+        document.getElementById('description').value = audio.description || '';
+        document.getElementById('scholar_id').value = audio.scholar_id || '';
+        document.getElementById('category_id').value = audio.category_id || '';
+        document.getElementById('type').value = audio.type || 'podcast';
+        document.getElementById('topic').value = audio.topic || '';
+        document.getElementById('module_id').value = audio.module_id || '';
+        document.getElementById('episode_number').value = audio.episode_number || '';
+        document.getElementById('duration').value = audio.duration || 0;
+        document.getElementById('file_key').value = audio.file_key || '';
+        document.getElementById('thumbnail').value = audio.thumbnail || '';
+    } else {
+        document.getElementById('audioForm').reset();
+        document.getElementById('audioId').value = '';
+    }
+}
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function populateScholarSelect() {
+    document.getElementById('scholar_id').innerHTML = '<option value="">-- Sélectionner --</option>' + 
+        scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function populateCategorySelects() {
+    const options = '<option value="">-- Aucune catégorie --</option>' + 
+        categories.map(c => `<option value="${c.id}" data-r2folder="${c.r2_folder || ''}">${c.name}</option>`).join('');
+    document.getElementById('category_id').innerHTML = options;
+    document.getElementById('categoryFilter').innerHTML = '<option value="">Toutes les catégories</option>' + 
+        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function populateModuleSelect() {
+    document.getElementById('module_id').innerHTML = '<option value="">-- Aucun module --</option>' + 
+        modules.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+function populateCourseFilter() {
+    document.getElementById('courseFilter').innerHTML = '<option value="">Tous les cours</option>' + 
+        courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+}
+
+function populateBulkSelects() {
+    document.getElementById('bulkScholar').innerHTML = '<option value="">-- Assigner professeur --</option>' + 
+        scholars.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('bulkCategory').innerHTML = '<option value="">-- Assigner catégorie --</option>' + 
+        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function onCategoryChange() {
+    const select = document.getElementById('category_id');
+    const option = select.options[select.selectedIndex];
+    const r2Folder = option.getAttribute('data-r2folder');
+    const hint = document.getElementById('r2FolderHint');
+    if (r2Folder) {
+        currentR2Folder = r2Folder;
+        hint.textContent = `Dossier R2 : ${r2Folder}`;
+        hint.style.color = 'var(--brand-primary)';
+    } else {
+        currentR2Folder = '';
+        hint.textContent = 'Sélectionnez une catégorie pour naviguer dans le dossier R2 associé';
+        hint.style.color = 'var(--text-muted)';
+    }
+}
+
+// === R2 BROWSER ===
+function openR2Browser() {
+    document.getElementById('r2ModalOverlay').classList.add('active');
+    if (currentR2Folder) {
+        loadR2Files(currentR2Folder);
+    } else {
+        loadR2Files('');
+    }
+}
+
+function closeR2Browser(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('r2ModalOverlay').classList.remove('active');
+}
+
+async function loadR2Files(folder) {
+    document.getElementById('r2CurrentPath').textContent = folder || '/ (racine)';
+    document.getElementById('r2FilesList').innerHTML = '<div class="loading"><div class="spinner"></div> Chargement...</div>';
+    
+    try {
+        const files = await apiRequest(`/admin/r2/list?prefix=${encodeURIComponent(folder)}`);
+        renderR2Files(files, folder);
+    } catch (error) {
+        document.getElementById('r2FilesList').innerHTML = `<p style="color: var(--danger); padding: 20px;">Erreur: ${error.message}</p>`;
+    }
+}
+
+function renderR2Files(files, currentFolder) {
+    if (!files || files.length === 0) {
+        document.getElementById('r2FilesList').innerHTML = '<p style="color: var(--text-secondary); padding: 20px; text-align: center;">Aucun fichier trouvé</p>';
+        return;
+    }
+    
+    let html = '';
+    if (currentFolder) {
+        const parentFolder = currentFolder.split('/').slice(0, -2).join('/') + '/';
+        html += `<div class="r2-file-item folder" onclick="loadR2Files('${parentFolder === '/' ? '' : parentFolder}')">
+            <i class="fas fa-level-up-alt"></i> <span>..</span>
+        </div>`;
+    }
+    
+    files.forEach(f => {
+        if (f.is_folder) {
+            html += `<div class="r2-file-item folder" onclick="loadR2Files('${f.key}')">
+                <i class="fas fa-folder"></i> <span>${f.name}</span>
+            </div>`;
+        } else if (f.key.match(/\.(mp3|m4a|wav|ogg|flac)$/i)) {
+            html += `<div class="r2-file-item" onclick="selectR2File('${f.key}')">
+                <i class="fas fa-music" style="color: var(--brand-primary);"></i>
+                <span>${f.name}</span>
+                <span style="margin-left: auto; color: var(--text-muted); font-size: 12px;">${(f.size / 1024 / 1024).toFixed(1)} MB</span>
+            </div>`;
+        }
+    });
+    
+    document.getElementById('r2FilesList').innerHTML = html || '<p style="color: var(--text-secondary); padding: 20px; text-align: center;">Aucun fichier audio trouvé</p>';
+}
+
+function selectR2File(fileKey) {
+    document.getElementById('file_key').value = fileKey;
+    closeR2Browser();
+    showToast(`Fichier sélectionné: ${fileKey.split('/').pop()}`);
+}
+
+// === CRUD OPERATIONS ===
+async function saveAudio(event) {
+    event.preventDefault();
+    const id = document.getElementById('audioId').value;
+    const scholarId = document.getElementById('scholar_id').value;
+    const scholar = scholars.find(s => s.id === scholarId);
+    
+    const data = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        scholar_id: scholarId,
+        scholar_name: scholar ? scholar.name : '',
+        category_id: document.getElementById('category_id').value || null,
+        type: document.getElementById('type').value,
+        topic: document.getElementById('topic').value,
+        module_id: document.getElementById('module_id').value || null,
+        episode_number: parseInt(document.getElementById('episode_number').value) || null,
+        duration: parseInt(document.getElementById('duration').value) || 0,
+        file_key: document.getElementById('file_key').value,
+        thumbnail: document.getElementById('thumbnail').value
+    };
+
+    try {
+        if (id) {
+            await apiRequest(`/admin/audios/${id}`, 'PUT', data);
+            showToast('Audio modifié avec succès');
+        } else {
+            await apiRequest('/admin/audios', 'POST', data);
+            showToast('Audio créé avec succès');
+        }
+        closeModal();
+        loadAudios();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function deleteAudio(id, title) {
+    if (!confirm(`Supprimer "${title}" ?`)) return;
+    try {
+        await apiRequest(`/admin/audios/${id}`, 'DELETE');
+        showToast('Audio supprimé');
+        loadAudios();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+async function toggleAudio(id) {
+    try {
+        await apiRequest(`/admin/audios/${id}/toggle`, 'PATCH');
+        loadAudios();
+    } catch (error) { showToast(error.message, 'error'); }
+}
+
+// === BULK OPERATIONS ===
+function toggleSelectAll(checked) {
+    const visibleAudios = getFilteredAudios();
+    if (checked) visibleAudios.forEach(a => selectedAudioIds.add(a.id));
+    else visibleAudios.forEach(a => selectedAudioIds.delete(a.id));
+    updateBulkActionsBar();
+    renderAudios(visibleAudios);
+}
+
+function toggleAudioSelection(audioId, checked) {
+    if (checked) selectedAudioIds.add(audioId);
+    else selectedAudioIds.delete(audioId);
+    updateBulkActionsBar();
+}
+
+function updateBulkActionsBar() {
+    const bar = document.getElementById('bulkActionsBar');
+    document.getElementById('selectedCount').textContent = selectedAudioIds.size;
+    bar.style.display = selectedAudioIds.size > 0 ? 'block' : 'none';
+}
+
+function clearSelection() {
+    selectedAudioIds.clear();
+    updateBulkActionsBar();
+    renderAudios(getFilteredAudios());
+}
+
+async function applyBulkScholar() {
+    const scholarId = document.getElementById('bulkScholar').value;
+    if (!scholarId) { showToast('Sélectionnez un professeur', 'error'); return; }
+    if (selectedAudioIds.size === 0) { showToast('Aucun audio sélectionné', 'error'); return; }
+    
+    const scholar = scholars.find(s => s.id === scholarId);
+    try {
+        showToast(`Mise à jour de ${selectedAudioIds.size} audio(s)...`, 'info');
+        const promises = Array.from(selectedAudioIds).map(audioId => 
+            apiRequest(`/admin/audios/${audioId}`, 'PUT', { scholar_id: scholarId, scholar_name: scholar.name })
+        );
+        await Promise.all(promises);
+        showToast(`${selectedAudioIds.size} audio(s) mis à jour`);
+        clearSelection();
+        loadAudios();
+    } catch (error) { showToast('Erreur lors de la mise à jour', 'error'); }
+}
+
+async function applyBulkCategory() {
+    const categoryId = document.getElementById('bulkCategory').value;
+    if (!categoryId) { showToast('Sélectionnez une catégorie', 'error'); return; }
+    if (selectedAudioIds.size === 0) { showToast('Aucun audio sélectionné', 'error'); return; }
+    
+    try {
+        showToast(`Mise à jour de ${selectedAudioIds.size} audio(s)...`, 'info');
+        const promises = Array.from(selectedAudioIds).map(audioId => 
+            apiRequest(`/admin/audios/${audioId}`, 'PUT', { category_id: categoryId })
+        );
+        await Promise.all(promises);
+        showToast(`${selectedAudioIds.size} audio(s) mis à jour`);
+        clearSelection();
+        loadAudios();
+    } catch (error) { showToast('Erreur lors de la mise à jour', 'error'); }
+}
+
+// === SYNC R2 ===
+function openSyncR2Modal() {
+    document.getElementById('syncR2ModalOverlay').classList.add('active');
+    populateSyncCourseSelect();
+    document.getElementById('syncR2Folder').value = '';
+    document.getElementById('syncR2Preview').style.display = 'none';
+}
+
+function closeSyncR2Modal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('syncR2ModalOverlay').classList.remove('active');
+}
+
+function populateSyncCourseSelect() {
+    document.getElementById('syncCourseId').innerHTML = '<option value="">-- Sélectionner un cours --</option>' + 
+        courses.map(c => `<option value="${c.id}" data-r2folder="${c.r2_folder || ''}">${c.title}</option>`).join('');
+}
+
+function updateSyncR2Folder() {
+    const select = document.getElementById('syncCourseId');
+    const option = select.options[select.selectedIndex];
+    const r2Folder = option.getAttribute('data-r2folder');
+    if (r2Folder) document.getElementById('syncR2Folder').value = r2Folder;
+}
+
+async function executeSyncR2() {
+    const courseId = document.getElementById('syncCourseId').value;
+    const r2Folder = document.getElementById('syncR2Folder').value.trim();
+    if (!courseId) { showToast('Sélectionnez un cours', 'error'); return; }
+    if (!r2Folder) { showToast('Entrez le dossier R2', 'error'); return; }
+    
+    const btn = document.getElementById('syncR2Btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation...';
+    
+    try {
+        const result = await apiRequest(`/admin/courses/${courseId}/sync-r2`, 'POST', { r2_folder: r2Folder });
+        document.getElementById('syncR2Preview').style.display = 'block';
+        document.getElementById('syncR2PreviewContent').innerHTML = `
+            <div style="color: var(--success); margin-bottom: 8px;"><i class="fas fa-check-circle"></i> Synchronisation réussie !</div>
+            <div>Épisodes créés : <strong>${result.episodes_created}</strong></div>
+            <div>Épisodes mis à jour : <strong>${result.episodes_updated}</strong></div>
+            <div>Total : <strong>${result.total_episodes}</strong></div>
+        `;
+        showToast(`Synchronisation terminée : ${result.total_episodes} épisode(s)`);
+        loadAudios();
+    } catch (error) {
+        document.getElementById('syncR2Preview').style.display = 'block';
+        document.getElementById('syncR2PreviewContent').innerHTML = `<div style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> ${error.message || 'Erreur de synchronisation'}</div>`;
+        showToast(error.message || 'Erreur de synchronisation', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync"></i> Synchroniser';
+    }
+}
+
+// === FILTER & RENDER ===
+function getFilteredAudios() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const courseFilter = document.getElementById('courseFilter').value;
+    return audios.filter(a => {
+        const matchQuery = a.title.toLowerCase().includes(query) || (a.scholar_name && a.scholar_name.toLowerCase().includes(query));
+        const matchType = !typeFilter || a.type === typeFilter;
+        const matchCategory = !categoryFilter || a.category_id === categoryFilter;
+        const matchCourse = !courseFilter || a.course_id === courseFilter;
+        return matchQuery && matchType && matchCategory && matchCourse;
+    });
+}
+
+function filterAudios() {
+    renderAudios(getFilteredAudios());
+}
+
+function renderAudios(data) {
+    if (data.length === 0) {
+        document.getElementById('audiosTable').innerHTML = `<div class="empty-state"><i class="fas fa-headphones"></i><h3>Aucun audio</h3><p>Créez un audio ou synchronisez depuis R2</p></div>`;
+        return;
+    }
+    document.getElementById('audiosTable').innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)"></th>
+                    <th>Audio</th>
+                    <th>Professeur</th>
+                    <th>Catégorie</th>
+                    <th>Module</th>
+                    <th>Durée</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(a => `
+                    <tr class="${selectedAudioIds.has(a.id) ? 'selected-row' : ''}" data-testid="audio-row-${a.id}">
+                        <td><input type="checkbox" ${selectedAudioIds.has(a.id) ? 'checked' : ''} onchange="toggleAudioSelection('${a.id}', this.checked)"></td>
+                        <td>
+                            <div class="table-cell-flex">
+                                <img src="${a.thumbnail || 'https://via.placeholder.com/40'}" class="table-avatar" style="border-radius: 4px;">
+                                <div>
+                                    <div class="table-cell-text">${a.title}</div>
+                                    <div class="table-cell-subtext">${a.topic || a.type || '-'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${a.scholar_name || '-'}</td>
+                        <td><span class="tag">${getCategoryName(a.category_id)}</span></td>
+                        <td>${a.module_id ? `<span class="tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">${getModuleName(a.module_id)}${a.episode_number ? ' #' + a.episode_number : ''}</span>` : '-'}</td>
+                        <td>${formatDuration(a.duration)}</td>
+                        <td><span class="status ${a.is_active !== false ? 'status-active' : 'status-inactive'}">${a.is_active !== false ? 'Actif' : 'Inactif'}</span></td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick='openModal(${JSON.stringify(a).replace(/'/g, "&apos;")})' title="Modifier"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-secondary btn-sm btn-icon" onclick="toggleAudio('${a.id}')" title="Activer/Désactiver"><i class="fas fa-toggle-${a.is_active !== false ? 'on' : 'off'}"></i></button>
+                                <button class="btn btn-danger btn-sm btn-icon" onclick="deleteAudio('${a.id}', '${a.title.replace(/'/g, "\\'").replace(/"/g, '\\"')}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+async function loadAudios() {
+    try {
+        [scholars, audios, categories, modules, courses] = await Promise.all([
+            apiRequest('/admin/scholars'),
+            apiRequest('/admin/audios'),
+            apiRequest('/admin/audio-categories'),
+            apiRequest('/admin/modules'),
+            apiRequest('/admin/courses')
+        ]);
+        scholars = scholars || [];
+        audios = audios || [];
+        modules = modules || [];
+        categories = categories || [];
+        courses = courses || [];
+        
+        populateCategorySelects();
+        populateBulkSelects();
+        populateCourseFilter();
+        renderAudios(audios);
+    } catch (error) { showToast('Erreur de chargement', 'error'); }
+}
+</script>
+{% endblock %}
