@@ -115,38 +115,39 @@ export default function ContextScreen() {
       }
 
       // Second paragraph is usually thinker name with dates
-      if (i === 1 && !text.startsWith('Module')) {
+      if (i === 1) {
         thinkerName = text;
         continue;
       }
 
-      // Third paragraph is usually epoch info
-      if (i === 2 && text.includes('·')) {
+      // Third paragraph is usually epoch info (contains '·')
+      if (i === 2 && (text.includes('·') || text.includes('Époque') || text.includes('epoque'))) {
         epochInfo = text;
         continue;
       }
 
-      // Check if this is a section title
+      // Check if this is a section title (exact match, case-insensitive)
+      const normalizedText = text.toLowerCase().trim();
       const isSectionTitle = SECTION_TITLES.some(title => 
-        text.toLowerCase() === title.toLowerCase()
+        normalizedText === title.toLowerCase().trim()
       );
 
       if (isSectionTitle) {
-        // Save previous section
+        // Save previous section if exists
         if (currentSection && currentSection.content.length > 0) {
           sections.push(currentSection);
         }
-        // Start new section
-        currentSection = { title: text, content: [] };
+        // Start new section with proper title formatting
+        const properTitle = SECTION_TITLES.find(t => t.toLowerCase() === normalizedText) || text;
+        currentSection = { title: properTitle, content: [] };
       } else if (currentSection) {
         // Add to current section
         currentSection.content.push(block);
       } else {
-        // Before any section, add to intro
-        if (!sections.find(s => s.title === 'Introduction')) {
-          sections.unshift({ title: 'Introduction', content: [] });
+        // Before first section title - create intro section if needed
+        if (sections.length === 0) {
+          currentSection = { title: 'Introduction', content: [block] };
         }
-        sections[0].content.push(block);
       }
     }
 
