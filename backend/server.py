@@ -15,6 +15,15 @@ from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
+# Email service for notifications
+from utils.email_service import (
+    is_email_configured,
+    send_referral_signup_notification,
+    send_referral_conversion_notification,
+    send_referee_welcome_notification,
+    send_subscription_confirmation
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
