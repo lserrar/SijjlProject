@@ -768,11 +768,12 @@
     function openEditContextModal(docId, filename, docData) {
         currentEditContextId = docId;
         document.getElementById('editContextId').value = docId;
-        document.getElementById('editContextFilename').textContent = filename;
+        document.getElementById('editContextFilename').textContent = `Fichier: ${filename}`;
         
-        // Pre-fill form
-        document.getElementById('editContextTitle').value = docData.title || '';
+        // Pre-fill form with existing data
+        document.getElementById('editContextTitle').value = docData.title || docData.subject || '';
         document.getElementById('editContextSubject').value = docData.subject || '';
+        document.getElementById('editContextCursus').value = docData.cursus_letter || '';
         document.getElementById('editContextModule').value = docData.module_number || 0;
         document.getElementById('editContextDescription').value = docData.description || '';
         document.getElementById('editContextCredits').value = docData.credits || '';
@@ -791,6 +792,7 @@
         const data = {
             title: document.getElementById('editContextTitle').value.trim(),
             subject: document.getElementById('editContextSubject').value.trim(),
+            cursus_letter: document.getElementById('editContextCursus').value || null,
             module_number: parseInt(document.getElementById('editContextModule').value) || 0,
             description: document.getElementById('editContextDescription').value.trim(),
             credits: document.getElementById('editContextCredits').value.trim()
@@ -798,7 +800,7 @@
         
         try {
             await apiRequest(`/admin/resources/context/${currentEditContextId}`, 'PUT', data);
-            showToast('Document mis à jour', 'success');
+            showToast('Fiche mise à jour avec succès', 'success');
             closeEditContextModal();
             loadResources();
         } catch (e) {
