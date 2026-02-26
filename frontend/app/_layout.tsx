@@ -55,10 +55,17 @@ export default function RootLayout() {
     return null;
   }
 
+  const handleSplashComplete = () => {
+    setShowAnimatedSplash(false);
+  };
+
   return (
     <AuthProvider>
       <PlayerProvider>
         <StatusBar style="light" />
+        {showAnimatedSplash && (
+          <AnimatedSplash onAnimationComplete={handleSplashComplete} />
+        )}
         <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
