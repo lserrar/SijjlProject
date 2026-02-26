@@ -2551,7 +2551,8 @@ async def get_context_resource(resource_id: str):
         docx_content = response['Body'].read()
         
         from docx import Document as DocxDocument
-        doc = DocxDocument(BytesIO(docx_content))
+        from io import BytesIO as BytesIOClass
+        doc = DocxDocument(BytesIOClass(docx_content))
         
         # Parse document content
         content_blocks = []
