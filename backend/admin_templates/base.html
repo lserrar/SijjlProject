@@ -750,9 +750,14 @@
 
         <!-- Main Content -->
         <main class="main-content" id="mainContent">
+            {% block content %}
             <!-- Content will be loaded here -->
+            {% endblock %}
         </main>
     </div>
+
+    <!-- Modal Overlay (optional, can be overridden) -->
+    {% block modals %}{% endblock %}
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
