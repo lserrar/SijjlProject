@@ -10,6 +10,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 import { colors, spacing } from '../../constants/theme';
 import { API_URL } from '../../constants/api';
 
@@ -53,27 +54,58 @@ export default function TimelineScreen() {
     }
   };
 
+  // Native mobile version using WebView
   if (Platform.OS !== 'web') {
-    // For native, show a message to use web
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Frise Chronologique</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.centerContent}>
-          <Ionicons name="globe-outline" size={64} color={colors.text.tertiary} />
-          <Text style={styles.message}>
-            La frise chronologique interactive est disponible sur la version web.
-          </Text>
-        </View>
+        {/* Floating back button */}
+        <TouchableOpacity 
+          onPress={handleBack} 
+          style={styles.floatingBackButton}
+          data-testid="timeline-back-btn"
+        >
+          <Ionicons name="close" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.brand.primary} />
+            <Text style={styles.loadingText}>Chargement de la frise...</Text>
+          </View>
+        )}
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={48} color={colors.brand.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={handleBack} style={styles.errorButton}>
+              <Text style={styles.errorButtonText}>Retour</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <WebView
+          source={{ uri: timelineUrl }}
+          style={styles.webview}
+          onLoadStart={() => setLoading(true)}
+          onLoadEnd={() => setLoading(false)}
+          onError={(syntheticEvent) => {
+            const { nativeEvent } = syntheticEvent;
+            setLoading(false);
+            setError('Impossible de charger la frise chronologique');
+            console.warn('WebView error: ', nativeEvent);
+          }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
+          scalesPageToFit={true}
+          allowsFullscreenVideo={true}
+        />
       </SafeAreaView>
     );
   }
 
+  // Web version using iframe
   return (
     <SafeAreaView style={styles.safe}>
       {/* Floating back button */}
