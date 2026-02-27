@@ -889,7 +889,7 @@ async def logout():
 
 @api_router.get("/scholars")
 async def get_scholars():
-    scholars = await db.scholars.find({}, {'_id': 0}).to_list(100)
+    scholars = await db.scholars.find({'is_active': {'$ne': False}}, {'_id': 0}).to_list(100)
     return scholars
 
 @api_router.get("/scholars/{scholar_id}")
