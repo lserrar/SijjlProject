@@ -53,11 +53,14 @@ def send_email(
         logger.warning("SMTP not configured - email not sent")
         return {'success': False, 'error': 'Email service not configured'}
     
+    # Get config dynamically
+    config = get_smtp_config()
+    
     try:
         # Create message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = f"{SMTP_SENDER_NAME} <{SMTP_SENDER_EMAIL}>"
+        msg['From'] = f"{config['sender_name']} <{config['sender_email']}>"
         msg['To'] = f"{to_name} <{to_email}>"
         
         # Add plain text and HTML parts
@@ -69,9 +72,9 @@ def send_email(
         msg.attach(part2)
         
         # Connect and send
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        with smtplib.SMTP(config['host'], config['port']) as server:
             server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(config['user'], config['password'])
             server.send_message(msg)
         
         logger.info(f"Email sent successfully to {to_email}")
