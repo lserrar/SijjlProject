@@ -1504,30 +1504,48 @@ async def get_home(request: Request):
             {'user_id': user_id, 'content_type': 'audio', 'completed': {'$ne': True}, 'progress': {'$gt': 0.01}},
             {'_id': 0}
         ).sort('updated_at', -1).limit(3).to_list(3)
-        for p in progress_items:
-            audio = await db.audios.find_one({'id': p['content_id']}, {'_id': 0})
-            if audio:
-                audio['stream_url'] = resolve_audio_url(audio)
-                if audio.get('course_id'):
-                    course_info = await db.courses.find_one(
-                        {'id': audio['course_id']}, {'_id': 0, 'title': 1, 'cursus_id': 1, 'id': 1}
-                    )
-                    if course_info:
-                        audio['cursus_id'] = course_info.get('cursus_id', '')
-                        audio = enrich_cursus(audio)
-                continue_watching.append({
-                    'audio': audio,
-                    'progress': p.get('progress', 0),
-                    'position': p.get('position', 0),
-                })
+        
+        if progress_items:
+            # Batch fetch audios (fix N+1)
+            audio_ids = [p['content_id'] for p in progress_items]
+            audios_list = await db.audios.find({'id': {'$in': audio_ids}}, {'_id': 0}).to_list(10)
+            audio_map = {a['id']: a for a in audios_list}
+            
+            # Batch fetch courses for these audios (fix nested N+1)
+            course_ids = [a.get('course_id') for a in audios_list if a.get('course_id')]
+            courses_list = await db.courses.find({'id': {'$in': course_ids}}, {'_id': 0, 'title': 1, 'cursus_id': 1, 'id': 1}).to_list(10)
+            course_map = {c['id']: c for c in courses_list}
+            
+            for p in progress_items:
+                audio = audio_map.get(p['content_id'])
+                if audio:
+                    audio = dict(audio)  # Make a copy to avoid modifying cached data
+                    audio['stream_url'] = resolve_audio_url(audio)
+                    if audio.get('course_id'):
+                        course_info = course_map.get(audio['course_id'])
+                        if course_info:
+                            audio['cursus_id'] = course_info.get('cursus_id', '')
+                            audio = enrich_cursus(audio)
+                    continue_watching.append({
+                        'audio': audio,
+                        'progress': p.get('progress', 0),
+                        'position': p.get('position', 0),
+                    })
 
     # 3. Recent episodes (last 8 audios, enriched with cursus)
     recent_audios_raw = await db.audios.find({'is_active': True}, {'_id': 0}).sort('published_at', -1).limit(8).to_list(8)
+    
+    # Batch fetch courses for recent audios (fix N+1)
+    recent_course_ids = [a.get('course_id') for a in recent_audios_raw if a.get('course_id')]
+    recent_courses = await db.courses.find({'id': {'$in': recent_course_ids}}, {'_id': 0, 'cursus_id': 1, 'id': 1}).to_list(10)
+    recent_course_map = {c['id']: c for c in recent_courses}
+    
     recent_episodes = []
     for audio in recent_audios_raw:
+        audio = dict(audio)  # Make a copy
         audio['stream_url'] = resolve_audio_url(audio)
         if audio.get('course_id'):
-            course_info = await db.courses.find_one({'id': audio['course_id']}, {'_id': 0, 'cursus_id': 1})
+            course_info = recent_course_map.get(audio['course_id'])
             if course_info:
                 audio['cursus_id'] = course_info.get('cursus_id', '')
         audio = enrich_cursus(audio)
