@@ -1627,12 +1627,29 @@ async def get_favorites(request: Request):
     if not user:
         raise HTTPException(401, "Authentification requise")
     favs = await db.user_favorites.find({'user_id': user['user_id']}, {'_id': 0}).to_list(500)
+    
+    # Group favorites by content type for batch fetching (fix N+1)
+    favs_by_type = {}
+    for fav in favs:
+        ctype = fav.get('content_type', 'audio')
+        if ctype not in favs_by_type:
+            favs_by_type[ctype] = []
+        favs_by_type[ctype].append(fav)
+    
+    # Batch fetch content for each type
+    content_maps = {}
+    coll_map = {'course': db.courses, 'audio': db.audios, 'article': db.articles}
+    for ctype, type_favs in favs_by_type.items():
+        coll = coll_map.get(ctype, db.audios)
+        content_ids = [f['content_id'] for f in type_favs]
+        contents = await coll.find({'id': {'$in': content_ids}}, {'_id': 0}).to_list(100)
+        content_maps[ctype] = {c['id']: c for c in contents}
+    
+    # Build result
     result = []
     for fav in favs:
         ctype = fav.get('content_type', 'audio')
-        coll_map = {'course': db.courses, 'audio': db.audios, 'article': db.articles}
-        coll = coll_map.get(ctype, db.audios)
-        content = await coll.find_one({'id': fav['content_id']}, {'_id': 0})
+        content = content_maps.get(ctype, {}).get(fav['content_id'])
         if content:
             result.append({'favorite': fav, 'content': content})
     return result
