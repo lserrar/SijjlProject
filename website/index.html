@@ -584,7 +584,24 @@
             <label class="form-label">Mot de passe</label>
             <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
           </div>
+          <div class="forgot-password-link">
+            <a href="#" onclick="showForgotPasswordForm(); return false;">Mot de passe oublié ?</a>
+          </div>
           <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+        </form>
+        
+        <form id="forgot-password-form" style="display: none;" onsubmit="handleForgotPassword(event)">
+          <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">
+            Entrez votre email pour recevoir un lien de réinitialisation.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="forgot-email" class="form-input" placeholder="votre@email.com" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="forgot-btn">Envoyer le lien</button>
+          <div id="forgot-success" style="display: none; color: #04D182; text-align: center; margin-top: 1rem; padding: 1rem; background: rgba(4, 209, 130, 0.1); border-radius: 8px;">
+            <i class="fas fa-check-circle"></i> Email envoyé ! Vérifiez votre boîte de réception.
+          </div>
         </form>
         
         <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
