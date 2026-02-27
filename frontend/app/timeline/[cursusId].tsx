@@ -159,6 +159,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
+  webview: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
