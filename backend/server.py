@@ -569,6 +569,13 @@ async def register(body: RegisterRequest):
     await db.users.insert_one(user_doc)
     token = create_jwt({'user_id': user_id, 'exp': int((now + timedelta(days=7)).timestamp())})
     
+    # Send welcome email (if no referral - referral users get a different welcome email above)
+    if not referrer_user and is_email_configured():
+        send_welcome_email(
+            user_email=body.email,
+            user_name=body.name
+        )
+    
     # Return user data (exclude sensitive fields)
     user_response = {k: v for k, v in user_doc.items() if k not in ('_id', 'password_hash')}
     if referrer_user:
