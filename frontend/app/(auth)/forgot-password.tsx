@@ -76,7 +76,7 @@ export default function ForgotPasswordScreen() {
             
             <Text style={styles.noteText}>
               Si vous ne recevez pas d'email, vérifiez vos spams ou contactez-nous à{' '}
-              <Text style={styles.emailLink}>support@sijillproject.com</Text>
+              <Text style={styles.emailLink}>contact@sijillproject.com</Text>
             </Text>
             
             <TouchableOpacity
