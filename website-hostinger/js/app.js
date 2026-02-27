@@ -168,11 +168,25 @@ function showLoginModal() {
     const title = document.getElementById('modal-title');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
+    const forgotForm = document.getElementById('forgot-password-form');
     const switchText = document.getElementById('modal-switch');
+    const forgotBtn = document.getElementById('forgot-btn');
+    const successEl = document.getElementById('forgot-success');
+    
     if (title) title.textContent = 'Connexion';
     if (loginForm) loginForm.style.display = 'block';
     if (registerForm) registerForm.style.display = 'none';
+    if (forgotForm) forgotForm.style.display = 'none';
     if (switchText) switchText.innerHTML = 'Pas encore de compte ? <a href="#" onclick="showRegisterModal(); return false;">S\'inscrire</a>';
+    
+    // Reset forgot password form state
+    if (forgotBtn) {
+      forgotBtn.style.display = 'block';
+      forgotBtn.disabled = false;
+      forgotBtn.textContent = 'Envoyer le lien';
+    }
+    if (successEl) successEl.style.display = 'none';
+    
     // Clear any previous errors
     const errorEl = document.getElementById('form-error');
     if (errorEl) errorEl.style.display = 'none';
@@ -197,6 +211,65 @@ function showRegisterModal() {
 function hideModal() {
   const modal = document.getElementById('auth-modal');
   if (modal) modal.classList.remove('active');
+}
+
+function showForgotPasswordForm() {
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const forgotForm = document.getElementById('forgot-password-form');
+  const title = document.getElementById('modal-title');
+  const switchText = document.getElementById('modal-switch');
+  const errorEl = document.getElementById('form-error');
+  const successEl = document.getElementById('forgot-success');
+  
+  if (loginForm) loginForm.style.display = 'none';
+  if (registerForm) registerForm.style.display = 'none';
+  if (forgotForm) forgotForm.style.display = 'block';
+  if (title) title.textContent = 'Mot de passe oublié';
+  if (switchText) switchText.innerHTML = '<a href="#" onclick="showLoginModal(); return false;"><i class="fas fa-arrow-left"></i> Retour à la connexion</a>';
+  if (errorEl) errorEl.style.display = 'none';
+  if (successEl) successEl.style.display = 'none';
+}
+
+async function handleForgotPassword(event) {
+  event.preventDefault();
+  const email = document.getElementById('forgot-email').value;
+  const btn = document.getElementById('forgot-btn');
+  const errorEl = document.getElementById('form-error');
+  const successEl = document.getElementById('forgot-success');
+  
+  if (!email) {
+    showError('Veuillez entrer votre adresse email');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours...';
+  if (errorEl) errorEl.style.display = 'none';
+  
+  try {
+    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      if (successEl) successEl.style.display = 'block';
+      btn.style.display = 'none';
+    } else {
+      showError(data.detail || 'Une erreur est survenue');
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le lien';
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    showError('Erreur de connexion au serveur');
+    btn.disabled = false;
+    btn.textContent = 'Envoyer le lien';
+  }
 }
 
 function showError(message) {

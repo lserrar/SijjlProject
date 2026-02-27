@@ -598,6 +598,21 @@ p { color: var(--text-secondary); }
 .form-input:focus { outline: none; border-color: var(--brand-primary); }
 .form-input::placeholder { color: var(--text-muted); }
 
+.forgot-password-link {
+  text-align: right;
+  margin-bottom: var(--spacing-md);
+}
+.forgot-password-link a {
+  color: var(--brand-primary);
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-family: var(--font-body);
+  transition: opacity 0.2s ease;
+}
+.forgot-password-link a:hover {
+  opacity: 0.8;
+}
+
 .btn-full { width: 100%; }
 
 .social-divider {

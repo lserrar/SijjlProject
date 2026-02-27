@@ -373,23 +373,23 @@
   <!-- Header -->
   <header class="header">
     <div class="container header-content">
-      <a href="/" class="logo">
+      <a href="/api/site/" class="logo">
         <span class="logo-text">SIJILL PROJECT</span>
         <span class="logo-dot"></span>
       </a>
       
       <nav class="nav" id="main-nav">
-        <a href="/" class="nav-link active">Accueil</a>
-        <a href="/pages/cursus.html" class="nav-link">Cursus</a>
-        <a href="/pages/professeurs.html" class="nav-link">Professeurs</a>
-        <a href="/pages/a-propos.html" class="nav-link">À propos</a>
+        <a href="/api/site/" class="nav-link active">Accueil</a>
+        <a href="pages/cursus.html" class="nav-link">Cursus</a>
+        <a href="pages/professeurs.html" class="nav-link">Professeurs</a>
+        <a href="pages/a-propos.html" class="nav-link">À propos</a>
       </nav>
       
       <div class="header-actions">
         <button class="icon-btn" id="auth-btn" onclick="showLoginModal()">
           <i class="fas fa-user"></i>
         </button>
-        <a href="/pages/abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
+        <a href="pages/abonnement.html" class="btn btn-primary" id="subscribe-btn">S'abonner</a>
       </div>
       
       <button class="mobile-menu-btn" onclick="toggleNav()">
@@ -443,7 +443,7 @@
     <section class="home-section" id="cursus-section">
       <div class="section-header">
         <span class="section-title-small">Nos Cursus</span>
-        <a href="/pages/cursus.html" class="section-link">Voir tout →</a>
+        <a href="pages/cursus.html" class="section-link">Voir tout →</a>
       </div>
       <div class="grid-container" id="cursus-container">
         <div style="text-align: center; padding: var(--spacing-xl); grid-column: span 2;">
@@ -534,10 +534,10 @@
         <div class="footer-links">
           <h4>Navigation</h4>
           <ul>
-            <li><a href="/">Accueil</a></li>
-            <li><a href="/pages/cursus.html">Cursus</a></li>
-            <li><a href="/pages/professeurs.html">Professeurs</a></li>
-            <li><a href="/pages/a-propos.html">À propos</a></li>
+            <li><a href="/api/site/">Accueil</a></li>
+            <li><a href="pages/cursus.html">Cursus</a></li>
+            <li><a href="pages/professeurs.html">Professeurs</a></li>
+            <li><a href="pages/a-propos.html">À propos</a></li>
           </ul>
         </div>
         
@@ -584,7 +584,24 @@
             <label class="form-label">Mot de passe</label>
             <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
           </div>
+          <div class="forgot-password-link">
+            <a href="#" onclick="showForgotPasswordForm(); return false;">Mot de passe oublié ?</a>
+          </div>
           <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+        </form>
+        
+        <form id="forgot-password-form" style="display: none;" onsubmit="handleForgotPassword(event)">
+          <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">
+            Entrez votre email pour recevoir un lien de réinitialisation.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="forgot-email" class="form-input" placeholder="votre@email.com" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="forgot-btn">Envoyer le lien</button>
+          <div id="forgot-success" style="display: none; color: #04D182; text-align: center; margin-top: 1rem; padding: 1rem; background: rgba(4, 209, 130, 0.1); border-radius: 8px;">
+            <i class="fas fa-check-circle"></i> Email envoyé ! Vérifiez votre boîte de réception.
+          </div>
         </form>
         
         <form id="register-form" style="display: none;" onsubmit="handleRegisterSubmit(event)">
