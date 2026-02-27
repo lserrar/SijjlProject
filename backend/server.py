@@ -1562,10 +1562,14 @@ async def get_home(request: Request):
     top5_courses = []
     config = await db.config.find_one({'key': 'top10_courses'}, {'_id': 0})
     if config and config.get('course_ids'):
-        for cid in config['course_ids'][:5]:
-            c = await db.courses.find_one({'id': cid, 'is_active': True}, {'_id': 0})
-            if c:
-                top5_courses.append(enrich_cursus(c))
+        # Batch fetch top courses (fix N+1)
+        top_course_ids = config['course_ids'][:5]
+        top_courses_raw = await db.courses.find({'id': {'$in': top_course_ids}, 'is_active': True}, {'_id': 0}).to_list(5)
+        # Preserve order from config
+        top_course_map = {c['id']: c for c in top_courses_raw}
+        for cid in top_course_ids:
+            if cid in top_course_map:
+                top5_courses.append(enrich_cursus(top_course_map[cid]))
     if len(top5_courses) < 5:
         existing_ids = [c['id'] for c in top5_courses]
         extra = await db.courses.find(
