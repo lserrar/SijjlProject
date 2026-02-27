@@ -168,11 +168,25 @@ function showLoginModal() {
     const title = document.getElementById('modal-title');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
+    const forgotForm = document.getElementById('forgot-password-form');
     const switchText = document.getElementById('modal-switch');
+    const forgotBtn = document.getElementById('forgot-btn');
+    const successEl = document.getElementById('forgot-success');
+    
     if (title) title.textContent = 'Connexion';
     if (loginForm) loginForm.style.display = 'block';
     if (registerForm) registerForm.style.display = 'none';
+    if (forgotForm) forgotForm.style.display = 'none';
     if (switchText) switchText.innerHTML = 'Pas encore de compte ? <a href="#" onclick="showRegisterModal(); return false;">S\'inscrire</a>';
+    
+    // Reset forgot password form state
+    if (forgotBtn) {
+      forgotBtn.style.display = 'block';
+      forgotBtn.disabled = false;
+      forgotBtn.textContent = 'Envoyer le lien';
+    }
+    if (successEl) successEl.style.display = 'none';
+    
     // Clear any previous errors
     const errorEl = document.getElementById('form-error');
     if (errorEl) errorEl.style.display = 'none';
