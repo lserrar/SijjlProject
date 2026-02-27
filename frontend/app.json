@@ -1,29 +1,32 @@
 {
   "expo": {
-    "name": "HikmabyLM",
-    "slug": "frontend",
+    "name": "Sijill Project",
+    "slug": "sijill-project",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "hikma",
+    "scheme": "sijill",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hikmabyLM.app",
+      "bundleIdentifier": "com.sijillproject.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Enregistrer des notes audio pour vos cours",
         "NSCameraUsageDescription": "Scanner des documents pour vos cours",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "backgroundColor": "#0A0A0A"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.hikmabyLM.app",
+      "package": "com.sijillproject.app",
+      "versionCode": 1,
       "permissions": ["INTERNET", "READ_EXTERNAL_STORAGE", "FOREGROUND_SERVICE"]
     },
     "web": {
@@ -45,12 +48,17 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#121212"
+          "backgroundColor": "#0A0A0A"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "sijill-project"
+      }
     }
   }
 }
