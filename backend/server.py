@@ -1301,12 +1301,17 @@ async def get_thematiques():
     """Get all cursus (themes) ordered by position."""
     # Use only the cursus collection
     cursus = await db.cursus.find({'is_active': {'$ne': False}}, {'_id': 0}).sort('order', 1).to_list(100)
+    
+    # Batch count courses per cursus using aggregation (fix N+1 query)
+    course_counts = await db.courses.aggregate([
+        {'$match': {'is_active': {'$ne': False}}},
+        {'$group': {'_id': '$cursus_id', 'count': {'$sum': 1}}}
+    ]).to_list(100)
+    count_map = {item['_id']: item['count'] for item in course_counts}
+    
     # Add course count for each cursus
     for c in cursus:
-        c['course_count'] = await db.courses.count_documents({
-            'cursus_id': c['id'],
-            'is_active': {'$ne': False}
-        })
+        c['course_count'] = count_map.get(c['id'], 0)
     return cursus
 
 @api_router.get("/thematiques/{thematique_id}")
