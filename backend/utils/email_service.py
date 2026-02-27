@@ -10,18 +10,23 @@ from typing import Optional, Dict
 
 logger = logging.getLogger(__name__)
 
-# SMTP Configuration from environment
-SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp-pulse.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-SMTP_USER = os.environ.get('SMTP_USER', '')
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
-SMTP_SENDER_EMAIL = os.environ.get('SMTP_SENDER_EMAIL', '')
-SMTP_SENDER_NAME = os.environ.get('SMTP_SENDER_NAME', 'Sijill Project')
+
+def get_smtp_config():
+    """Get SMTP configuration from environment (read dynamically)."""
+    return {
+        'host': os.environ.get('SMTP_HOST', 'smtp-pulse.com'),
+        'port': int(os.environ.get('SMTP_PORT', '587')),
+        'user': os.environ.get('SMTP_USER', ''),
+        'password': os.environ.get('SMTP_PASSWORD', ''),
+        'sender_email': os.environ.get('SMTP_SENDER_EMAIL', ''),
+        'sender_name': os.environ.get('SMTP_SENDER_NAME', 'Sijill Project'),
+    }
 
 
 def is_email_configured() -> bool:
     """Check if SMTP credentials are configured."""
-    return bool(SMTP_USER and SMTP_PASSWORD and SMTP_SENDER_EMAIL)
+    config = get_smtp_config()
+    return bool(config['user'] and config['password'] and config['sender_email'])
 
 
 def send_email(
