@@ -6337,7 +6337,7 @@ Tous les contenus sont protégés par le droit d'auteur.
 
 ## 4. Contact
 
-Email : support@sijill.com"""
+Email : contact@sijillproject.com"""
     }
 }
 
