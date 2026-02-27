@@ -5907,6 +5907,21 @@ async def grant_user_access(transaction: dict):
             }}
         )
         
+        # Send subscription confirmation email
+        if user and is_email_configured():
+            plan_name = transaction['metadata'].get('plan_name', 'Abonnement Sijill')
+            amount = float(transaction.get('amount', 0))
+            end_date = expires_at.strftime('%d/%m/%Y')
+            
+            send_subscription_confirmation(
+                user_email=user.get('email', ''),
+                user_name=user.get('name', 'Utilisateur'),
+                plan_name=plan_name,
+                amount=amount,
+                end_date=end_date
+            )
+            logger.info(f"Subscription confirmation email sent to {user.get('email')}")
+        
         # Check if this user was referred and convert the referral
         if user and user.get('referred_by'):
             referrer_id = user['referred_by']
@@ -5954,6 +5969,16 @@ async def grant_user_access(transaction: dict):
                             '$set': {'subscription_end_date': new_end}
                         }
                     )
+                    
+                    # Send referral conversion notification to referrer
+                    if is_email_configured():
+                        send_referral_conversion_notification(
+                            referrer_email=referrer.get('email', ''),
+                            referrer_name=referrer.get('name', 'Membre'),
+                            referee_name=user.get('name', 'Un membre'),
+                            free_months=1
+                        )
+                    
                     logger.info(f"Referrer {referrer_id} rewarded with 1 free month for referral conversion")
     
     elif purchase_type in ('course', 'cursus'):
