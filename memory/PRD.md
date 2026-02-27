@@ -97,7 +97,7 @@ A separate public-facing website (`sijillproject.com`) was also requested to val
 | Cloudflare R2 | ✅ Active | Media storage |
 | Stripe | ✅ Active | Subscriptions |
 | Google Fonts | ✅ Active | Cinzel, EB Garamond |
-| SendPulse | ⏸️ Coded | Waiting for account |
+| SendPulse | ✅ Active | SMTP configured |
 | Apple Sign-In | ⏸️ Coded | Waiting for user config |
 
 ## Static Website URLs
@@ -106,3 +106,32 @@ A separate public-facing website (`sijillproject.com`) was also requested to val
 - Professors: `/api/site/pages/professeurs.html`
 - About: `/api/site/pages/a-propos.html`
 - Subscriptions: `/api/site/pages/abonnement.html`
+- Reset Password: `/api/site/pages/reset-password.html`
+
+## Recent Changes (2026-02-27)
+
+### Email System - COMPLETED
+- ✅ **SendPulse SMTP Integration**: Configured and tested with `smtp-pulse.com:587`
+  - Sender: `contact@sijillproject.com`
+  - SMTP User: `sijill.project@gmail.com`
+- ✅ **Email Templates**: All templates using branded HTML design
+  - Welcome email (new users)
+  - Subscription confirmation
+  - Referral notifications (signup + conversion)
+  - Password reset
+
+### Password Recovery - COMPLETED
+- ✅ **Forgot Password API**: `POST /api/auth/forgot-password`
+  - Generates secure token (`rst_*`)
+  - Token expires in 1 hour
+  - Sends reset link via email
+- ✅ **Reset Password API**: `POST /api/auth/reset-password`
+  - Validates token
+  - Updates password
+  - Marks token as used
+- ✅ **Token Validation API**: `GET /api/auth/reset-password/validate`
+- ✅ **Static Site Integration**:
+  - "Mot de passe oublié" link in login modal
+  - Forgot password form
+  - Reset password page (`/pages/reset-password.html`)
+
