@@ -598,33 +598,109 @@ async def login(body: LoginRequest):
 class ForgotPasswordRequest(BaseModel):
     email: str
 
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 @api_router.post("/auth/forgot-password")
 async def forgot_password(body: ForgotPasswordRequest):
-    """Request a password reset. Stores the request for admin to process."""
+    """Request a password reset. Generates token and sends email."""
     email = body.email.lower().strip()
+    now = datetime.now(timezone.utc)
     
-    # Check if user exists (but don't reveal this to prevent enumeration)
+    # Check if user exists
     user = await db.users.find_one({'email': email}, {'_id': 0})
     
-    # Always log the request for admin review
-    reset_request = {
-        'email': email,
-        'requested_at': datetime.now(timezone.utc).isoformat(),
-        'status': 'pending',
-        'user_exists': user is not None
-    }
-    
-    # Store request (upsert to avoid duplicates)
-    await db.password_reset_requests.update_one(
-        {'email': email},
-        {'$set': reset_request},
-        upsert=True
-    )
-    
-    logger.info(f"Password reset requested: email={email}, user_exists={user is not None}")
+    if user:
+        # Generate secure reset token
+        reset_token = f"rst_{uuid.uuid4().hex}"
+        expires_at = now + timedelta(hours=1)
+        
+        # Store reset token in database
+        await db.password_reset_tokens.update_one(
+            {'email': email},
+            {'$set': {
+                'email': email,
+                'user_id': user['user_id'],
+                'token': reset_token,
+                'created_at': now,
+                'expires_at': expires_at,
+                'used': False
+            }},
+            upsert=True
+        )
+        
+        # Build reset link
+        reset_link = f"https://sijillproject.com/reset-password?token={reset_token}"
+        
+        # Send email if configured
+        if is_email_configured():
+            result = send_password_reset_email(
+                user_email=email,
+                user_name=user.get('name', 'Utilisateur'),
+                reset_link=reset_link
+            )
+            logger.info(f"Password reset email sent: email={email}, success={result.get('success')}")
+        else:
+            logger.warning(f"Email not configured - reset token generated but not sent: {email}")
     
     # Always return success to prevent email enumeration attacks
-    return {'message': 'Si un compte existe avec cette adresse, un email a été envoyé.'}
+    return {'message': 'Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé.'}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(body: ResetPasswordRequest):
+    """Reset password using the token received by email."""
+    now = datetime.now(timezone.utc)
+    
+    # Find valid token
+    token_doc = await db.password_reset_tokens.find_one({
+        'token': body.token,
+        'used': False,
+        'expires_at': {'$gt': now}
+    })
+    
+    if not token_doc:
+        raise HTTPException(400, "Lien de réinitialisation invalide ou expiré")
+    
+    # Validate new password
+    if len(body.new_password) < 6:
+        raise HTTPException(400, "Le mot de passe doit contenir au moins 6 caractères")
+    
+    # Update user password
+    new_hash = hash_password(body.new_password)
+    result = await db.users.update_one(
+        {'user_id': token_doc['user_id']},
+        {'$set': {'password_hash': new_hash}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    
+    # Mark token as used
+    await db.password_reset_tokens.update_one(
+        {'token': body.token},
+        {'$set': {'used': True, 'used_at': now}}
+    )
+    
+    logger.info(f"Password reset successful: user_id={token_doc['user_id']}")
+    
+    return {'message': 'Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.'}
+
+@api_router.get("/auth/reset-password/validate")
+async def validate_reset_token(token: str):
+    """Validate a reset token before showing the reset form."""
+    now = datetime.now(timezone.utc)
+    
+    token_doc = await db.password_reset_tokens.find_one({
+        'token': token,
+        'used': False,
+        'expires_at': {'$gt': now}
+    })
+    
+    if not token_doc:
+        raise HTTPException(400, "Lien de réinitialisation invalide ou expiré")
+    
+    return {'valid': True, 'email': token_doc.get('email', '')}
 
 @api_router.post("/auth/google/exchange")
 async def google_exchange(body: GoogleSessionRequest):
