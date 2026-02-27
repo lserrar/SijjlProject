@@ -66,7 +66,7 @@ A separate public-facing website (`sijillproject.com`) was also requested to val
 
 ### P1 - High Priority
 - [ ] Refactor `backend/server.py` into FastAPI Router modules
-- [ ] Activate SendPulse integration (waiting for user account validation)
+- [x] ~~Activate SendPulse integration~~ - DONE (2026-02-27)
 - [ ] Clean up admin templates (`*_new.html` → `*.html`)
 
 ### P2 - Medium Priority
