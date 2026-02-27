@@ -22,7 +22,9 @@ from utils.email_service import (
     send_referral_signup_notification,
     send_referral_conversion_notification,
     send_referee_welcome_notification,
-    send_subscription_confirmation
+    send_subscription_confirmation,
+    send_password_reset_email,
+    send_welcome_email
 )
 
 # Apple Sign-In
