@@ -928,9 +928,14 @@ async def get_course_playlist(course_id: str):
         {'course_id': course_id, 'is_active': True}, {'_id': 0}
     ).sort('order', 1).to_list(200)
 
+    # Batch fetch all audios for these modules (fix N+1 query)
+    module_ids = [mod['id'] for mod in modules]
+    audios_list = await db.audios.find({'module_id': {'$in': module_ids}}, {'_id': 0}).to_list(200)
+    audio_map = {a['module_id']: a for a in audios_list}
+
     playlist = []
     for mod in modules:
-        audio = await db.audios.find_one({'module_id': mod['id']}, {'_id': 0})
+        audio = audio_map.get(mod['id'])
         if audio:
             audio['stream_url'] = resolve_audio_url(audio)
             playlist.append({
