@@ -6533,6 +6533,11 @@ WEBSITE_DIR = Path(__file__).parent.parent / "website"
 if WEBSITE_DIR.exists():
     app.mount("/api/site", StaticFiles(directory=str(WEBSITE_DIR), html=True), name="website")
 
+# Mount backend static files at /api/static
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

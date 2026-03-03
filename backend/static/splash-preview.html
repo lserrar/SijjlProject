@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sijill Splash Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #0A0A0A;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+        }
+        
+        .logo-container {
+            text-align: center;
+            animation: scaleUp 4.5s ease-out forwards;
+        }
+        
+        .logo-sijill {
+            font-size: 44px;
+            font-weight: 400;
+            color: #F5F0E8;
+            letter-spacing: 12px;
+            margin-bottom: 4px;
+        }
+        
+        .project-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-project {
+            font-size: 44px;
+            font-weight: 400;
+            color: #F5F0E8;
+            letter-spacing: 4px;
+        }
+        
+        .green-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #04D182;
+            border-radius: 50%;
+            margin-left: 6px;
+            box-shadow: 0 0 15px #04D182, 0 0 30px #04D182;
+        }
+        
+        @keyframes scaleUp {
+            from {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .logo-container {
+            animation: fadeIn 0.8s ease-out, scaleUp 4.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <div class="logo-sijill">SIJILL</div>
+        <div class="project-row">
+            <span class="logo-project">PROJECT</span>
+            <div class="green-dot"></div>
+        </div>
+    </div>
+</body>
+</html>
