@@ -1,0 +1,11 @@
+# Enable URL Rewriting
+RewriteEngine On
+
+# If the request is not a directory
+RewriteCond %{REQUEST_FILENAME} !-d
+# And if the request is not an existing file
+RewriteCond %{REQUEST_FILENAME} !-f
+# And if adding .html makes it a valid file
+RewriteCond %{REQUEST_FILENAME}.html -f
+# Then rewrite to add .html
+RewriteRule ^(.*)$ $1.html [L]
