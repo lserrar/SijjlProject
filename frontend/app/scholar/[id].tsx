@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Platform,
+  ActivityIndicator, Platform, Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { apiRequest, useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://ijazah-deploy.preview.emergentagent.com';
 
 const CURSUS_COLORS: Record<string, string> = {
   A: '#04D182',
@@ -88,10 +90,17 @@ export default function ScholarDetailScreen() {
             <Text style={styles.backLabel}>Professeurs</Text>
           </TouchableOpacity>
 
-          {/* Avatar */}
-          <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
-            <Text style={[styles.avatarText, { color: primaryColor }]}>{initials}</Text>
-          </View>
+          {/* Avatar with Photo */}
+          {scholar.photo ? (
+            <Image
+              source={{ uri: scholar.photo.startsWith('http') ? scholar.photo : `${API_URL}${scholar.photo.startsWith('/') ? '' : '/'}${scholar.photo}` }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: `${primaryColor}1A` }]}>
+              <Text style={[styles.avatarText, { color: primaryColor }]}>{initials}</Text>
+            </View>
+          )}
 
           {/* Name */}
           <Text style={styles.name}>{scholar.name}</Text>
@@ -270,6 +279,12 @@ const styles = StyleSheet.create({
     height: 80,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 16,
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 16,
   },
   avatarText: {
