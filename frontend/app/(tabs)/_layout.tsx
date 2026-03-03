@@ -22,30 +22,41 @@ export default function TabLayout() {
   const { currentTrack } = usePlayer();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const isDesktop = screenWidth >= 768;
-  const headerHeight = (isDesktop ? 56 : 52) + insets.top;
   
-  // Hide tab bar on web - use header navigation instead
-  const tabBarHeight = isWeb ? 0 : 72 + insets.bottom;
+  // Desktop = screen width >= 768px
+  const isDesktop = screenWidth >= 768;
+  
+  // On web desktop: hide bottom tab bar (use top menu)
+  // On web mobile: show bottom tab bar (hide top menu)
+  // On native app: always show bottom tab bar
+  const showBottomTabBar = !isWeb || (isWeb && !isDesktop);
+  const showTopHeader = !isWeb || (isWeb && isDesktop);
+  
+  const headerHeight = showTopHeader ? ((isDesktop ? 56 : 52) + insets.top) : 0;
+  const tabBarHeight = showBottomTabBar ? (72 + insets.bottom) : 0;
 
   return (
     <View style={styles.wrapper}>
-      {/* Global Header */}
-      <GlobalHeader />
+      {/* Global Header - only on desktop web or native app */}
+      {showTopHeader && <GlobalHeader />}
 
       {/* Main Content with padding for header */}
       <View style={[styles.content, { paddingTop: headerHeight }]}>
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarStyle: isWeb ? { display: 'none' } : {
+            tabBarStyle: showBottomTabBar ? {
               backgroundColor: BG,
               borderTopColor: '#222222',
               borderTopWidth: 1,
               height: tabBarHeight,
               paddingBottom: insets.bottom,
               paddingTop: 10,
-            },
+              position: 'absolute' as const,
+              bottom: 0,
+              left: 0,
+              right: 0,
+            } : { display: 'none' },
             tabBarActiveTintColor: ACTIVE,
             tabBarInactiveTintColor: INACTIVE,
             tabBarLabelStyle: {

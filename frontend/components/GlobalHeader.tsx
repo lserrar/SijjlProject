@@ -36,6 +36,15 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
   // Use hook to get dynamic window dimensions
   const { width: screenWidth } = useWindowDimensions();
   const isDesktop = screenWidth >= 768;
+  
+  // On web mobile, hide the header completely (use bottom tab bar instead)
+  const isWeb = Platform.OS === 'web';
+  const isWebMobile = isWeb && !isDesktop;
+  
+  // Hide header on web mobile - bottom tab bar will be shown
+  if (isWebMobile) {
+    return null;
+  }
 
   const isActive = (path: string) => {
     if (path === '/(tabs)') {
