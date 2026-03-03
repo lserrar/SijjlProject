@@ -24,7 +24,8 @@ from utils.email_service import (
     send_referee_welcome_notification,
     send_subscription_confirmation,
     send_password_reset_email,
-    send_welcome_email
+    send_welcome_email,
+    send_trial_expiration_email
 )
 
 # Apple Sign-In
@@ -6442,6 +6443,87 @@ async def download_website_zip():
         )
     return {"error": "File not found"}
 
+# ─── Trial Expiration Check & Emails ───────────────────────────────────────────
+
+async def check_and_send_trial_expiration_emails():
+    """Check for expiring trials and send notification emails."""
+    now = datetime.now(timezone.utc)
+    
+    # Find users with trials expiring in 1 day (reminder) or already expired
+    # Look for trials that haven't had an email sent yet
+    
+    try:
+        # Users with trial expiring in ~1 day (send reminder)
+        one_day_from_now = now + timedelta(days=1)
+        users_expiring_soon = await db.users.find({
+            'trial.expires_at': {'$exists': True},
+            'subscription': {'$exists': False},  # No active subscription
+            'trial_reminder_sent': {'$ne': True}
+        }).to_list(100)
+        
+        for user in users_expiring_soon:
+            try:
+                trial_expires = user.get('trial', {}).get('expires_at')
+                if not trial_expires:
+                    continue
+                    
+                # Parse the expiration date
+                if isinstance(trial_expires, str):
+                    expires_dt = datetime.fromisoformat(trial_expires.replace('Z', '+00:00'))
+                else:
+                    expires_dt = trial_expires
+                
+                # Make it timezone aware if needed
+                if expires_dt.tzinfo is None:
+                    expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+                
+                time_remaining = expires_dt - now
+                days_remaining = time_remaining.days
+                
+                # Send reminder 1 day before or on expiration day
+                if 0 <= days_remaining <= 1:
+                    result = send_trial_expiration_email(
+                        user_email=user['email'],
+                        user_name=user.get('name', 'Cher utilisateur'),
+                        days_remaining=days_remaining
+                    )
+                    if result.get('success'):
+                        await db.users.update_one(
+                            {'user_id': user['user_id']},
+                            {'$set': {'trial_reminder_sent': True}}
+                        )
+                        logger.info(f"Trial reminder sent to {user['email']} ({days_remaining} days remaining)")
+                
+                # Send expiration notice if trial has ended
+                elif days_remaining < 0 and not user.get('trial_expired_sent'):
+                    result = send_trial_expiration_email(
+                        user_email=user['email'],
+                        user_name=user.get('name', 'Cher utilisateur'),
+                        days_remaining=0
+                    )
+                    if result.get('success'):
+                        await db.users.update_one(
+                            {'user_id': user['user_id']},
+                            {'$set': {'trial_expired_sent': True}}
+                        )
+                        logger.info(f"Trial expired notice sent to {user['email']}")
+                        
+            except Exception as e:
+                logger.error(f"Error processing trial email for {user.get('email')}: {e}")
+                
+    except Exception as e:
+        logger.error(f"Error in trial expiration check: {e}")
+
+@api_router.post("/admin/send-trial-emails")
+async def admin_send_trial_emails(request: Request):
+    """Manually trigger trial expiration emails (admin only)."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin access required")
+    
+    await check_and_send_trial_expiration_emails()
+    return {"success": True, "message": "Trial expiration emails processed"}
+
 # ─── App Setup ────────────────────────────────────────────────────────────────
 
 app.include_router(api_router)
@@ -6462,6 +6544,9 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     await seed_data()
+    # Check for trial expirations on startup (non-blocking)
+    import asyncio
+    asyncio.create_task(check_and_send_trial_expiration_emails())
 
 @app.on_event("shutdown")
 async def shutdown():

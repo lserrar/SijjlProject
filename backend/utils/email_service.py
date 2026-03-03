@@ -359,3 +359,73 @@ def send_password_reset_email(
     text = f"Bonjour {user_name}, réinitialisez votre mot de passe ici : {reset_link}"
     
     return send_email(user_email, user_name, subject, html, text)
+
+
+# ─── Trial Expiration Email ─────────────────────────────────────────────────
+
+def send_trial_expiration_email(
+    user_email: str,
+    user_name: str,
+    days_remaining: int = 0
+) -> Dict:
+    """Send email when trial is about to expire or has expired."""
+    
+    if days_remaining > 0:
+        subject = f"⏰ Votre essai gratuit Sijill expire dans {days_remaining} jour{'s' if days_remaining > 1 else ''}"
+        title = f"Plus que {days_remaining} jour{'s' if days_remaining > 1 else ''} !"
+        message = f"""
+            Votre essai gratuit de <strong style="color: #04D182;">Sijill Project</strong> arrive à son terme dans {days_remaining} jour{'s' if days_remaining > 1 else ''}.
+        """
+    else:
+        subject = "📚 Votre essai gratuit Sijill est terminé - Continuez votre apprentissage"
+        title = "Votre essai est terminé"
+        message = """
+            Votre période d'essai gratuit de <strong style="color: #04D182;">Sijill Project</strong> est maintenant terminée.
+        """
+    
+    content = f"""
+        <h2 style="margin: 0 0 20px 0; color: #04D182; font-size: 24px;">{title}</h2>
+        <p style="margin: 0 0 15px 0; font-size: 16px; line-height: 1.6; color: #e0e0e0;">
+            Bonjour <strong>{user_name}</strong>,
+        </p>
+        <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #e0e0e0;">
+            {message}
+        </p>
+        <div style="background-color: #1e1e1e; border-left: 4px solid #04D182; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0 0 15px 0; font-size: 14px; color: #ffffff;">
+                <strong>Continuez à explorer nos contenus :</strong>
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #a0a0a0;">
+                • Plus de 100 heures de cours audio<br>
+                • 5 cursus complets (Falsafa, Kalām, Sciences islamiques...)<br>
+                • Des professeurs experts reconnus<br>
+                • Nouveaux contenus ajoutés régulièrement
+            </p>
+        </div>
+        <div style="background: linear-gradient(135deg, rgba(4, 209, 130, 0.15), rgba(4, 209, 130, 0.05)); border: 1px solid #04D182; padding: 25px; margin: 25px 0; border-radius: 12px; text-align: center;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #a0a0a0; text-transform: uppercase; letter-spacing: 1px;">Nos offres</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                    <td style="padding: 10px; text-align: center; width: 50%;">
+                        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #04D182;">9,99€</p>
+                        <p style="margin: 5px 0 0 0; font-size: 13px; color: #888888;">/mois</p>
+                    </td>
+                    <td style="padding: 10px; text-align: center; width: 50%; border-left: 1px solid #2a2a2a;">
+                        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #04D182;">89,99€</p>
+                        <p style="margin: 5px 0 0 0; font-size: 13px; color: #888888;">/an <span style="color: #04D182;">(-25%)</span></p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="https://sijillproject.com/pages/abonnement.html" style="display: inline-block; background-color: #04D182; color: #0a0a0a; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: 600; font-size: 14px;">S'abonner maintenant</a>
+        </div>
+        <p style="margin: 25px 0 0 0; font-size: 13px; color: #666666; text-align: center;">
+            Des questions ? Contactez-nous à contact@sijillproject.com
+        </p>
+    """
+    
+    html = get_base_template(content, "Essai gratuit - Sijill")
+    text = f"Bonjour {user_name}, votre essai gratuit Sijill se termine. Abonnez-vous sur sijillproject.com/pages/abonnement.html"
+    
+    return send_email(user_email, user_name, subject, html, text)

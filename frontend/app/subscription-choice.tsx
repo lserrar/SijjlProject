@@ -218,12 +218,14 @@ export default function SubscriptionChoiceScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou abonnez-vous</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        {/* Divider - Hidden on iOS */}
+        {!isIOSNative && (
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou abonnez-vous</Text>
+            <View style={styles.dividerLine} />
+          </View>
+        )}
 
         {/* Promo Code Section - Hidden on iOS */}
         {!isIOSNative && (
@@ -268,73 +270,69 @@ export default function SubscriptionChoiceScreen() {
           </View>
         )}
 
-        {/* iOS Notice */}
-        {isIOSNative && (
-          <View style={styles.iosNotice}>
-            <Ionicons name="information-circle" size={20} color={colors.brand.primary} />
-            <Text style={styles.iosNoticeText}>
-              Les abonnements sont gérés sur notre site web sijillproject.com
-            </Text>
+        {/* iOS: Only show trial, no payment options */}
+
+        {/* Subscription Plans - Hidden on iOS */}
+        {!isIOSNative && (
+          <View style={styles.plansRow}>
+            {/* Monthly */}
+            <TouchableOpacity
+              style={[styles.planCard, styles.subCard, selectedPlan === 'monthly' && styles.selectedCard]}
+              onPress={() => setSelectedPlan('monthly')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.planName}>Mensuel</Text>
+              <Text style={styles.planPrice}>9,99€</Text>
+              <Text style={styles.planPeriod}>/mois</Text>
+              {selectedPlan === 'monthly' && (
+                <View style={styles.checkMarkSmall}>
+                  <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Annual */}
+            <TouchableOpacity
+              style={[styles.planCard, styles.subCard, styles.annualCard, selectedPlan === 'annual' && styles.selectedCard]}
+              onPress={() => setSelectedPlan('annual')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.saveBadge}>
+                <Text style={styles.saveBadgeText}>-25%</Text>
+              </View>
+              <Text style={styles.planName}>Annuel</Text>
+              <Text style={styles.planPrice}>89,99€</Text>
+              <Text style={styles.planPeriod}>/an</Text>
+              <Text style={styles.planSaving}>soit 7,50€/mois</Text>
+              {selectedPlan === 'annual' && (
+                <View style={styles.checkMarkSmall}>
+                  <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Subscription Plans */}
-        <View style={styles.plansRow}>
-          {/* Monthly */}
-          <TouchableOpacity
-            style={[styles.planCard, styles.subCard, selectedPlan === 'monthly' && styles.selectedCard]}
-            onPress={() => setSelectedPlan('monthly')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.planName}>Mensuel</Text>
-            <Text style={styles.planPrice}>9,99€</Text>
-            <Text style={styles.planPeriod}>/mois</Text>
-            {selectedPlan === 'monthly' && (
-              <View style={styles.checkMarkSmall}>
-                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Annual */}
-          <TouchableOpacity
-            style={[styles.planCard, styles.subCard, styles.annualCard, selectedPlan === 'annual' && styles.selectedCard]}
-            onPress={() => setSelectedPlan('annual')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.saveBadge}>
-              <Text style={styles.saveBadgeText}>-25%</Text>
-            </View>
-            <Text style={styles.planName}>Annuel</Text>
-            <Text style={styles.planPrice}>89,99€</Text>
-            <Text style={styles.planPeriod}>/an</Text>
-            <Text style={styles.planSaving}>soit 7,50€/mois</Text>
-            {selectedPlan === 'annual' && (
-              <View style={styles.checkMarkSmall}>
-                <Ionicons name="checkmark-circle" size={24} color={colors.brand.primary} />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-
         {/* Action Button */}
         <TouchableOpacity
-          style={[styles.actionBtn, !selectedPlan && styles.actionBtnDisabled]}
+          style={[styles.actionBtn, (isIOSNative ? selectedPlan !== 'trial' : !selectedPlan) && styles.actionBtnDisabled]}
           onPress={() => {
             if (selectedPlan === 'trial') {
               handleStartTrial();
-            } else if (selectedPlan) {
+            } else if (selectedPlan && !isIOSNative) {
               handleSubscribe(selectedPlan);
             }
           }}
-          disabled={!selectedPlan || loading}
+          disabled={(isIOSNative ? selectedPlan !== 'trial' : !selectedPlan) || loading}
         >
           {loading ? (
             <ActivityIndicator color="#000" />
           ) : (
             <Text style={styles.actionBtnText}>
-              {selectedPlan === 'trial' ? 'Démarrer mon essai gratuit' : 
-               selectedPlan ? 'Continuer vers le paiement' : 'Choisissez une option'}
+              {isIOSNative 
+                ? (selectedPlan === 'trial' ? 'Démarrer mon essai gratuit' : 'Sélectionnez l\'essai gratuit')
+                : (selectedPlan === 'trial' ? 'Démarrer mon essai gratuit' : 
+                   selectedPlan ? 'Continuer vers le paiement' : 'Choisissez une option')}
             </Text>
           )}
         </TouchableOpacity>
