@@ -89,11 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.detail || 'Connexion échouée');
-    }
     const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.detail || 'Connexion échouée');
+    }
     await storeAuth(data.token, data.user);
     return data.user;  // Return user data for subscription check
   };
@@ -108,11 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.detail || 'Inscription échouée');
-    }
     const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.detail || 'Inscription échouée');
+    }
     await storeAuth(data.token, data.user);
   };
 
