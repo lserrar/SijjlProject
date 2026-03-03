@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MiniPlayer from '../../components/MiniPlayer';
@@ -10,6 +10,9 @@ import { usePlayer } from '../../context/PlayerContext';
 const ACTIVE = '#04D182';
 const INACTIVE = '#777777';
 const BG = 'rgba(17,17,17,0.97)';
+
+// Check if running on web
+const isWeb = Platform.OS === 'web';
 
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   return <Ionicons name={name as any} size={22} color={focused ? ACTIVE : INACTIVE} />;
@@ -21,7 +24,9 @@ export default function TabLayout() {
   const { width: screenWidth } = useWindowDimensions();
   const isDesktop = screenWidth >= 768;
   const headerHeight = (isDesktop ? 56 : 52) + insets.top;
-  const tabBarHeight = 72 + insets.bottom;
+  
+  // Hide tab bar on web - use header navigation instead
+  const tabBarHeight = isWeb ? 0 : 72 + insets.bottom;
 
   return (
     <View style={styles.wrapper}>
@@ -33,7 +38,7 @@ export default function TabLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarStyle: {
+            tabBarStyle: isWeb ? { display: 'none' } : {
               backgroundColor: BG,
               borderTopColor: '#222222',
               borderTopWidth: 1,
