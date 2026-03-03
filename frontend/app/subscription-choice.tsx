@@ -8,6 +8,8 @@ import {
   Alert,
   ScrollView,
   TextInput,
+  Platform,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +17,9 @@ import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../constants/api';
+
+// Check if running on iOS native (not web)
+const isIOSNative = Platform.OS === 'ios';
 
 export default function SubscriptionChoiceScreen() {
   const [loading, setLoading] = useState(false);
@@ -25,6 +30,27 @@ export default function SubscriptionChoiceScreen() {
   const [promoMessage, setPromoMessage] = useState('');
   const { user, token, refreshUser } = useAuth();
   const router = useRouter();
+
+  // For iOS: redirect to website for subscriptions
+  const handleIOSSubscribe = async () => {
+    const subscribeUrl = 'https://sijillproject.com/pages/abonnement.html';
+    
+    if (Platform.OS === 'ios') {
+      Alert.alert(
+        'Abonnement',
+        'Pour vous abonner, vous allez être redirigé vers notre site web sijillproject.com',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { 
+            text: 'Continuer', 
+            onPress: () => Linking.openURL(subscribeUrl)
+          },
+        ]
+      );
+    } else {
+      await Linking.openURL(subscribeUrl);
+    }
+  };
 
   const handleStartTrial = async () => {
     setLoading(true);
@@ -67,6 +93,12 @@ export default function SubscriptionChoiceScreen() {
   };
 
   const handleSubscribe = async (planId: 'monthly' | 'annual') => {
+    // On iOS native, redirect to website
+    if (isIOSNative) {
+      handleIOSSubscribe();
+      return;
+    }
+    
     setLoading(true);
     try {
       // Create checkout session
@@ -193,46 +225,58 @@ export default function SubscriptionChoiceScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Promo Code Section */}
-        <View style={styles.promoSection}>
-          <Text style={styles.promoLabel}>Code promo</Text>
-          <View style={styles.promoInputRow}>
-            <TextInput
-              style={[
-                styles.promoInput,
-                promoValid === true && styles.promoInputValid,
-                promoValid === false && styles.promoInputInvalid,
-              ]}
-              placeholder="Entrez votre code"
-              placeholderTextColor="#666"
-              value={promoCode}
-              onChangeText={(text) => {
-                setPromoCode(text.toUpperCase());
-                setPromoValid(null);
-                setPromoMessage('');
-              }}
-              autoCapitalize="characters"
-            />
-            {promoCode.length > 0 && (
-              <View style={styles.promoStatus}>
-                {promoValid === true && (
-                  <Ionicons name="checkmark-circle" size={20} color={colors.brand.primary} />
-                )}
-                {promoValid === false && (
-                  <Ionicons name="close-circle" size={20} color="#FF4444" />
-                )}
-              </View>
-            )}
+        {/* Promo Code Section - Hidden on iOS */}
+        {!isIOSNative && (
+          <View style={styles.promoSection}>
+            <Text style={styles.promoLabel}>Code promo</Text>
+            <View style={styles.promoInputRow}>
+              <TextInput
+                style={[
+                  styles.promoInput,
+                  promoValid === true && styles.promoInputValid,
+                  promoValid === false && styles.promoInputInvalid,
+                ]}
+                placeholder="Entrez votre code"
+                placeholderTextColor="#666"
+                value={promoCode}
+                onChangeText={(text) => {
+                  setPromoCode(text.toUpperCase());
+                  setPromoValid(null);
+                  setPromoMessage('');
+                }}
+                autoCapitalize="characters"
+              />
+              {promoCode.length > 0 && (
+                <View style={styles.promoStatus}>
+                  {promoValid === true && (
+                    <Ionicons name="checkmark-circle" size={20} color={colors.brand.primary} />
+                  )}
+                  {promoValid === false && (
+                    <Ionicons name="close-circle" size={20} color="#FF4444" />
+                  )}
+                </View>
+              )}
+            </View>
+            {promoMessage ? (
+              <Text style={[
+                styles.promoMessage,
+                promoValid === true ? styles.promoMessageValid : styles.promoMessageInvalid
+              ]}>
+                {promoMessage}
+              </Text>
+            ) : null}
           </View>
-          {promoMessage ? (
-            <Text style={[
-              styles.promoMessage,
-              promoValid === true ? styles.promoMessageValid : styles.promoMessageInvalid
-            ]}>
-              {promoMessage}
+        )}
+
+        {/* iOS Notice */}
+        {isIOSNative && (
+          <View style={styles.iosNotice}>
+            <Ionicons name="information-circle" size={20} color={colors.brand.primary} />
+            <Text style={styles.iosNoticeText}>
+              Les abonnements sont gérés sur notre site web sijillproject.com
             </Text>
-          ) : null}
-        </View>
+          </View>
+        )}
 
         {/* Subscription Plans */}
         <View style={styles.plansRow}>
@@ -428,6 +472,23 @@ const styles = StyleSheet.create({
   },
   promoMessageInvalid: {
     color: '#FF4444',
+  },
+
+  iosNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(4, 209, 130, 0.1)',
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  iosNoticeText: {
+    flex: 1,
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
+    color: colors.text.secondary,
+    lineHeight: 18,
   },
 
   plansRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },

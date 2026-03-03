@@ -194,23 +194,6 @@ export default function LoginScreen() {
                 </>
               )}
             </TouchableOpacity>
-
-            {/* Apple Sign-In */}
-            <TouchableOpacity
-              testID="login-apple-btn"
-              style={styles.socialBtn}
-              onPress={handleAppleLogin}
-              disabled={appleLoading}
-            >
-              {appleLoading ? (
-                <ActivityIndicator color={colors.text.primary} />
-              ) : (
-                <>
-                  <Ionicons name="logo-apple" size={20} color={colors.text.primary} />
-                  <Text style={styles.socialBtnText}>Continuer avec Apple</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
 
           {/* Register link */}

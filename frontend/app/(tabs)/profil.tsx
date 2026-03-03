@@ -18,6 +18,9 @@ import { useAuth, apiRequest } from '../../context/AuthContext';
 import { colors, spacing, radius } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
+// Check if running on iOS native (not web)
+const isIOSNative = Platform.OS === 'ios';
+
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://ijazah-deploy.preview.emergentagent.com';
 
 interface UserStats {
@@ -97,7 +100,8 @@ export default function ProfilScreen() {
 
   const MENU_ITEMS = [
     { icon: 'card-outline', label: 'Mon abonnement', action: () => router.push('/subscription-choice') },
-    { icon: 'gift-outline', label: 'Parrainage', action: () => router.push('/referral'), badge: 'NOUVEAU' },
+    // Parrainage hidden on iOS per App Store guidelines
+    ...(!isIOSNative ? [{ icon: 'gift-outline', label: 'Parrainage', action: () => router.push('/referral'), badge: 'NOUVEAU' }] : []),
     { icon: 'settings-outline', label: 'Paramètres', action: () => router.push('/settings') },
     { icon: 'notifications-outline', label: 'Notifications', action: () => router.push('/notifications') },
     { icon: 'language-outline', label: 'Langue : Français', action: () => {} },

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sijill Project",
     "slug": "sijill-project",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sijill",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sijillproject.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Enregistrer des notes audio pour vos cours",
         "NSCameraUsageDescription": "Scanner des documents pour vos cours",
