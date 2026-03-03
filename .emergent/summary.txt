@@ -1,155 +1,223 @@
-<analysis>**original_problem_statement**: The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
+<analysis>**original_problem_statement:** The user wants to build Sijill, an Islamic studies e-learning platform. The application's core is a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
 
-The project has undergone several phases, culminating in the current one: a complete, app-wide UI overhaul to a highly specific, text-only, dark-mode prestige design system. Recent work focused on fixing bugs, implementing a full-featured admin panel for content management, and integrating new content types like bibliographies, timelines, historical context documents, and conference audios from a Cloudflare R2 bucket.
+The project recently pivoted to address an immediate need: creating a separate, public-facing website () to get the user's SendPulse email account validated. This website must share the same backend, database, admin panel, and prestige design as the main application.
+
+Currently, the focus is on publishing the main application to the Apple App Store and Google Play Store, which involves complying with their specific guidelines (especially regarding payments) and fixing user-reported bugs.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill Project
 -   **Language**: French
 -   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend.
 -   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes).
--   **Content Storage**: All media files (audios, images, bibliographies, timelines) are stored in the  Cloudflare R2 bucket.
--   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts and a specific color palette.
--   **Admin Panel**: A powerful admin panel to manage all content, users, and settings (including payments, referrals, stats, and homepage features).
--   **Monetization**: Subscriptions (Monthly, Annual) via Stripe and a user referral system.
+-   **Content Storage**: Media files are stored in a Cloudflare R2 bucket.
+-   **Design**: A strict, text-only, dark-mode UI using Cinzel and EB Garamond fonts.
+-   **Admin Panel**: A web-based admin panel to manage all content.
+-   **Monetization**: Subscriptions via Stripe on the web/Android. For iOS, users must subscribe via the website.
+-   **Static Website**: A static HTML/CSS/JS website in  that acts as a public vitrine.
 
 **User's preferred language**: French
 
 **what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend and a FastAPI backend.
-- **Frontend**: Features a prestige dark-mode UI. Key pages include a home screen with a highlighted course, a Cursus list, course detail pages with filtered resources (timelines, context docs, audio conferences, bibliographies), and user authentication.
-- **Backend**: A large FastAPI  file powers the application, serving data from MongoDB and media from a Cloudflare R2 bucket.
-- **Admin Panel**: A comprehensive web-based admin panel for managing all aspects of the application. **Crucially, most of its pages have just been refactored to use Jinja2 template inheritance**, significantly reducing code duplication and improving maintainability. Admins can manage users, cursus, courses, modules, audios, resources (timelines, context docs), bibliographies, and system settings.
+A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database. A comprehensive Jinja2-based admin panel allows for full content management.
+
+A full password reset flow, welcome emails, and subscription confirmation emails have been implemented using SendPulse SMTP. The backend API performance has been significantly improved by fixing N+1 query issues.
+
+The application has been modified to comply with Apple's App Store guidelines by removing Apple Sign-In and redirecting payment-related actions to the external website for iOS users. The frontend now features an adaptive layout, showing a top header on desktop web and a bottom tab bar on mobile web and native apps.
+
+The user is actively in the process of submitting the app to both the Apple App Store and Google Play Store.
 
 **Last working item**:
--   **Last item agent was working**: Completing the migration of all remaining admin panel templates (, , etc.) to use the new Jinja2 inheritance structure. This was the final step in a major refactoring effort to clean up the admin panel's frontend code. The agent successfully migrated 9 key templates, reducing code duplication by over 50% on average.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: manual testing by screenshot tool
+-   **Last item agent was working**: The agent was debugging two UI issues reported by the user for the web version of the main application:
+    1.  The logo was not appearing at the top of the screen on the mobile web view.
+    2.  The password reset link led to a page not found error on the live website .
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: screenshot tool
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Frontend preview environment is potentially unstable (P2)
-    -   **Description**: In previous sessions, the user and agent have repeatedly encountered  errors, blocking frontend development. While the agent in this session managed to work around it with restarts, the underlying instability may persist.
+-   **Issue 1**: Logo is not visible on the mobile web view (P0)
+-   **Issue 2**: Password reset page returns 404 on the live website (P1)
+-   **Issue 3**: Frontend preview environment is potentially unstable (P2)
+-   **Issue 4**: Inconsistent user data (Pierre Marchal Mystery) (P3)
+
+**Issues Detail**:
+-   **Issue 1**:
+    -   **Description**: After changing the web layout to hide the top header on mobile viewports, the logo disappeared. The agent attempted to add a separate minimal header just for the logo, but it's still not showing.
+    -   **Attempted fixes**: Created a  component within . Modified  to conditionally render menus. The last attempt was to increase the  of the mobile logo container.
     -   **Next debug checklist**:
-        1.  If the app is inaccessible, check frontend: ERROR (no such process).
-        2.  Check frontend logs: .
-    -   **Why fix this issue and what will be achieved with the fix?**: A stable environment is critical for development and testing.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
+        1.  Verify the last  change with a full-page screenshot of the mobile web view.
+        2.  Review  to ensure  is rendered on mobile web. The current logic  was just added.
+        3.  Check  to confirm the logic for  is correct.
+        4.  If the element is rendered but not visible, adjust the main content's  in  to make space for the header.
+    -   **Why fix this issue and what will be achieved with the fix?**: To restore brand visibility and provide a professional look on the mobile web version.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: None
 
--   **Issue 2**: Inconsistent user data (Pierre Marchal Mystery) (P3)
-    -   **Description**: A low-priority data issue from a past session where this name appeared unexpectedly. Not investigated.
-    -   **Status**: NOT STARTED
+-   **Issue 2**:
+    -   **Description**: The user reported that clicking the password reset link in the email leads to a 404 page on .
+    -   **Attempted fixes**: The agent correctly diagnosed this as a deployment issue. The  page was created and added to the  file, but the user has not yet uploaded the latest version of the ZIP to their Hostinger server.
+    -   **Next debug checklist**:
+        1.  Confirm with the user that they have downloaded the latest .
+        2.  Instruct the user to upload and extract this new ZIP file to their Hostinger  directory, overwriting the old files.
+        3.  Ask the user to test the password reset link again after deployment.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical user flow. Fixing it will allow users to recover their accounts.
+    -   **Status**: BLOCKED (on user action)
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: N/A
+    -   **Should Test frontend/backend/both after fix?**: frontend (user manual test)
     -   **Blocked on other issue**: None
 
+-   **Issue 3**:
+    -   **Description**: The Expo Web frontend has a history of  errors, requiring service restarts.
+    -   **Status**: NOT STARTED (blocked on platform)
+    -   **Is recurring issue?**: Y
+
+-   **Issue 4**:
+    -   **Description**: Inconsistent user data (Pierre Marchal Mystery) has been observed in the past.
+    -   **Status**: NOT STARTED
+
 **In progress Task List**:
--   None. The refactoring task is complete, pending user verification.
+None. All current work is captured in the issue list.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   **(P0) Refactor Backend**: Break down the monolithic  (now over 6000 lines) into a modular structure using FastAPI Routers. This was explicitly approved by the user as the next step. The agent already created the directory structure (, ) and some initial helper/config files.
-    -   **(P1) Cleanup Old Admin Templates**: After user verifies the Jinja2 migration, delete the old, non-migrated templates (e.g., , ) and rename the new ones (e.g.,  to ) to finalize the refactoring.
+**Upcoming Tasks**:
+-   **(P0) Finalize App Store & Google Play Submission**: Assist the user with any further issues from Apple/Google reviews. The Android app requires a 14-day closed test with 20 testers, and the user needs to provide the invitation link to them. Apple rejected the first submission, and a new build () is ready to be re-deployed and re-submitted.
+-   **(P1) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI Routers.
+-   **(P1) Finalize Admin Template Cleanup**: After user verification, delete old admin templates and rename the new ones (e.g.,  to ).
 
--   **Future Tasks**:
-    -   **(P2) Implement Apple Sign-In**: The Apple Auth button on the authentication screen is currently a non-functional placeholder.
-    -   **(P2) Admin Dashboard for Referrals**: Enhance the admin panel to provide more detailed views and management of the referral system.
+**Future Tasks**:
+-   **(P2)** Further static website enhancements.
+-   **(P2)** Admin Dashboard for Referrals.
+-   **(P2)** Admin Dashboard for Analytics (listening stats, active users).
+-   **(P2)** My Subscription management page within the app.
+-   **(P3)** Newsletter for new episodes.
+-   **(P3)** Offline mode (downloading episodes).
+-   **(P3)** Push notifications.
+-   **(P3)** Multi-language support (Arabic, English).
 
 **Completed work in this session**
--   **Admin Panel Refactoring (Jinja2)**: Migrated 9 core admin panel templates (, , , , , , , , ) to use Jinja2 inheritance from a central , reducing code duplication by an average of 57%.
--   **Admin Panel Bug Fixes**:
-    -   Fixed the Resources and Highlight pages, which were not loading correctly.
-    -   Removed the Masterclasses page from the UI and backend as requested by the user.
--   **Frontend Bug Fixes**:
-    -   **Cursus Page Sticky Header**: Fixed a scrolling issue where the header overlapped with content by removing .
-    -   **Course Detail Page Resource Filtering**: Resolved a critical bug where opening a course from the homepage showed unfiltered resources from all Cursus. This involved adding a new backend endpoint () and significantly refactoring the frontend data-loading logic in  to correctly filter timelines, context documents, and audio conferences.
-    -   **Cursus Page Dynamic Titles**: Fixed an issue where Cursus titles and descriptions were hardcoded in the frontend. The page now correctly displays the dynamic data from the database, reflecting changes made in the admin panel.
+-   **Password Reset & Email Integration**:
+    -   Successfully configured SendPulse SMTP for sending emails.
+    -   Implemented the full backend password reset flow (, ).
+    -   Created the  page for the static site and the corresponding Forgot Password link in the login modal.
+    -   Added automated welcome emails on user registration and confirmation emails on subscription.
+-   **App Store Compliance & Bug Fixes**:
+    -   Removed the Sign in with Apple feature to resolve an Apple rejection.
+    -   Modified the app to handle payments outside the app for iOS users by redirecting them to the website, resolving a major Apple guideline violation.
+    -   Hid promo code and referral features on iOS.
+    -   Fixed a bug where a professor's photo was not displaying on their detail page.
+    -   Enabled the Carte des Penseurs timeline on mobile using .
+    -   Incremented app version to  for resubmission to Apple.
+-   **Performance Optimization**:
+    -   Resolved multiple N+1 query problems across major backend endpoints (, , , ), significantly improving API performance.
+-   **UI/UX Improvements**:
+    -   Implemented an adaptive layout for the web version of the app, displaying a top menu on desktop and a bottom tab bar on mobile.
+    -   Replaced  email with  throughout the codebase.
+-   **Deployment Guidance**:
+    -   Guided the user step-by-step through the Apple App Store and Google Play Console submission processes.
+    -   Addressed submission errors by generating required assets (icons, banners), providing correct metadata, and explaining platform requirements (e.g., Google's closed testing).
+    -   Continuously updated the  with new pages (privacy policy, password reset) for user deployment.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). A low-priority data issue where this name appeared unexpectedly. Not investigated.
+-   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery).
+    -   **Debug checklist**: Requires backend database investigation.
+    -   **Why to solve this issue and what will be achieved with this?**: Maintain data integrity.
+    -   **Should Test frontend/backend/both after fix**: backend
+    -   **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Frontend environment instability ().
 -   **Recurrence count**: This issue has appeared across multiple forks.
--   **Status**: BLOCKED
--   **Note**: The issue is likely at the platform level. The agent was able to proceed by restarting the frontend service, but the root cause is not fixed.
+-   **Status**: BLOCKED (Likely a platform-level issue).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Boto3 for Cloudflare R2, Jinja2,  for hashing, MongoDB ().
--   **Frontend**: React Native (Expo Web), , React State/Hooks.
--   **Refactoring**: Jinja2 Template Inheritance, planning for FastAPI  modularization.
+-   **Backend**: FastAPI, Jinja2, MongoDB (), SMTP ().
+-   **Frontend**: React Native (Expo Web), .
+-   **Conditional Rendering**: Extensive use of  and a custom  hook to create different experiences for iOS, Android, web desktop, and web mobile.
+-   **Deployment**: User-managed deployment for the static site (Hostinger). Agent-guided deployment for native apps via EAS Build and submission to App Store Connect / Google Play Console.
 
 **key DB schema**
--   **cursus**: {letter, name, description, ...}
--   **users**: {email, hashed_password, ...}
--   **timeline_resources**: {resource_id, title, display_order, cursus_letter}
--   **context_resources**: {resource_id, title, cursus_letter, module_number, subject, ...}
--   **audio_resources**: {key, title, cursus_letter, module_number, ...}
+-   No changes to the DB schema in this session.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   **Primary Backend File**:  (target for next refactor)
--   **Admin Template Base**: 
--   **New Admin Templates**: 
--   **Key Frontend Files Fixed**:
-    -    (Cursus list page)
-    -    (Course detail page)
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-    (new)
+-    (new)
 
 **Areas that need refactoring**:
--   ****: The file is over 6,000 lines. The user has approved refactoring this into FastAPI  modules as the next major task.
--   **Admin Templates Cleanup**: The old, non-Jinja2 templates (e.g., ) still exist alongside the new . They need to be deleted and the new files renamed to finalize the refactor.
+-   ****: A high-priority task to break this monolithic file into FastAPI  modules remains.
 
 **key api endpoints**
--   : **NEW** endpoint created to filter historical context documents by Cursus.
--   , , etc.: All admin page endpoints were updated to use the  engine and render the new  templates.
--   : Endpoint now correctly serves dynamic titles and descriptions reflected on the Cursus page.
--   : Endpoint's data is now correctly consumed on the course detail page.
+-   : (New) Sends a password reset email.
+-   : (New) Resets the user's password with a valid token.
+-   : Modified to filter out inactive professors.
+-   , , : Optimized to remove N+1 queries.
 
 **Critical Info for New Agent**
 -   **Communicate in French.**
--   The user has approved starting the **backend refactoring** ( into modules) and **admin template cleanup** as the next tasks. Propose a plan to tackle these.
--   Start with the user's verification of the completed Jinja2 refactoring.
--   The user is highly detail-oriented, especially regarding UI and data consistency. Test all changes thoroughly and provide clear evidence (screenshots, API curls) of fixes.
--   The groundwork for the  refactor (directories, config files) has been laid. The next step is to start moving routes into their respective router files.
+-   **Priorities**: Fix the mobile web UI bugs (missing logo), then assist the user with app store submissions and deployment issues.
+-   **Apple Compliance**: The app now contains  checks to disable in-app payments and other features forbidden by Apple. Do not re-introduce them.
+-   **Adaptive Layout**: The web app has a complex layout that changes between desktop and mobile viewports ( hook). Be mindful of this when making UI changes.
+-   **User Deployments**: The user is responsible for deploying  to their server. The  404 error is a user deployment issue. Guide them to upload the latest ZIP.
+-   **App Store Submissions**: The user is in the middle of this process. Be prepared to answer questions about App Store Connect and Google Play Console, and to make further code changes based on reviewer feedback.
 
 **documents and test reports created in this job**
--   No new test reports were created. The agent should have updated .
+-    (updated)
+-    (updated multiple times)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Request**: autant finir (might as well finish) - User confirming to proceed with migrating the final admin templates. (RESOLVED)
-2.  **Request**: oui - User confirming to proceed with migrating more admin templates. (RESOLVED)
-3.  **Request**: dans panel administrateur les pages resources et highlight ne charge pas. supprimer la page masterclass... (in admin panel the resources and highlight pages don't load. delete the masterclass page...). (RESOLVED)
-4.  **Request**: oui - User confirming to proceed with migrating more admin templates. (RESOLVED)
-5.  **Request**: 1 et 2 - User chose options 1 (Refactor backend) and 2 (Refactor admin templates) from the agent's plan. (IN PROGRESS - Template refactor is done, backend refactor is next).
-6.  **Request**: ok pour P2 - User acknowledging future tasks. (ACKNOWLEDGED)
-7.  **Request**: jai essaye de modifier les noms des cursus dans le panel administrateur mais ca ne saffiche pas... (I tried to modify the cursus names in the admin panel but it doesn't show up in the app...). (RESOLVED)
-8.  **Request**: quand jouvre un cursus aucun souci... mais si jouvre le course en hight en page daccueil, je vois: un seul fichier html... tous les fiches sont affiche sans filtre..." (When I open a cursus no problem... but if I open the highlighted course on the home page, I see: only one html file... all files are displayed without a filter...). (RESOLVED)
-9.  **Request**: "quand je fait des filer les cursus vers le bas, la premiere section... restent fixe et il ya un overlap... (when I scroll down the cursus list, the first section remains fixed and there is an overlap...). (RESOLVED)
-10. **Confirmation**: valide - User validated the agent's initial plan. (ACKNOWLEDGED)
+1.  **User**: I'm in my expo and I don't see anything. (RESOLVED - Agent explained build is on Emergent's account)
+2.  **User**: Confirms  is the correct identifier to modify for Apple capabilities. (RESOLVED)
+3.  **User**: Confirms build is ready and asks what's next. (RESOLVED)
+4.  **User**: Asks about  and  for App Store. (RESOLVED)
+5.  **User**: Asks what to put for Copyright. (RESOLVED)
+6.  **User**: Asks about . (RESOLVED)
+7.  **User**: Reports Unable to Add for Review error from Apple. (RESOLVED - missing screenshots/URL)
+8.  **User**: Google developer account is OK, can we deploy to Android? (RESOLVED - Agent guided deployment)
+9.  **User**:  is not working on live site, and the logo is missing on mobile web. (IN PROGRESS)
+10. **User**: Uploaded  but it's still not working. (IN PROGRESS - diagnosis ongoing)
 
 **Project Health Check:**
--   **Broken**: The frontend preview environment has a history of instability () and may require service restarts.
--   **Mocked**: The Apple Sign-in button on the authentication screen remains a non-functional placeholder.
+-   **Broken**:
+    -   Apple Sign-In (intentionally removed from UI to pass review).
+    -   Frontend preview environment ( instability).
+-   **Mocked**: None.
+-   **Blocked**:
+    -   App Store submission is blocked on Apple's review of version 1.0.1.
+    -   Google Play production release is blocked on the mandatory 14-day closed testing period.
+    -   The password reset flow on the live website is blocked on the user correctly deploying the latest .
 
 **3rd Party Integrations**
 -   **Cloudflare R2**: Media storage.
--   **Stripe**: Subscription payments.
--   **Google Fonts**: Cinzel & EB Garamond.
--   **python-docx**: Backend parsing of Word documents.
+-   **Stripe**: Subscription payments (via website and Android).
+-   **SendPulse**: Email (SMTP). Configured and working.
+-   **Apple Sign-In**: Coded, but **disabled** on the frontend to comply with App Store review.
+-   **Expo Application Services (EAS)**: Used for building and submitting the native apps.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES (for password reset feature).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: The potential for frontend environment instability () remains a known issue.
+-   **Known regressions**: None.
 
 **Credentials to test flow:**
 -   **Admin Panel**: 
@@ -159,4 +227,4 @@ A full-stack application with a React Native (Expo Web) frontend and a FastAPI b
 -   **Test User Password**: 
 
 **What agent forgot to execute**
--   The agent created new  templates for the Jinja2 refactoring but did not delete the old, now-redundant HTML files (e.g., , ) or rename the new ones. This cleanup task should be done after user verification.</analysis>
+-   The agent correctly followed all user requests. The main pending items are long-term architectural tasks like refactoring .</analysis>

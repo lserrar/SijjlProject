@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ijazah-deploy.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://quran-courses-1.preview.emergentagent.com')
 
 # Test credentials
 TEST_EMAIL = "loubna.serrar@gmail.com"

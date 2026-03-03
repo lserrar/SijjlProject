@@ -27,18 +27,20 @@ export default function TabLayout() {
   const isDesktop = screenWidth >= 768;
   
   // On web desktop: hide bottom tab bar (use top menu)
-  // On web mobile: show bottom tab bar (hide top menu)
-  // On native app: always show bottom tab bar
+  // On web mobile: show bottom tab bar + minimal logo header
+  // On native app: always show both
   const showBottomTabBar = !isWeb || (isWeb && !isDesktop);
   const showTopHeader = !isWeb || (isWeb && isDesktop);
   
-  const headerHeight = showTopHeader ? ((isDesktop ? 56 : 52) + insets.top) : 0;
+  // Mobile web has a smaller logo-only header
+  const mobileWebHeaderHeight = isWeb && !isDesktop ? 60 + insets.top : 0;
+  const headerHeight = showTopHeader ? ((isDesktop ? 56 : 52) + insets.top) : mobileWebHeaderHeight;
   const tabBarHeight = showBottomTabBar ? (72 + insets.bottom) : 0;
 
   return (
     <View style={styles.wrapper}>
-      {/* Global Header - only on desktop web or native app */}
-      {showTopHeader && <GlobalHeader />}
+      {/* Global Header - handles its own visibility based on platform/screen size */}
+      <GlobalHeader />
 
       {/* Main Content with padding for header */}
       <View style={[styles.content, { paddingTop: headerHeight }]}>

@@ -41,9 +41,19 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
   const isWeb = Platform.OS === 'web';
   const isWebMobile = isWeb && !isDesktop;
   
-  // Hide header on web mobile - bottom tab bar will be shown
+  // On web mobile, show only a minimal logo header
   if (isWebMobile) {
-    return null;
+    return (
+      <View style={[styles.mobileLogoHeader, { paddingTop: insets.top }]}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)')}>
+          <View style={styles.logoWrapper}>
+            <Text style={styles.logoText}>SIJILL</Text>
+            <Text style={styles.logoProject}>PROJECT</Text>
+            <View style={styles.logoDot} />
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   const isActive = (path: string) => {
@@ -367,5 +377,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#0A0A0A',
+  },
+  
+  // ─── WEB MOBILE LOGO HEADER ─────────────────────────────────────────────────
+  mobileLogoHeader: {
+    backgroundColor: '#0A0A0A',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
   },
 });

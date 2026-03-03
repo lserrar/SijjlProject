@@ -6428,6 +6428,20 @@ async def update_legal_page(page_type: str, request: Request):
 async def health_check():
     return {"status": "healthy", "service": "HikmabyLM API"}
 
+# ─── Download Endpoint for Website ZIP ─────────────────────────────────────────
+
+@api_router.get("/download/website-zip")
+async def download_website_zip():
+    """Download the website-hostinger.zip file"""
+    zip_path = Path(__file__).parent.parent / "website-hostinger.zip"
+    if zip_path.exists():
+        return FileResponse(
+            path=str(zip_path),
+            filename="website-hostinger.zip",
+            media_type="application/zip"
+        )
+    return {"error": "File not found"}
+
 # ─── App Setup ────────────────────────────────────────────────────────────────
 
 app.include_router(api_router)
