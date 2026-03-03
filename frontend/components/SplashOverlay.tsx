@@ -1,23 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 
-const SPLASH_DURATION = 5000; // 5 seconds minimum
+const SPLASH_DURATION = 5000; // 5 seconds
 
-export default function SplashScreen() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-  const [showSplash, setShowSplash] = useState(true);
-  const hasNavigated = useRef(false);
+interface SplashOverlayProps {
+  onComplete: () => void;
+}
+
+export default function SplashOverlay({ onComplete }: SplashOverlayProps) {
+  const [visible, setVisible] = useState(true);
   
   // Animation values
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const fadeOutAnim = useRef(new Animated.Value(1)).current;
 
-  // Start animations immediately on mount
   useEffect(() => {
-    // Fade in and scale up animation
+    // Start animations
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
@@ -33,33 +32,26 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // Hide splash after duration
+    // Fade out and hide after duration
     const timer = setTimeout(() => {
-      setShowSplash(false);
+      Animated.timing(fadeOutAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }).start(() => {
+        setVisible(false);
+        onComplete();
+      });
     }, SPLASH_DURATION);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Navigate only when splash is done AND auth is ready
-  useEffect(() => {
-    if (!showSplash && !isLoading && !hasNavigated.current) {
-      hasNavigated.current = true;
-      
-      // Use setTimeout to ensure smooth transition
-      setTimeout(() => {
-        if (isAuthenticated) {
-          router.replace('/(tabs)');
-        } else {
-          router.replace('/(auth)/login');
-        }
-      }, 200);
-    }
-  }, [showSplash, isLoading, isAuthenticated, router]);
+  if (!visible) return null;
 
-  // Always render the splash screen
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeOutAnim }]}>
       <Animated.View 
         style={[
           styles.logoContainer,
@@ -75,16 +67,18 @@ export default function SplashScreen() {
           <View style={styles.greenDot} />
         </View>
       </Animated.View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#0A0A0A',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 99999,
+    elevation: 99999,
   },
   logoContainer: {
     alignItems: 'center',
