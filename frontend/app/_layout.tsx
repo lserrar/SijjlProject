@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
@@ -29,16 +29,24 @@ import React from 'react';
 
 const SPLASH_DURATION = 5000; // 5 seconds
 
+// Global flag to ensure splash only shows once per app session
+let splashHasShown = false;
+
 // Keep the native splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
 
 // Inline Splash Component
 function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
-  const scaleAnim = React.useRef(new Animated.Value(0.7)).current;
-  const opacityAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const animationStarted = useRef(false);
 
   useEffect(() => {
-    // Start animations
+    // Prevent animation from running twice
+    if (animationStarted.current) return;
+    animationStarted.current = true;
+
+    // Start animations - single run, no loop
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
@@ -47,7 +55,7 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
         easing: Easing.out(Easing.ease),
       }),
       Animated.timing(scaleAnim, {
-        toValue: 1.2,
+        toValue: 1.15,
         duration: 4500,
         useNativeDriver: true,
         easing: Easing.out(Easing.cubic),
@@ -123,7 +131,8 @@ const splashStyles = StyleSheet.create({
 });
 
 export default function RootLayout() {
-  const [showSplash, setShowSplash] = useState(true);
+  // Use global flag to prevent splash from showing twice
+  const [showSplash, setShowSplash] = useState(!splashHasShown);
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -145,14 +154,19 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  const handleSplashComplete = () => {
+    splashHasShown = true;
+    setShowSplash(false);
+  };
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
 
-  // Show our custom animated splash BEFORE the app content
+  // Show our custom animated splash BEFORE the app content (only once)
   if (showSplash) {
     return (
-      <AnimatedSplash onComplete={() => setShowSplash(false)} />
+      <AnimatedSplash onComplete={handleSplashComplete} />
     );
   }
 
