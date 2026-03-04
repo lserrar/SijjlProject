@@ -28,15 +28,20 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const checkSubscriptionAndRedirect = (userData: any) => {
+    console.log('checkSubscriptionAndRedirect called with:', JSON.stringify(userData));
     // Check if user has an active subscription
     const hasSubscription = userData?.subscription_end_date && 
       new Date(userData.subscription_end_date) > new Date();
     const hasActiveSubscription = userData?.subscription?.status === 'active';
     const isAdmin = userData?.role === 'admin';
     
+    console.log('hasSubscription:', hasSubscription, 'hasActiveSubscription:', hasActiveSubscription, 'isAdmin:', isAdmin);
+    
     if (isAdmin || hasSubscription || hasActiveSubscription) {
+      console.log('Navigating to /(tabs)');
       router.replace('/(tabs)');
     } else {
+      console.log('Navigating to /subscription-choice');
       router.replace('/subscription-choice');
     }
   };
@@ -52,9 +57,13 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
+      console.log('Login attempt...');
       const userData = await login(email, password);
+      console.log('Login successful, user:', userData?.email);
+      console.log('Subscription end:', userData?.subscription_end_date);
       checkSubscriptionAndRedirect(userData);
     } catch (e: any) {
+      console.log('Login error:', e.message);
       if (typeof window !== 'undefined') {
         alert(e.message || 'Erreur de connexion');
       } else {
