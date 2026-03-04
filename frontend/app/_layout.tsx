@@ -113,7 +113,6 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
           <View style={splashStyles.greenDot} />
         </View>
       </Animated.View>
-      <View style={splashStyles.bottomSpacer} />
     </View>
   );
 }
@@ -123,14 +122,11 @@ const splashStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0A0A',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: '33%', // Position at 1/3 from top
+    justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-  },
-  bottomSpacer: {
-    flex: 1,
+    marginTop: -50,
   },
   logoSijill: {
     fontFamily: 'Cinzel',

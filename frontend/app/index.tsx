@@ -1,80 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../constants/theme';
 
-const SPLASH_DURATION = 5000; // 5 seconds minimum
-
-export default function SplashScreen() {
+export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [showSplash, setShowSplash] = useState(true);
   const hasNavigated = useRef(false);
-  
-  // Animation values
-  const scaleAnim = useRef(new Animated.Value(0.7)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
-  // Start animations immediately on mount
   useEffect(() => {
-    // Fade in and scale up animation
-    Animated.parallel([
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.ease),
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1.2,
-        duration: 4500,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
-    ]).start();
-
-    // Hide splash after duration
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, SPLASH_DURATION);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Navigate only when splash is done AND auth is ready
-  useEffect(() => {
-    if (!showSplash && !isLoading && !hasNavigated.current) {
+    if (!isLoading && !hasNavigated.current) {
       hasNavigated.current = true;
-      
-      // Use setTimeout to ensure smooth transition
-      setTimeout(() => {
-        if (isAuthenticated) {
-          router.replace('/(tabs)');
-        } else {
-          router.replace('/(auth)/login');
-        }
-      }, 200);
+      if (isAuthenticated) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/login');
+      }
     }
-  }, [showSplash, isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated]);
 
-  // Always render the splash screen
+  // Simple loading screen (splash is handled in _layout.tsx)
   return (
     <View style={styles.container}>
-      <Animated.View 
-        style={[
-          styles.logoContainer,
-          {
-            opacity: opacityAnim,
-            transform: [{ scale: scaleAnim }],
-          }
-        ]}
-      >
-        <Text style={styles.logoSijill}>SIJILL</Text>
-        <View style={styles.projectRow}>
-          <Text style={styles.logoProject}>PROJECT</Text>
-          <View style={styles.greenDot} />
-        </View>
-      </Animated.View>
+      <ActivityIndicator size="large" color={colors.brand.primary} />
     </View>
   );
 }
@@ -85,38 +34,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  logoSijill: {
-    fontFamily: 'Cinzel',
-    fontSize: 44,
-    fontWeight: '400',
-    color: '#F5F0E8',
-    letterSpacing: 12,
-    marginBottom: 4,
-  },
-  projectRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoProject: {
-    fontFamily: 'Cinzel',
-    fontSize: 44,
-    fontWeight: '400',
-    color: '#F5F0E8',
-    letterSpacing: 4,
-  },
-  greenDot: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#04D182',
-    borderRadius: 6,
-    marginLeft: 6,
-    shadowColor: '#04D182',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
   },
 });
