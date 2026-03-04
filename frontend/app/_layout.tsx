@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
 import {
   Inter_400Regular,
@@ -27,7 +27,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { PlayerProvider } from '../context/PlayerContext';
 import React from 'react';
 
-const SPLASH_DURATION = 5000; // 5 seconds
+const SPLASH_DURATION = 3000; // 3 seconds
 const SPLASH_SHOWN_KEY = 'sijill_splash_shown';
 
 // Global variable for native apps (persists in memory)
@@ -60,33 +60,15 @@ function markSplashShown(): void {
 // Keep the native splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
 
-// Inline Splash Component
-function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+// Simple Splash Component - No animation
+function SimpleSplash({ onComplete }: { onComplete: () => void }) {
   const hasStarted = useRef(false);
 
   useEffect(() => {
     if (hasStarted.current) return;
     hasStarted.current = true;
 
-    // Start animations
-    Animated.parallel([
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.ease),
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1.15,
-        duration: 4500,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
-    ]).start();
-
-    // Complete after duration
+    // Complete after 3 seconds
     const timer = setTimeout(() => {
       markSplashShown();
       onComplete();
@@ -98,21 +80,13 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
   return (
     <View style={splashStyles.container}>
       <StatusBar style="light" />
-      <Animated.View 
-        style={[
-          splashStyles.logoContainer,
-          {
-            opacity: opacityAnim,
-            transform: [{ scale: scaleAnim }],
-          }
-        ]}
-      >
+      <View style={splashStyles.logoContainer}>
         <Text style={splashStyles.logoSijill}>SIJILL</Text>
         <View style={splashStyles.projectRow}>
           <Text style={splashStyles.logoProject}>PROJECT</Text>
           <View style={splashStyles.greenDot} />
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -188,10 +162,10 @@ export default function RootLayout() {
     return null;
   }
 
-  // Show our custom animated splash BEFORE the app content (only once)
+  // Show our custom splash BEFORE the app content (only once)
   if (showSplash) {
     return (
-      <AnimatedSplash onComplete={handleSplashComplete} />
+      <SimpleSplash onComplete={handleSplashComplete} />
     );
   }
 
