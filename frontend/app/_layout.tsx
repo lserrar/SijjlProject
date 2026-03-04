@@ -30,6 +30,9 @@ import React from 'react';
 const SPLASH_DURATION = 5000; // 5 seconds
 const SPLASH_SHOWN_KEY = 'sijill_splash_shown';
 
+// Global variable for native apps (persists in memory)
+let nativeSplashShown = false;
+
 // Check if splash was already shown this session
 function hasShownSplash(): boolean {
   if (Platform.OS === 'web') {
@@ -39,7 +42,8 @@ function hasShownSplash(): boolean {
       return false;
     }
   }
-  return false;
+  // For native apps, use the global variable
+  return nativeSplashShown;
 }
 
 function markSplashShown(): void {
@@ -47,6 +51,9 @@ function markSplashShown(): void {
     try {
       sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
     } catch {}
+  } else {
+    // For native apps
+    nativeSplashShown = true;
   }
 }
 
