@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
 import {
   Inter_400Regular,
@@ -28,9 +28,27 @@ import { PlayerProvider } from '../context/PlayerContext';
 import React from 'react';
 
 const SPLASH_DURATION = 5000; // 5 seconds
+const SPLASH_SHOWN_KEY = 'sijill_splash_shown';
 
-// Global flag to ensure splash only shows once per app session
-let splashHasShown = false;
+// Check if splash was already shown this session
+function hasShownSplash(): boolean {
+  if (Platform.OS === 'web') {
+    try {
+      return sessionStorage.getItem(SPLASH_SHOWN_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function markSplashShown(): void {
+  if (Platform.OS === 'web') {
+    try {
+      sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
+    } catch {}
+  }
+}
 
 // Keep the native splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
@@ -39,14 +57,13 @@ SplashScreen.preventAutoHideAsync();
 function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const animationStarted = useRef(false);
+  const hasStarted = useRef(false);
 
   useEffect(() => {
-    // Prevent animation from running twice
-    if (animationStarted.current) return;
-    animationStarted.current = true;
+    if (hasStarted.current) return;
+    hasStarted.current = true;
 
-    // Start animations - single run, no loop
+    // Start animations
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 1,
@@ -64,6 +81,7 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
 
     // Complete after duration
     const timer = setTimeout(() => {
+      markSplashShown();
       onComplete();
     }, SPLASH_DURATION);
 
@@ -131,8 +149,8 @@ const splashStyles = StyleSheet.create({
 });
 
 export default function RootLayout() {
-  // Use global flag to prevent splash from showing twice
-  const [showSplash, setShowSplash] = useState(!splashHasShown);
+  // Check if splash was already shown this session (for web)
+  const [showSplash, setShowSplash] = useState(() => !hasShownSplash());
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -155,7 +173,6 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   const handleSplashComplete = () => {
-    splashHasShown = true;
     setShowSplash(false);
   };
 
