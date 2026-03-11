@@ -22,21 +22,21 @@ export default function Home() {
     <>
       {/* Hero */}
       <section className="hero" data-testid="home-hero">
-        <div className="hero-eyebrow">Plateforme academique</div>
+        <div className="hero-eyebrow">Plateforme académique</div>
         <h1 className="hero-title">
           Sciences islamiques,{' '}
           <span style={{ color: 'var(--accent)' }}>savoir ancestral</span>
         </h1>
         <p className="hero-subtitle">
-          Des parcours structures en philosophie, theologie, droit, litterature et spiritualite.
-          Plus de 100 episodes audio par les meilleurs specialistes.
+          Des parcours structurés en philosophie, théologie, droit, littérature et spiritualité.
+          Plus de 100 épisodes audio par les meilleurs spécialistes.
         </p>
         <div className="hero-cta">
           <Link to="/cursus" className="btn-accent" data-testid="hero-explore-btn">
             Explorer les cursus
           </Link>
           <Link to="/inscription" className="btn-outline" data-testid="hero-register-btn">
-            Creer un compte
+            Créer un compte
           </Link>
         </div>
         <div className="hero-stats">
@@ -50,7 +50,7 @@ export default function Home() {
           </div>
           <div>
             <div className="hero-stat-value">100+</div>
-            <div className="hero-stat-label">Episodes</div>
+            <div className="hero-stat-label">Épisodes</div>
           </div>
           <div>
             <div className="hero-stat-value">50+</div>
@@ -62,9 +62,9 @@ export default function Home() {
       {/* Quote */}
       <section className="featured-quote">
         <p className="featured-quote-text">
-          &laquo; Celui qui ne connait pas l'histoire est condamne a la revivre &raquo;
+          &laquo;&nbsp;Celui qui ne connaît pas l'histoire est condamné à la revivre&nbsp;&raquo;
         </p>
-        <span className="featured-quote-author">Ibn Khaldun</span>
+        <span className="featured-quote-author">Ibn Khaldûn</span>
       </section>
 
       {/* Cursus section */}
@@ -114,7 +114,7 @@ export default function Home() {
         <section className="section" style={{ paddingTop: 0 }} data-testid="home-courses-section">
           <div className="section-header">
             <div>
-              <div className="section-eyebrow">A la une</div>
+              <div className="section-eyebrow">À la une</div>
               <h2 className="section-title">Commencez par la Falsafa</h2>
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function Home() {
                   <div className="course-card-title">{c.title || c.name}</div>
                   <div className="course-card-desc">{c.description}</div>
                   <div className="course-card-episodes">
-                    {c.audio_count || c.episode_count || '?'} episodes
+                    {c.modules_count || c.module_count || '?'} modules
                   </div>
                 </Link>
               )
@@ -143,12 +143,12 @@ export default function Home() {
 
       {/* CTA */}
       <section className="section" style={{ textAlign: 'center', paddingTop: 40 }}>
-        <div className="section-eyebrow" style={{ textAlign: 'center' }}>Pret a commencer ?</div>
+        <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Prêt à commencer ?</div>
         <h2 className="section-title" style={{ textAlign: 'center', marginBottom: 32 }}>
-          Rejoignez Sijill Project
+          Rejoignez Le Sijill
         </h2>
         <Link to="/inscription" className="btn-accent" data-testid="home-cta-register">
-          Creer un compte gratuitement
+          Créer un compte gratuitement
         </Link>
       </section>
     </>

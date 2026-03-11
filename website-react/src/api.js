@@ -28,8 +28,32 @@ export async function getCourseDetail(courseId) {
   return apiFetch(`/courses/${courseId}`);
 }
 
+export async function getModules(courseId) {
+  return apiFetch(`/modules?course_id=${courseId}`);
+}
+
 export async function getCoursePlaylist(courseId) {
   return apiFetch(`/courses/${courseId}/playlist`);
+}
+
+export async function getAudios(courseId) {
+  return apiFetch(`/audios?course_id=${courseId}`);
+}
+
+export async function getAudioDetail(audioId) {
+  return apiFetch(`/audios/${audioId}`);
+}
+
+export async function getAudioStreamUrl(audioId) {
+  return apiFetch(`/audios/${audioId}/stream-url`);
+}
+
+export async function getAudioTranscript(audioId) {
+  return apiFetch(`/audios/${audioId}/transcript`);
+}
+
+export async function getContextResources(cursusId) {
+  return apiFetch(`/resources/context/cursus/${cursusId}`);
 }
 
 export async function login(email, password) {
@@ -60,8 +84,4 @@ export async function register(name, email, password) {
 
 export async function getMe() {
   return apiFetch('/auth/me');
-}
-
-export async function getHighlight() {
-  return apiFetch('/highlight');
 }

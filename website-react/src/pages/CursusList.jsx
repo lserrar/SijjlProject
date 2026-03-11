@@ -38,7 +38,7 @@ export default function CursusList() {
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="cursus-list-page">
       <div style={{ marginBottom: 64 }}>
-        <div className="section-eyebrow">Catalogue</div>
+        <div className="section-eyebrow">Parcours</div>
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
           Tous les cursus
         </h1>
@@ -46,7 +46,7 @@ export default function CursusList() {
           fontFamily: 'var(--font-body)', fontSize: 18,
           color: 'var(--text-muted)', maxWidth: 600, marginTop: 16, lineHeight: 1.7
         }}>
-          Chaque cursus regroupe plusieurs cours thematiques. Explorez les parcours et decouvrez les episodes.
+          Chaque cursus regroupe plusieurs cours thématiques. Explorez les parcours et découvrez les modules.
         </p>
       </div>
 
@@ -59,7 +59,6 @@ export default function CursusList() {
 
           return (
             <div key={c.id} data-testid={`cursus-item-${c.id}`}>
-              {/* Cursus row */}
               <div
                 onClick={() => toggleCursus(c.id)}
                 style={{
@@ -113,7 +112,6 @@ export default function CursusList() {
                 </div>
               </div>
 
-              {/* Expanded courses */}
               {isOpen && (
                 <div style={{
                   background: 'var(--bg-card)',
@@ -144,7 +142,7 @@ export default function CursusList() {
                           <div className="course-card-title">{course.title || course.name}</div>
                           <div className="course-card-desc">{course.description}</div>
                           <div className="course-card-episodes" style={{ color: `${color}88` }}>
-                            {course.audio_count || course.episode_count || '?'} episodes
+                            {course.modules_count || course.module_count || '?'} modules
                           </div>
                         </Link>
                       ))}

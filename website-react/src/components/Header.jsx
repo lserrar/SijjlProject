@@ -7,11 +7,12 @@ export default function Header() {
   return (
     <header className="site-header" data-testid="site-header">
       <Link to="/" className="site-logo" data-testid="site-logo">
-        Sijill <span>Project</span>
+        <span className="logo-le">Le </span>Sijill<span className="logo-dot">.</span>
       </Link>
       <nav className="site-nav">
         <Link to="/cursus" data-testid="nav-cursus">Cursus</Link>
-        <Link to="/cursus" data-testid="nav-catalogue">Catalogue</Link>
+        <Link to="/catalogue" data-testid="nav-catalogue">Catalogue</Link>
+        <Link to="/a-propos" data-testid="nav-about">À propos</Link>
       </nav>
       <div className="nav-auth">
         {user ? (
