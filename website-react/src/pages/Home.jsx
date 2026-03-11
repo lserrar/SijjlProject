@@ -71,8 +71,11 @@ export default function Home() {
       <section className="section" data-testid="home-cursus-section">
         <div className="section-header">
           <div>
-            <div className="section-eyebrow">Parcours</div>
-            <h2 className="section-title">Cinq cursus, un savoir</h2>
+            <div className="section-eyebrow">5 cursus disponibles</div>
+            <h2 className="section-title">Les grandes voies du savoir islamique</h2>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--text-muted)', marginTop: 8 }}>
+              Choisissez votre parcours d'étude
+            </p>
           </div>
           <Link to="/cursus" className="btn-outline">Voir tout</Link>
         </div>
@@ -145,7 +148,7 @@ export default function Home() {
       <section className="section" style={{ textAlign: 'center', paddingTop: 40 }}>
         <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Prêt à commencer ?</div>
         <h2 className="section-title" style={{ textAlign: 'center', marginBottom: 32 }}>
-          Rejoignez Le Sijill
+          Rejoignez Sijill Project
         </h2>
         <Link to="/inscription" className="btn-accent" data-testid="home-cta-register">
           Créer un compte gratuitement

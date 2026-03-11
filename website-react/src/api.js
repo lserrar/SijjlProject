@@ -82,6 +82,21 @@ export async function register(name, email, password) {
   return res.json();
 }
 
+export async function getBibliographies(cursusLetter) {
+  return apiFetch(`/bibliographies${cursusLetter ? `?cursus_letter=${cursusLetter}` : ''}`);
+}
+
+export async function getTimelineHtml(cursusLetter) {
+  const res = await fetch(`${API_BASE}/timeline/${cursusLetter}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` },
+  });
+  return res.text();
+}
+
+export async function getResourceContent(resourceId) {
+  return apiFetch(`/resources/context/${resourceId}`);
+}
+
 export async function getMe() {
   return apiFetch('/auth/me');
 }

@@ -10,6 +10,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import About from './pages/About'
 
+import ResourceViewer from './pages/ResourceViewer'
+
 export default function App() {
   return (
     <AuthProvider>
@@ -20,6 +22,7 @@ export default function App() {
           <Route path="/cursus" element={<CursusList />} />
           <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/cours/:courseId" element={<CourseDetail />} />
+          <Route path="/ressource/:type/:resourceId" element={<ResourceViewer />} />
           <Route path="/connexion" element={<Login />} />
           <Route path="/inscription" element={<Register />} />
           <Route path="/a-propos" element={<About />} />

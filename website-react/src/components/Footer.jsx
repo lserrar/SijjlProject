@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="site-footer" data-testid="site-footer">
       <div className="footer-top">
         <div>
-          <div className="footer-brand">Le Sijill<span style={{ color: 'var(--accent)' }}>.</span></div>
+          <div className="footer-brand">Sijill Project<span style={{ color: 'var(--accent)' }}>.</span></div>
           <p className="footer-tagline">
             Parcours académiques en sciences islamiques.
             Philosophie, théologie, droit, littérature et spiritualité.
@@ -36,7 +36,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        Le Sijill &copy; {new Date().getFullYear()}. Tous droits réservés.
+        Sijill Project &copy; {new Date().getFullYear()}. Tous droits réservés.
       </div>
     </footer>
   )

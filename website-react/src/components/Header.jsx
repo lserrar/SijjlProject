@@ -7,7 +7,7 @@ export default function Header() {
   return (
     <header className="site-header" data-testid="site-header">
       <Link to="/" className="site-logo" data-testid="site-logo">
-        <span className="logo-le">Le </span>Sijill<span className="logo-dot">.</span>
+        Sijill <span className="logo-project">Project</span><span className="logo-dot">.</span>
       </Link>
       <nav className="site-nav">
         <Link to="/cursus" data-testid="nav-cursus">Cursus</Link>
