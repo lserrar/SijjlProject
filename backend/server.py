@@ -6810,9 +6810,27 @@ async def admin_send_trial_emails(request: Request):
 app.include_router(api_router)
 
 # Mount static website files at /api/site (accessible via /api/site/)
+WEBSITE_REACT_DIR = Path(__file__).parent.parent / "website-react" / "dist"
 WEBSITE_DIR = Path(__file__).parent.parent / "website"
-if WEBSITE_DIR.exists():
-    app.mount("/api/site", StaticFiles(directory=str(WEBSITE_DIR), html=True), name="website")
+
+# SPA catch-all: serve index.html for all non-file /api/site/* routes
+@app.get("/api/site/{full_path:path}")
+async def serve_website_spa(full_path: str):
+    """Serve the React SPA. Static assets are served by StaticFiles mount below."""
+    if WEBSITE_REACT_DIR.exists():
+        # Try to serve the exact file first
+        file_path = WEBSITE_REACT_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        # For any other path, serve index.html (SPA routing)
+        index_path = WEBSITE_REACT_DIR / "index.html"
+        if index_path.exists():
+            return FileResponse(str(index_path))
+    raise HTTPException(404, "Website not found")
+
+# Mount React website assets
+if WEBSITE_REACT_DIR.exists():
+    app.mount("/api/site-assets", StaticFiles(directory=str(WEBSITE_REACT_DIR)), name="website-assets")
 
 # Mount backend static files at /api/static
 STATIC_DIR = Path(__file__).parent / "static"

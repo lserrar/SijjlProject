@@ -1,0 +1,87 @@
+{
+  "summary": "Iteration 21 - React Website Frontend Testing at /api/site/. All features tested and working correctly: Homepage with hero/cursus/stats/quote/footer, Cursus catalogue with accordion, Course detail with episodes, Login/Register pages, SPA routing, Auth flow.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_21.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% - All UI flows verified"
+  },
+  "test_credentials": {
+    "email": "loubniz@hotmail.com",
+    "password": "loulouz"
+  },
+  "seed_data_creation": "None - using existing data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "React website at /api/site/ fully tested. All pages working: Home (hero, cursus cards, featured courses, stats, quote, footer), Cursus list with accordion expansion showing courses, Course detail with episode list and auth-aware UI (lock vs play icon), Login and Register pages with form validation, SPA routing between pages without reload, Auth persistence in localStorage.",
+  "features_tested": {
+    "homepage": {
+      "url": "/api/site/",
+      "status": "PASS",
+      "details": "Hero section with title 'Sciences islamiques, savoir ancestral', stats (5 Cursus, 24 Cours, 100+ Episodes, 50+ Heures), 5 cursus cards with A-E letters, featured courses from Falsafa, quote section, CTA, footer"
+    },
+    "navigation_explorer_cursus": {
+      "action": "Click 'Explorer les cursus' button",
+      "status": "PASS",
+      "details": "Navigates to /api/site/cursus via SPA routing"
+    },
+    "cursus_page": {
+      "url": "/api/site/cursus",
+      "status": "PASS",
+      "details": "All 5 cursus visible with correct names: La Falsafa (7 cours), Théologie et Droit (2 cours), Sciences islamiques (5 cours), Arts et Littérature (6 cours), Philosophies et spiritualités (4 cours)"
+    },
+    "cursus_accordion": {
+      "action": "Click cursus row",
+      "status": "PASS",
+      "details": "Accordion expands showing course cards. Falsafa shows 7 courses with titles, descriptions, episode counts"
+    },
+    "course_detail": {
+      "url": "/api/site/cours/{courseId}",
+      "status": "PASS",
+      "details": "Shows course title, description, cursus badge, scholar name, episode list. Episodes show lock icon for unauthenticated users, play icon for authenticated"
+    },
+    "login_page": {
+      "url": "/api/site/connexion",
+      "status": "PASS",
+      "details": "Form with email/password inputs, 'SE CONNECTER' submit button, link to register"
+    },
+    "login_flow": {
+      "credentials": "loubniz@hotmail.com / loulouz",
+      "status": "PASS",
+      "details": "Login redirects to home, header shows user name 'LOUBNA BIS' with avatar and 'QUITTER' logout button"
+    },
+    "register_page": {
+      "url": "/api/site/inscription",
+      "status": "PASS",
+      "details": "Form with name/email/password inputs, 'S'INSCRIRE' submit button, link to login"
+    },
+    "spa_routing": {
+      "action": "Navigate between pages",
+      "status": "PASS",
+      "details": "All navigation works via react-router without full page reload. Logo returns to home, nav links work, back button on course detail works"
+    },
+    "logout_flow": {
+      "action": "Click 'QUITTER' button",
+      "status": "PASS",
+      "details": "Clears session, header returns to showing 'CONNEXION' and 'S'INSCRIRE' buttons"
+    },
+    "footer": {
+      "component": "site-footer",
+      "status": "PASS",
+      "details": "Present on all pages with brand, Explorer links (Tous les cursus, Se connecter, Créer un compte), A propos links (Mentions légales, Contact, Conditions d'utilisation), copyright 2026"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+const API_BASE = window.location.origin + '/api';
+
+async function apiFetch(path, options = {}) {
+  const token = localStorage.getItem('sijill_token');
+  const headers = { ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
+export async function getCursus() {
+  return apiFetch('/cursus');
+}
+
+export async function getCourses(cursusId) {
+  return apiFetch(`/courses?cursus_id=${cursusId}`);
+}
+
+export async function getAllCourses() {
+  return apiFetch('/courses');
+}
+
+export async function getCourseDetail(courseId) {
+  return apiFetch(`/courses/${courseId}`);
+}
+
+export async function getCoursePlaylist(courseId) {
+  return apiFetch(`/courses/${courseId}/playlist`);
+}
+
+export async function login(email, password) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Identifiants incorrects');
+  }
+  return res.json();
+}
+
+export async function register(name, email, password) {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Erreur lors de l'inscription");
+  }
+  return res.json();
+}
+
+export async function getMe() {
+  return apiFetch('/auth/me');
+}
+
+export async function getHighlight() {
+  return apiFetch('/highlight');
+}
