@@ -178,31 +178,6 @@ export default function LoginScreen() {
                 <Text style={styles.primaryBtnText}>Se connecter</Text>
               )}
             </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google */}
-            <TouchableOpacity
-              testID="login-google-btn"
-              style={styles.socialBtn}
-              onPress={handleGoogle}
-              disabled={googleLoading}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color={colors.text.primary} size="small" />
-              ) : (
-                <>
-                  <View style={styles.googleIcon}>
-                    <Text style={styles.googleG}>G</Text>
-                  </View>
-                  <Text style={styles.socialBtnText}>Continuer avec Google</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
 
           {/* Register link */}

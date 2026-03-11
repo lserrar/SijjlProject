@@ -28,54 +28,22 @@ import { PlayerProvider } from '../context/PlayerContext';
 import React from 'react';
 
 const SPLASH_DURATION = 3000; // 3 seconds
-const SPLASH_SHOWN_KEY = 'sijill_splash_shown';
 
-// Global variable for native apps (persists in memory)
-let nativeSplashShown = false;
-
-// Check if splash was already shown this session
-function hasShownSplash(): boolean {
-  if (Platform.OS === 'web') {
-    try {
-      return sessionStorage.getItem(SPLASH_SHOWN_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  }
-  // For native apps, use the global variable
-  return nativeSplashShown;
-}
-
-function markSplashShown(): void {
-  if (Platform.OS === 'web') {
-    try {
-      sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
-    } catch {}
-  } else {
-    // For native apps
-    nativeSplashShown = true;
-  }
-}
+// Module-level flag - set immediately when module loads
+let _splashCompleted = false;
 
 // Keep the native splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
 
-// Simple Splash Component - No animation
+// Simple Splash Component - No animation, shows only once
 function SimpleSplash({ onComplete }: { onComplete: () => void }) {
-  const hasStarted = useRef(false);
-
   useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-
-    // Complete after 3 seconds
     const timer = setTimeout(() => {
-      markSplashShown();
       onComplete();
     }, SPLASH_DURATION);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [onComplete]);
 
   return (
     <View style={splashStyles.container}>
@@ -131,8 +99,8 @@ const splashStyles = StyleSheet.create({
 });
 
 export default function RootLayout() {
-  // Check if splash was already shown this session (for web)
-  const [showSplash, setShowSplash] = useState(() => !hasShownSplash());
+  // Show splash only if not already completed this session
+  const [showSplash, setShowSplash] = useState(() => !_splashCompleted);
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
@@ -155,6 +123,7 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   const handleSplashComplete = () => {
+    _splashCompleted = true; // Mark as completed at module level
     setShowSplash(false);
   };
 

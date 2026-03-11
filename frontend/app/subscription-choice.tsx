@@ -31,26 +31,7 @@ export default function SubscriptionChoiceScreen() {
   const { user, token, refreshUser } = useAuth();
   const router = useRouter();
 
-  // For iOS: redirect to website for subscriptions
-  const handleIOSSubscribe = async () => {
-    const subscribeUrl = 'https://sijillproject.com/pages/abonnement.html';
-    
-    if (Platform.OS === 'ios') {
-      Alert.alert(
-        'Abonnement',
-        'Pour vous abonner, vous allez être redirigé vers notre site web sijillproject.com',
-        [
-          { text: 'Annuler', style: 'cancel' },
-          { 
-            text: 'Continuer', 
-            onPress: () => Linking.openURL(subscribeUrl)
-          },
-        ]
-      );
-    } else {
-      await Linking.openURL(subscribeUrl);
-    }
-  };
+  // Removed iOS web redirect - Apple doesn't allow external payment links
 
   const handleStartTrial = async () => {
     setLoading(true);
@@ -93,9 +74,9 @@ export default function SubscriptionChoiceScreen() {
   };
 
   const handleSubscribe = async (planId: 'monthly' | 'annual') => {
-    // On iOS native, redirect to website
+    // On iOS native, don't allow subscription through the app (Apple rules)
     if (isIOSNative) {
-      handleIOSSubscribe();
+      // Do nothing - subscriptions not available on iOS app
       return;
     }
     
