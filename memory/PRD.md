@@ -86,14 +86,18 @@ Cursus → Cours → Modules → Audios (Episodes)
 **Status**: IN PROGRESS (March 2026) - Initial pages complete
 **Objective**: Full-featured website with courses, payments, and blog
 
-**What was built (v1)**:
+**What was built (v1 + v2)**:
 - React SPA (Vite) served via FastAPI at `/api/site/`
-- Pages: Home, Cursus catalogue (accordion), Course detail (episodes), Login, Register
-- Design: Dark mode, Cinzel/EB Garamond fonts, text-focused, colored squares per cursus
+- Pages: Home, Cursus (accordion), Catalogue (all courses alphabetical), Course detail (modules/episodes), Login, Register, À propos
+- Design: Dark mode, Cinzel/EB Garamond fonts, text-focused, colored squares per cursus, no images
+- Logo: "Le Sijill." with italic "Le" and green dot
 - Auth: Login/Register/Logout with localStorage token persistence
-- 100% tests passed (iteration 21)
+- Audio player: Fixed bar with play/pause, seek -15/+15, progress bar, transcript toggle
+- Course hierarchy: Cursus → Cours → Modules (accordion) → Épisodes
+- Resources section in course detail
+- 100% tests passed (iteration 21 + 22)
 
-**Remaining**: Audio player, user profile, blog section, Stripe, deploy to sijillproject.com
+**Remaining**: User profile page, blog section, Stripe payments, deploy to sijillproject.com
 
 **Tech Stack**:
 - React (same as app for consistency)
