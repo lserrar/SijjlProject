@@ -83,8 +83,17 @@ Cursus → Cours → Modules → Audios (Episodes)
 ---
 
 ### Phase 3: Website Redesign (MasterClass Style)
-
+**Status**: IN PROGRESS (March 2026) - Initial pages complete
 **Objective**: Full-featured website with courses, payments, and blog
+
+**What was built (v1)**:
+- React SPA (Vite) served via FastAPI at `/api/site/`
+- Pages: Home, Cursus catalogue (accordion), Course detail (episodes), Login, Register
+- Design: Dark mode, Cinzel/EB Garamond fonts, text-focused, colored squares per cursus
+- Auth: Login/Register/Logout with localStorage token persistence
+- 100% tests passed (iteration 21)
+
+**Remaining**: Audio player, user profile, blog section, Stripe, deploy to sijillproject.com
 
 **Tech Stack**:
 - React (same as app for consistency)
