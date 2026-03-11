@@ -40,6 +40,10 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
   // On web mobile, hide the header completely (use bottom tab bar instead)
   const isWeb = Platform.OS === 'web';
   const isWebMobile = isWeb && !isDesktop;
+
+  const handleSearch = () => {
+    router.push('/search' as any);
+  };
   
   // On web mobile, show logo + avatar for profile access
   if (isWebMobile) {
@@ -84,10 +88,6 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
     } else {
       router.back();
     }
-  };
-
-  const handleSearch = () => {
-    router.push('/search' as any);
   };
 
   const handleProfile = () => {

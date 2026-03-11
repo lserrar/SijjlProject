@@ -23,50 +23,47 @@ Cursus -> Cours -> Modules -> Audios (Episodes)
 - Admin panel (Jinja2)
 - Adaptive web/mobile layout
 - Password reset via email (SendPulse)
-- Reading Mode / Mode Lecture (March 2026)
+- Reading Mode / Mode Lecture
 - Splash screen (3s, SIJILL PROJECT logo)
-
-### iOS App Store Compliance (v1.0.2)
-- Removed Google Sign-In (only email/password)
-- Removed Apple Sign-In button
-- Hidden subscription plans on iOS (trial only)
-- Removed promo codes on iOS
-- No external payment links on iOS
-- Test account: apple-test@sijillproject.com / AppleTest123!
 
 ---
 
 ## Completed Development
 
-### Phase 1: Text Reading Mode - COMPLETED (March 2026)
+### Phase 1: Text Reading Mode - COMPLETED
 - Backend: Transcript API endpoints (CRUD + upload docx + sync from R2)
 - Frontend: TranscriptReader component with markdown rendering
 - Integration: "Lire" button in audio player
 - Admin: Upload Word documents, "Sync Textes R2" button
 
-### Phase 3: Website Redesign - v4 COMPLETED (February 2026)
+### Phase 3: Website Redesign - v4 COMPLETED
 - React SPA (Vite) served via FastAPI at `/api/site/`
 - Pages: Home, Cursus, Catalogue, Course detail, Login, Register, About, Resource Viewer
-- Design: Dark mode, Cinzel/EB Garamond fonts, gold accents (#C9A84C), green accent (#04D182)
-- **About page v3**: Hero manifesto, gold accents, 4 principle cards with ghost numbers, domain tags grid, vision block, footer logo
-- **CourseDetail**: 5 resource tabs (Episodes, Frise, Contexte, Bibliographie, Conferences), cursus-specific timeline filtering
-- **ResourceViewer v3**: Context (module info, thinker name, diamond divider, colored section bars), Bibliography (title with accent bar, diamond divider)
+- About page v3: Hero manifesto, gold accents, 4 principle cards, domain tags, vision block
+- CourseDetail: 5 resource tabs, cursus-specific timeline filtering
+- ResourceViewer v3: Context + Bibliography layouts matching mobile app
 - Auth: Login/Register/Logout with localStorage token
 - Audio player: Fixed bar with controls, transcript toggle
-- Body text font-size: 18px
 
-### Bibliography Sync Fix - COMPLETED (February 2026)
-- Fixed sync logic from R2: positional matching (N-th file → N-th course per cursus)
-- Fixed regex to handle spaces in R2 filenames
-- Local module numbering (1-based per cursus) instead of global
+### Bibliography Sync Fix - COMPLETED
+- Positional matching (N-th file -> N-th course per cursus)
+- Tolerant regex for R2 filenames with spaces
+- Local module numbering (1-based per cursus)
 - Auto-cleanup of orphaned entries
-- Fixed standardize-titles for new numbering
-- 22 biblios correctly synced, 2 extra files skipped, 19 orphans deleted
+- 22 biblios correctly synced
 
-### Mobile App Header Fix - COMPLETED (February 2026)
-- Fixed web mobile header: incorrect style references (logoWrapper→wordmarkRow, logoText→logoSijill)
+### Bibliography Display Improvements - COMPLETED
+- Filtered out header sections (Sijill Project, Bibliographie sélective, Cursus X, Module N — Title)
+- Filtered out footer section (Le Sijill — Plateforme académique)
+- Annotation text (after Note pédagogique) rendered in italic
+- Font size toggle (A/A+/A++) on both mobile app and website
+- Applied to BOTH mobile app (bibliography/[id].tsx) and website (ResourceViewer.jsx)
+- 100% tests passed (iteration 25)
+
+### Mobile App Header Fix - COMPLETED
+- Fixed web mobile header: correct style references for logo
 - Added profile avatar access in web mobile header
-- Logo now shows "SIJILL PROJECT." correctly
+- Fixed handleSearch hoisting error
 
 ---
 
@@ -84,13 +81,10 @@ Cursus -> Cours -> Modules -> Audios (Episodes)
 - Mixed access (subscription + purchases)
 
 ### Future (P3)
-- Offline mode (download episodes)
-- Push notifications
-- Newsletter for new episodes
+- Offline mode, Push notifications, Newsletter
 - Refactor backend/server.py into APIRouter modules
 - Admin panel improvement (tree structure display)
-- Admin Dashboard for Analytics
-- "My Subscription" page
+- Admin Dashboard for Analytics, "My Subscription" page
 
 ---
 
@@ -98,17 +92,10 @@ Cursus -> Cours -> Modules -> Audios (Episodes)
 - Login fails on native mobile app (iOS) - BLOCKED on new EAS build
 - Splash screen "double loop" on native app
 - Apple App Store submission pending review
-- Intermittent 502 Bad Gateway (platform-level)
 
 ---
 
 ## Credentials
-
-**Admin Panel**: `/api/admin-panel/login`
-- Email: loubna.serrar@gmail.com / Admin123!
-
-**Test Users**:
-- loubniz@hotmail.com / loulouz
-- apple-test@sijillproject.com / AppleTest123! (expired trial)
-
-**Services**: Cloudflare R2, Stripe, SendPulse
+- Admin: loubna.serrar@gmail.com / Admin123!
+- Test user: loubniz@hotmail.com / loulouz
+- Apple test: apple-test@sijillproject.com / AppleTest123!
