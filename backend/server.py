@@ -28,6 +28,13 @@ from utils.email_service import (
     send_trial_expiration_email
 )
 
+# Transcript service for Word document conversion
+from utils.transcript_service import (
+    convert_docx_to_markdown,
+    extract_text_only,
+    estimate_reading_time
+)
+
 # Apple Sign-In
 from utils.apple_auth import (
     is_apple_auth_configured,
@@ -1279,6 +1286,176 @@ async def update_audio_file_key(audio_id: str, request: Request):
     if result.matched_count == 0:
         raise HTTPException(404, "Audio non trouvé")
     return {'message': 'file_key mis à jour', 'audio_id': audio_id, 'file_key': file_key}
+
+# ─── Transcript Routes ─────────────────────────────────────────────────────────
+
+class TranscriptCreate(BaseModel):
+    audio_id: str
+    title: Optional[str] = None
+
+@api_router.get("/transcripts/{audio_id}")
+async def get_transcript(audio_id: str):
+    """Get the transcript for an audio episode."""
+    transcript = await db.transcripts.find_one({'audio_id': audio_id}, {'_id': 0})
+    if not transcript:
+        raise HTTPException(404, "Transcript non trouvé")
+    return transcript
+
+@api_router.get("/audios/{audio_id}/transcript")
+async def get_audio_transcript(audio_id: str):
+    """Get the transcript for an audio episode (alternative endpoint)."""
+    transcript = await db.transcripts.find_one({'audio_id': audio_id}, {'_id': 0})
+    if not transcript:
+        # Return empty response instead of 404 (audio may not have transcript yet)
+        return {'audio_id': audio_id, 'has_transcript': False}
+    transcript['has_transcript'] = True
+    return transcript
+
+@api_router.post("/transcripts/upload")
+async def upload_transcript(request: Request):
+    """Upload a Word document and create/update a transcript."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin access required")
+    
+    form = await request.form()
+    audio_id = form.get('audio_id')
+    file = form.get('file')
+    
+    if not audio_id:
+        raise HTTPException(400, "audio_id requis")
+    if not file:
+        raise HTTPException(400, "Fichier requis")
+    
+    # Check if audio exists
+    audio = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    if not audio:
+        raise HTTPException(404, "Audio non trouvé")
+    
+    # Read and convert the Word document
+    content = await file.read()
+    try:
+        result = convert_docx_to_markdown(content)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    
+    # Create or update transcript
+    transcript_data = {
+        'transcript_id': f'tr_{uuid.uuid4().hex[:12]}',
+        'audio_id': audio_id,
+        'title': result['title'] or audio.get('title', ''),
+        'content': result['content'],
+        'sections': result['sections'],
+        'word_count': result['word_count'],
+        'reading_time_minutes': estimate_reading_time(result['word_count']),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+    }
+    
+    # Upsert (create or update)
+    await db.transcripts.update_one(
+        {'audio_id': audio_id},
+        {'$set': transcript_data},
+        upsert=True
+    )
+    
+    # Update audio to indicate it has a transcript
+    await db.audios.update_one(
+        {'id': audio_id},
+        {'$set': {'has_transcript': True}}
+    )
+    
+    return {
+        'success': True,
+        'message': 'Transcript uploaded successfully',
+        'transcript': transcript_data
+    }
+
+@api_router.delete("/transcripts/{audio_id}")
+async def delete_transcript(audio_id: str, request: Request):
+    """Delete a transcript."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin access required")
+    
+    result = await db.transcripts.delete_one({'audio_id': audio_id})
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Transcript non trouvé")
+    
+    # Update audio to indicate it no longer has a transcript
+    await db.audios.update_one(
+        {'id': audio_id},
+        {'$set': {'has_transcript': False}}
+    )
+    
+    return {'success': True, 'message': 'Transcript deleted'}
+
+@api_router.post("/transcripts/from-r2")
+async def create_transcript_from_r2(request: Request):
+    """Create a transcript from an existing Word file in R2."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin access required")
+    
+    body = await request.json()
+    audio_id = body.get('audio_id')
+    file_key = body.get('file_key')  # e.g., "transcripts/episode-01.docx"
+    
+    if not audio_id or not file_key:
+        raise HTTPException(400, "audio_id et file_key requis")
+    
+    # Check if audio exists
+    audio = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    if not audio:
+        raise HTTPException(404, "Audio non trouvé")
+    
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Fetch the file from R2
+    try:
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=file_key)
+        content = resp['Body'].read()
+    except ClientError as e:
+        logger.error(f"R2 error for transcript key={file_key}: {e}")
+        raise HTTPException(404, "Fichier non trouvé dans R2")
+    
+    # Convert the Word document
+    try:
+        result = convert_docx_to_markdown(content)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    
+    # Create or update transcript
+    transcript_data = {
+        'transcript_id': f'tr_{uuid.uuid4().hex[:12]}',
+        'audio_id': audio_id,
+        'title': result['title'] or audio.get('title', ''),
+        'content': result['content'],
+        'sections': result['sections'],
+        'word_count': result['word_count'],
+        'reading_time_minutes': estimate_reading_time(result['word_count']),
+        'r2_file_key': file_key,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+    }
+    
+    await db.transcripts.update_one(
+        {'audio_id': audio_id},
+        {'$set': transcript_data},
+        upsert=True
+    )
+    
+    await db.audios.update_one(
+        {'id': audio_id},
+        {'$set': {'has_transcript': True}}
+    )
+    
+    return {
+        'success': True,
+        'message': 'Transcript created from R2',
+        'transcript': transcript_data
+    }
 
 # ─── Article Routes ─────────────────────────────────────────────────────────
 

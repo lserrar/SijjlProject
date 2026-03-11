@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 // Check if running on iOS native (not web)
 const isIOSNative = Platform.OS === 'ios';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://quran-courses-1.preview.emergentagent.com';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://reading-hub-33.preview.emergentagent.com';
 
 interface UserStats {
   courses_followed: number;
