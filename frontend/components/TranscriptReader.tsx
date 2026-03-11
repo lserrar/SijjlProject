@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { apiRequest, useAuth } from '../../context/AuthContext';
+import { apiRequest, useAuth } from '../context/AuthContext';
 import Markdown from 'react-native-markdown-display';
 
 interface TranscriptReaderProps {

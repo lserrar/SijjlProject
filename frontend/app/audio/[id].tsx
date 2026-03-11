@@ -9,6 +9,7 @@ import { apiRequest, useAuth } from '../../context/AuthContext';
 import { usePlayer } from '../../context/PlayerContext';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { Ionicons } from '@expo/vector-icons';
+import TranscriptReader from '../../components/TranscriptReader';
 
 const { width: SW } = Dimensions.get('window');
 const SPEEDS = [1.0, 1.25, 1.5, 2.0, 0.75];
@@ -101,6 +102,7 @@ export default function AudioDetailScreen() {
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastSavedProgress = useRef(0);
 
@@ -240,6 +242,19 @@ export default function AudioDetailScreen() {
 
   return (
     <View style={s.root}>
+      {/* Transcript Reading Mode - Full screen overlay */}
+      {showTranscript ? (
+        <TranscriptReader
+          audioId={id!}
+          cursusColor={cursusColor}
+          onClose={() => setShowTranscript(false)}
+          isPlaying={isCurrentTrack && isPlaying}
+          onTogglePlay={handlePlayPause}
+          currentPosition={displayPosition}
+          duration={displayDuration}
+        />
+      ) : (
+      <>
       {/* Auto-next overlay */}
       {showNextOverlay && nextItem && (
         <View style={s.nextOverlay}>
@@ -388,6 +403,16 @@ export default function AudioDetailScreen() {
 
             {/* Actions */}
             <View style={s.actionsRow}>
+              {audio.has_transcript && (
+                <TouchableOpacity
+                  testID="audio-read-btn"
+                  style={[s.readBtn, { borderColor: cursusColor }]}
+                  onPress={() => setShowTranscript(true)}
+                >
+                  <Ionicons name="book-outline" size={14} color={cursusColor} />
+                  <Text style={[s.readBtnText, { color: cursusColor }]}>Lire</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity testID="audio-favorite-btn" onPress={handleSaveFavorite}>
                 <Ionicons
                   name={isFavorite ? 'bookmark' : 'bookmark-outline'}
@@ -481,6 +506,8 @@ export default function AudioDetailScreen() {
           </View>
         )}
       </ScrollView>
+      </>
+      )}
     </View>
   );
 }
@@ -568,6 +595,11 @@ const s = StyleSheet.create({
   speedBtn: { borderWidth: 1, borderColor: '#222222', paddingHorizontal: 10, paddingVertical: 5 },
   speedText: { fontFamily: 'Cinzel', fontSize: 8, letterSpacing: 2, color: '#777777' },
   actionsRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  readBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6,
+  },
+  readBtnText: { fontFamily: 'Cinzel', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' },
 
   // Separator
   sep: { height: 1, backgroundColor: '#222222', marginHorizontal: 20, marginTop: 22 },
