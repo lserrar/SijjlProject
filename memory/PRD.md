@@ -43,11 +43,12 @@ Cursus → Cours → Modules → Audios (Episodes)
 **Status**: COMPLETED (March 2026)
 
 **What was built**:
-- Backend: Transcript API endpoints (CRUD + upload docx)
+- Backend: Transcript API endpoints (CRUD + upload docx + sync from R2)
 - Frontend: TranscriptReader component with markdown rendering
 - Integration: "Lire" button in audio player (only shown when transcript exists)
 - Features: Font size adjustment (A+/A-), floating audio player, reading time/word count display
 - Admin: Upload Word documents which are converted to Markdown automatically
+- Admin: "Sync Textes R2" button to auto-import all .docx files from Cloudflare R2
 
 **Database Schema** - Collection `transcripts`:
 ```javascript

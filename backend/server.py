@@ -1457,6 +1457,110 @@ async def create_transcript_from_r2(request: Request):
         'transcript': transcript_data
     }
 
+@api_router.post("/transcripts/sync-r2")
+async def sync_transcripts_from_r2(request: Request):
+    """Scan R2 for .docx files matching audio episodes and create transcripts."""
+    user = await get_current_user(request)
+    if not user or user.get('role') != 'admin':
+        raise HTTPException(403, "Admin access required")
+    
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    
+    # Get all audios from DB
+    audios = await db.audios.find({}, {'_id': 0, 'id': 1, 'file_key': 1, 'title': 1}).to_list(None)
+    
+    results = {
+        'synced': [],
+        'already_exists': [],
+        'no_docx': [],
+        'errors': []
+    }
+    
+    for audio in audios:
+        audio_id = audio.get('id', '')
+        file_key = audio.get('file_key', '')
+        if not file_key:
+            continue
+        
+        # Build the expected .docx key by replacing extension
+        # file_key can be like "cursus-a-falsafa/01-mouvement-traduction/episode-01.m4a"
+        # or with "Audio/" prefix like "Audio/cursus-a-falsafa/..."
+        # Try both: the direct path and without "Audio/" prefix
+        base_key = file_key.rsplit('.', 1)[0]  # remove extension
+        docx_keys_to_try = [f"{base_key}.docx"]
+        
+        # If key starts with "Audio/", also try without it
+        if file_key.startswith('Audio/'):
+            stripped = file_key[len('Audio/'):]
+            docx_keys_to_try.append(f"{stripped.rsplit('.', 1)[0]}.docx")
+        else:
+            # Also try with "Audio/" prefix
+            docx_keys_to_try.append(f"Audio/{base_key}.docx")
+        
+        # Check if transcript already exists
+        existing = await db.transcripts.find_one({'audio_id': audio_id})
+        if existing:
+            results['already_exists'].append(audio_id)
+            continue
+        
+        # Try to find .docx in R2
+        docx_content = None
+        found_key = None
+        for docx_key in docx_keys_to_try:
+            try:
+                resp = r2_client.get_object(Bucket=R2_BUCKET, Key=docx_key)
+                docx_content = resp['Body'].read()
+                found_key = docx_key
+                break
+            except ClientError:
+                continue
+        
+        if not docx_content:
+            results['no_docx'].append(audio_id)
+            continue
+        
+        # Convert and save
+        try:
+            result = convert_docx_to_markdown(docx_content)
+            transcript_data = {
+                'transcript_id': f'tr_{uuid.uuid4().hex[:12]}',
+                'audio_id': audio_id,
+                'title': result['title'] or audio.get('title', ''),
+                'content': result['content'],
+                'sections': result['sections'],
+                'word_count': result['word_count'],
+                'reading_time_minutes': estimate_reading_time(result['word_count']),
+                'r2_file_key': found_key,
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+            }
+            
+            await db.transcripts.update_one(
+                {'audio_id': audio_id},
+                {'$set': transcript_data},
+                upsert=True
+            )
+            await db.audios.update_one(
+                {'id': audio_id},
+                {'$set': {'has_transcript': True}}
+            )
+            results['synced'].append({'audio_id': audio_id, 'r2_key': found_key, 'word_count': result['word_count']})
+        except Exception as e:
+            logger.error(f"Error syncing transcript for {audio_id}: {e}")
+            results['errors'].append({'audio_id': audio_id, 'error': str(e)})
+    
+    return {
+        'success': True,
+        'summary': {
+            'synced': len(results['synced']),
+            'already_exists': len(results['already_exists']),
+            'no_docx': len(results['no_docx']),
+            'errors': len(results['errors']),
+        },
+        'details': results
+    }
+
 # ─── Article Routes ─────────────────────────────────────────────────────────
 
 @api_router.get("/articles")

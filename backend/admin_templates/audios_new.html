@@ -9,6 +9,9 @@
         <p class="page-description">Gérez les fichiers audio et épisodes</p>
     </div>
     <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary" onclick="syncTranscripts()" data-testid="sync-transcripts-btn" id="syncTranscriptsBtn">
+            <i class="fas fa-book-open"></i> Sync Textes R2
+        </button>
         <button class="btn btn-secondary" onclick="openSyncR2Modal()" data-testid="sync-r2-btn">
             <i class="fas fa-sync"></i> Sync R2
         </button>
@@ -657,5 +660,40 @@ async function loadAudios() {
         renderAudios(audios);
     } catch (error) { showToast('Erreur de chargement', 'error'); }
 }
+// === SYNC TRANSCRIPTS FROM R2 ===
+async function syncTranscripts() {
+    const btn = document.getElementById('syncTranscriptsBtn');
+    if (!confirm('Synchroniser les textes (fichiers .docx) depuis Cloudflare R2 ?\n\nCette opération va scanner tous les dossiers R2 et importer automatiquement les fichiers Word trouvés à côté des audios.')) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation...';
+    
+    try {
+        const result = await apiRequest('/transcripts/sync-r2', 'POST');
+        const s = result.summary;
+        let msg = `Synchronisation des textes terminée !\n\n`;
+        msg += `Nouveaux textes importés : ${s.synced}\n`;
+        msg += `Déjà existants : ${s.already_exists}\n`;
+        msg += `Sans fichier .docx : ${s.no_docx}\n`;
+        if (s.errors > 0) msg += `Erreurs : ${s.errors}\n`;
+        
+        if (result.details.synced.length > 0) {
+            msg += `\nDétails des imports :\n`;
+            result.details.synced.forEach(t => {
+                msg += `  - ${t.r2_key} (${t.word_count} mots)\n`;
+            });
+        }
+        
+        alert(msg);
+        showToast(`${s.synced} texte(s) synchronisé(s)`);
+    } catch (error) {
+        showToast(error.message || 'Erreur de synchronisation des textes', 'error');
+        alert('Erreur : ' + (error.message || 'Erreur inconnue'));
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-book-open"></i> Sync Textes R2';
+    }
+}
+
 </script>
 {% endblock %}
