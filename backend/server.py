@@ -4221,7 +4221,8 @@ async def sync_professor_photos(request: Request):
 async def sync_bibliographies(request: Request):
     """
     Sync bibliography files (.docx) from R2 Biblio/ folder.
-    Extracts text content and stores in database.
+    Uses positional matching: files are sorted per cursus and matched
+    to courses in order, handling both global and local module numbering.
     """
     await require_admin(request)
     if not r2_client:
@@ -4230,114 +4231,144 @@ async def sync_bibliographies(request: Request):
     try:
         from docx import Document
         from io import BytesIO
+        import re
+        from collections import defaultdict
         
-        # Mapping of cursus letters to cursus IDs (matching database)
         cursus_mapping = {
-            'A': 'cursus-falsafa',           # A. La Falsafa et son héritage
-            'B': 'cursus-theologie',          # B. Théologie et Droit
-            'C': 'cursus-sciences-islamiques', # C. Sciences islamiques et transmission
-            'D': 'cursus-arts',               # D. Arts, Littérature et Sciences
-            'E': 'cursus-spiritualites',      # E. Philosophies et spiritualités connexes
+            'A': 'cursus-falsafa',
+            'B': 'cursus-theologie',
+            'C': 'cursus-sciences-islamiques',
+            'D': 'cursus-arts',
+            'E': 'cursus-spiritualites',
         }
         
-        # List all .docx files in Biblio/ folder
-        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Biblio/', MaxKeys=100)
+        # Pre-load all courses grouped by cursus, in their natural DB order
+        cursus_courses = {}
+        for letter, cursus_id in cursus_mapping.items():
+            courses = await db.courses.find(
+                {'cursus_id': cursus_id}, {'_id': 0, 'id': 1, 'title': 1}
+            ).to_list(50)
+            cursus_courses[letter] = courses
+            logger.info(f"Cursus {letter} ({cursus_id}): {len(courses)} courses")
         
-        created = 0
-        updated = 0
+        # List and group R2 files by cursus letter
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Biblio/', MaxKeys=200)
         
+        files_by_cursus = defaultdict(list)
         for obj in response.get('Contents', []):
             key = obj['Key']
             if not key.endswith('.docx'):
                 continue
-            
             filename = key.replace('Biblio/', '')
-            # Parse filename: Biblio_Module01_CursusA.docx
-            import re
-            match = re.match(r'Biblio_Module(\d+)_Cursus([A-E])\.docx', filename)
+            match = re.match(r'Biblio_Module(\d+)\s*_Cursus([A-E])\.docx', filename)
             if not match:
                 logger.warning(f"Skipping unrecognized biblio file: {filename}")
                 continue
-            
             module_num = int(match.group(1))
             cursus_letter = match.group(2)
-            cursus_id = cursus_mapping.get(cursus_letter)
+            files_by_cursus[cursus_letter].append((module_num, key))
+        
+        created = 0
+        updated = 0
+        skipped = 0
+        
+        for letter in sorted(files_by_cursus.keys()):
+            files = sorted(files_by_cursus[letter], key=lambda x: x[0])
+            courses = cursus_courses.get(letter, [])
+            cursus_id = cursus_mapping.get(letter)
             
             if not cursus_id:
-                logger.warning(f"Unknown cursus letter: {cursus_letter}")
                 continue
             
-            # Download the .docx file
-            try:
-                file_response = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
-                docx_content = file_response['Body'].read()
+            # Match files to courses positionally (N-th file → N-th course)
+            for position, (module_num, key) in enumerate(files):
+                if position >= len(courses):
+                    logger.warning(f"Extra biblio file {key} (pos {position}) — cursus {letter} only has {len(courses)} courses. Skipping.")
+                    skipped += 1
+                    continue
                 
-                # Parse the Word document
-                doc = Document(BytesIO(docx_content))
+                course = courses[position]
+                course_id = course['id']
+                course_title = course['title']
                 
-                # Extract text content with formatting
-                content_parts = []
-                for para in doc.paragraphs:
-                    text = para.text.strip()
-                    if text:
-                        # Check if it's a heading (bold or larger)
-                        is_heading = any(run.bold for run in para.runs if run.text.strip())
-                        if is_heading:
-                            content_parts.append(f"## {text}")
-                        else:
-                            content_parts.append(text)
+                # Compute the display module number (global = cursus start + position)
+                # This is for display only, the real link is via course_id
+                global_module_num = position + 1  # 1-based within cursus
                 
-                content = "\n\n".join(content_parts)
-                
-                # Find the course associated with this module
-                course = await db.courses.find_one({
-                    'cursus_id': cursus_id,
-                    '$or': [
-                        {'module_number': module_num},
-                        {'title': {'$regex': f'Cours {module_num}\\b', '$options': 'i'}}
-                    ]
-                })
-                
-                course_id = course['id'] if course else None
-                course_title = course['title'] if course else f"Module {module_num}"
-                
-                # Create/update bibliography entry
-                biblio_id = f"biblio-{cursus_letter.lower()}-mod{module_num:02d}"
-                
-                biblio_doc = {
-                    'id': biblio_id,
-                    'title': f"Bibliographie - {course_title}",
-                    'content': content,
-                    'content_html': content.replace('\n\n## ', '\n\n<h3>').replace('## ', '<h3>').replace('\n\n', '</h3>\n\n<p>') + '</p>' if '## ' in content else f"<p>{content.replace(chr(10)+chr(10), '</p><p>')}</p>",
-                    'cursus_id': cursus_id,
-                    'cursus_letter': cursus_letter,
-                    'course_id': course_id,
-                    'module_number': module_num,
-                    'file_key': key,
-                    'updated_at': datetime.now(timezone.utc).isoformat(),
-                }
-                
-                result = await db.bibliographies.update_one(
-                    {'id': biblio_id},
-                    {'$set': biblio_doc},
-                    upsert=True
-                )
-                
-                if result.upserted_id:
-                    created += 1
-                else:
-                    updated += 1
+                try:
+                    file_response = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
+                    docx_content = file_response['Body'].read()
+                    doc = Document(BytesIO(docx_content))
                     
-                logger.info(f"Synced bibliography: {biblio_id} ({len(content)} chars)")
-                
-            except Exception as e:
-                logger.error(f"Error processing {key}: {e}")
-                continue
+                    content_parts = []
+                    for para in doc.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            is_heading = any(run.bold for run in para.runs if run.text.strip())
+                            if is_heading:
+                                content_parts.append(f"## {text}")
+                            else:
+                                content_parts.append(text)
+                    
+                    content = "\n\n".join(content_parts)
+                    
+                    biblio_id = f"biblio-{letter.lower()}-mod{global_module_num:02d}"
+                    
+                    biblio_doc = {
+                        'id': biblio_id,
+                        'title': f"Bibliographie — {course_title}",
+                        'content': content,
+                        'content_html': content.replace('\n\n## ', '\n\n<h3>').replace('## ', '<h3>').replace('\n\n', '</h3>\n\n<p>') + '</p>' if '## ' in content else f"<p>{content.replace(chr(10)+chr(10), '</p><p>')}</p>",
+                        'cursus_id': cursus_id,
+                        'cursus_letter': letter,
+                        'course_id': course_id,
+                        'module_number': global_module_num,
+                        'file_key': key,
+                        'updated_at': datetime.now(timezone.utc).isoformat(),
+                    }
+                    
+                    result = await db.bibliographies.update_one(
+                        {'id': biblio_id},
+                        {'$set': biblio_doc},
+                        upsert=True
+                    )
+                    
+                    if result.upserted_id:
+                        created += 1
+                    else:
+                        updated += 1
+                        
+                    logger.info(f"Synced bibliography: {biblio_id} → {course_id} ({course_title[:40]})")
+                    
+                except Exception as e:
+                    logger.error(f"Error processing {key}: {e}")
+                    continue
+        
+        # Clean up old orphaned biblios with wrong IDs from previous sync
+        all_valid_ids = []
+        for letter in sorted(files_by_cursus.keys()):
+            files = sorted(files_by_cursus[letter], key=lambda x: x[0])
+            courses = cursus_courses.get(letter, [])
+            for position in range(min(len(files), len(courses))):
+                all_valid_ids.append(f"biblio-{letter.lower()}-mod{position+1:02d}")
+        
+        orphans = await db.bibliographies.find(
+            {'id': {'$nin': all_valid_ids}}, {'_id': 0, 'id': 1}
+        ).to_list(100)
+        
+        deleted = 0
+        if orphans:
+            orphan_ids = [o['id'] for o in orphans]
+            result = await db.bibliographies.delete_many({'id': {'$in': orphan_ids}})
+            deleted = result.deleted_count
+            logger.info(f"Cleaned up {deleted} orphaned bibliographies: {orphan_ids}")
         
         return {
             'message': 'Synchronisation des bibliographies terminée',
             'bibliographies_created': created,
             'bibliographies_updated': updated,
+            'skipped': skipped,
+            'deleted_orphans': deleted,
             'total': created + updated
         }
         
@@ -5475,13 +5506,12 @@ async def admin_delete_bibliography(biblio_id: str, request: Request):
 async def admin_standardize_bibliography_titles(request: Request):
     """
     Uniformiser tous les titres des bibliographies au format :
-    "Bibliographie - Cours XX : [Titre du Cours]"
-    Corrige aussi les cursus_id et assigne les course_id correspondants.
+    "Bibliographie — [Titre du Cours]"
+    Uses local module_number (1-based per cursus) since sync is now positional.
     """
     await require_admin(request)
     import re
     
-    # Correct cursus mapping (A-E letters to real cursus IDs)
     letter_to_cursus = {
         'A': 'cursus-falsafa',
         'B': 'cursus-theologie',
@@ -5490,91 +5520,62 @@ async def admin_standardize_bibliography_titles(request: Request):
         'E': 'cursus-spiritualites',
     }
     
-    # Fix old incorrect cursus mappings
-    old_to_new_cursus = {
-        'cursus-hermeneutique': 'cursus-theologie',
-        'cursus-histoire': 'cursus-sciences-islamiques',
-        'cursus-litterature': 'cursus-arts',
-    }
+    # Pre-load courses per cursus
+    cursus_courses_map = {}
+    for letter, cursus_id in letter_to_cursus.items():
+        courses = await db.courses.find({'cursus_id': cursus_id}, {'_id': 0}).to_list(50)
+        cursus_courses_map[letter] = courses
     
-    # Get all bibliographies with module_number
     biblios = await db.bibliographies.find({'module_number': {'$exists': True}}, {'_id': 0}).to_list(100)
     
     updated_count = 0
     
     for biblio in biblios:
         module_num = biblio.get('module_number')
-        cursus_id = biblio.get('cursus_id')
         cursus_letter = biblio.get('cursus_letter', '')
+        cursus_id = biblio.get('cursus_id')
         
-        if not module_num:
+        if not module_num or not cursus_letter:
             continue
         
         updates = {}
         
-        # Fix cursus_id if it's using old incorrect mapping
-        if cursus_id in old_to_new_cursus:
-            cursus_id = old_to_new_cursus[cursus_id]
+        # Fix cursus_id if needed
+        correct_cursus = letter_to_cursus.get(cursus_letter)
+        if correct_cursus and cursus_id != correct_cursus:
+            cursus_id = correct_cursus
             updates['cursus_id'] = cursus_id
-        elif cursus_letter and cursus_letter in letter_to_cursus:
-            correct_cursus = letter_to_cursus[cursus_letter]
-            if cursus_id != correct_cursus:
-                cursus_id = correct_cursus
-                updates['cursus_id'] = cursus_id
         
-        # Find the corresponding course
-        course = None
+        # module_number is now LOCAL (1-based per cursus)
+        # So position = module_number directly
+        courses = cursus_courses_map.get(cursus_letter, [])
+        position = module_num  # Already 1-based local
+        
         course_title = None
-        
-        # Get all courses for this cursus
-        cursus_courses = await db.courses.find({'cursus_id': cursus_id}).to_list(50)
-        
-        # Try to match by position in cursus (module 1 = first course, etc.)
-        # Calculate position within this cursus based on letter
-        if cursus_letter == 'A':
-            position = module_num  # Modules 1-7
-        elif cursus_letter == 'B':
-            position = module_num - 7  # Modules 8-9 -> position 1-2
-        elif cursus_letter == 'C':
-            position = module_num - 9  # Modules 10-14 -> position 1-5
-        elif cursus_letter == 'D':
-            position = module_num - 14  # Modules 15-22 -> position 1-8
-        elif cursus_letter == 'E':
-            position = module_num - 22  # Modules 23-24 -> position 1-2
-        else:
-            position = module_num
-        
-        if cursus_courses and 1 <= position <= len(cursus_courses):
-            course = cursus_courses[position - 1]
+        if courses and 1 <= position <= len(courses):
+            course = courses[position - 1]
             course_title = course.get('title', '')
-            updates['course_id'] = course['id']
+            if biblio.get('course_id') != course['id']:
+                updates['course_id'] = course['id']
         
-        # Clean up course title - remove "Cours X : " prefix if present
+        # Build title
         if course_title:
-            course_title = re.sub(r'^Cours\s*\d+\s*:\s*', '', course_title)
-            new_title = f"Bibliographie - Cours {module_num:02d} : {course_title}"
+            clean_title = re.sub(r'^Cours\s*\d+\s*[:\-—]\s*', '', course_title)
+            new_title = f"Bibliographie — {clean_title}"
         else:
-            new_title = f"Bibliographie - Cours {module_num:02d}"
+            new_title = f"Bibliographie — Module {module_num}"
         
-        # Update title if different
-        current_title = biblio.get('title', '')
-        if current_title != new_title:
+        if biblio.get('title') != new_title:
             updates['title'] = new_title
         
-        # Apply updates if any
         if updates:
             await db.bibliographies.update_one(
                 {'id': biblio['id']},
                 {'$set': updates}
             )
             updated_count += 1
-            logger.info(f"Updated biblio {biblio['id']}: {list(updates.keys())}")
     
-    return {
-        'message': 'Uniformisation des titres terminée',
-        'updated': updated_count,
-        'total_checked': len(biblios)
-    }
+    return {'message': f'{updated_count} titre(s) mis à jour', 'updated': updated_count}
 
 # ─── Admin: Masterclasses CRUD ─────────────────────────────────────────────────
 

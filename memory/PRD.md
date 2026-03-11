@@ -48,12 +48,25 @@ Cursus -> Cours -> Modules -> Audios (Episodes)
 - React SPA (Vite) served via FastAPI at `/api/site/`
 - Pages: Home, Cursus, Catalogue, Course detail, Login, Register, About, Resource Viewer
 - Design: Dark mode, Cinzel/EB Garamond fonts, gold accents (#C9A84C), green accent (#04D182)
-- **About page v3**: Matches mobile app (hero manifesto, gold accents, 4 principle cards with ghost numbers, domain tags grid, vision block, footer logo)
+- **About page v3**: Hero manifesto, gold accents, 4 principle cards with ghost numbers, domain tags grid, vision block, footer logo
 - **CourseDetail**: 5 resource tabs (Episodes, Frise, Contexte, Bibliographie, Conferences), cursus-specific timeline filtering
-- **ResourceViewer v3**: Matches mobile app (context: module info, thinker name, diamond divider, colored section bars; bibliography: title with accent bar, diamond divider)
+- **ResourceViewer v3**: Context (module info, thinker name, diamond divider, colored section bars), Bibliography (title with accent bar, diamond divider)
 - Auth: Login/Register/Logout with localStorage token
 - Audio player: Fixed bar with controls, transcript toggle
-- 100% tests passed (iterations 21-24)
+- Body text font-size: 18px
+
+### Bibliography Sync Fix - COMPLETED (February 2026)
+- Fixed sync logic from R2: positional matching (N-th file → N-th course per cursus)
+- Fixed regex to handle spaces in R2 filenames
+- Local module numbering (1-based per cursus) instead of global
+- Auto-cleanup of orphaned entries
+- Fixed standardize-titles for new numbering
+- 22 biblios correctly synced, 2 extra files skipped, 19 orphans deleted
+
+### Mobile App Header Fix - COMPLETED (February 2026)
+- Fixed web mobile header: incorrect style references (logoWrapper→wordmarkRow, logoText→logoSijill)
+- Added profile avatar access in web mobile header
+- Logo now shows "SIJILL PROJECT." correctly
 
 ---
 
@@ -81,18 +94,11 @@ Cursus -> Cours -> Modules -> Audios (Episodes)
 
 ---
 
-## Technical Architecture
-
-```
-CLOUDFLARE R2 -> BACKEND (FastAPI) -> App (Expo) | Website (React) | Admin (Jinja)
-                                          |
-                                      MongoDB
-```
-
-### Key Collections
-- users, cursus, courses, audios, transcripts
-- resources, bibliographies, timelines, audios_conferences
-- favorites, progress
+## Known Issues
+- Login fails on native mobile app (iOS) - BLOCKED on new EAS build
+- Splash screen "double loop" on native app
+- Apple App Store submission pending review
+- Intermittent 502 Bad Gateway (platform-level)
 
 ---
 
@@ -106,11 +112,3 @@ CLOUDFLARE R2 -> BACKEND (FastAPI) -> App (Expo) | Website (React) | Admin (Jinj
 - apple-test@sijillproject.com / AppleTest123! (expired trial)
 
 **Services**: Cloudflare R2, Stripe, SendPulse
-
----
-
-## Known Issues
-- Login fails on native mobile app (iOS) - BLOCKED on new EAS build
-- Splash screen "double loop" on native app
-- Apple App Store submission pending review
-- Intermittent 502 Bad Gateway (platform-level)
