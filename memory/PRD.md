@@ -1,137 +1,181 @@
-# Sijill Project - Product Requirements Document
+# Sijill Project - PRD (Product Requirements Document)
 
-## Original Problem Statement
-Build "Sijill", an Islamic studies e-learning platform with a three-level content hierarchy: **Cursus -> Cours -> Modules**, where each module contains an audio episode.
+## 📱 Application Overview
+**App Name**: Sijill Project  
+**Platform**: React Native (Expo) + FastAPI Backend + MongoDB  
+**Language**: French  
+**Last Updated**: March 2026
 
-A separate public-facing website (`sijillproject.com`) was also requested to validate SendPulse email account, sharing the same backend, database, and "prestige" design.
+---
 
-## Product Requirements
-- **App Name**: Sijill Project
-- **Language**: French
-- **Platform**: React Native (Expo Web) Frontend + FastAPI Backend + Static Website
-- **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes)
-- **Content Storage**: Cloudflare R2 bucket
-- **Design**: Dark-mode, text-only UI using Cinzel and EB Garamond fonts
-- **Color Palette**: `#0A0A0A` (bg), `#04D182` (brand green), `#C9A84C` (gold)
-- **Admin Panel**: Jinja2-based web admin for content management
-- **Monetization**: Stripe subscriptions + referral system
+## 🎯 Core Product
 
-## Architecture
-
+### Content Hierarchy
 ```
-/app
-├── backend/
-│   ├── server.py           # Main FastAPI server (6000+ lines - needs refactoring)
-│   ├── routes/             # NEW: Router modules (started)
-│   ├── templates/admin/    # Jinja2 admin templates
-│   └── utils/
-│       ├── apple_auth.py   # Apple Sign-In utility
-│       └── email_service.py # SendPulse SMTP (inactive)
-├── frontend/               # React Native (Expo Web)
-└── website/                # Static website
-    ├── css/style.css
-    ├── js/app.js
-    ├── index.html
-    └── pages/
+Cursus → Cours → Modules → Audios (Episodes)
 ```
 
-## Key API Endpoints
-- `GET /api/site/**` - Static website
-- `GET /api/plans` - Public pricing plans
-- `GET /api/cursus` - List all cursus
-- `GET /api/scholars` - List professors
-- `POST /api/auth/login` - User authentication
-- `GET /api/auth/apple/login` - Apple Sign-In initiation
+### Current Features
+- ✅ Audio streaming from Cloudflare R2
+- ✅ User authentication (email/password)
+- ✅ Subscription system (Stripe)
+- ✅ Free trial (3 days)
+- ✅ Admin panel (Jinja2)
+- ✅ Adaptive web/mobile layout
+- ✅ Password reset via email (SendPulse)
+- ✅ Splash screen (3s, SIJILL PROJECT logo)
 
-## What's Been Implemented
+### iOS App Store Compliance (v1.0.2)
+- ✅ Removed Google Sign-In (only email/password)
+- ✅ Removed Apple Sign-In button
+- ✅ Hidden subscription plans on iOS (trial only)
+- ✅ Removed promo codes on iOS
+- ✅ No external payment links on iOS
+- ✅ Test account: apple-test@sijillproject.com / AppleTest123!
 
-### Session: 2026-02-26
-- ✅ Fixed pricing endpoint in static website (`/api/admin/plans` → `/api/plans`)
-- ✅ Verified all static website pages work correctly:
-  - Home, Cursus, Professors, About, Subscriptions
-  - Login modal with Google/Apple options
-  - Dynamic data loading from API
+---
 
-### Previous Sessions
-- ✅ Complete static website in `/app/website`
-- ✅ Apple Sign-In backend integration (pending user config)
-- ✅ SendPulse email service (code ready, inactive)
-- ✅ Admin pricing page (full CRUD)
-- ✅ Referral system
+## 🚀 Upcoming Development (Phase 1 + 3)
 
-## Prioritized Backlog
+### Phase 1: Text Reading Mode
+**Objective**: Allow users to read episode transcripts while listening
 
-### P0 - Critical
-- None currently
+**Database Schema** - New collection `transcripts`:
+```javascript
+{
+  transcript_id: "tr_xxx",
+  audio_id: "audio_xxx",
+  title: "Episode title",
+  content: "Full markdown text...",
+  sections: [
+    { title: "Section 1", content: "..." },
+    { title: "Section 2", content: "..." }
+  ],
+  word_count: 2375,
+  file_url: "https://r2.../transcripts/episode-01.docx",
+  created_at: "2026-03-01T...",
+  updated_at: "2026-03-01T..."
+}
+```
 
-### P1 - High Priority
-- [ ] Refactor `backend/server.py` into FastAPI Router modules
-- [x] ~~Activate SendPulse integration~~ - DONE (2026-02-27)
-- [ ] Clean up admin templates (`*_new.html` → `*.html`)
+**Features**:
+- Tab toggle: "🎧 Écouter" / "📖 Lire"
+- Formatted text with headings and paragraphs
+- Floating audio player during reading
+- Reading position saved
+- Word file upload in admin panel
 
-### P2 - Medium Priority
-- [ ] Finalize Apple Sign-In (user must configure Apple Developer portal)
-- [ ] Enhanced admin dashboard for referrals
+**Files to modify**:
+- `/app/backend/server.py` - Add transcript endpoints
+- `/app/frontend/app/audio/[id].tsx` - Add reading mode
+- Admin panel templates for transcript management
 
-### P3 - Future
-- [ ] Offline listening in mobile app
-- [ ] Advanced analytics dashboard
+---
 
-## Blocked Items
-1. **SendPulse**: Waiting for user's domain verification
-2. **Apple Sign-In**: User must configure Apple Developer account:
-   - Verify domain `sijillproject.com`
-   - Set callback URL: `https://sijillproject.com/api/auth/apple/callback`
+### Phase 3: Website Redesign (MasterClass Style)
 
-## Test Credentials
-- **Admin Panel**: `/api/admin-panel/login`
-  - Email: `loubna.serrar@gmail.com`
-  - Password: `Admin123!`
-- **Test User**:
-  - Email: `loubniz@hotmail.com`
-  - Password: `Test123!`
+**Objective**: Full-featured website with courses, payments, and blog
 
-## Third-Party Integrations
-| Service | Status | Notes |
-|---------|--------|-------|
-| Cloudflare R2 | ✅ Active | Media storage |
-| Stripe | ✅ Active | Subscriptions |
-| Google Fonts | ✅ Active | Cinzel, EB Garamond |
-| SendPulse | ✅ Active | SMTP configured |
-| Apple Sign-In | ⏸️ Coded | Waiting for user config |
+**Tech Stack**:
+- React (same as app for consistency)
+- Shared backend API
+- Stripe integration
+- Responsive design
 
-## Static Website URLs
-- Home: `/api/site/`
-- Cursus: `/api/site/pages/cursus.html`
-- Professors: `/api/site/pages/professeurs.html`
-- About: `/api/site/pages/a-propos.html`
-- Subscriptions: `/api/site/pages/abonnement.html`
-- Reset Password: `/api/site/pages/reset-password.html`
+**Design Guidelines**:
+- Background: #0A0A0A (black)
+- Accent: #04D182 (green)
+- Typography: Cinzel (headings) + EB Garamond (body)
+- Card borders: colored by cursus
+- Hover previews
+- Minimalist sticky header
 
-## Recent Changes (2026-02-27)
+**Pages**:
+1. Home - Hero + Featured Cursus + Testimonials
+2. Cursus - List with previews
+3. Course - Details + Episodes + Player
+4. Blog - Free articles (future)
+5. Profile - Progress + Subscription
+6. Checkout - Stripe payments
 
-### Email System - COMPLETED
-- ✅ **SendPulse SMTP Integration**: Configured and tested with `smtp-pulse.com:587`
-  - Sender: `contact@sijillproject.com`
-  - SMTP User: `sijill.project@gmail.com`
-- ✅ **Email Templates**: All templates using branded HTML design
-  - Welcome email (new users)
-  - Subscription confirmation
-  - Referral notifications (signup + conversion)
-  - Password reset
+**User Features**:
+- Full audio playback with text reading
+- Progress tracking (episodes listened)
+- Subscription management
+- Same content as mobile app
 
-### Password Recovery - COMPLETED
-- ✅ **Forgot Password API**: `POST /api/auth/forgot-password`
-  - Generates secure token (`rst_*`)
-  - Token expires in 1 hour
-  - Sends reset link via email
-- ✅ **Reset Password API**: `POST /api/auth/reset-password`
-  - Validates token
-  - Updates password
-  - Marks token as used
-- ✅ **Token Validation API**: `GET /api/auth/reset-password/validate`
-- ✅ **Static Site Integration**:
-  - "Mot de passe oublié" link in login modal
-  - Forgot password form
-  - Reset password page (`/pages/reset-password.html`)
+---
 
+## 📋 Backlog
+
+### Phase 2: Blog Section
+- Article management in admin
+- Categories and tags
+- Markdown content from Cloudflare
+- Free access for all users
+
+### Phase 4: Individual Course Purchases
+- Course-level pricing in admin
+- 19€ per course for 6 months
+- Mixed access (subscription + purchases)
+
+### Future
+- Offline mode (download episodes)
+- Push notifications
+- Newsletter for new episodes
+- Multi-language (Arabic, English)
+
+---
+
+## 🔧 Technical Architecture
+
+```
+┌─────────────────────────────────────────┐
+│            CLOUDFLARE R2                │
+│  Audios | Transcripts | Blog | Images   │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│          BACKEND (FastAPI)              │
+│  Auth | Courses | Transcripts | Blog    │
+│  Payments | Admin Panel                 │
+└─────────────────────────────────────────┘
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+   ┌─────────┐ ┌─────────┐ ┌─────────┐
+   │   App   │ │ Website │ │  Admin  │
+   │ (Expo)  │ │ (React) │ │ (Jinja) │
+   └─────────┘ └─────────┘ └─────────┘
+```
+
+---
+
+## 📊 Database Collections
+
+- `users` - User accounts and subscriptions
+- `cursus` - Course categories
+- `courses` - Individual courses
+- `audios` - Audio episodes
+- `transcripts` - Episode text content (NEW)
+- `articles` - Blog posts (FUTURE)
+- `favorites` - User favorites
+- `progress` - Listening progress
+
+---
+
+## 🔐 Credentials
+
+**Admin Panel**: `/api/admin-panel/login`
+- Email: loubna.serrar@gmail.com
+- Password: Admin123!
+
+**Test Users**:
+- loubniz@hotmail.com / loulouz
+- apple-test@sijillproject.com / AppleTest123! (expired trial)
+
+**Services**:
+- Cloudflare R2: Media storage
+- Stripe: Payments
+- SendPulse: Email (SMTP)
