@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCourseDetail, getModules, getAudios, getAudioStreamUrl, getAudioTranscript, getContextResources, getBibliographies } from '../api'
-import { getCursusColor, getCursusLetter, formatDuration } from '../constants'
+import { getCursusColor, getCursusLetter } from '../constants'
 import { useAuth } from '../AuthContext'
 
 const CURSUS_LETTER_MAP = {
@@ -9,14 +9,18 @@ const CURSUS_LETTER_MAP = {
   'cursus-sciences-islamiques': 'C', 'cursus-arts': 'D', 'cursus-spiritualites': 'E',
 }
 
+const API_BASE = window.location.origin + '/api'
+
 export default function CourseDetail() {
   const { courseId } = useParams()
   const { user } = useAuth()
   const [course, setCourse] = useState(null)
   const [modules, setModules] = useState([])
   const [audios, setAudios] = useState([])
-  const [resources, setResources] = useState([])
+  const [contextResources, setContextResources] = useState([])
   const [biblios, setBiblios] = useState([])
+  const [audioConferences, setAudioConferences] = useState([])
+  const [timelines, setTimelines] = useState([])
   const [loading, setLoading] = useState(true)
   const [openModule, setOpenModule] = useState(null)
   const [activeTab, setActiveTab] = useState('modules')
@@ -40,8 +44,23 @@ export default function CourseDetail() {
       setAudios(audiosData || [])
       if (courseData?.cursus_id) {
         const letter = CURSUS_LETTER_MAP[courseData.cursus_id]
-        getContextResources(courseData.cursus_id).then(r => setResources(r?.resources || [])).catch(() => {})
+        // Fetch context resources
+        getContextResources(courseData.cursus_id).then(r => setContextResources(r?.resources || [])).catch(() => {})
+        // Fetch bibliographies
         getBibliographies(letter).then(bibs => setBiblios(bibs || [])).catch(() => {})
+        // Fetch timelines
+        fetch(`${API_BASE}/timelines`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` }
+        }).then(r => r.json()).then(data => {
+          const tls = (data.timelines || []).filter(t => t.cursus_letter === letter)
+          setTimelines(tls)
+        }).catch(() => {})
+        // Fetch audio conferences
+        fetch(`${API_BASE}/resources/audio`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` }
+        }).then(r => r.json()).then(data => {
+          setAudioConferences(data.resources || [])
+        }).catch(() => {})
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -103,13 +122,16 @@ export default function CourseDetail() {
   const audiosByModule = {}
   audios.forEach(a => { const mid = a.module_id || 'unknown'; if (!audiosByModule[mid]) audiosByModule[mid] = []; audiosByModule[mid].push(a) })
 
-  // Filter resources & biblios for this course's modules
+  // Filter resources for this course's modules
   const modNums = modules.map((m, i) => m.order || parseInt(m.id?.split('mod-')[1]) || (i + 1))
-  const courseResources = resources.filter(r => modNums.includes(r.module_number))
+  const courseCtxResources = contextResources.filter(r => modNums.includes(r.module_number))
   const courseBiblios = biblios.filter(b => {
-    const bModNum = parseInt(b.id?.split('mod')[1]) || 0
+    const bModNum = b.module_number || parseInt(b.id?.split('mod')[1]) || 0
     return modNums.includes(bModNum)
   })
+
+  // Resource tab counts
+  const resCount = timelines.length + courseCtxResources.length + courseBiblios.length + audioConferences.length
 
   return (
     <div data-testid="course-detail-page">
@@ -119,9 +141,7 @@ export default function CourseDetail() {
         <Link to="/cursus" className="course-back" data-testid="course-back-btn">&#8592; Retour aux cursus</Link>
 
         <div className="course-cursus-badge" style={{ borderColor: `${color}66`, color }}>
-          <span style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 10 }}>
-            {letter}
-          </span>
+          <span style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 10 }}>{letter}</span>
           Cursus {letter}
         </div>
 
@@ -136,24 +156,17 @@ export default function CourseDetail() {
 
         {/* Tabs */}
         <div className="course-tabs" data-testid="course-tabs">
-          {['modules', 'fiches', 'biblio'].map(tab => (
-            <button
-              key={tab}
-              className={`course-tab ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-              style={{ '--tab-color': color }}
-              data-testid={`tab-${tab}`}
-            >
-              {tab === 'modules' ? `Modules (${modules.length})` :
-               tab === 'fiches' ? `Fiches (${courseResources.length})` :
-               `Bibliographie (${courseBiblios.length})`}
-            </button>
-          ))}
+          <button className={`course-tab ${activeTab === 'modules' ? 'active' : ''}`} onClick={() => setActiveTab('modules')} style={{ '--tab-color': color }} data-testid="tab-modules">
+            Épisodes ({audios.length})
+          </button>
+          <button className={`course-tab ${activeTab === 'ressources' ? 'active' : ''}`} onClick={() => setActiveTab('ressources')} style={{ '--tab-color': color }} data-testid="tab-ressources">
+            Ressources ({resCount})
+          </button>
         </div>
 
         <div style={{ width: 60, height: 1, background: color, marginBottom: 40 }} />
 
-        {/* Modules tab */}
+        {/* MODULES TAB */}
         {activeTab === 'modules' && (
           <div style={{ maxWidth: 800 }}>
             {modules.map((mod, mi) => {
@@ -177,7 +190,7 @@ export default function CourseDetail() {
                           <div key={ep.id} className={`episode-row ${isCurrent ? 'episode-active' : ''}`} onClick={() => user && playAudio(ep)} data-testid={`episode-${mi}-${ei}`} style={{ cursor: user ? 'pointer' : 'default' }}>
                             <span className="episode-num" style={{ color: isCurrent ? color : `${color}55` }}>{String(ei + 1).padStart(2, '0')}</span>
                             <span className="episode-title" style={{ color: isCurrent ? color : 'var(--text)' }}>{ep.title}</span>
-                            {ep.has_transcript && <span style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: 2, fontFamily: 'var(--font-display)', textTransform: 'uppercase' }}>Texte</span>}
+                            {ep.has_transcript && <span className="tag-texte">Texte</span>}
                             {!user ? <span className="episode-lock">&#128274;</span> :
                              isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> :
                              <span style={{ color: user ? color : 'var(--text-dim)', fontSize: 14 }}>&#9654;</span>}
@@ -192,44 +205,88 @@ export default function CourseDetail() {
           </div>
         )}
 
-        {/* Fiches tab */}
-        {activeTab === 'fiches' && (
-          <div style={{ maxWidth: 800 }}>
-            {courseResources.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune fiche contextuelle disponible.</p>
-            ) : (
-              <div className="resources-grid">
-                {courseResources.map(r => (
-                  <Link key={r.id} to={`/ressource/fiche/${r.id}`} className="resource-card" data-testid={`resource-${r.id}`}>
-                    <div className="resource-icon" style={{ color }}>&#9741;</div>
-                    <div>
-                      <div className="resource-title">{r.title || r.subject}</div>
-                      <div className="resource-meta">Module {r.module_number}</div>
+        {/* RESSOURCES TAB — like the app: 4 sections */}
+        {activeTab === 'ressources' && (
+          <div style={{ maxWidth: 800 }} data-testid="ressources-tab">
+
+            {/* 1. Frise chronologique */}
+            {timelines.length > 0 && (
+              <div className="resource-section">
+                <h3 className="resource-section-title">Frise chronologique</h3>
+                {timelines.map(tl => (
+                  <a key={tl.cursus_letter} href={`${API_BASE}/timeline/${tl.cursus_letter}`} target="_blank" rel="noopener noreferrer" className="res-card" data-testid={`timeline-${tl.cursus_letter}`}>
+                    <div className="res-card-icon" style={{ background: `${color}1A` }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                     </div>
+                    <div className="res-card-body">
+                      <div className="res-card-title">{tl.cursus_name}</div>
+                      <div className="res-card-subtitle">Timeline interactive · Plein écran</div>
+                    </div>
+                    <span className="res-card-chevron">&#8250;</span>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* 2. Contexte historique */}
+            {courseCtxResources.length > 0 && (
+              <div className="resource-section">
+                <h3 className="resource-section-title">Contexte historique</h3>
+                {courseCtxResources.map(ctx => (
+                  <Link key={ctx.id} to={`/ressource/fiche/${ctx.id}`} className="res-card" data-testid={`context-${ctx.id}`}>
+                    <div className="res-card-icon" style={{ background: `${color}1A` }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div className="res-card-body">
+                      <div className="res-card-title">{ctx.title || ctx.subject}</div>
+                      <div className="res-card-subtitle">Module {ctx.module_number} · Contexte historique</div>
+                    </div>
+                    <span className="res-card-chevron">&#8250;</span>
                   </Link>
                 ))}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Biblio tab */}
-        {activeTab === 'biblio' && (
-          <div style={{ maxWidth: 800 }}>
-            {courseBiblios.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune bibliographie disponible.</p>
-            ) : (
-              <div className="resources-grid">
-                {courseBiblios.map(b => (
-                  <Link key={b.id} to={`/ressource/biblio/${b.id}`} className="resource-card" data-testid={`biblio-${b.id}`}>
-                    <div className="resource-icon" style={{ color }}>&#128218;</div>
-                    <div>
-                      <div className="resource-title">Bibliographie</div>
-                      <div className="resource-meta">{b.id?.replace('biblio-', '').replace('-', ' module ')}</div>
+            {/* 3. Bibliographie */}
+            {courseBiblios.length > 0 && (
+              <div className="resource-section">
+                <h3 className="resource-section-title">Bibliographie</h3>
+                {courseBiblios.map(bib => (
+                  <Link key={bib.id} to={`/ressource/biblio/${bib.id}`} className="res-card" data-testid={`biblio-${bib.id}`}>
+                    <div className="res-card-icon" style={{ background: `${color}1A` }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                     </div>
+                    <div className="res-card-body">
+                      <div className="res-card-title">{bib.title || `Bibliographie — Module ${bib.module_number}`}</div>
+                      <div className="res-card-subtitle">Bibliographie</div>
+                    </div>
+                    <span className="res-card-chevron">&#8250;</span>
                   </Link>
                 ))}
               </div>
+            )}
+
+            {/* 4. Conférences Audio */}
+            {audioConferences.length > 0 && (
+              <div className="resource-section">
+                <h3 className="resource-section-title">Conférences Audio</h3>
+                {audioConferences.map(conf => (
+                  <div key={conf.id} className="res-card" data-testid={`conf-${conf.id}`}>
+                    <div className="res-card-icon" style={{ background: `${color}1A` }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+                    </div>
+                    <div className="res-card-body">
+                      <div className="res-card-title">{conf.title}</div>
+                      <div className="res-card-subtitle">{conf.speaker || ''}{conf.module_number ? ` · Module ${conf.module_number}` : ''}{conf.size_mb ? ` · ${conf.size_mb} Mo` : ''}</div>
+                    </div>
+                    <span className="res-card-chevron">&#8250;</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {resCount === 0 && (
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune ressource disponible pour le moment.</p>
             )}
           </div>
         )}
@@ -249,28 +306,24 @@ export default function CourseDetail() {
         )}
       </div>
 
-      {/* Audio Player Bar — app-like design */}
+      {/* Audio Player Bar */}
       {currentAudio && (
         <div className="player-bar" data-testid="audio-player-bar">
           {showTranscript && transcript && (
             <div className="transcript-panel" data-testid="transcript-panel">
               <div className="transcript-header">
                 <span className="transcript-title">{transcript.title}</span>
-                <span className="transcript-meta">{transcript.word_count} mots &middot; {transcript.reading_time_minutes} min de lecture</span>
+                <span className="transcript-meta">{transcript.word_count} mots · {transcript.reading_time_minutes} min de lecture</span>
               </div>
               <div className="transcript-content" dangerouslySetInnerHTML={{
                 __html: (transcript.content || '').replace(/^## (.*$)/gm, '<h3>$1</h3>').replace(/^### (.*$)/gm, '<h4>$1</h4>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')
               }} />
             </div>
           )}
-
-          {/* Progress bar at top */}
           <div className="player-progress" onClick={seekTo} data-testid="player-progress">
             <div className="player-progress-fill" style={{ width: `${progress}%`, background: color }} />
           </div>
-
           <div className="player-bar-inner">
-            {/* Track info */}
             <div className="player-info">
               <div className="player-dot" style={{ background: color }} />
               <div>
@@ -278,11 +331,9 @@ export default function CourseDetail() {
                 <div className="player-track-meta">{fmtTime(currentTime)} / {fmtTime(duration)}</div>
               </div>
             </div>
-
-            {/* Controls — app-like */}
             <div className="player-controls">
               <button className="player-skip-btn" onClick={() => { if (audioRef.current) audioRef.current.currentTime -= 15 }} data-testid="player-rewind">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.5 8V4L6 8l6.5 4V8z"/><path d="M12 20a8 8 0 0 0 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="var(--font-display)">15</text></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.5 8V4L6 8l6.5 4V8z"/><path d="M12 20a8 8 0 0 0 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="sans-serif">15</text></svg>
               </button>
               <button className="player-play-main" style={{ background: color }} onClick={() => playAudio(currentAudio)} data-testid="player-play">
                 {isPlaying ? (
@@ -292,11 +343,9 @@ export default function CourseDetail() {
                 )}
               </button>
               <button className="player-skip-btn" onClick={() => { if (audioRef.current) audioRef.current.currentTime += 15 }} data-testid="player-forward">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11.5 8V4L18 8l-6.5 4V8z"/><path d="M12 20a8 8 0 0 1 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="var(--font-display)">15</text></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11.5 8V4L18 8l-6.5 4V8z"/><path d="M12 20a8 8 0 0 1 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="sans-serif">15</text></svg>
               </button>
             </div>
-
-            {/* Actions */}
             <div className="player-actions">
               {transcript && (
                 <button className={`player-text-btn ${showTranscript ? 'active' : ''}`} onClick={() => setShowTranscript(!showTranscript)} data-testid="player-transcript-toggle" style={{ color: showTranscript ? color : 'var(--text-muted)' }}>
