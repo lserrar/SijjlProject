@@ -41,16 +41,26 @@ export default function GlobalHeader({ showBackButton, onBackPress }: GlobalHead
   const isWeb = Platform.OS === 'web';
   const isWebMobile = isWeb && !isDesktop;
   
-  // On web mobile, show only a minimal logo header
+  // On web mobile, show logo + avatar for profile access
   if (isWebMobile) {
     return (
       <View style={[styles.mobileLogoHeader, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)')}>
-          <View style={styles.logoWrapper}>
-            <Text style={styles.logoText}>SIJILL</Text>
-            <Text style={styles.logoProject}>PROJECT</Text>
-            <View style={styles.logoDot} />
+        <TouchableOpacity style={styles.avatarBtnMobile} onPress={() => router.push('/(tabs)/profil' as any)}>
+          <View style={styles.avatarMobile}>
+            <Text style={styles.avatarTextMobile}>
+              {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+            </Text>
           </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(tabs)')}>
+          <View style={styles.wordmarkRow}>
+            <Text style={[styles.logoSijill, styles.logoSijillMobile]}>SIJILL</Text>
+            <Text style={[styles.logoProject, styles.logoProjectMobile]}>PROJECT</Text>
+            <View style={[styles.logoDot, styles.logoDotMobile]} />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} onPress={handleSearch}>
+          <Ionicons name="search" size={22} color="#888888" />
         </TouchableOpacity>
       </View>
     );
@@ -384,8 +394,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
     paddingHorizontal: 16,
     paddingBottom: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
     position: 'absolute',
