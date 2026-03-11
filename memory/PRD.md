@@ -23,6 +23,7 @@ Cursus → Cours → Modules → Audios (Episodes)
 - ✅ Admin panel (Jinja2)
 - ✅ Adaptive web/mobile layout
 - ✅ Password reset via email (SendPulse)
+- ✅ Reading Mode / Mode Lecture (March 2026)
 - ✅ Splash screen (3s, SIJILL PROJECT logo)
 
 ### iOS App Store Compliance (v1.0.2)
@@ -39,8 +40,16 @@ Cursus → Cours → Modules → Audios (Episodes)
 
 ### Phase 1: Text Reading Mode
 **Objective**: Allow users to read episode transcripts while listening
+**Status**: COMPLETED (March 2026)
 
-**Database Schema** - New collection `transcripts`:
+**What was built**:
+- Backend: Transcript API endpoints (CRUD + upload docx)
+- Frontend: TranscriptReader component with markdown rendering
+- Integration: "Lire" button in audio player (only shown when transcript exists)
+- Features: Font size adjustment (A+/A-), floating audio player, reading time/word count display
+- Admin: Upload Word documents which are converted to Markdown automatically
+
+**Database Schema** - Collection `transcripts`:
 ```javascript
 {
   transcript_id: "tr_xxx",
