@@ -1,0 +1,69 @@
+{
+  "summary": "Iteration 25 - Bibliography display corrections testing (frontend only). Website React app: ALL PASS. Mobile Expo app: ALL PASS after Expo restart. Both platforms correctly filter out forbidden sections (Sijill Project, Bibliographie sélective, Cursus A-E, Module N, Le Sijill Plateforme) and show font size button (A/A+/A++). Note: Mobile app required an Expo restart to pick up the latest code changes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "warnings": [
+      {"component": "GlobalHeader", "issue": "ReferenceError: Cannot access 'handleSearch' before initialization - non-blocking error in console", "priority": "LOW"}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_25.json"],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% - All bibliography corrections verified"
+  },
+  "test_credentials": {
+    "email": "loubniz@hotmail.com",
+    "password": "loulouz"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bibliography display corrections completed. Both React website and Expo mobile app now filter out header/footer sections correctly and include font size toggle.",
+  "features_tested": {
+    "website_bibliography": {
+      "url": "/api/site/ressource/biblio/biblio-a-mod01",
+      "filtering": {
+        "sijill_project_filtered": "PASS",
+        "bibliographie_selective_filtered": "PASS",
+        "cursus_a_filtered": "PASS",
+        "module_1_filtered": "PASS",
+        "le_sijill_plateforme_filtered": "PASS"
+      },
+      "font_size_button": {
+        "visible": "PASS - Button shows A, A+, A++ labels",
+        "functional": "PASS - Font cycles 18px → 22px → 26px"
+      },
+      "italic_annotation": {
+        "status": "PASS - .rv-annotation class has font-style: italic"
+      }
+    },
+    "mobile_bibliography": {
+      "url": "/bibliography/biblio-a-mod01",
+      "filtering": {
+        "sijill_project_filtered": "PASS",
+        "bibliographie_selective_filtered": "PASS",
+        "cursus_a_filtered": "PASS",
+        "module_1_filtered": "PASS",
+        "le_sijill_plateforme_filtered": "PASS",
+        "note_pedagogique_present": "PASS"
+      },
+      "font_size_button": {
+        "visible": "PASS - testID='biblio-font-size-btn' present",
+        "functional": "PASS - Button cycles A → A+ → A++"
+      },
+      "italic_annotation": {
+        "status": "PASS - annotationText style has fontStyle: 'italic'"
+      }
+    }
+  },
+  "note": "Mobile app required Expo restart to apply latest code changes. The SKIP_PATTERNS regex successfully filters: /^Sijill Project$/i, /^Bibliographie sélective$/i, /^Cursus [A-E]$/i, /^Module \\d+/i, /^Le Sijill\\s*[—–-]\\s*Plateforme/i"
+}

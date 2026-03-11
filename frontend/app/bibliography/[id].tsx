@@ -18,6 +18,9 @@ const CURSUS_COLORS: Record<string, string> = {
   'cursus-spiritualites': '#06B6D4',
 };
 
+const FONT_SIZES = [17, 20, 24];
+const FONT_LABELS = ['A', 'A+', 'A++'];
+
 interface Bibliography {
   id: string;
   title: string;
@@ -27,6 +30,38 @@ interface Bibliography {
   cursus_id?: string;
 }
 
+// Lines to strip from beginning and end
+const SKIP_PATTERNS = [
+  /^Sijill Project$/i,
+  /^Bibliographie sélective$/i,
+  /^Cursus [A-E]$/i,
+  /^Module \d+/i,
+  /^Le Sijill\s*[—–-]\s*Plateforme/i,
+];
+
+function filterContent(raw: string): { paragraphs: string[]; noteIndex: number } {
+  const parts = raw.split('\n\n');
+  const filtered: string[] = [];
+  let noteIndex = -1;
+
+  for (let i = 0; i < parts.length; i++) {
+    const text = parts[i].trim().replace(/^#+\s*/, '');
+    if (!text) continue;
+    if (SKIP_PATTERNS.some(p => p.test(text))) continue;
+    filtered.push(parts[i].trim());
+  }
+
+  // Find "Note pédagogique" index
+  for (let i = 0; i < filtered.length; i++) {
+    if (/Note pédagogique/i.test(filtered[i])) {
+      noteIndex = i;
+      break;
+    }
+  }
+
+  return { paragraphs: filtered, noteIndex };
+}
+
 export default function BibliographyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -34,8 +69,10 @@ export default function BibliographyScreen() {
 
   const [biblio, setBiblio] = useState<Bibliography | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fontSizeIdx, setFontSizeIdx] = useState(0);
 
   const cursusColor = biblio?.cursus_id ? CURSUS_COLORS[biblio.cursus_id] || '#04D182' : '#04D182';
+  const fontSize = FONT_SIZES[fontSizeIdx];
 
   useEffect(() => {
     const loadBiblio = async () => {
@@ -73,18 +110,18 @@ export default function BibliographyScreen() {
     );
   }
 
-  // Parse content into sections
+  const { paragraphs, noteIndex } = filterContent(biblio.content);
+
   const renderContent = () => {
-    const paragraphs = biblio.content.split('\n\n');
-    
     return paragraphs.map((paragraph, idx) => {
       const trimmed = paragraph.trim();
-      
-      // Handle markdown headers (## or ###)
+      const isAfterNote = noteIndex >= 0 && idx > noteIndex;
+
+      // Heading
       if (trimmed.startsWith('##')) {
         const headingText = trimmed.replace(/^#+\s*/, '');
         const isMainHeading = trimmed.startsWith('## ') && !trimmed.startsWith('### ');
-        
+
         return (
           <View key={idx} style={styles.headingContainer}>
             {idx > 0 && <View style={[styles.headingDivider, { backgroundColor: `${cursusColor}33` }]} />}
@@ -97,17 +134,23 @@ export default function BibliographyScreen() {
           </View>
         );
       }
-      
-      // Skip empty paragraphs
+
       if (!trimmed) return null;
-      
-      // Regular paragraph
+
       return (
-        <Text key={idx} style={styles.paragraph}>
+        <Text key={idx} style={[
+          styles.paragraph,
+          { fontSize, lineHeight: fontSize * 1.75 },
+          isAfterNote && styles.annotationText,
+        ]}>
           {trimmed}
         </Text>
       );
     });
+  };
+
+  const cycleFontSize = () => {
+    setFontSizeIdx((fontSizeIdx + 1) % FONT_SIZES.length);
   };
 
   return (
@@ -132,8 +175,12 @@ export default function BibliographyScreen() {
         </View>
         
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconBtn}>
-            <Ionicons name="bookmark-outline" size={20} color="rgba(245,240,232,0.5)" />
+          <TouchableOpacity
+            testID="biblio-font-size-btn"
+            style={styles.fontSizeBtn}
+            onPress={cycleFontSize}
+          >
+            <Text style={styles.fontSizeBtnText}>{FONT_LABELS[fontSizeIdx]}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -162,7 +209,6 @@ export default function BibliographyScreen() {
           {renderContent()}
         </View>
 
-        {/* Footer spacing */}
         <View style={{ height: 80 }} />
       </ScrollView>
     </View>
@@ -238,8 +284,20 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'flex-end',
   },
-  headerIconBtn: {
-    padding: 8,
+
+  // Font size button
+  fontSizeBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 4,
+  },
+  fontSizeBtnText: {
+    fontFamily: 'Cinzel',
+    fontSize: 11,
+    color: '#C9A84C',
+    letterSpacing: 1,
   },
 
   // Scroll
@@ -323,5 +381,9 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     marginBottom: 20,
     textAlign: 'justify',
+  },
+  annotationText: {
+    fontStyle: 'italic',
+    color: 'rgba(245,240,232,0.65)',
   },
 });

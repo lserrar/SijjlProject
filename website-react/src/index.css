@@ -1621,6 +1621,60 @@ button { cursor: pointer; font-family: var(--font-body); }
   margin-bottom: 8px;
 }
 
+/* Font size button */
+.rv-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.rv-font-btn {
+  background: none;
+  border: 1px solid #333;
+  color: #C9A84C;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 2px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.rv-font-btn:hover {
+  border-color: #C9A84C;
+}
+
+/* Bibliography content */
+.rv-biblio-content {
+  margin-bottom: 40px;
+}
+.rv-biblio-heading-block {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+.rv-biblio-heading-divider {
+  border-top: 1px solid;
+  margin-bottom: 20px;
+}
+.rv-biblio-heading {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.rv-biblio-para {
+  font-family: var(--font-body);
+  color: rgba(232,228,220,0.85);
+  line-height: 1.75;
+  margin-bottom: 20px;
+  text-align: justify;
+}
+.rv-annotation {
+  font-style: italic;
+  color: rgba(232,228,220,0.60);
+}
+
 /* Divider */
 .rv-divider {
   display: flex;
