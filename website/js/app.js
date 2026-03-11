@@ -1,7 +1,7 @@
 // Sijill Project - Website JavaScript
 
 // ─── Configuration ─────────────────────────────────────────────────────────
-const API_URL = 'https://reading-hub-33.preview.emergentagent.com/api';
+const API_URL = 'https://sijill-website-dev.preview.emergentagent.com/api';
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let currentUser = null;

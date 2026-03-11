@@ -3,6 +3,43 @@ import { useParams, Link } from 'react-router-dom'
 import { getResourceContent, getBibliographies } from '../api'
 import { getCursusColor } from '../constants'
 
+const SECTION_TITLES = ['Contexte dynastique', 'Contexte intellectuel', 'Chronologie biographique']
+
+function parseContextContent(content) {
+  if (!content || !Array.isArray(content)) return { moduleInfo: '', thinkerName: '', epochInfo: '', sections: [] }
+
+  let moduleInfo = ''
+  let thinkerName = ''
+  let epochInfo = ''
+  const sections = []
+  let currentSection = null
+
+  for (let i = 0; i < content.length; i++) {
+    const block = content[i]
+    const text = (block.text || '').trim()
+
+    if (i === 0 && text.startsWith('Module')) { moduleInfo = text; continue }
+    if (i === 1) { thinkerName = text; continue }
+    if (i === 2 && (text.includes('·') || text.toLowerCase().includes('époque'))) { epochInfo = text; continue }
+
+    const normalized = text.toLowerCase().trim()
+    const isSectionTitle = SECTION_TITLES.some(t => normalized === t.toLowerCase())
+
+    if (isSectionTitle) {
+      if (currentSection?.content.length > 0) sections.push(currentSection)
+      const properTitle = SECTION_TITLES.find(t => t.toLowerCase() === normalized) || text
+      currentSection = { title: properTitle, content: [] }
+    } else if (currentSection) {
+      currentSection.content.push(block)
+    } else {
+      currentSection = { title: 'Introduction', content: [block] }
+    }
+  }
+  if (currentSection?.content.length > 0) sections.push(currentSection)
+
+  return { moduleInfo, thinkerName, epochInfo, sections }
+}
+
 function renderMarkdown(md) {
   if (!md) return ''
   return md
@@ -15,20 +52,6 @@ function renderMarkdown(md) {
     .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br/>')
-}
-
-function renderResourceContent(content) {
-  if (!content) return ''
-  if (typeof content === 'string') return renderMarkdown(content)
-  if (Array.isArray(content)) {
-    return content.map(block => {
-      if (block.type === 'heading') return `<h3>${block.text}</h3>`
-      if (block.type === 'subheading') return `<h4>${block.text}</h4>`
-      if (block.type === 'list_item') return `<li>${block.text}</li>`
-      return `<p>${block.text || ''}</p>`
-    }).join('')
-  }
-  return ''
 }
 
 export default function ResourceViewer() {
@@ -65,43 +88,116 @@ export default function ResourceViewer() {
     data.cursus_letter === 'D' ? 'arts' : 'spiritualites'
   }`)
 
-  const title = data.title || data.subject || resourceId
-  const content = type === 'biblio'
-    ? renderMarkdown(data.content)
-    : renderResourceContent(data.content)
+  // Context resource view (matches mobile app)
+  if (type === 'fiche' && Array.isArray(data.content)) {
+    const { moduleInfo, thinkerName, epochInfo, sections } = parseContextContent(data.content)
+    return (
+      <div data-testid="resource-viewer-page" className="rv-page">
+        <section className="rv-container">
+          <Link to={-1} className="course-back" data-testid="rv-back-btn">&#8592; Retour</Link>
 
-  return (
-    <div data-testid="resource-viewer-page">
-      <section className="section" style={{ paddingTop: 140, maxWidth: 800, margin: '0 auto' }}>
-        <Link to={-1} className="course-back" style={{ marginBottom: 32 }}>
-          &#8592; Retour
-        </Link>
+          {/* Eyebrow */}
+          <div className="rv-eyebrow" style={{ color }}>CONTEXTE HISTORIQUE</div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <div style={{
-            padding: '4px 12px', border: `1px solid ${color}66`,
-            fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 3,
-            textTransform: 'uppercase', color,
-          }}>
-            {type === 'biblio' ? 'Bibliographie' : 'Fiche contextuelle'}
+          {/* Module Info */}
+          {moduleInfo && <div className="rv-module-info" style={{ color }}>{moduleInfo}</div>}
+
+          {/* Thinker Name */}
+          <h1 className="rv-thinker-name">{thinkerName || data.subject || data.title}</h1>
+          {epochInfo && <p className="rv-epoch-info">{epochInfo}</p>}
+
+          {/* Diamond Divider */}
+          <div className="rv-divider">
+            <span className="rv-divider-line" />
+            <span className="rv-divider-diamond" style={{ backgroundColor: color }} />
+            <span className="rv-divider-line" />
           </div>
-          {data.module_number && (
-            <span style={{
-              fontFamily: 'var(--font-display)', fontSize: 9, letterSpacing: 2,
-              textTransform: 'uppercase', color: 'var(--text-dim)',
-            }}>
-              Module {data.module_number}
-            </span>
-          )}
+
+          {/* Sections */}
+          {sections.map((section, si) => (
+            <div key={si} className="rv-section" data-testid={`rv-section-${si}`}>
+              {section.title !== 'Introduction' && (
+                <div className="rv-section-header">
+                  <span className="rv-section-bar" style={{ backgroundColor: color }} />
+                  <h2 className="rv-section-title" style={{ color }}>{section.title}</h2>
+                </div>
+              )}
+              <div className="rv-section-content">
+                {section.content.map((block, bi) => {
+                  if (block.type === 'heading') return <h3 key={bi} className="rv-subheading">{block.text}</h3>
+                  if (block.type === 'list_item') return (
+                    <div key={bi} className="rv-list-item">
+                      <span className="rv-list-bullet" style={{ color }}>&#8226;</span>
+                      <span className="rv-list-text">{block.text}</span>
+                    </div>
+                  )
+                  return <p key={bi} className="rv-paragraph">{block.text}</p>
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Footer */}
+          <div className="rv-footer">
+            <div className="rv-footer-line" />
+            <span className="rv-footer-text">Sijill Project — Sciences Islamiques</span>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  // Bibliography view (matches mobile app)
+  if (type === 'biblio') {
+    const title = data.title || `Bibliographie — Module ${data.module_number}`
+    return (
+      <div data-testid="resource-viewer-page" className="rv-page">
+        <section className="rv-container">
+          <Link to={-1} className="course-back" data-testid="rv-back-btn">&#8592; Retour</Link>
+
+          {/* Eyebrow */}
+          <div className="rv-eyebrow" style={{ color: '#C9A84C' }}>BIBLIOGRAPHIE</div>
+
+          {/* Title Block */}
+          <div className="rv-title-block">
+            <span className="rv-title-accent" style={{ backgroundColor: color }} />
+            <h1 className="rv-biblio-title">{title}</h1>
+          </div>
+
+          {/* Diamond Divider */}
+          <div className="rv-divider">
+            <span className="rv-divider-line" style={{ backgroundColor: `${color}4D` }} />
+            <span className="rv-divider-diamond" style={{ backgroundColor: color }} />
+            <span className="rv-divider-line" style={{ backgroundColor: `${color}4D` }} />
+          </div>
+
+          {/* Content */}
+          <div className="resource-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(data.content) }} />
+
+          {/* Footer */}
+          <div className="rv-footer">
+            <div className="rv-footer-line" />
+            <span className="rv-footer-text">Sijill Project — Sciences Islamiques</span>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  // Fallback for string content
+  const title = data.title || data.subject || resourceId
+  const content = typeof data.content === 'string' ? renderMarkdown(data.content) : ''
+  return (
+    <div data-testid="resource-viewer-page" className="rv-page">
+      <section className="rv-container">
+        <Link to={-1} className="course-back" data-testid="rv-back-btn">&#8592; Retour</Link>
+        <div className="rv-eyebrow" style={{ color }}>{type === 'biblio' ? 'BIBLIOGRAPHIE' : 'FICHE CONTEXTUELLE'}</div>
+        <h1 className="rv-thinker-name">{title}</h1>
+        <div className="rv-divider">
+          <span className="rv-divider-line" />
+          <span className="rv-divider-diamond" style={{ backgroundColor: color }} />
+          <span className="rv-divider-line" />
         </div>
-
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: 'clamp(24px, 3vw, 40px)',
-          fontWeight: 400, lineHeight: 1.2, marginBottom: 40,
-        }}>
-          {title}
-        </h1>
-
         <div className="resource-body" dangerouslySetInnerHTML={{ __html: content }} />
       </section>
     </div>

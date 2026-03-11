@@ -1,221 +1,190 @@
 <analysis>**original_problem_statement:** The user wants to build Sijill, an Islamic studies e-learning platform. The core is a three-level content hierarchy: Cursus -> Cours -> Modules, with each module containing an audio episode.
 
 Recently, the user has requested significant enhancements to the platform, defining a multi-phase roadmap:
-1.  **Reading Mode**: For each audio episode, which has a corresponding Word document, the user wants to display the text within the app for reading.
-2.  **Blog Section**: Add a free-to-access blog section to both the app and the website, with articles managed from the admin panel.
-3.  **Website Refactor**: A complete redesign and rebuild of the public website () to align with the design of . The new site must be a full-featured web app (built with React) providing access to courses for subscribed users, not just a static vitrine.
-4.  **Advanced Monetization**: Introduce the ability for users to purchase individual courses for a limited time (e.g., 19€ for 6 months), in addition to the existing subscription model.
+1.  **Reading Mode**: Display the text for each audio episode.
+2.  **Blog Section**: Add a free-to-access blog section.
+3.  **Website Refactor**: A complete redesign and rebuild of the public website () to align with the design of , but with a text-centric, no-image aesthetic. The new site must be a full-featured React web app.
+4.  **Advanced Monetization**: Introduce the ability to purchase individual courses.
 
-This is in addition to ongoing work to get the main application published on the Apple App Store and Google Play Store, which involves complying with their guidelines and fixing user-reported bugs.
+This is in addition to ongoing work to publish the application on the Apple App Store and Google Play Store.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill Project
 -   **Language**: French
 -   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend.
--   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes) with associated Transcripts.
--   **Content Storage**: Media files (audio, docx), images, and blog articles in a Cloudflare R2 bucket.
--   **Design**: A strict, text-only, dark-mode UI. The new website will be inspired by MasterClass.com but using Sijill's branding (Cinzel/EB Garamond fonts, green accents).
--   **Admin Panel**: A web-based admin panel to manage all content, including new features like transcripts, blog articles, and individual course pricing.
--   **Monetization**: Subscriptions via Stripe (web/Android). One-time course purchases to be added. For iOS, payments must be handled externally, and the app must not link to or mention external payment options.
+-   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes) with associated Transcripts & Resources.
+-   **Content Storage**: All media and content in a Cloudflare R2 bucket.
+-   **Design**: A strict, text-only, dark-mode UI. The new website uses Sijill's branding (Cinzel/EB Garamond fonts, green accents).
+-   **Admin Panel**: A web-based admin panel to manage all content.
+-   **Monetization**: Subscriptions via Stripe. One-time course purchases to be added.
 
 **User's preferred language**: French
 
 **what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database. A Jinja2-based admin panel allows for content management. Key features include user authentication (email/password only), a password reset flow via SendPulse SMTP, and an adaptive layout for web/mobile.
+A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database. A Jinja2-based admin panel is used for content management. The Reading Mode feature is fully implemented on both backend and frontend, including an automated sync of transcripts from Cloudflare R2.
 
-The application has undergone several modifications to comply with Apple's App Store guidelines, including the removal of social logins and external payment links on iOS. A basic, static splash screen has been implemented.
-
-The backend work for the Reading Mode feature has begun, with a service to convert Word documents to Markdown and API endpoints to manage transcripts.
+A brand-new React (Vite) website has been built and is now served by the FastAPI backend. It includes user authentication, a catalogue of all courses, and a detailed course page. This new website has undergone several iterative design improvements based on user feedback.
 
 **Last working item**:
--   **Last item agent was working**: The agent started **Phase 1: Implementing the Reading Mode**. The backend part is complete. This involved:
-    1.  Creating a service () to convert  files into Markdown using .
-    2.  Adding new API endpoints in  (, ) to upload, manage, and retrieve these transcripts.
-    3.  Testing the endpoints with , successfully creating a transcript for a test audio by uploading a user-provided Word document.
+-   **Last item agent was working**: The agent was about to start the final set of UI/UX refinements for the new React website. The user wants several pages to *exactly* match the layout and design of the existing mobile application for visual consistency. The agent has already gathered all necessary context by analyzing the mobile app's source code.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (for backend API via curl)
--   **Which testing method agent to use?**: screenshot tool (to verify the new frontend component)
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: screenshot tool (to verify new layouts) followed by  for full regression testing.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Login fails on the native mobile app (P0)
--   **Issue 2**: Splash screen is buggy (P1)
--   **Issue 3**: Apple App Store Submission (P1)
+-   **Issue 1**: Website Final UI/UX Refinements (P0)
+-   **Issue 2**: Login fails on the native mobile app (P0)
+-   **Issue 3**: Splash screen is buggy on native app (P1)
+-   **Issue 4**: Apple App Store Submission (P1)
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: When the user tries to log in on the native app (iOS), they report that nothing happens after clicking. The web login works correctly. The backend API returns a 200 OK response, indicating the issue is on the client-side.
-    -   **Attempted fixes**: The agent added logging to the  to trace the token storage and navigation flow. It's suspected to be an issue with environment variables () not being available in the native build, or an error in the post-login navigation logic that only manifests on native.
+    -   **Description**: The user has requested a final set of specific design changes to make the new React website perfectly align with the mobile app's UI. This involves the About page, the course detail page's resource tabs, the resource viewer layout, and fetching all available timeline resources.
+    -   **Attempted fixes**: The previous agent completed the analysis of the mobile app's code to understand the required layouts and logic. Implementation is the next step.
     -   **Next debug checklist**:
-        1.  The user needs to trigger a new EAS build and install it to test the latest fixes and logging.
-        2.  If the issue persists, review the device logs from the new build to see the output from the  statements added in .
-        3.  Specifically check  function's execution flow.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker for the native app's usability.
-    -   **Status**: BLOCKED (on new native build and user testing)
+        1.  In , replicate the layout from  (hero manifesto, diamond separator, principle cards).
+        2.  In , change the resource section from a single Fiches tab to five distinct top-level tabs: .
+        3.  In , modify the API call to fetch *all* timelines from  instead of filtering by the course's cursus.
+        4.  In , replicate the detailed layout from  (header with module info, author, and content sections with colored sidebars).
+        5.  Increase the base font size for body text in .
+    -   **Why fix this issue and what will be achieved with the fix?**: This will fulfill the user's explicit design requirements and create a consistent brand experience across web and mobile.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2**:
+    -   **Description**: When the user tries to log in on the native app (iOS), they report that nothing happens after clicking. The web login works correctly, pointing to a client-side issue in the native build.
+    -   **Status**: BLOCKED (on new native EAS build and user testing).
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend (native app)
     -   **Blocked on other issue**: None
 
--   **Issue 2**:
-    -   **Description**: The user reported that the splash screen shows a double loop (appearing twice) and was incorrectly positioned.
-    -   **Attempted fixes**: The agent tried multiple solutions: using  for web, global variables for native, and consolidating the logic into  after finding two separate implementations. The final attempt was to remove animations and simplify it to a static 3-second screen. The user still reports issues.
-    -   **Next debug checklist**:
-        1.  Verify that the splash screen code in  is completely removed.
-        2.  Review the simplified splash component in . The double loop suggests a component is re-mounting or two splash components are still rendering.
-        3.  Focus on making it work correctly on native first, as Expo Web hot-reloading can cause misleading behavior.
-    -   **Why fix this issue and what will be achieved with the fix?**: Provides a professional app launch experience, a requirement from the user.
+-   **Issue 3**:
+    -   **Description**: The user reported that the splash screen shows a double loop on the native app.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: None
 
--   **Issue 3**:
-    -   **Description**: The app was rejected again by Apple for three reasons: missing Sign in with Apple (Guideline 4.8), detecting code for external payments (Guideline 3.1.1), and needing a test account with an expired trial (Guideline 2.1(b)).
-    -   **Attempted fixes**: The agent implemented fixes for all points:
-        1.  Removed Google Sign-In as a login option to bypass the Sign in with Apple requirement.
-        2.  Confirmed that all external payment links and promo code sections are hidden on the iOS build.
-        3.  Created a dedicated test account () with an expired trial and provided the user with the exact text to reply to Apple.
-    -   **Why fix this issue and what will be achieved with the fix?**: To get the app approved and published on the App Store.
-    -   **Status**: USER VERIFICATION PENDING (User has resubmitted to the App Store)
+-   **Issue 4**:
+    -   **Description**: The app was resubmitted to Apple after several compliance fixes. Awaiting review results.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: N/A
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1**: Implement Frontend for Reading Mode (P0)
-    -   **Where to resume**: The backend API is ready. The next step is to build the frontend.
-        1.  Create a new component .
-        2.  This component should fetch the transcript content from the  endpoint.
-        3.  Use a library like  to render the Markdown content.
-        4.  Integrate this component into the audio player screen (), likely as a new tab next to the player controls, labelled Lire.
-    -   **What will be achieved with this?**: Users will be able to read the text of an audio episode within the app.
+-   **Task 1**: Phase 3: Website Refactor
+    -   **Where to resume**: Implement the final UI/UX changes as detailed in Issue 1 to match the website's design to the mobile app.
+    -   **What will be achieved with this?**: A complete, user-approved v1 of the new React website.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks**:
--   **(P0) Phase 3: Website Refactor**: Begin the complete redesign of the public website () using React. This is a major task that will run in parallel with app development.
--   **(P1) Phase 1: Blog Foundations**: Implement the backend for the blog (DB schema for , CRUD API, and admin panel integration).
+-   **(P1) Phase 2: Blog Foundations**: Implement the backend for the blog (DB schema, CRUD API, and admin panel integration).
 -   **(P1) Finalize App Store & Google Play Submission**: Assist the user with any further issues from Apple/Google reviews.
 
 **Future Tasks**:
--   **(P2) Phase 2: Blog in App**: Build the UI for the blog section within the mobile app.
--   **(P2) Phase 3: Complete Website**: Finish the new React website with a full-featured player, user progression, and Stripe payments.
+-   **(P2) Phase 2: Blog in App & Web**: Build the UI for the blog section within the mobile app and the new website.
 -   **(P2) Phase 4: Advanced Monetization**: Implement one-time course purchases.
--   **(P3) Refactor Backend**: Break down the monolithic  into a modular structure.
--   **(P3)** Admin Dashboard for Analytics, My Subscription page, Newsletter, Offline mode, Push notifications, Multi-language support.
+-   **(P3) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI .
+-   **(P3) Admin Panel Improvement**: Enhance the admin panel to display the full  tree structure, as requested by the user.
+-   **(P3)** Admin Dashboard for Analytics, My Subscription page, Newsletter, Offline mode, Push notifications.
 
 **Completed work in this session**
--   **Login Flow Fix**: Corrected a JSON parsing error in  that was breaking login on web and preview environments.
--   **Password Reset Fix**: Resolved the 404 error on the live  by creating and deploying a  file to handle extensionless URLs.
--   **App Store Compliance (Round 3)**:
-    -   Removed Google Sign-In from the app and website to satisfy Apple's Guideline 4.8 without implementing Apple Sign-In.
-    -   Verified that all external payment mechanisms are hidden on iOS to satisfy Guideline 3.1.1.
-    -   Created a test account with an expired trial () for Apple's review.
--   **Splash Screen Implementation**: Created and iterated on a splash screen. The final version is a simple, static 3-second screen to resolve bugginess.
--   **App Icon Update**: Replaced the default Expo icon with the official Sijill logo.
--   **Backend for Reading Mode**: Implemented the complete backend for transcripts, including a Word-to-Markdown conversion service and API endpoints.
+-   **Reading Mode (Phase 1) - Fully Completed**:
+    -   Frontend  component created and integrated into the player screen.
+    -   Backend endpoint  created to automate transcript import from Cloudflare R2.
+    -   Sync Textes R2 button added to the admin panel.
+    -   Verified by the user and .
+-   **Website Refactor (Phase 3) - Major Progress**:
+    -   A new React (Vite) website was built from scratch and is served by the FastAPI backend.
+    -   **Implemented features based on multiple rounds of user feedback**: Homepage, Cursus list, Course catalogue, detailed Course page with modules/episodes, About page, user authentication, and a resource viewer.
+    -   The design has been iteratively refined to fix accents, update the logo, correct text, and improve content hierarchy.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: Inconsistent user data (Pierre Marchal Mystery). Requires database investigation.
--   **Issue 2**: Frontend environment instability ( errors).
+-   Inconsistent user data in the database (Pierre Marchal Mystery).
+-   Intermittent  errors (platform-level instability).
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Frontend environment instability ().
--   **Recurrence count**: This is a persistent platform-level issue.
+-   **Recurrence count**: Persistent.
 -   **Status**: BLOCKED.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, MongoDB (),  for Word document parsing.
--   **Frontend**: React Native (Expo Web),  for conditional logic.
--   **Deployment**: User-managed deployment for the static site (Hostinger). EAS Build required for native apps.
--   **Roadmap**: A major product evolution is planned, moving the website to React and adding significant new features (blog, reading mode, one-time purchases).
+-   **Backend**: FastAPI, MongoDB, Cloudflare R2 SDK ().
+-   **Frontend (App)**: React Native (Expo Web).
+-   **Frontend (Website)**: **React + Vite**, served as a Single Page Application (SPA) by the FastAPI backend.
 
 **key DB schema**
--   ** (New Collection Proposed)**: 
--   ** (New Collection Proposed)**: 
--   ** (Modification Proposed)**: Add 
--   ** (Modification Proposed)**: Add , 
+-   , , , ,  collections are all actively used to populate the website content.
 
 **changes in tech stack**
--    was added to the backend dependencies.
--   A plan is in place to rebuild the  using **React**, transforming it from a static site into a full-featured web application.
+-   The new website introduces a  stack, managed in the  directory.
 
 **All files of reference**
--   
--   
--   
--   
--   
--   
--   
--   
--   
+-   **Files to Modify**: , , , .
+-   **Reference Files (Mobile App)**: , , .
+-   **Backend**:  (for API endpoint logic).
 
 **Areas that need refactoring**:
--   ****: Still a monolithic file that should be broken into FastAPI  modules.
--   ****: The splash screen logic, while simplified, was added here and could be extracted into its own component for clarity.
+-    is a monolithic file and a candidate for future refactoring into  modules.
+-   The user requested an improvement to the admin panel to better visualize the content hierarchy.
 
 **key api endpoints**
--   : (New) Creates a transcript for an audio from an uploaded  file.
--   : (New) Retrieves the transcript content for a specific audio.
--   : This endpoint is confirmed to be working, but the client-side handling is failing on the native app.
+-   : Triggers a full sync of transcripts from R2.
+-   , , , : Core content APIs.
+-   , , : Used for the resources section.
 
 **Critical Info for New Agent**
 -   **Communicate in French.**
--   The immediate priority is to **continue Phase 1 by building the frontend for the Reading Mode**. The backend is already done.
--   A major roadmap has been defined and approved by the user. The next big piece of work after the reading mode is the **complete refactor of the public website into a React application**.
--   The user is handling the App Store resubmission process based on your last fixes. Be prepared to assist if it gets rejected again.
--   The **splash screen and native app login are known buggy areas**. The user may continue to report issues with them. A new EAS build is required to test any fixes for these on a real device.
--   The user has chosen a simple reading mode (manual scroll) for transcripts, converting from their Word documents. No complex audio-text synchronization is required.
+-   Your immediate and highest-priority task is to implement the user's latest design feedback for the new React website. The goal is to make the ,  (resources), and  pages look and function *exactly* like their mobile app counterparts.
+-   All the necessary reference files from the mobile app's codebase have already been identified and analyzed. Your job is to translate that structure and styling into the new React website.
+-   After implementation, perform a full regression test of the site using the .
 
 **documents and test reports created in this job**
--   
--    (updated)
+-   Multiple test reports in  from validating the Reading Mode and Website features.
+-    has been updated with completed tasks.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Confirms they want to start the new roadmap (Phase 1 + 3) now.
-2.  **User**: Mentions they have already resubmitted the app to Apple for review.
-3.  **User**: Asks to begin development of the new features.
-4.  **User**: Asks about the best way to handle text versions of audios, providing sample Word documents.
-5.  **User**: Asks for a cost estimate in credits for the proposed roadmap.
-6.  **User**: Agrees with the agent's proposal for a simple reading mode without automatic synchronization.
-7.  **User**: Agrees to start Phase 1 (Reading Mode) and Phase 3 (Website Refactor) in parallel.
-8.  **User**: Confirms that their current App Store submission is on a personal developer account and will later move to a proper company account.
-9.  **User**: Asks to start the development now.
-10. **Agent**: Confirms and starts the development of Phase 1, beginning with the backend for transcripts. (IN PROGRESS)
+1.  User requested and received admin credentials.
+2.  User requested and received the preview link for testing.
+3.  User asked for and approved the plan for automated transcript sync from Cloudflare R2.
+4.  User confirmed the R2 folder structure for sync.
+5.  User tested the sync and approved moving on to the website.
+6.  User provided initial requirements for the website refactor.
+7.  User provided the first round of iterative feedback (logo, accents, hierarchy).
+8.  User provided the second round of feedback (correct logo, homepage text, player).
+9.  User provided the third round of feedback (About page text, new resource tab layout).
+10. **(PENDING)** User provided the final round of feedback: make website UI/UX for About page, Course Detail resources, and Resource Viewer identical to the mobile app, and fetch all timelines. This is the current task.
 
 **Project Health Check:**
--   **Broken**:
-    -   Login on the native mobile app build.
-    -   Splash screen is reportedly still buggy on the native app (double loop).
+-   **Broken**: Login on the native mobile app build.
 -   **Mocked**: None.
 -   **Blocked**:
+    -   Native app bug fixing is blocked until the user can test a new EAS build.
     -   App Store submission is with Apple for review.
-    -   Fixing native-specific bugs is blocked until the user can test a new EAS build.
 
 **3rd Party Integrations**
--   **Cloudflare R2**: Media storage.
--   **Stripe**: Subscription payments.
--   **SendPulse**: Email (SMTP).
--   **Expo Application Services (EAS)**: Used for building native apps.
--   **python-docx**: (New) For converting Word documents to Markdown.
--   **Google Sign-In**: **Removed** from all frontends to comply with Apple guidelines.
+-   Cloudflare R2, Stripe, SendPulse, Expo Application Services (EAS), .
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
 -   **Admin Panel**:  / 
--   **Test User**:  /  (password was reset)
+-   **Test User**:  / 
 -   **Apple Review Test Account (Expired Trial)**:  / 
 
 **What agent forgot to execute**
--   The agent correctly planned and started the new feature development as requested by the user. No tasks were forgotten.</analysis>
+The previous agent followed the user's requests closely and did not forget to execute any planned tasks.</analysis>
