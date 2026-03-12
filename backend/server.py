@@ -4159,11 +4159,23 @@ R2_TO_COURSE_MAPPING = {
     '14-autobiographies': 'cours-autobiographies',
     '15-histoire-art': 'cours-art',
     '16-poesie': 'cours-poesie',
+    '17-histoire-pedagogie': 'cours-urjuza',
     '18-sciences': 'cours-sciences',
-    '19-kalam-chretien': 'cours-kalam-chretien',
-    '20-mystique-islamique': 'cours-soufisme',
-    '21-ismaelisme': 'cours-ismaelisme',
-    '22-philosophie-juive': 'cours-philo-juive',
+    '19-geographie-islamique': 'cours-geographie',
+    '20-adab-sciencesmedicales': 'cours-adab',
+    '21-kalam-chretien': 'cours-kalam-chretien',
+    '22-mystique-islamique': 'cours-soufisme',
+    '23-ismaelisme': 'cours-ismaelisme',
+    '24-philosophie-juive': 'cours-philo-juive',
+}
+
+# R2 cursus folder → cursus_id mapping
+R2_CURSUS_MAPPING = {
+    'cursus-a-falsafa': 'cursus-falsafa',
+    'cursus-b-theologie-droit': 'cursus-theologie',
+    'cursus-c-sciences-islamiques': 'cursus-sciences-islamiques',
+    'cursus-d-arts-litterature': 'cursus-arts',
+    'cursus-e-spiritualites': 'cursus-spiritualites',
 }
 
 # ========== PROFESSOR PHOTO SYNC ==========
@@ -4402,119 +4414,179 @@ async def get_bibliography(biblio_id: str):
 async def sync_all_r2_audio(request: Request):
     """
     Sync all audio files from R2 with database.
-    Scans Audio/ folder and creates/updates audio entries based on structure.
+    Scans cursus-*/ folders. Path pattern:
+      cursus-{x}-{name}/{NN}-{module-slug}/[subfolder/]episode-{N}.m4a
+    Also cleans up orphaned DB entries (files deleted from R2).
     """
     await require_admin(request)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
     try:
-        # List all files in Audio folder
-        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix="Audio/", MaxKeys=1000)
-        
-        stats = {
-            'total_files': 0,
-            'created': 0,
-            'updated': 0,
-            'skipped': 0,
-            'errors': []
-        }
-        
+        stats = {'total_files': 0, 'created': 0, 'updated': 0, 'skipped': 0, 'deleted_orphans': 0, 'errors': []}
         now = datetime.now(timezone.utc)
         
-        for obj in response.get('Contents', []):
-            key = obj['Key']
-            size = obj['Size']
+        # Collect ALL R2 audio file keys
+        all_r2_keys = set()
+        synced_audio_ids = set()
+        
+        # Scan each cursus folder
+        for cursus_folder, cursus_id in R2_CURSUS_MAPPING.items():
+            response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=f"{cursus_folder}/", MaxKeys=500)
             
-            if size == 0 or not (key.endswith('.m4a') or key.endswith('.mp3')):
+            for obj in response.get('Contents', []):
+                key = obj['Key']
+                size = obj['Size']
+                
+                if size == 0 or not (key.endswith('.m4a') or key.endswith('.mp3')):
+                    continue
+                
+                all_r2_keys.add(key)
+                stats['total_files'] += 1
+                
+                # Parse: cursus-a-falsafa/01-mouvement-traduction/episode-01.m4a
+                # or:    cursus-a-falsafa/02-falsafa/al-kindi/episode-01.m4a
+                rel_path = key[len(cursus_folder) + 1:]  # remove cursus folder + /
+                parts = rel_path.split('/')
+                
+                if len(parts) < 2:
+                    stats['skipped'] += 1
+                    continue
+                
+                # Normalize module folder: strip accents, spaces, trailing chars
+                module_folder_raw = parts[0]
+                module_folder = module_folder_raw.strip().lower()
+                # Remove accents for matching
+                import unicodedata
+                module_folder_normalized = unicodedata.normalize('NFD', module_folder)
+                module_folder_normalized = ''.join(c for c in module_folder_normalized if unicodedata.category(c) != 'Mn')
+                module_folder_normalized = module_folder_normalized.strip()
+                
+                # Try to find course_id from mapping
+                course_id = None
+                module_num_str = None
+                
+                # First try exact match
+                course_id = R2_TO_COURSE_MAPPING.get(module_folder)
+                
+                # Try normalized match
+                if not course_id:
+                    course_id = R2_TO_COURSE_MAPPING.get(module_folder_normalized)
+                
+                # Try fuzzy match: extract number prefix and check all mappings
+                if not course_id:
+                    match = re.match(r'^(\d+)-', module_folder_normalized)
+                    if match:
+                        num_prefix = match.group(1)
+                        for mk, mv in R2_TO_COURSE_MAPPING.items():
+                            if mk.startswith(f"{num_prefix}-"):
+                                course_id = mv
+                                break
+                
+                if not course_id:
+                    stats['skipped'] += 1
+                    stats['errors'].append(f"No mapping for folder: {module_folder_raw}")
+                    continue
+                
+                # Get course from DB
+                course = await db.courses.find_one({'id': course_id}, {'_id': 0})
+                if not course:
+                    stats['skipped'] += 1
+                    stats['errors'].append(f"Course not found: {course_id}")
+                    continue
+                
+                # Parse subfolder and episode
+                episode_title = ""
+                episode_number = 1
+                
+                if len(parts) == 3:
+                    # Has subfolder: module-folder/subfolder/episode-N.m4a
+                    subfolder = parts[1]
+                    filename = parts[2]
+                    episode_title = subfolder.replace('-', ' ').title()
+                    match = re.search(r'episode-?(\d+)', filename, re.IGNORECASE)
+                    if match:
+                        episode_number = int(match.group(1))
+                elif len(parts) == 2:
+                    # No subfolder: module-folder/episode-N.m4a
+                    filename = parts[1]
+                    match = re.search(r'episode-?(\d+)', filename, re.IGNORECASE)
+                    if match:
+                        episode_number = int(match.group(1))
+                
+                # Generate audio ID
+                subfolder_slug = parts[1].replace(' ', '-').lower() if len(parts) == 3 else ''
+                if subfolder_slug:
+                    audio_id = f"aud_{course_id}-{subfolder_slug}-ep{episode_number:02d}"
+                else:
+                    audio_id = f"aud_{course_id}-ep{episode_number:02d}"
+                audio_id = re.sub(r'[^a-z0-9_-]', '', audio_id)
+                
+                # Build title
+                if episode_title:
+                    title = episode_title
+                else:
+                    title = clean_title(course.get('title', ''))
+                
+                audio_doc = {
+                    'id': audio_id,
+                    'title': title,
+                    'description': f"{title} — {clean_title(course.get('title', ''))}",
+                    'scholar_id': course.get('scholar_id', ''),
+                    'scholar_name': course.get('scholar_name', ''),
+                    'duration': 0,
+                    'audio_url': '',
+                    'file_key': key,
+                    'thumbnail': course.get('thumbnail', ''),
+                    'topic': course.get('topic', ''),
+                    'type': 'lecture',
+                    'course_id': course_id,
+                    'cursus_id': cursus_id,
+                    'episode_number': episode_number,
+                    'published_at': now.isoformat(),
+                    'is_active': True,
+                }
+                
+                # Preserve existing duration if already set
+                existing = await db.audios.find_one({'id': audio_id}, {'_id': 0, 'duration': 1})
+                if existing and existing.get('duration', 0) > 0:
+                    audio_doc['duration'] = existing['duration']
+                
+                result = await db.audios.update_one(
+                    {'id': audio_id},
+                    {'$set': audio_doc},
+                    upsert=True
+                )
+                
+                synced_audio_ids.add(audio_id)
+                
+                if result.upserted_id:
+                    stats['created'] += 1
+                else:
+                    stats['updated'] += 1
+        
+        # Clean up orphaned DB entries:
+        # 1. file_key no longer exists in R2
+        # 2. audio ID was not part of this sync (legacy entries with wrong course mapping)
+        all_audios = await db.audios.find({'file_key': {'$exists': True, '$ne': ''}}, {'_id': 0, 'id': 1, 'file_key': 1}).to_list(2000)
+        orphan_ids = []
+        for audio in all_audios:
+            fk = audio.get('file_key', '')
+            aid = audio.get('id', '')
+            if not fk:
                 continue
-            
-            stats['total_files'] += 1
-            
-            # Parse path: Audio/cursus-X/cours-Y/[subfolder/]episode-N.m4a
-            parts = key.split('/')
-            if len(parts) < 4:
-                stats['skipped'] += 1
-                continue
-            
-            cursus_folder = parts[1]  # e.g., cursus-a-falsafa
-            cours_folder = parts[2]   # e.g., 02-falsafa
-            
-            # Get course_id from mapping
-            course_id = R2_TO_COURSE_MAPPING.get(cours_folder)
-            if not course_id:
-                stats['skipped'] += 1
-                stats['errors'].append(f"No mapping for {cours_folder}")
-                continue
-            
-            # Get course from DB
-            course = await db.courses.find_one({'id': course_id}, {'_id': 0})
-            if not course:
-                stats['skipped'] += 1
-                stats['errors'].append(f"Course not found: {course_id}")
-                continue
-            
-            # Extract episode title from subfolder name if present
-            # e.g., Audio/cursus-a-falsafa/02-falsafa/al-kindi/episode-01.m4a
-            episode_title = ""
-            episode_number = 1
-            
-            if len(parts) == 5:
-                # Has subfolder (philosopher name)
-                subfolder = parts[3]  # e.g., al-kindi
-                episode_title = subfolder.replace('-', ' ').title()
-                # Extract episode number from filename
-                filename = parts[4]
-                match = re.search(r'episode-?(\d+)', filename, re.IGNORECASE)
-                if match:
-                    episode_number = int(match.group(1))
-            else:
-                # No subfolder
-                filename = parts[3]
-                match = re.search(r'episode-?(\d+)', filename, re.IGNORECASE)
-                if match:
-                    episode_number = int(match.group(1))
-            
-            # Generate audio ID
-            subfolder_slug = parts[3].replace(' ', '-').lower() if len(parts) == 5 else ''
-            audio_id = f"aud_{course_id}-{subfolder_slug}-ep{episode_number:02d}" if subfolder_slug else f"aud_{course_id}-ep{episode_number:02d}"
-            audio_id = re.sub(r'[^a-z0-9_-]', '', audio_id)
-            
-            # Build title
-            if episode_title:
-                title = episode_title
-            else:
-                title = clean_title(course.get('title', ''))
-            
-            audio_doc = {
-                'id': audio_id,
-                'title': title,
-                'description': f"{title} — {clean_title(course.get('title', ''))}",
-                'scholar_id': course.get('scholar_id', ''),
-                'scholar_name': course.get('scholar_name', ''),
-                'duration': 0,  # Will be updated when played
-                'audio_url': '',
-                'file_key': key,
-                'thumbnail': course.get('thumbnail', ''),
-                'topic': course.get('topic', ''),
-                'type': 'lecture',
-                'course_id': course_id,
-                'cursus_id': course.get('cursus_id', course.get('thematique_id', '')),
-                'episode_number': episode_number,
-                'published_at': now.isoformat(),
-                'is_active': True,
-            }
-            
-            result = await db.audios.update_one(
-                {'id': audio_id},
-                {'$set': audio_doc},
-                upsert=True
-            )
-            
-            if result.upserted_id:
-                stats['created'] += 1
-            else:
-                stats['updated'] += 1
+            # If file_key points to a cursus-* path, it must be in synced_audio_ids
+            if fk.startswith('cursus-'):
+                if aid not in synced_audio_ids:
+                    orphan_ids.append(aid)
+            # Legacy Audio/ paths: always orphaned since we don't use Audio/ anymore
+            elif fk.startswith('Audio/'):
+                orphan_ids.append(aid)
+        
+        if orphan_ids:
+            result = await db.audios.delete_many({'id': {'$in': orphan_ids}})
+            stats['deleted_orphans'] = result.deleted_count
+            logger.info(f"Deleted {result.deleted_count} orphaned audio entries: {orphan_ids[:10]}")
         
         return {
             'message': 'Synchronisation R2 terminée',

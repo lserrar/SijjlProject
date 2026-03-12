@@ -1,4 +1,4 @@
-# Sijill Project - PRD (Product Requirements Document)
+# Sijill Project - PRD
 
 ## Application Overview
 **App Name**: Sijill Project  
@@ -8,82 +8,48 @@
 
 ---
 
-## Core Product
-
-### Content Hierarchy
-```
-Cursus -> Cours -> Modules -> Audios (Episodes)
-```
-
-### Current Features
-- Audio streaming from Cloudflare R2
-- User authentication (email/password)
-- Subscription system (Stripe)
-- Free trial (3 days)
-- Admin panel (Jinja2)
-- Adaptive web/mobile layout
-- Password reset via email (SendPulse)
-- Reading Mode / Mode Lecture
-- Splash screen (3s, SIJILL PROJECT logo)
-
----
-
 ## Completed Development
 
 ### Phase 1: Text Reading Mode - COMPLETED
-- Backend: Transcript API endpoints (CRUD + upload docx + sync from R2)
-- Frontend: TranscriptReader component with markdown rendering
-- Integration: "Lire" button in audio player
-- Admin: Upload Word documents, "Sync Textes R2" button
+- Transcript API + frontend TranscriptReader + admin sync from R2
 
-### Phase 3: Website Redesign - v4 COMPLETED
-- React SPA (Vite) served via FastAPI at `/api/site/`
-- Pages: Home, Cursus, Catalogue, Course detail, Login, Register, About, Resource Viewer
-- About page v3: Hero manifesto, gold accents, 4 principle cards, domain tags, vision block
-- CourseDetail: 5 resource tabs, cursus-specific timeline filtering
-- ResourceViewer v3: Context + Bibliography layouts matching mobile app
-- Auth: Login/Register/Logout with localStorage token
-- Audio player: Fixed bar with controls, transcript toggle
+### Phase 3: Website Redesign - v4 COMPLETED  
+- React SPA (Vite) at `/api/site/` with About, CourseDetail (5 tabs), ResourceViewer
+- Cursus-specific filtering for timelines, biblios, context, and conferences
 
-### Bibliography Sync Fix - COMPLETED
-- Positional matching (N-th file -> N-th course per cursus)
-- Tolerant regex for R2 filenames with spaces
-- Local module numbering (1-based per cursus)
-- Auto-cleanup of orphaned entries
-- 22 biblios correctly synced
+### Bibliography System - COMPLETED
+- Positional sync from R2, orphan cleanup, content filtering (no header/footer, italic annotations), font size toggle
 
-### Bibliography Display Improvements - COMPLETED
-- Filtered out header sections (Sijill Project, Bibliographie sélective, Cursus X, Module N — Title)
-- Filtered out footer section (Le Sijill — Plateforme académique)
-- Annotation text (after Note pédagogique) rendered in italic
-- Font size toggle (A/A+/A++) on both mobile app and website
-- Applied to BOTH mobile app (bibliography/[id].tsx) and website (ResourceViewer.jsx)
-- 100% tests passed (iteration 25)
+### Audio Sync System - COMPLETED (Feb 2026)
+- Fixed sync to scan `cursus-*/` folders instead of `Audio/`
+- R2 path pattern: `cursus-{x}-{name}/{NN}-{module-slug}/[subfolder/]episode-{N}.m4a`
+- Automatic course mapping via R2_TO_COURSE_MAPPING (24 courses) + R2_CURSUS_MAPPING (5 cursus)
+- Orphan cleanup: removes DB entries for deleted R2 files AND legacy Audio/ entries
+- 78 files synced, 0 errors
 
-### Mobile App Header Fix - COMPLETED
-- Fixed web mobile header: correct style references for logo
-- Added profile avatar access in web mobile header
-- Fixed handleSearch hoisting error
+### Admin Panel Restructuring - COMPLETED (Feb 2026)
+- Sidebar reordered: Professeurs → Cursus → Cours → Catalogue → Ressources → Bibliographies
+- "Audio" renamed to "Catalogue"
+- "Ressources" moved from Dashboard section to Contenu section
 
 ---
 
 ## Backlog
 
-### Phase 2: Blog Section (P1)
-- Article management in admin
-- Categories and tags
-- Markdown content from Cloudflare
-- Free access for all users
+### Admin Catalogue Tree View (P1)
+- Replace flat audio list with Cursus → Cours → Module → Episodes tree view
+- Inline editing of audio properties (title, author, etc.)
+- Visual sync status per folder
 
-### Phase 4: Individual Course Purchases (P2)
-- Course-level pricing in admin
-- 19EUR per course for 6 months
-- Mixed access (subscription + purchases)
+### Phase 2: Blog Section (P1)
+- Article management in admin, categories/tags, free access
+
+### Phase 4: Individual Course Purchases (P2)  
+- Course-level pricing, 19EUR/course for 6 months
 
 ### Future (P3)
-- Offline mode, Push notifications, Newsletter
+- Offline mode, push notifications, newsletter
 - Refactor backend/server.py into APIRouter modules
-- Admin panel improvement (tree structure display)
 - Admin Dashboard for Analytics, "My Subscription" page
 
 ---
@@ -93,9 +59,6 @@ Cursus -> Cours -> Modules -> Audios (Episodes)
 - Splash screen "double loop" on native app
 - Apple App Store submission pending review
 
----
-
 ## Credentials
 - Admin: loubna.serrar@gmail.com / Admin123!
-- Test user: loubniz@hotmail.com / loulouz
-- Apple test: apple-test@sijillproject.com / AppleTest123!
+- Test: loubniz@hotmail.com / loulouz
