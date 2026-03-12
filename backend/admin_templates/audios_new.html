@@ -1,124 +1,152 @@
 {% extends "base.html" %}
 
-{% block extra_styles %}
-<style>
-.tree-container { margin-top: 8px; }
-
-/* Cursus level */
-.cursus-node { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
-.cursus-header { display: flex; align-items: center; padding: 16px 20px; cursor: pointer; user-select: none; transition: background 0.15s; }
-.cursus-header:hover { background: var(--bg-tertiary); }
-.cursus-chevron { width: 20px; color: var(--text-muted); transition: transform 0.2s; margin-right: 12px; font-size: 12px; }
-.cursus-chevron.open { transform: rotate(90deg); }
-.cursus-letter { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-right: 14px; color: #000; }
-.cursus-info { flex: 1; }
-.cursus-title { font-weight: 600; font-size: 15px; }
-.cursus-stats { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.cursus-body { display: none; border-top: 1px solid var(--border-subtle); }
-.cursus-body.open { display: block; }
-
-/* Course level */
-.course-node { border-bottom: 1px solid var(--border-subtle); }
-.course-node:last-child { border-bottom: none; }
-.course-header { display: flex; align-items: center; padding: 12px 20px 12px 44px; cursor: pointer; transition: background 0.15s; }
-.course-header:hover { background: rgba(255,255,255,0.02); }
-.course-chevron { width: 16px; color: var(--text-muted); transition: transform 0.2s; margin-right: 10px; font-size: 11px; }
-.course-chevron.open { transform: rotate(90deg); }
-.course-num { font-size: 11px; font-weight: 600; color: var(--brand-primary); margin-right: 10px; letter-spacing: 1px; min-width: 28px; }
-.course-title { flex: 1; font-size: 14px; font-weight: 500; }
-.course-ep-count { font-size: 12px; color: var(--text-muted); margin-left: 12px; padding: 2px 10px; background: var(--bg-tertiary); border-radius: 10px; }
-.course-body { display: none; background: var(--bg-primary); }
-.course-body.open { display: block; }
-
-/* Episode level */
-.episode-row { display: grid; grid-template-columns: 44px 1fr 180px 100px 80px 80px; align-items: center; padding: 10px 20px 10px 72px; border-top: 1px solid rgba(255,255,255,0.04); font-size: 13px; transition: background 0.1s; }
-.episode-row:hover { background: rgba(255,255,255,0.03); }
-.episode-header { display: grid; grid-template-columns: 44px 1fr 180px 100px 80px 80px; padding: 8px 20px 8px 72px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; border-top: 1px solid var(--border-subtle); background: rgba(255,255,255,0.015); }
-.ep-num { color: var(--text-muted); font-weight: 600; }
-.ep-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ep-scholar { color: var(--text-secondary); font-size: 12px; }
-.ep-duration { color: var(--text-muted); font-size: 12px; text-align: center; }
-.ep-status { text-align: center; }
-.ep-actions { display: flex; gap: 6px; justify-content: flex-end; }
-.ep-actions button { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 13px; }
-.ep-actions button:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.ep-actions button.danger:hover { color: var(--danger); }
-.dot-synced { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
-.dot-orphan { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
-
-/* Preview modal */
-.preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
-.preview-overlay.active { opacity: 1; visibility: visible; }
-.preview-modal { background: var(--bg-card); border-radius: 16px; max-width: 720px; width: 90%; max-height: 85vh; overflow-y: auto; }
-.preview-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
-.preview-body { padding: 24px; }
-.preview-section { margin-bottom: 20px; }
-.preview-section-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-.preview-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
-.preview-new { background: rgba(16,185,129,0.1); color: var(--success); }
-.preview-update { background: rgba(245,158,11,0.1); color: var(--warning); }
-.preview-delete { background: rgba(239,68,68,0.1); color: var(--danger); }
-.preview-footer { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
-
-/* Edit inline */
-.edit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
-.edit-overlay.active { opacity: 1; visibility: visible; }
-.edit-modal { background: var(--bg-card); border-radius: 16px; max-width: 600px; width: 90%; }
-.edit-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); }
-.edit-body { padding: 24px; }
-.edit-footer { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="page-header">
+<style>
+/* ── Catalogue Tree Styles ────────────────────────────── */
+.catalogue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+.catalogue-header h1 { font-size: 28px; font-weight: 700; }
+.catalogue-header p { color: var(--text-secondary); margin-top: 4px; font-size: 14px; }
+.catalogue-actions { display: flex; gap: 12px; }
+
+/* Stats */
+.cat-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.cat-stat { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px; }
+.cat-stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 18px; }
+.cat-stat-icon.green { background: rgba(4,209,130,0.15); color: var(--brand-primary); }
+.cat-stat-icon.blue { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.cat-stat-icon.purple { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+.cat-stat-icon.orange { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.cat-stat-val { font-size: 26px; font-weight: 700; }
+.cat-stat-lbl { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ── Tree Nodes ─────────────────────────────────────── */
+.tree { margin: 0; padding: 0; }
+
+/* Cursus */
+.c-node { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+.c-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer; user-select: none; transition: background 0.15s; }
+.c-head:hover { background: var(--bg-tertiary); }
+.c-arrow { color: var(--text-muted); font-size: 11px; transition: transform 0.2s; width: 16px; text-align: center; flex-shrink: 0; }
+.c-arrow.open { transform: rotate(90deg); }
+.c-letter { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; font-weight: 700; font-size: 15px; color: #000; flex-shrink: 0; }
+.c-info { flex: 1; min-width: 0; }
+.c-name { font-weight: 600; font-size: 15px; }
+.c-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.c-badge { font-size: 11px; padding: 3px 10px; border-radius: 6px; flex-shrink: 0; }
+.c-badge.active { background: rgba(16,185,129,0.12); color: var(--success); }
+.c-badge.inactive { background: rgba(239,68,68,0.12); color: var(--danger); }
+.c-body { display: none; border-top: 1px solid var(--border-subtle); }
+.c-body.open { display: block; }
+
+/* Course */
+.co-node { border-bottom: 1px solid var(--border-subtle); }
+.co-node:last-child { border-bottom: none; }
+.co-head { display: flex; align-items: center; gap: 10px; padding: 12px 20px 12px 52px; cursor: pointer; transition: background 0.15s; }
+.co-head:hover { background: rgba(255,255,255,0.02); }
+.co-arrow { color: var(--text-muted); font-size: 10px; transition: transform 0.2s; width: 14px; text-align: center; flex-shrink: 0; }
+.co-arrow.open { transform: rotate(90deg); }
+.co-num { font-size: 11px; font-weight: 700; color: var(--brand-primary); letter-spacing: 1px; min-width: 26px; flex-shrink: 0; }
+.co-title { flex: 1; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-count { font-size: 12px; color: var(--text-muted); padding: 2px 10px; background: var(--bg-tertiary); border-radius: 10px; flex-shrink: 0; }
+.co-body { display: none; background: var(--bg-primary); }
+.co-body.open { display: block; }
+
+/* Episode table */
+.ep-table { width: 100%; border-collapse: collapse; }
+.ep-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); background: rgba(255,255,255,0.015); text-align: left; }
+.ep-table th:first-child { padding-left: 76px; width: 50px; }
+.ep-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.ep-table td:first-child { padding-left: 76px; width: 50px; color: var(--text-muted); font-weight: 600; }
+.ep-table tr:hover { background: rgba(255,255,255,0.03); }
+.ep-table .ep-title-cell { max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ep-table .ep-scholar { color: var(--text-secondary); font-size: 12px; }
+.ep-table .ep-dur { color: var(--text-muted); font-size: 12px; }
+.ep-sync-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.ep-sync-dot.ok { background: var(--success); }
+.ep-sync-dot.no { background: var(--danger); }
+.ep-table .ep-act { display: flex; gap: 6px; }
+.ep-table .ep-act button { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 13px; transition: all 0.15s; }
+.ep-table .ep-act button:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.ep-table .ep-act button.dng:hover { color: var(--danger); }
+.co-empty { padding: 14px 20px 14px 76px; color: var(--text-muted); font-size: 13px; font-style: italic; }
+
+/* Orphan section */
+.orphan-node { border-color: rgba(239,68,68,0.4); }
+.orphan-node .c-head:hover { background: rgba(239,68,68,0.05); }
+
+/* Modals */
+.ov { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+.ov.active { opacity: 1; visibility: visible; }
+.mdl { background: var(--bg-card); border-radius: 16px; width: 90%; max-height: 85vh; overflow-y: auto; }
+.mdl-hd { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+.mdl-hd h3 { font-size: 17px; font-weight: 600; }
+.mdl-cls { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+.mdl-bd { padding: 24px; }
+.mdl-ft { padding: 16px 24px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 12px; }
+
+/* Preview items */
+.pv-stat { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+.pv-box { padding: 14px; border-radius: 8px; text-align: center; }
+.pv-box .val { font-size: 24px; font-weight: 700; }
+.pv-box .lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.pv-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+.pv-new { background: rgba(16,185,129,0.1); color: var(--success); }
+.pv-del { background: rgba(239,68,68,0.1); color: var(--danger); }
+</style>
+
+<!-- Page Header -->
+<div class="catalogue-header">
     <div>
-        <h1 class="page-title">Catalogue</h1>
-        <p class="page-description">Vue arborescente Cursus → Cours → Épisodes</p>
+        <h1>Catalogue</h1>
+        <p>Vue arborescente Cursus → Cours → Épisodes</p>
     </div>
-    <div style="display: flex; gap: 12px;">
+    <div class="catalogue-actions">
         <button class="btn btn-secondary" onclick="previewSync()" data-testid="preview-sync-btn"><i class="fas fa-eye"></i> Aperçu sync</button>
         <button class="btn btn-primary" onclick="executeSyncAll()" data-testid="sync-all-btn"><i class="fas fa-sync"></i> Synchroniser R2</button>
     </div>
 </div>
 
-<div class="tree-container" id="treeContainer">
+<!-- Stats -->
+<div class="cat-stats" id="catStats" data-testid="catalogue-stats"></div>
+
+<!-- Tree -->
+<div class="tree" id="treeContainer">
     <div class="loading"><div class="spinner"></div> Chargement de l'arborescence...</div>
 </div>
 
 <!-- Preview Modal -->
-<div class="preview-overlay" id="previewOverlay" onclick="if(event.target===this)this.classList.remove('active')">
-    <div class="preview-modal">
-        <div class="preview-header">
-            <h3 style="font-size: 18px; font-weight: 600;"><i class="fas fa-eye" style="color: var(--brand-primary); margin-right: 8px;"></i>Aperçu de la synchronisation</h3>
-            <button style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer" onclick="document.getElementById('previewOverlay').classList.remove('active')">&times;</button>
+<div class="ov" id="previewOv" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="mdl" style="max-width:720px;" onclick="event.stopPropagation()">
+        <div class="mdl-hd">
+            <h3><i class="fas fa-eye" style="color:var(--brand-primary);margin-right:8px;"></i>Aperçu de la synchronisation</h3>
+            <button class="mdl-cls" onclick="document.getElementById('previewOv').classList.remove('active')">&times;</button>
         </div>
-        <div class="preview-body" id="previewBody"><div class="loading"><div class="spinner"></div> Analyse en cours...</div></div>
-        <div class="preview-footer">
-            <button class="btn btn-secondary" onclick="document.getElementById('previewOverlay').classList.remove('active')">Fermer</button>
-            <button class="btn btn-primary" onclick="document.getElementById('previewOverlay').classList.remove('active'); executeSyncAll()"><i class="fas fa-sync"></i> Lancer la sync</button>
+        <div class="mdl-bd" id="previewBody"><div class="loading"><div class="spinner"></div> Analyse en cours...</div></div>
+        <div class="mdl-ft">
+            <button class="btn btn-secondary" onclick="document.getElementById('previewOv').classList.remove('active')">Fermer</button>
+            <button class="btn btn-primary" onclick="document.getElementById('previewOv').classList.remove('active');executeSyncAll()"><i class="fas fa-sync"></i> Lancer la sync</button>
         </div>
     </div>
 </div>
 
 <!-- Edit Modal -->
-<div class="edit-overlay" id="editOverlay" onclick="if(event.target===this)this.classList.remove('active')">
-    <div class="edit-modal">
-        <div class="edit-header"><h3 style="font-size:16px;font-weight:600;">Modifier l'épisode</h3></div>
+<div class="ov" id="editOv" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="mdl" style="max-width:600px;" onclick="event.stopPropagation()">
+        <div class="mdl-hd"><h3>Modifier l'épisode</h3><button class="mdl-cls" onclick="document.getElementById('editOv').classList.remove('active')">&times;</button></div>
         <form id="editForm" onsubmit="saveEpisode(event)">
-            <div class="edit-body">
+            <div class="mdl-bd">
                 <input type="hidden" id="editId">
-                <div class="form-group"><label class="form-label">Titre</label><input type="text" class="form-input" id="editTitle"></div>
-                <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="editDesc" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Titre</label><input type="text" class="form-input" id="editTitle" data-testid="edit-title"></div>
+                <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="editDesc" rows="2" data-testid="edit-desc"></textarea></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                    <div class="form-group"><label class="form-label">Professeur</label><select class="form-select" id="editScholar"></select></div>
-                    <div class="form-group"><label class="form-label">Durée (sec)</label><input type="number" class="form-input" id="editDuration" min="0"></div>
+                    <div class="form-group"><label class="form-label">Professeur</label><select class="form-select" id="editScholar" data-testid="edit-scholar"></select></div>
+                    <div class="form-group"><label class="form-label">Durée (sec)</label><input type="number" class="form-input" id="editDuration" min="0" data-testid="edit-duration"></div>
                 </div>
-                <div class="form-group"><label class="form-label">Fichier R2</label><input type="text" class="form-input" id="editFileKey" readonly style="opacity:0.6;"></div>
+                <div class="form-group"><label class="form-label">Fichier R2</label><input type="text" class="form-input" id="editFileKey" readonly style="opacity:0.6;" data-testid="edit-filekey"></div>
             </div>
-            <div class="edit-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editOverlay').classList.remove('active')">Annuler</button>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+            <div class="mdl-ft">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editOv').classList.remove('active')">Annuler</button>
+                <button type="submit" class="btn btn-primary" data-testid="edit-save-btn"><i class="fas fa-save"></i> Enregistrer</button>
             </div>
         </form>
     </div>
@@ -131,244 +159,223 @@ loadCatalogue();
 
 {% block scripts %}
 <script>
-const CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#3B82F6', '#EF4444', '#10B981'];
-const CURSUS_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const COLORS = ['#04D182','#8B5CF6','#F59E0B','#EC4899','#06B6D4','#3B82F6','#EF4444','#10B981'];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-let allCursus = [], allCourses = [], allAudios = [], allScholars = [];
+let allCursus=[], allCourses=[], allAudios=[], allScholars=[];
 
-function fmtDuration(s) {
+function fmtDur(s) {
     if (!s) return '-';
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60), sec = s % 60;
-    if (h > 0) return `${h}h${String(m).padStart(2,'0')}`;
-    return m > 0 ? `${m}:${String(sec).padStart(2,'0')}` : `0:${String(sec).padStart(2,'0')}`;
+    const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+    if (h>0) return h+'h'+String(m).padStart(2,'0');
+    return m+':'+String(sec).padStart(2,'0');
 }
+
+function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 async function loadCatalogue() {
     try {
-        const [cursusData, coursesData, audiosData, scholarsData] = await Promise.all([
+        const [cu,co,au,sc] = await Promise.all([
             apiRequest('/admin/cursus'),
             apiRequest('/admin/courses'),
             apiRequest('/admin/audios'),
             apiRequest('/admin/scholars'),
         ]);
-        allCursus = (cursusData || []).sort((a, b) => (a.order || 0) - (b.order || 0));
-        allCourses = coursesData || [];
-        allAudios = audiosData || [];
-        allScholars = scholarsData || [];
+        allCursus = (cu||[]).sort((a,b)=>(a.order||0)-(b.order||0));
+        allCourses = co||[];
+        allAudios = au||[];
+        allScholars = sc||[];
+        renderStats();
         renderTree();
     } catch(e) {
         document.getElementById('treeContainer').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erreur de chargement</p></div>';
     }
 }
 
-function getCoursesForCursus(cursusId) {
-    return allCourses.filter(c => c.cursus_id === cursusId || c.thematique_id === cursusId);
+function renderStats() {
+    const total = allAudios.length;
+    const synced = allAudios.filter(a=>a.file_key).length;
+    document.getElementById('catStats').innerHTML = `
+        <div class="cat-stat"><div class="cat-stat-icon green"><i class="fas fa-layer-group"></i></div><div class="cat-stat-val">${allCursus.length}</div><div class="cat-stat-lbl">Cursus</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon blue"><i class="fas fa-book-open"></i></div><div class="cat-stat-val">${allCourses.length}</div><div class="cat-stat-lbl">Cours</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon purple"><i class="fas fa-headphones"></i></div><div class="cat-stat-val">${total}</div><div class="cat-stat-lbl">Épisodes</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon ${synced<total?'orange':'green'}"><i class="fas fa-${synced<total?'exclamation-triangle':'check-circle'}"></i></div><div class="cat-stat-val">${synced}</div><div class="cat-stat-lbl">Synchronisés</div></div>`;
 }
 
-function getAudiosForCourse(courseId) {
-    return allAudios.filter(a => a.course_id === courseId).sort((a,b) => (a.episode_number||0) - (b.episode_number||0));
-}
+function coursesOf(cursusId) { return allCourses.filter(c=>c.cursus_id===cursusId||c.thematique_id===cursusId); }
+function audiosOf(courseId) { return allAudios.filter(a=>a.course_id===courseId).sort((a,b)=>(a.episode_number||0)-(b.episode_number||0)); }
 
 function renderTree() {
-    // Stats summary
-    const totalEpisodes = allAudios.length;
-    const syncedEpisodes = allAudios.filter(a => a.file_key).length;
-    const orphanEpisodes = totalEpisodes - syncedEpisodes;
+    let html = '';
 
-    let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;" data-testid="catalogue-stats">
-        <div class="stat-card"><div class="stat-icon green"><i class="fas fa-layer-group"></i></div><div class="stat-value">${allCursus.length}</div><div class="stat-label">Cursus</div></div>
-        <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-book-open"></i></div><div class="stat-value">${allCourses.length}</div><div class="stat-label">Cours</div></div>
-        <div class="stat-card"><div class="stat-icon purple"><i class="fas fa-headphones"></i></div><div class="stat-value">${totalEpisodes}</div><div class="stat-label">Episodes</div></div>
-        <div class="stat-card"><div class="stat-icon ${orphanEpisodes > 0 ? 'orange' : 'green'}"><i class="fas fa-${orphanEpisodes > 0 ? 'exclamation-triangle' : 'check-circle'}"></i></div><div class="stat-value">${syncedEpisodes}</div><div class="stat-label">Synchronisés</div></div>
-    </div>`;
+    allCursus.forEach((cursus, ci) => {
+        const letter = LETTERS[ci]||'?';
+        const color = COLORS[ci%COLORS.length];
+        const courses = coursesOf(cursus.id);
+        let epCount = 0;
+        courses.forEach(c => { epCount += allAudios.filter(a=>a.course_id===c.id).length; });
 
-    for (let ci = 0; ci < allCursus.length; ci++) {
-        const cursus = allCursus[ci];
-        const letter = CURSUS_LETTERS[ci] || '?';
-        const color = CURSUS_COLORS[ci % CURSUS_COLORS.length];
-        const courses = getCoursesForCursus(cursus.id);
-        // Count episodes through courses
-        let cursusEpCount = 0;
-        courses.forEach(c => { cursusEpCount += allAudios.filter(a => a.course_id === c.id).length; });
-
-        html += `<div class="cursus-node" data-testid="cursus-${letter}">
-            <div class="cursus-header" onclick="toggleNode(this)">
-                <i class="fas fa-chevron-right cursus-chevron"></i>
-                <span class="cursus-letter" style="background:${color}">${letter}</span>
-                <div class="cursus-info">
-                    <div class="cursus-title">${cursus.name}</div>
-                    <div class="cursus-stats">${courses.length} cours · ${cursusEpCount} épisode(s)</div>
+        html += `<div class="c-node" data-testid="cursus-${letter}">
+            <div class="c-head" onclick="toggle(this)">
+                <i class="fas fa-chevron-right c-arrow"></i>
+                <span class="c-letter" style="background:${color}">${letter}</span>
+                <div class="c-info">
+                    <div class="c-name">${esc(cursus.name)}</div>
+                    <div class="c-meta">${courses.length} cours · ${epCount} épisode(s)</div>
                 </div>
-                <span style="margin-left:auto;font-size:12px;padding:4px 10px;border-radius:8px;background:${cursus.is_active ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};color:${cursus.is_active ? 'var(--success)' : 'var(--danger)'}">${cursus.is_active ? 'Actif' : 'Inactif'}</span>
+                <span class="c-badge ${cursus.is_active?'active':'inactive'}">${cursus.is_active?'Actif':'Inactif'}</span>
             </div>
-            <div class="cursus-body">`;
+            <div class="c-body">`;
 
-        for (let coi = 0; coi < courses.length; coi++) {
-            const course = courses[coi];
-            const courseAudios = getAudiosForCourse(course.id);
-            const num = String(coi + 1).padStart(2, '0');
-
-            html += `<div class="course-node">
-                <div class="course-header" onclick="toggleNode(this)">
-                    <i class="fas fa-chevron-right course-chevron"></i>
-                    <span class="course-num">${num}</span>
-                    <span class="course-title">${course.title}</span>
-                    <span class="course-ep-count">${courseAudios.length} ép.</span>
+        courses.forEach((course, coi) => {
+            const eps = audiosOf(course.id);
+            const num = String(coi+1).padStart(2,'0');
+            html += `<div class="co-node">
+                <div class="co-head" onclick="toggle(this)">
+                    <i class="fas fa-chevron-right co-arrow"></i>
+                    <span class="co-num">${num}</span>
+                    <span class="co-title">${esc(course.title)}</span>
+                    <span class="co-count">${eps.length} ép.</span>
                 </div>
-                <div class="course-body">`;
+                <div class="co-body">`;
 
-            if (courseAudios.length > 0) {
-                html += `<div class="episode-header"><span>EP</span><span>Titre</span><span>Professeur</span><span>Durée</span><span>Sync</span><span></span></div>`;
-                for (const audio of courseAudios) {
-                    const scholarName = audio.scholar_name || allScholars.find(s => s.id === audio.scholar_id)?.name || '-';
-                    const safeTitle = (audio.title || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-                    html += `<div class="episode-row" data-testid="ep-${audio.id}">
-                        <span class="ep-num">${audio.episode_number || '-'}</span>
-                        <span class="ep-title" title="${safeTitle}">${audio.title}</span>
-                        <span class="ep-scholar">${scholarName}</span>
-                        <span class="ep-duration">${fmtDuration(audio.duration)}</span>
-                        <span class="ep-status">${audio.file_key ? '<span class="dot-synced" title="Synchronisé"></span>' : '<span class="dot-orphan" title="Pas de fichier"></span>'}</span>
-                        <span class="ep-actions">
-                            <button onclick='openEditModal(${JSON.stringify(audio).replace(/\x27/g,"&#39;")})'  title="Modifier"><i class="fas fa-pen"></i></button>
-                            <button class="danger" onclick="deleteEpisode('${audio.id}','${safeTitle}')" title="Supprimer"><i class="fas fa-trash"></i></button>
-                        </span>
-                    </div>`;
-                }
+            if (eps.length > 0) {
+                html += `<table class="ep-table"><thead><tr>
+                    <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
+                </tr></thead><tbody>`;
+                eps.forEach(a => {
+                    const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
+                    html += `<tr data-testid="ep-${a.id}">
+                        <td>${a.episode_number||'-'}</td>
+                        <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
+                        <td class="ep-scholar">${esc(sn)}</td>
+                        <td class="ep-dur">${fmtDur(a.duration)}</td>
+                        <td>${a.file_key?'<span class="ep-sync-dot ok" title="Synchronisé"></span>':'<span class="ep-sync-dot no" title="Pas de fichier"></span>'}</td>
+                        <td class="ep-act">
+                            <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
+                            <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
             } else {
-                html += `<div style="padding:16px 20px 16px 72px;color:var(--text-muted);font-size:13px;font-style:italic;">Aucun épisode synchronisé</div>`;
+                html += '<div class="co-empty">Aucun épisode synchronisé</div>';
             }
+            html += '</div></div>';
+        });
 
-            html += `</div></div>`;
-        }
+        html += '</div></div>';
+    });
 
-        html += `</div></div>`;
-    }
-
-    // Show orphan audios (audios without a valid course_id)
-    const orphanAudios = allAudios.filter(a => !a.course_id || !allCourses.find(c => c.id === a.course_id));
-    if (orphanAudios.length > 0) {
-        html += `<div class="cursus-node" style="border-color:var(--danger);">
-            <div class="cursus-header" onclick="toggleNode(this)">
-                <i class="fas fa-chevron-right cursus-chevron"></i>
-                <span class="cursus-letter" style="background:var(--danger)">!</span>
-                <div class="cursus-info">
-                    <div class="cursus-title" style="color:var(--danger)">Épisodes orphelins</div>
-                    <div class="cursus-stats">${orphanAudios.length} épisode(s) sans cours associé</div>
+    // Orphan audios
+    const orphans = allAudios.filter(a=>!a.course_id||!allCourses.find(c=>c.id===a.course_id));
+    if (orphans.length > 0) {
+        html += `<div class="c-node orphan-node">
+            <div class="c-head" onclick="toggle(this)">
+                <i class="fas fa-chevron-right c-arrow"></i>
+                <span class="c-letter" style="background:var(--danger)">!</span>
+                <div class="c-info">
+                    <div class="c-name" style="color:var(--danger)">Épisodes orphelins</div>
+                    <div class="c-meta">${orphans.length} épisode(s) sans cours</div>
                 </div>
             </div>
-            <div class="cursus-body">
-                <div class="episode-header"><span>ID</span><span>Titre</span><span>Professeur</span><span>Durée</span><span>Sync</span><span></span></div>`;
-        for (const audio of orphanAudios) {
-            const scholarName = audio.scholar_name || '-';
-            const safeTitle = (audio.title || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-            html += `<div class="episode-row">
-                <span class="ep-num" style="font-size:10px;">${audio.id}</span>
-                <span class="ep-title" title="${safeTitle}">${audio.title}</span>
-                <span class="ep-scholar">${scholarName}</span>
-                <span class="ep-duration">${fmtDuration(audio.duration)}</span>
-                <span class="ep-status">${audio.file_key ? '<span class="dot-synced"></span>' : '<span class="dot-orphan"></span>'}</span>
-                <span class="ep-actions">
-                    <button onclick='openEditModal(${JSON.stringify(audio).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
-                    <button class="danger" onclick="deleteEpisode('${audio.id}','${safeTitle}')" title="Supprimer"><i class="fas fa-trash"></i></button>
-                </span>
-            </div>`;
-        }
-        html += `</div></div>`;
+            <div class="c-body">
+                <table class="ep-table"><thead><tr>
+                    <th>ID</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
+                </tr></thead><tbody>`;
+        orphans.forEach(a => {
+            const sn = a.scholar_name||'-';
+            html += `<tr>
+                <td style="font-size:10px;">${esc(a.id)}</td>
+                <td class="ep-title-cell">${esc(a.title)}</td>
+                <td class="ep-scholar">${esc(sn)}</td>
+                <td class="ep-dur">${fmtDur(a.duration)}</td>
+                <td>${a.file_key?'<span class="ep-sync-dot ok"></span>':'<span class="ep-sync-dot no"></span>'}</td>
+                <td class="ep-act">
+                    <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
+                    <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        html += '</tbody></table></div></div>';
     }
 
-    document.getElementById('treeContainer').innerHTML = html || '<div class="empty-state"><i class="fas fa-folder-open"></i><h3>Aucun cursus</h3><p>Synchronisez depuis R2 pour remplir le catalogue</p></div>';
+    document.getElementById('treeContainer').innerHTML = html || '<div class="empty-state"><i class="fas fa-folder-open"></i><h3>Aucun contenu</h3><p>Synchronisez depuis R2 pour remplir le catalogue</p></div>';
 }
 
-function toggleNode(header) {
-    const chevron = header.querySelector('.cursus-chevron, .course-chevron');
-    const body = header.nextElementSibling;
-    chevron.classList.toggle('open');
+function toggle(head) {
+    const arrow = head.querySelector('.c-arrow,.co-arrow');
+    const body = head.nextElementSibling;
+    arrow.classList.toggle('open');
     body.classList.toggle('open');
 }
 
-// Edit Modal
-function openEditModal(audio) {
+// ── Edit ────────────────────────────────────────────────
+function openEdit(audio) {
     document.getElementById('editId').value = audio.id;
-    document.getElementById('editTitle').value = audio.title || '';
-    document.getElementById('editDesc').value = audio.description || '';
-    document.getElementById('editDuration').value = audio.duration || 0;
-    document.getElementById('editFileKey').value = audio.file_key || '';
-    
+    document.getElementById('editTitle').value = audio.title||'';
+    document.getElementById('editDesc').value = audio.description||'';
+    document.getElementById('editDuration').value = audio.duration||0;
+    document.getElementById('editFileKey').value = audio.file_key||'';
     const sel = document.getElementById('editScholar');
     sel.innerHTML = '<option value="">-- Aucun --</option>' +
-        allScholars.map(s => `<option value="${s.id}" ${s.id === audio.scholar_id ? 'selected' : ''}>${s.name}</option>`).join('');
-    
-    document.getElementById('editOverlay').classList.add('active');
+        allScholars.map(s=>`<option value="${s.id}" ${s.id===audio.scholar_id?'selected':''}>${esc(s.name)}</option>`).join('');
+    document.getElementById('editOv').classList.add('active');
 }
 
 async function saveEpisode(e) {
     e.preventDefault();
     const id = document.getElementById('editId').value;
     const scholarId = document.getElementById('editScholar').value;
-    const scholar = allScholars.find(s => s.id === scholarId);
-    
+    const scholar = allScholars.find(s=>s.id===scholarId);
     try {
         await apiRequest(`/admin/audios/${id}`, 'PUT', {
             title: document.getElementById('editTitle').value,
             description: document.getElementById('editDesc').value,
             scholar_id: scholarId,
-            scholar_name: scholar ? scholar.name : '',
-            duration: parseInt(document.getElementById('editDuration').value) || 0,
+            scholar_name: scholar?scholar.name:'',
+            duration: parseInt(document.getElementById('editDuration').value)||0,
         });
         showToast('Épisode modifié');
-        document.getElementById('editOverlay').classList.remove('active');
+        document.getElementById('editOv').classList.remove('active');
         loadCatalogue();
-    } catch(err) { showToast(err.message, 'error'); }
+    } catch(err) { showToast(err.message,'error'); }
 }
 
-async function deleteEpisode(id, title) {
-    if (!confirm(`Supprimer "${title}" ?`)) return;
+async function delEp(id, title) {
+    if (!confirm('Supprimer "'+title+'" ?')) return;
     try {
         await apiRequest(`/admin/audios/${id}`, 'DELETE');
         showToast('Épisode supprimé');
         loadCatalogue();
-    } catch(err) { showToast(err.message, 'error'); }
+    } catch(err) { showToast(err.message,'error'); }
 }
 
-// Sync Preview
+// ── Sync ────────────────────────────────────────────────
 async function previewSync() {
-    document.getElementById('previewOverlay').classList.add('active');
+    document.getElementById('previewOv').classList.add('active');
     document.getElementById('previewBody').innerHTML = '<div class="loading"><div class="spinner"></div> Analyse des fichiers R2...</div>';
-    
     try {
-        const result = await apiRequest('/admin/sync-preview', 'POST');
-        const d = result;
-        let html = '';
-        
-        html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
-            <div style="padding:12px;background:rgba(16,185,129,0.1);border-radius:8px;text-align:center;">
-                <div style="font-size:24px;font-weight:700;color:var(--success);">${d.to_create?.length || 0}</div><div style="font-size:12px;color:var(--text-muted);">À créer</div>
-            </div>
-            <div style="padding:12px;background:rgba(245,158,11,0.1);border-radius:8px;text-align:center;">
-                <div style="font-size:24px;font-weight:700;color:var(--warning);">${d.to_update?.length || 0}</div><div style="font-size:12px;color:var(--text-muted);">À mettre à jour</div>
-            </div>
-            <div style="padding:12px;background:rgba(239,68,68,0.1);border-radius:8px;text-align:center;">
-                <div style="font-size:24px;font-weight:700;color:var(--danger);">${d.to_delete?.length || 0}</div><div style="font-size:12px;color:var(--text-muted);">À supprimer</div>
-            </div>
+        const d = await apiRequest('/admin/sync-preview', 'POST');
+        let h = `<div class="pv-stat">
+            <div class="pv-box" style="background:rgba(16,185,129,0.1);"><div class="val" style="color:var(--success);">${d.to_create?.length||0}</div><div class="lbl">À créer</div></div>
+            <div class="pv-box" style="background:rgba(245,158,11,0.1);"><div class="val" style="color:var(--warning);">${d.to_update?.length||0}</div><div class="lbl">À mettre à jour</div></div>
+            <div class="pv-box" style="background:rgba(239,68,68,0.1);"><div class="val" style="color:var(--danger);">${d.to_delete?.length||0}</div><div class="lbl">À supprimer</div></div>
         </div>`;
-        
         if (d.to_create?.length) {
-            html += `<div class="preview-section"><div class="preview-section-title"><i class="fas fa-plus-circle" style="color:var(--success)"></i> Nouveaux épisodes</div>`;
-            d.to_create.forEach(item => { html += `<div class="preview-item preview-new"><i class="fas fa-file-audio"></i> ${item}</div>`; });
-            html += '</div>';
+            h += '<div style="margin-bottom:16px;"><div style="font-weight:600;font-size:14px;margin-bottom:8px;"><i class="fas fa-plus-circle" style="color:var(--success);margin-right:6px;"></i>Nouveaux</div>';
+            d.to_create.forEach(item => { h += `<div class="pv-item pv-new"><i class="fas fa-file-audio"></i> ${esc(item)}</div>`; });
+            h += '</div>';
         }
         if (d.to_delete?.length) {
-            html += `<div class="preview-section"><div class="preview-section-title"><i class="fas fa-trash" style="color:var(--danger)"></i> Orphelins à supprimer</div>`;
-            d.to_delete.forEach(item => { html += `<div class="preview-item preview-delete"><i class="fas fa-ghost"></i> ${item}</div>`; });
-            html += '</div>';
+            h += '<div style="margin-bottom:16px;"><div style="font-weight:600;font-size:14px;margin-bottom:8px;"><i class="fas fa-trash" style="color:var(--danger);margin-right:6px;"></i>Orphelins</div>';
+            d.to_delete.forEach(item => { h += `<div class="pv-item pv-del"><i class="fas fa-ghost"></i> ${esc(item)}</div>`; });
+            h += '</div>';
         }
-        
         if (!d.to_create?.length && !d.to_delete?.length) {
-            html += '<div style="text-align:center;padding:24px;color:var(--text-muted);"><i class="fas fa-check-circle" style="font-size:32px;color:var(--success);display:block;margin-bottom:12px;"></i>Tout est synchronisé !</div>';
+            h += '<div style="text-align:center;padding:24px;color:var(--text-muted);"><i class="fas fa-check-circle" style="font-size:32px;color:var(--success);display:block;margin-bottom:12px;"></i>Tout est synchronisé !</div>';
         }
-        
-        document.getElementById('previewBody').innerHTML = html;
+        document.getElementById('previewBody').innerHTML = h;
     } catch(err) {
         document.getElementById('previewBody').innerHTML = `<div style="color:var(--danger);padding:20px;"><i class="fas fa-exclamation-triangle"></i> ${err.message}</div>`;
     }

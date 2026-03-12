@@ -41,9 +41,10 @@
 - Each episode shows: EP number, Title, Professor, Duration, Sync status (green/red dot), Edit/Delete buttons
 - Inline edit modal for episodes (title, description, professor, duration)
 - Orphan episodes section: shows episodes without a valid course_id
-- Sync Preview (`POST /api/admin/sync-preview`): previews what would change during R2 sync
+- Sync Preview (`POST /api/admin/sync-preview`): previews changes before R2 sync
 - Sync All (`POST /api/admin/sync-all-r2`): executes full R2 synchronization
-- Template: `audios_new.html` extends `base.html`, uses `extra_styles` and `scripts` blocks
+- CSS styles embedded directly in content block for reliable rendering
+- Template: `audios_new.html` extends `base.html`
 
 ---
 
