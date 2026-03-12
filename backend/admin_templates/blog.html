@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="catalogue-header">
+    <div>
+        <h1>Blog Waraqa</h1>
+        <p>Chroniques de la civilisation islamique — Synchronisation depuis R2</p>
+    </div>
+    <div class="catalogue-actions">
+        <button class="btn btn-primary" onclick="syncBlog()" data-testid="sync-blog-btn"><i class="fas fa-sync"></i> Synchroniser R2</button>
+    </div>
+</div>
+
+<div class="cat-stats" id="blogStats" data-testid="blog-stats"></div>
+
+<div id="blogList">
+    <div class="loading"><div class="spinner"></div> Chargement...</div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadBlog();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let articles = [];
+
+async function loadBlog() {
+    try {
+        articles = await apiRequest('/admin/blog');
+        renderStats();
+        renderList();
+    } catch(e) {
+        document.getElementById('blogList').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erreur de chargement</p></div>';
+    }
+}
+
+function renderStats() {
+    const total = articles.length;
+    const active = articles.filter(a => a.is_active).length;
+    document.getElementById('blogStats').innerHTML = `
+        <div class="cat-stat"><div class="cat-stat-icon purple"><i class="fas fa-feather-alt"></i></div><div class="cat-stat-val">${total}</div><div class="cat-stat-lbl">Articles</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon green"><i class="fas fa-eye"></i></div><div class="cat-stat-val">${active}</div><div class="cat-stat-lbl">Publiés</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon orange"><i class="fas fa-eye-slash"></i></div><div class="cat-stat-val">${total - active}</div><div class="cat-stat-lbl">Brouillons</div></div>`;
+}
+
+function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderList() {
+    if (!articles.length) {
+        document.getElementById('blogList').innerHTML = '<div class="empty-state"><i class="fas fa-feather-alt"></i><h3>Aucun article</h3><p>Synchronisez depuis R2 pour importer les articles</p></div>';
+        return;
+    }
+    let html = '';
+    articles.forEach(a => {
+        const isActive = a.is_active !== false;
+        html += `<div class="c-node" style="${isActive?'':'opacity:0.5;'}" data-testid="blog-${a.id}">
+            <div style="display:flex;align-items:center;gap:16px;padding:18px 20px;">
+                <div style="min-width:60px;text-align:center;">
+                    <div style="font-size:24px;font-weight:800;color:var(--brand-primary);">#${a.number}</div>
+                    <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${esc(a.date_ah)}</div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:15px;">${esc(a.title)}</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+                        ${esc(a.subtitle)} · ${esc(a.date_ce)} · ${esc(a.epoch)} · ${esc(a.author)}
+                    </div>
+                    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                        ${(a.tags||[]).map(t => `<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);">${esc(t)}</span>`).join('')}
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <label class="toggle" title="${isActive?'Publié':'Brouillon'}">
+                        <input type="checkbox" ${isActive?'checked':''} onchange="toggleArticle('${a.id}')">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>`;
+    });
+    document.getElementById('blogList').innerHTML = html;
+}
+
+async function toggleArticle(id) {
+    try {
+        await apiRequest(`/admin/blog/${id}/toggle`, 'PATCH');
+        loadBlog();
+    } catch(err) { showToast(err.message, 'error'); }
+}
+
+async function syncBlog() {
+    showToast('Synchronisation du blog...', 'info');
+    try {
+        const r = await apiRequest('/admin/blog/sync-r2', 'POST');
+        showToast(`Blog synchronisé : ${r.created} créés, ${r.updated} mis à jour, ${r.deleted} supprimés`);
+        loadBlog();
+    } catch(err) { showToast(err.message, 'error'); }
+}
+</script>
+{% endblock %}

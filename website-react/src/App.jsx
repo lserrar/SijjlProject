@@ -9,6 +9,8 @@ import CourseDetail from './pages/CourseDetail'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import About from './pages/About'
+import BlogList from './pages/BlogList'
+import BlogArticle from './pages/BlogArticle'
 
 import ResourceViewer from './pages/ResourceViewer'
 
@@ -26,6 +28,8 @@ export default function App() {
           <Route path="/connexion" element={<Login />} />
           <Route path="/inscription" element={<Register />} />
           <Route path="/a-propos" element={<About />} />
+          <Route path="/blog" element={<BlogList />} />
+          <Route path="/blog/:articleId" element={<BlogArticle />} />
         </Routes>
       </main>
       <Footer />

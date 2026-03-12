@@ -12,6 +12,7 @@ export default function Header() {
       <nav className="site-nav">
         <Link to="/cursus" data-testid="nav-cursus">Cursus</Link>
         <Link to="/catalogue" data-testid="nav-catalogue">Catalogue</Link>
+        <Link to="/blog" data-testid="nav-blog">Blog</Link>
         <Link to="/a-propos" data-testid="nav-about">À propos</Link>
       </nav>
       <div className="nav-auth">

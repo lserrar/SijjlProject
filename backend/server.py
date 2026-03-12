@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Any, Dict
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-import os, uuid, logging, hashlib, hmac, requests as http_requests, re
+import os, uuid, logging, hashlib, hmac, requests as http_requests, re, io
 import asyncio
 import boto3
 from botocore.config import Config as BotoConfig
@@ -4671,6 +4671,240 @@ async def get_manifest(request: Request):
         return {'manifest': None}
     return {'manifest': doc}
 
+# ── Blog Parser & API ──────────────────────────────────────────────────────
+
+def parse_blog_docx(file_bytes: bytes, file_key: str) -> dict:
+    """Parse a Waraqa blog article .docx into structured data."""
+    from docx import Document
+    doc = Document(io.BytesIO(file_bytes))
+
+    # Table 0: Header (series info + date)
+    t0 = doc.tables[0]
+    header_left = t0.cell(0, 0).text.strip()
+    header_right = t0.cell(0, 1).text.strip()
+    lines_r = [l.strip() for l in header_right.split('\n') if l.strip()]
+    date_ah = lines_r[0] if len(lines_r) > 0 else ''
+    date_ce = lines_r[1] if len(lines_r) > 1 else ''
+    epoch = lines_r[2] if len(lines_r) > 2 else ''
+    num_match = re.search(r'Numéro\s+(\d+)', header_left)
+    number = int(num_match.group(1)) if num_match else 0
+
+    # Table 1: Tags
+    tags_raw = doc.tables[1].cell(0, 0).text.strip()
+    tags = [t.strip() for t in tags_raw.replace('Tags :', '').replace('Tags:', '').split('·') if t.strip()]
+
+    # Table 2: Context
+    context = doc.tables[2].cell(0, 0).text.strip() if len(doc.tables) > 2 else ''
+
+    # Table 3: Portrait
+    portrait_text = ''
+    if len(doc.tables) > 3:
+        t3 = doc.tables[3]
+        for row in t3.rows:
+            for cell in row.cells:
+                txt = cell.text.strip()
+                if txt and len(txt) > 20:
+                    portrait_text = txt
+                    break
+
+    # Table 4: Thesis
+    thesis_text = doc.tables[4].cell(0, 0).text.strip() if len(doc.tables) > 4 else ''
+
+    # Table 5: References
+    references = []
+    if len(doc.tables) > 5:
+        for row in doc.tables[5].rows:
+            cells = [c.text.strip() for c in row.cells]
+            ref_text = cells[-1] if cells else ''
+            if ref_text:
+                ref_type = 'course' if '📚' in cells[0] else ('academic' if '🔬' in cells[0] else 'book')
+                references.append({'type': ref_type, 'text': ref_text})
+
+    # Paragraphs: subtitle, title, body sections
+    subtitle = ''
+    title = ''
+    body_sections = []
+    current_section = None
+    author = ''
+
+    section_emojis = {'🌍': 'TERRES D\'ISLAM', '📖': 'VIE INTELLECTUELLE', '🔄': 'LES ÉCHANGES', '🌐': 'LE RESTE DU MONDE', '💡': 'CE QUE ÇA CHANGE', '📚': 'POUR ALLER PLUS LOIN'}
+
+    for p in doc.paragraphs:
+        text = p.text.strip()
+        if not text:
+            continue
+
+        # First two non-empty paragraphs = subtitle + title
+        if not subtitle:
+            subtitle = text
+            continue
+        if not title:
+            title = text
+            body_sections.append({'type': 'intro', 'title': '', 'content': text})
+            continue
+
+        # Check for author line (last meaningful paragraph)
+        if 'Auteure' in text or 'Auteur' in text:
+            m = re.search(r'Auteure?\s*:\s*(.+)', text)
+            if m:
+                author = m.group(1).strip()
+            continue
+
+        # Check for section header (emoji at start)
+        is_header = False
+        for emoji, section_name in section_emojis.items():
+            if emoji in text:
+                if current_section:
+                    body_sections.append(current_section)
+                current_section = {'type': 'section', 'emoji': emoji, 'title': section_name, 'content': ''}
+                is_header = True
+                break
+
+        if is_header:
+            continue
+
+        # Add to current section or intro
+        if current_section:
+            if current_section['content']:
+                current_section['content'] += '\n\n'
+            current_section['content'] += text
+        else:
+            if body_sections and body_sections[-1]['type'] == 'intro':
+                body_sections[-1]['content'] += '\n\n' + text
+            else:
+                body_sections.append({'type': 'intro', 'title': '', 'content': text})
+
+    if current_section:
+        body_sections.append(current_section)
+
+    # Generate ID from date
+    ah_num = re.search(r'(\d+)', date_ah)
+    article_id = f"waraqa-{ah_num.group(1)}ah" if ah_num else f"waraqa-{number}"
+
+    # SEO description: first ~160 chars of the first body section
+    seo_desc = ''
+    for s in body_sections:
+        if s['content'] and len(s['content']) > 50:
+            seo_desc = s['content'][:160].rsplit(' ', 1)[0] + '...'
+            break
+
+    return {
+        'id': article_id,
+        'series': 'Waraqa',
+        'number': number,
+        'date_ah': date_ah,
+        'date_ce': date_ce,
+        'epoch': epoch,
+        'subtitle': subtitle,
+        'title': title,
+        'tags': tags,
+        'context': context,
+        'portrait': portrait_text,
+        'thesis': thesis_text,
+        'references': references,
+        'body_sections': body_sections,
+        'author': author,
+        'seo_description': seo_desc,
+        'file_key': file_key,
+        'is_active': True,
+    }
+
+
+@api_router.post("/admin/blog/sync-r2")
+async def sync_blog_r2(request: Request):
+    """Sync blog articles from R2 Blog/ folder."""
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+
+    try:
+        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Blog/', MaxKeys=200)
+        files = [obj for obj in response.get('Contents', []) if obj['Key'].endswith('.docx') and obj['Size'] > 0]
+
+        created = 0
+        updated = 0
+        errors = []
+        synced_ids = set()
+
+        for obj in files:
+            key = obj['Key']
+            try:
+                file_resp = r2_client.get_object(Bucket=R2_BUCKET, Key=key)
+                content = file_resp['Body'].read()
+                parsed = parse_blog_docx(content, key)
+                synced_ids.add(parsed['id'])
+
+                existing = await db.blog_articles.find_one({'id': parsed['id']})
+                if existing:
+                    # Preserve is_active status
+                    parsed['is_active'] = existing.get('is_active', True)
+                    parsed['published_at'] = existing.get('published_at', datetime.now(timezone.utc).isoformat())
+                    await db.blog_articles.update_one({'id': parsed['id']}, {'$set': parsed})
+                    updated += 1
+                else:
+                    parsed['published_at'] = datetime.now(timezone.utc).isoformat()
+                    await db.blog_articles.insert_one(parsed)
+                    created += 1
+            except Exception as e:
+                errors.append(f"{key}: {str(e)}")
+                logger.error(f"Blog sync error for {key}: {e}")
+
+        # Clean orphans
+        deleted = 0
+        all_articles = await db.blog_articles.find({}, {'_id': 0, 'id': 1}).to_list(500)
+        for art in all_articles:
+            if art['id'] not in synced_ids:
+                await db.blog_articles.delete_one({'id': art['id']})
+                deleted += 1
+
+        return {'created': created, 'updated': updated, 'deleted': deleted, 'errors': errors, 'total': len(files)}
+
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+
+@api_router.get("/admin/blog")
+async def admin_list_blog(request: Request):
+    """Admin: list all blog articles including drafts."""
+    await require_admin(request)
+    articles = await db.blog_articles.find({}, {'_id': 0}).sort('number', 1).to_list(200)
+    return articles
+
+
+@api_router.patch("/admin/blog/{article_id}/toggle")
+async def admin_toggle_blog(article_id: str, request: Request):
+    """Toggle blog article active status."""
+    await require_admin(request)
+    article = await db.blog_articles.find_one({'id': article_id})
+    if not article:
+        raise HTTPException(404, "Article introuvable")
+    new_status = not article.get('is_active', True)
+    await db.blog_articles.update_one({'id': article_id}, {'$set': {'is_active': new_status}})
+    return {'id': article_id, 'is_active': new_status}
+
+
+@api_router.get("/blog")
+async def public_list_blog():
+    """Public: list active blog articles (free access)."""
+    articles = await db.blog_articles.find(
+        {'is_active': True},
+        {'_id': 0, 'id': 1, 'series': 1, 'number': 1, 'date_ah': 1, 'date_ce': 1, 'epoch': 1,
+         'subtitle': 1, 'title': 1, 'tags': 1, 'author': 1, 'seo_description': 1, 'published_at': 1}
+    ).sort('number', 1).to_list(200)
+    return articles
+
+
+@api_router.get("/blog/{article_id}")
+async def public_get_blog(article_id: str):
+    """Public: get a single blog article (free access, full content)."""
+    article = await db.blog_articles.find_one(
+        {'id': article_id, 'is_active': True},
+        {'_id': 0}
+    )
+    if not article:
+        raise HTTPException(404, "Article introuvable")
+    return article
+
 @api_router.post("/admin/sync-all-r2")
 async def sync_all_r2_audio(request: Request):
     """
@@ -6223,6 +6457,16 @@ async def admin_panel_bibliographies(request: Request):
         "bibliographies_new.html",
         {"request": request, "active_page": "bibliographies"}
     )
+
+@api_router.get("/admin-panel/blog", response_class=HTMLResponse)
+async def admin_panel_blog(request: Request):
+    """Admin panel blog page."""
+    response = templates.TemplateResponse(
+        "blog.html",
+        {"request": request, "active_page": "blog"}
+    )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
 
 @api_router.get("/admin-panel/audio-categories", response_class=HTMLResponse)
 async def admin_panel_audio_categories():
