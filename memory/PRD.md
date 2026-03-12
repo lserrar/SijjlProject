@@ -4,7 +4,7 @@
 **App Name**: Sijill Project  
 **Platform**: React Native (Expo) + FastAPI Backend + MongoDB  
 **Language**: French  
-**Last Updated**: February 2026
+**Last Updated**: March 2026
 
 ---
 
@@ -28,24 +28,36 @@
 - 78 files synced, 0 errors
 
 ### Admin Panel Restructuring - COMPLETED (Feb 2026)
-- Sidebar reordered: Professeurs → Cursus → Cours → Catalogue → Ressources → Bibliographies
+- Sidebar reordered: Professeurs -> Cursus -> Cours -> Catalogue -> Ressources -> Bibliographies
 - "Audio" renamed to "Catalogue"
 - "Ressources" moved from Dashboard section to Contenu section
+
+### Admin Catalogue Tree View - COMPLETED (Mar 2026)
+- Replaced flat audio list with hierarchical Cursus -> Cours -> Episodes collapsible tree view
+- Stats summary at top: Cursus count, Courses count, Episodes count, Synced count
+- Dynamic data from DB (not hardcoded) - uses `/admin/cursus`, `/admin/courses`, `/admin/audios`, `/admin/scholars` APIs
+- Each cursus shows letter (A-E), name, course count, episode count, active/inactive status
+- Each course shows number, title, episode count
+- Each episode shows: EP number, Title, Professor, Duration, Sync status (green/red dot), Edit/Delete buttons
+- Inline edit modal for episodes (title, description, professor, duration)
+- Orphan episodes section: shows episodes without a valid course_id
+- Sync Preview (`POST /api/admin/sync-preview`): previews what would change during R2 sync
+- Sync All (`POST /api/admin/sync-all-r2`): executes full R2 synchronization
+- Template: `audios_new.html` extends `base.html`, uses `extra_styles` and `scripts` blocks
 
 ---
 
 ## Backlog
 
-### Admin Catalogue Tree View (P1)
-- Replace flat audio list with Cursus → Cours → Module → Episodes tree view
-- Inline editing of audio properties (title, author, etc.)
-- Visual sync status per folder
-
 ### Phase 2: Blog Section (P1)
 - Article management in admin, categories/tags, free access
+- Blog UI in mobile app and website
 
 ### Phase 4: Individual Course Purchases (P2)  
 - Course-level pricing, 19EUR/course for 6 months
+
+### Admin Manifest Upload (P3)
+- Upload `.docx` manifest file to automate content structure creation
 
 ### Future (P3)
 - Offline mode, push notifications, newsletter
