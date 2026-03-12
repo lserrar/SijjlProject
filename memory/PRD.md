@@ -32,6 +32,15 @@
 - "Audio" renamed to "Catalogue"
 - "Ressources" moved from Dashboard section to Contenu section
 
+### Episode Publish/Unpublish System - COMPLETED (Mar 2026)
+- Toggle switch on each episode in catalogue tree (green = published, grey = draft)
+- Inactive episodes rendered with reduced opacity
+- Bulk publish/unpublish buttons per course (eye/eye-slash icons)
+- Public API `/api/audios` filters to only return `is_active: true` episodes
+- Public API `/api/audios/{id}` also filters by `is_active: true`
+- Stats card shows "Publiés" count alongside total
+- Endpoints: `PATCH /api/admin/audios/{id}/toggle`, `POST /api/admin/audios/bulk-toggle`
+
 ### Admin Manifest Upload - COMPLETED (Mar 2026)
 - Upload .docx manifest file via admin panel button "Charger manifeste"
 - Parser extracts hierarchical structure: Cursus → Cours → Modules/Penseurs → Professeurs → Épisodes prévus

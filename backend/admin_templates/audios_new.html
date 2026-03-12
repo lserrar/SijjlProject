@@ -108,6 +108,7 @@ async function loadCatalogue() {
 function renderStats() {
     const total = allAudios.length;
     const synced = allAudios.filter(a=>a.file_key).length;
+    const active = allAudios.filter(a=>a.is_active).length;
     const expected = manifestData ? manifestData.total_episodes : null;
     let manifestBadge = '';
     if (manifestData) {
@@ -116,13 +117,36 @@ function renderStats() {
     document.getElementById('catStats').innerHTML = `
         <div class="cat-stat"><div class="cat-stat-icon green"><i class="fas fa-layer-group"></i></div><div class="cat-stat-val">${allCursus.length}</div><div class="cat-stat-lbl">Cursus</div></div>
         <div class="cat-stat"><div class="cat-stat-icon blue"><i class="fas fa-book-open"></i></div><div class="cat-stat-val">${allCourses.length}</div><div class="cat-stat-lbl">Cours</div></div>
-        <div class="cat-stat"><div class="cat-stat-icon purple"><i class="fas fa-headphones"></i></div><div class="cat-stat-val">${total}</div><div class="cat-stat-lbl">Épisodes (réels)</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon purple"><i class="fas fa-headphones"></i></div><div class="cat-stat-val">${total}</div><div class="cat-stat-lbl">Épisodes (total)</div></div>
         ${manifestBadge}
+        <div class="cat-stat"><div class="cat-stat-icon ${active<total?'orange':'green'}"><i class="fas fa-eye"></i></div><div class="cat-stat-val">${active}</div><div class="cat-stat-lbl">Publiés</div></div>
         <div class="cat-stat"><div class="cat-stat-icon ${synced<total?'orange':'green'}"><i class="fas fa-${synced<total?'exclamation-triangle':'check-circle'}"></i></div><div class="cat-stat-val">${synced}</div><div class="cat-stat-lbl">Synchronisés</div></div>`;
 }
 
 function coursesOf(cursusId) { return allCourses.filter(c=>c.cursus_id===cursusId||c.thematique_id===cursusId); }
 function audiosOf(courseId) { return allAudios.filter(a=>a.course_id===courseId).sort((a,b)=>(a.episode_number||0)-(b.episode_number||0)); }
+
+function epRow(a) {
+    const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
+    const isActive = a.is_active !== false;
+    return `<tr data-testid="ep-${a.id}" class="${isActive?'':'ep-inactive'}">
+        <td>${a.episode_number||'-'}</td>
+        <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
+        <td class="ep-scholar">${esc(sn)}</td>
+        <td class="ep-dur">${fmtDur(a.duration)}</td>
+        <td><label class="toggle" title="${isActive?'Publié':'Brouillon'}"><input type="checkbox" ${isActive?'checked':''} onchange="toggleEp('${a.id}')"><span class="slider"></span></label></td>
+        <td class="ep-act">
+            <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
+            <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+        </td>
+    </tr>`;
+}
+
+function epTableHeader() {
+    return `<table class="ep-table"><thead><tr>
+        <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Publié</th><th style="width:80px;"></th>
+    </tr></thead><tbody>`;
+}
 
 function getManifestCursus(letter) {
     if (!manifestData) return null;
@@ -180,7 +204,9 @@ function renderTree() {
                     <i class="fas fa-chevron-right co-arrow"></i>
                     <span class="co-num">${num}</span>
                     <span class="co-title">${esc(course.title)}${courseProgressHtml}</span>
-                    <span class="co-count">${eps.length} ép.</span>
+                    <span class="co-count">${eps.filter(a=>a.is_active).length}/${eps.length} publiés</span>
+                    <button class="bulk-btn" onclick="event.stopPropagation();bulkToggle('${course.id}',true)" title="Tout publier"><i class="fas fa-eye"></i></button>
+                    <button class="bulk-btn" onclick="event.stopPropagation();bulkToggle('${course.id}',false)" title="Tout dépublier"><i class="fas fa-eye-slash"></i></button>
                 </div>
                 <div class="co-body">`;
 
@@ -214,45 +240,15 @@ function renderTree() {
                 // Then show real episodes
                 if (eps.length > 0) {
                     html += `<div style="border-top:1px solid var(--border-subtle);padding:8px 20px 4px 76px;"><span style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Épisodes synchronisés</span></div>`;
-                    html += `<table class="ep-table"><thead><tr>
-                        <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
-                    </tr></thead><tbody>`;
-                    eps.forEach(a => {
-                        const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
-                        html += `<tr data-testid="ep-${a.id}">
-                            <td>${a.episode_number||'-'}</td>
-                            <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
-                            <td class="ep-scholar">${esc(sn)}</td>
-                            <td class="ep-dur">${fmtDur(a.duration)}</td>
-                            <td>${a.file_key?'<span class="ep-sync-dot ok"></span>':'<span class="ep-sync-dot no"></span>'}</td>
-                            <td class="ep-act">
-                                <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
-                                <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>`;
-                    });
+                    html += epTableHeader();
+                    eps.forEach(a => { html += epRow(a); });
                     html += '</tbody></table>';
                 }
             } else {
                 // No manifest — show episodes directly
                 if (eps.length > 0) {
-                    html += `<table class="ep-table"><thead><tr>
-                        <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
-                    </tr></thead><tbody>`;
-                    eps.forEach(a => {
-                        const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
-                        html += `<tr data-testid="ep-${a.id}">
-                            <td>${a.episode_number||'-'}</td>
-                            <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
-                            <td class="ep-scholar">${esc(sn)}</td>
-                            <td class="ep-dur">${fmtDur(a.duration)}</td>
-                            <td>${a.file_key?'<span class="ep-sync-dot ok"></span>':'<span class="ep-sync-dot no"></span>'}</td>
-                            <td class="ep-act">
-                                <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
-                                <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>`;
-                    });
+                    html += epTableHeader();
+                    eps.forEach(a => { html += epRow(a); });
                     html += '</tbody></table>';
                 } else {
                     html += '<div class="co-empty">Aucun épisode synchronisé</div>';
@@ -305,6 +301,30 @@ function toggle(head) {
     const body = head.nextElementSibling;
     arrow.classList.toggle('open');
     body.classList.toggle('open');
+}
+
+// ── Toggle & Bulk ──────────────────────────────────────
+async function toggleEp(id) {
+    try {
+        const res = await apiRequest(`/admin/audios/${id}/toggle`, 'PATCH');
+        // Update local state
+        const audio = allAudios.find(a=>a.id===id);
+        if (audio) audio.is_active = res.is_active;
+        renderStats();
+        renderTree();
+    } catch(err) { showToast(err.message,'error'); loadCatalogue(); }
+}
+
+async function bulkToggle(courseId, isActive) {
+    const action = isActive ? 'publier' : 'dépublier';
+    const eps = allAudios.filter(a=>a.course_id===courseId);
+    if (!eps.length) return;
+    if (!confirm(`${isActive?'Publier':'Dépublier'} les ${eps.length} épisode(s) de ce cours ?`)) return;
+    try {
+        await apiRequest('/admin/audios/bulk-toggle', 'POST', { course_id: courseId, is_active: isActive });
+        showToast(`${eps.length} épisode(s) ${isActive?'publiés':'dépubliés'}`);
+        loadCatalogue();
+    } catch(err) { showToast(err.message,'error'); }
 }
 
 // ── Edit ────────────────────────────────────────────────

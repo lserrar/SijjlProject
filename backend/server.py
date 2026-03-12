@@ -1032,7 +1032,7 @@ async def get_conference(conference_id: str):
 
 @api_router.get("/audios")
 async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = None, scholar_id: Optional[str] = None, module_id: Optional[str] = None, course_id: Optional[str] = None):
-    query: dict = {}
+    query: dict = {'is_active': True}
     if topic:
         query['topic'] = topic
     if audio_type:
@@ -1051,7 +1051,7 @@ async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = No
 
 @api_router.get("/audios/{audio_id}")
 async def get_audio(audio_id: str):
-    a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    a = await db.audios.find_one({'id': audio_id, 'is_active': True}, {'_id': 0})
     if not a:
         raise HTTPException(404, "Audio non trouvé")
     a['stream_url'] = resolve_audio_url(a)
@@ -2911,6 +2911,26 @@ async def admin_toggle_audio(audio_id: str, request: Request):
     new_status = not doc.get('is_active', True)
     await db.audios.update_one({'id': audio_id}, {'$set': {'is_active': new_status}})
     return {'id': audio_id, 'is_active': new_status}
+
+@api_router.post("/admin/audios/bulk-toggle")
+async def admin_bulk_toggle_audios(request: Request):
+    """Activate or deactivate all audios for a given course or cursus."""
+    await require_admin(request)
+    body = await request.json()
+    course_id = body.get('course_id')
+    cursus_id = body.get('cursus_id')
+    is_active = body.get('is_active', True)
+
+    query = {}
+    if course_id:
+        query['course_id'] = course_id
+    elif cursus_id:
+        query['cursus_id'] = cursus_id
+    else:
+        raise HTTPException(400, "course_id ou cursus_id requis")
+
+    result = await db.audios.update_many(query, {'$set': {'is_active': is_active}})
+    return {'modified': result.modified_count, 'is_active': is_active}
 
 # Admin: Scholar CRUD
 @api_router.get("/admin/scholars")
