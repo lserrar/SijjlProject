@@ -654,7 +654,7 @@
     
     // Load all home page data
     document.addEventListener('DOMContentLoaded', async () => {
-      const API_URL = 'https://sijill-website-dev.preview.emergentagent.com/api';
+      const API_URL = 'https://module-manager-9.preview.emergentagent.com/api';
       
       try {
         const [homeData, cursusData] = await Promise.all([
@@ -795,7 +795,7 @@
       if (hasSubscription || currentUser.is_admin) {
         // Has subscription or is admin - redirect to app
         alert('Vous êtes abonné ! Pour accéder aux cours, veuillez utiliser l\'application mobile ou télécharger l\'application sur votre appareil.');
-        // Optionally redirect to app: window.location.href = 'https://sijill-website-dev.preview.emergentagent.com/';
+        // Optionally redirect to app: window.location.href = 'https://module-manager-9.preview.emergentagent.com/';
       } else {
         // No subscription - redirect to subscription page
         window.location.href = 'pages/abonnement.html';

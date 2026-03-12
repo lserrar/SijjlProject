@@ -4410,6 +4410,88 @@ async def get_bibliography(biblio_id: str):
         raise HTTPException(404, "Bibliographie non trouvée")
     return biblio
 
+@api_router.post("/admin/sync-preview")
+async def sync_preview_r2(request: Request):
+    """
+    Preview what would change if a full R2 sync was executed.
+    Returns lists of files to create, update, and orphans to delete.
+    """
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+
+    try:
+        to_create = []
+        to_update = []
+        to_delete = []
+        all_r2_keys = set()
+        synced_audio_ids = set()
+
+        for cursus_folder, cursus_id in R2_CURSUS_MAPPING.items():
+            response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=f"{cursus_folder}/", MaxKeys=500)
+            for obj in response.get('Contents', []):
+                key = obj['Key']
+                size = obj['Size']
+                if size == 0 or not (key.endswith('.m4a') or key.endswith('.mp3')):
+                    continue
+                all_r2_keys.add(key)
+                rel_path = key[len(cursus_folder) + 1:]
+                parts = rel_path.split('/')
+                if len(parts) < 2:
+                    continue
+                module_folder = parts[0].strip().lower()
+                import unicodedata
+                module_folder_normalized = unicodedata.normalize('NFD', module_folder)
+                module_folder_normalized = ''.join(c for c in module_folder_normalized if unicodedata.category(c) != 'Mn').strip()
+                course_id = R2_TO_COURSE_MAPPING.get(module_folder) or R2_TO_COURSE_MAPPING.get(module_folder_normalized)
+                if not course_id:
+                    match = re.match(r'^(\d+)-', module_folder_normalized)
+                    if match:
+                        num_prefix = match.group(1)
+                        for mk, mv in R2_TO_COURSE_MAPPING.items():
+                            if mk.startswith(f"{num_prefix}-"):
+                                course_id = mv
+                                break
+                if not course_id:
+                    continue
+                episode_number = 1
+                if len(parts) == 3:
+                    subfolder_slug = parts[1].replace(' ', '-').lower()
+                    match = re.search(r'episode-?(\d+)', parts[2], re.IGNORECASE)
+                    if match:
+                        episode_number = int(match.group(1))
+                    audio_id = f"aud_{course_id}-{subfolder_slug}-ep{episode_number:02d}"
+                else:
+                    match = re.search(r'episode-?(\d+)', parts[1], re.IGNORECASE)
+                    if match:
+                        episode_number = int(match.group(1))
+                    audio_id = f"aud_{course_id}-ep{episode_number:02d}"
+                audio_id = re.sub(r'[^a-z0-9_-]', '', audio_id)
+                synced_audio_ids.add(audio_id)
+                existing = await db.audios.find_one({'id': audio_id}, {'_id': 0, 'id': 1})
+                filename = key.split('/')[-1]
+                if existing:
+                    to_update.append(filename)
+                else:
+                    to_create.append(filename)
+
+        # Find orphans
+        all_audios = await db.audios.find({'file_key': {'$exists': True, '$ne': ''}}, {'_id': 0, 'id': 1, 'title': 1, 'file_key': 1}).to_list(2000)
+        for audio in all_audios:
+            fk = audio.get('file_key', '')
+            aid = audio.get('id', '')
+            if not fk:
+                continue
+            if fk.startswith('cursus-') and aid not in synced_audio_ids:
+                to_delete.append(audio.get('title', aid))
+            elif fk.startswith('Audio/'):
+                to_delete.append(audio.get('title', aid))
+
+        return {'to_create': to_create, 'to_update': to_update, 'to_delete': to_delete}
+
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
 @api_router.post("/admin/sync-all-r2")
 async def sync_all_r2_audio(request: Request):
     """

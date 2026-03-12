@@ -18,7 +18,7 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/') or os.environ.get('EXPO_PUBLIC_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://sijill-website-dev.preview.emergentagent.com"
+    BASE_URL = "https://module-manager-9.preview.emergentagent.com"
 
 ADMIN_EMAIL = "admin@hikma-admin.com"
 ADMIN_PASSWORD = "Admin123!"
@@ -239,7 +239,7 @@ class TestCheckoutEndpoints:
         response = requests.post(
             f"{BASE_URL}/api/checkout/create",
             headers=self.headers,
-            json={"plan_id": "monthly", "origin_url": "https://sijill-website-dev.preview.emergentagent.com"}
+            json={"plan_id": "monthly", "origin_url": "https://module-manager-9.preview.emergentagent.com"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -254,7 +254,7 @@ class TestCheckoutEndpoints:
         response = requests.post(
             f"{BASE_URL}/api/checkout/create",
             headers=self.headers,
-            json={"plan_id": "annual", "origin_url": "https://sijill-website-dev.preview.emergentagent.com"}
+            json={"plan_id": "annual", "origin_url": "https://module-manager-9.preview.emergentagent.com"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -268,7 +268,7 @@ class TestCheckoutEndpoints:
         create_response = requests.post(
             f"{BASE_URL}/api/checkout/create",
             headers=self.headers,
-            json={"plan_id": "monthly", "origin_url": "https://sijill-website-dev.preview.emergentagent.com"}
+            json={"plan_id": "monthly", "origin_url": "https://module-manager-9.preview.emergentagent.com"}
         )
         session_id = create_response.json().get("session_id")
         

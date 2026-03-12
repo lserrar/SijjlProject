@@ -1,110 +1,105 @@
-<analysis>**original_problem_statement:** The user wants to build Sijill, an Islamic studies e-learning platform. The core is a three-level content hierarchy: Cursus -> Cours -> Modules, with each module containing an audio episode.
+<analysis>**original_problem_statement:** The user wants to build Sijill, an Islamic studies e-learning platform with a  content structure.
 
-Recently, the user has requested significant enhancements to the platform, defining a multi-phase roadmap:
-1.  **Reading Mode**: Display the text for each audio episode.
-2.  **Blog Section**: Add a free-to-access blog section.
-3.  **Website Refactor**: A complete redesign and rebuild of the public website () to align with the design of , but with a text-centric, no-image aesthetic. The new site must be a full-featured React web app.
-4.  **Advanced Monetization**: Introduce the ability to purchase individual courses.
+The project has evolved into a multi-phase effort:
+1.  **Reading Mode**: Display transcripts for audio episodes. (COMPLETED)
+2.  **Website Refactor**: A full rebuild of the public website as a React app with a design matching the mobile app. (MOSTLY COMPLETED)
+3.  **Admin Panel Overhaul & Sync Robustness**: A major refactoring of the admin panel to improve usability, fix critical data synchronization bugs, and provide a clear, hierarchical view of content that mirrors the Cloudflare R2 storage structure. This is the current focus.
+4.  **Blog Section**: Add a free-to-access blog. (UPCOMING)
+5.  **Advanced Monetization**: Introduce one-time course purchases. (FUTURE)
 
-This is in addition to ongoing work to publish the application on the Apple App Store and Google Play Store.
+The user has also requested ongoing support for publishing the application on the Apple App Store and Google Play Store and fixing related native app bugs.
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill Project
 -   **Language**: French
--   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend.
--   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes) with associated Transcripts & Resources.
--   **Content Storage**: All media and content in a Cloudflare R2 bucket.
--   **Design**: A strict, text-only, dark-mode UI. The new website uses Sijill's branding (Cinzel/EB Garamond fonts, green accents).
+-   **Platform**: React Native (Expo Web) Frontend + FastAPI Backend. A separate React+Vite site exists for the public website, also served by the FastAPI backend.
+-   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios (Episodes) with associated Transcripts, Bibliographies, and other resources.
+-   **Content Storage**: All media and content in a Cloudflare R2 bucket with a specific folder structure ().
+-   **Design**: A strict, text-only, dark-mode UI. Website branding uses Cinzel/EB Garamond fonts with green accents.
 -   **Admin Panel**: A web-based admin panel to manage all content.
--   **Monetization**: Subscriptions via Stripe. One-time course purchases to be added.
 
 **User's preferred language**: French
 
 **what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database. A Jinja2-based admin panel is used for content management. The Reading Mode feature is fully implemented on both backend and frontend, including an automated sync of transcripts from Cloudflare R2.
+A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database.
 
-A brand-new React (Vite) website has been built and is now served by the FastAPI backend. It includes user authentication, a catalogue of all courses, and a detailed course page. This new website has undergone several iterative design improvements based on user feedback.
+The new React-based public website is functionally complete and its UI has been aligned with the mobile app. All resource types (Timelines, Bibliographies, Contexts, Conferences) are now correctly filtered and displayed on the course detail pages.
+
+The backend synchronization logic for both audio files and bibliographies has been completely rewritten. It now correctly parses the new R2 folder structure (), handles naming inconsistencies, and automatically cleans up orphan database entries (records for files that have been deleted from R2).
+
+The admin panel sidebar has been restructured for better usability.
 
 **Last working item**:
--   **Last item agent was working**: The agent was about to start the final set of UI/UX refinements for the new React website. The user wants several pages to *exactly* match the layout and design of the existing mobile application for visual consistency. The agent has already gathered all necessary context by analyzing the mobile app's source code.
+-   **Last item agent was working**: The agent was beginning the implementation of a major new feature for the admin panel: transforming the Catalogue (formerly Audios) page into a hierarchical tree view (). This view is intended to mirror the R2 folder structure to make content management and sync verification intuitive. The agent had just created the new template file  and was about to start building the backend route and frontend Jinja2 logic to populate it.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: screenshot tool (to verify new layouts) followed by  for full regression testing.
+-   **Which testing method agent to use?**: manual testing by curl, followed by screenshots to verify the new admin UI.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Website Final UI/UX Refinements (P0)
--   **Issue 2**: Login fails on the native mobile app (P0)
+-   **Issue 1**: Admin Panel Catalogue Tree View (P0)
+-   **Issue 2**: Login fails on the native mobile app (P1)
 -   **Issue 3**: Splash screen is buggy on native app (P1)
--   **Issue 4**: Apple App Store Submission (P1)
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: The user has requested a final set of specific design changes to make the new React website perfectly align with the mobile app's UI. This involves the About page, the course detail page's resource tabs, the resource viewer layout, and fetching all available timeline resources.
-    -   **Attempted fixes**: The previous agent completed the analysis of the mobile app's code to understand the required layouts and logic. Implementation is the next step.
+    -   **Description**: The user wants to replace the flat list of audios in the admin panel with a hierarchical, collapsible tree view: Cursus -> Cours -> Modules -> Episodes. This view should make it easy to see which audios are synced, identify missing ones, and edit their properties directly. The system should also automatically assign the correct course, module, and titles during the sync process based on the R2 folder structure.
+    -   **Attempted fixes**: The underlying sync logic to correctly fetch and associate audios has been fixed. The agent has created the new template file .
     -   **Next debug checklist**:
-        1.  In , replicate the layout from  (hero manifesto, diamond separator, principle cards).
-        2.  In , change the resource section from a single Fiches tab to five distinct top-level tabs: .
-        3.  In , modify the API call to fetch *all* timelines from  instead of filtering by the course's cursus.
-        4.  In , replicate the detailed layout from  (header with module info, author, and content sections with colored sidebars).
-        5.  Increase the base font size for body text in .
-    -   **Why fix this issue and what will be achieved with the fix?**: This will fulfill the user's explicit design requirements and create a consistent brand experience across web and mobile.
+        1.  Create a new backend route (e.g., ) that queries all cursus, courses, modules, and audios from the database.
+        2.  Structure this data hierarchically in Python (e.g., nested dictionaries or objects).
+        3.  Pass the structured data to the  template.
+        4.  In , use Jinja2 loops to render the collapsible tree structure using HTML/CSS/JavaScript.
+        5.  Ensure that each audio episode in the tree displays its status and links to an edit page.
+        6.  The user also suggested uploading a manifest file () to simplify associations. This could be integrated into the new UI as a future enhancement.
+    -   **Why fix this issue and what will be achieved with the fix?**: This will solve a major pain point for the user, making content management scalable, intuitive, and less error-prone. It provides a clear source of truth view of all audio content.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Should Test frontend/backend/both after fix?**: backend (admin panel UI)
     -   **Blocked on other issue**: None
 
 -   **Issue 2**:
-    -   **Description**: When the user tries to log in on the native app (iOS), they report that nothing happens after clicking. The web login works correctly, pointing to a client-side issue in the native build.
-    -   **Status**: BLOCKED (on new native EAS build and user testing).
+    -   **Description**: From previous handoff. When the user tries to log in on the native iOS app, nothing happens. The web login works, pointing to a client-side issue in the native build.
+    -   **Status**: BLOCKED (requires a new native EAS build for the user to test).
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend (native app)
     -   **Blocked on other issue**: None
 
 -   **Issue 3**:
-    -   **Description**: The user reported that the splash screen shows a double loop on the native app.
+    -   **Description**: From previous handoff. The user reported that the splash screen shows a double loop on the native app.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None
-
--   **Issue 4**:
-    -   **Description**: The app was resubmitted to Apple after several compliance fixes. Awaiting review results.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: N/A
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   **Task 1**: Phase 3: Website Refactor
-    -   **Where to resume**: Implement the final UI/UX changes as detailed in Issue 1 to match the website's design to the mobile app.
-    -   **What will be achieved with this?**: A complete, user-approved v1 of the new React website.
+-   **Task 1**: Admin Panel Refactor (P0)
+    -   **Where to resume**: Implement the Catalogue tree view as described in Issue 1. Start by creating the backend data aggregation logic in .
+    -   **What will be achieved with this?**: A complete overhaul of the audio content management interface, fulfilling a key user request.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on something**: None
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks**:
 -   **(P1) Phase 2: Blog Foundations**: Implement the backend for the blog (DB schema, CRUD API, and admin panel integration).
--   **(P1) Finalize App Store & Google Play Submission**: Assist the user with any further issues from Apple/Google reviews.
+-   **(P1) Finalize App Store & Google Play Submission**: Assist the user with any further issues from Apple/Google reviews, particularly related to the login and splash screen bugs.
 
 **Future Tasks**:
 -   **(P2) Phase 2: Blog in App & Web**: Build the UI for the blog section within the mobile app and the new website.
 -   **(P2) Phase 4: Advanced Monetization**: Implement one-time course purchases.
+-   **(P3) Admin Panel Manifest Upload**: Implement the user's idea of uploading a manifest file (like ) to the admin panel to automatically create and link content structure.
 -   **(P3) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI .
--   **(P3) Admin Panel Improvement**: Enhance the admin panel to display the full  tree structure, as requested by the user.
 -   **(P3)** Admin Dashboard for Analytics, My Subscription page, Newsletter, Offline mode, Push notifications.
 
 **Completed work in this session**
--   **Reading Mode (Phase 1) - Fully Completed**:
-    -   Frontend  component created and integrated into the player screen.
-    -   Backend endpoint  created to automate transcript import from Cloudflare R2.
-    -   Sync Textes R2 button added to the admin panel.
-    -   Verified by the user and .
--   **Website Refactor (Phase 3) - Major Progress**:
-    -   A new React (Vite) website was built from scratch and is served by the FastAPI backend.
-    -   **Implemented features based on multiple rounds of user feedback**: Homepage, Cursus list, Course catalogue, detailed Course page with modules/episodes, About page, user authentication, and a resource viewer.
-    -   The design has been iteratively refined to fix accents, update the logo, correct text, and improve content hierarchy.
+-   **Website UI/UX Finalization**: The ,  (resource tabs), and  pages on the React website were redesigned to exactly match the mobile app's layout and styling.
+-   **Website Resource Filtering Fixed**: Fixed critical bugs on the course detail page where bibliographies, contexts, and conferences were not being filtered correctly. All tabs now show content specific to the course/cursus.
+-   **Mobile App Header Bugs Fixed**: Corrected the logo display and restored the missing profile button on the Expo web version of the mobile app.
+-   **Admin: Bibliography Sync Rewritten**: Completely overhauled the buggy bibliography sync logic. The new system uses robust positional mapping, handles filename inconsistencies, and cleans up orphan records.
+-   **Admin: Audio Sync Rewritten**: Completely overhauled the audio sync logic. The new system correctly scans the new R2 folder structure (), finds all episodes, and automatically deletes orphan records from the database for files removed from R2.
+-   **Admin: Sidebar Restructured**: Reorganized the admin panel's main navigation menu based on user feedback for a more logical workflow.
+-   **Bibliography Viewer Refactor**: Updated the resource viewer on both the website and mobile app to remove unwanted headers/footers, italicize annotations, and add font-size controls as requested.
 
 **Earlier issues found/mentioned but not fixed**
 -   Inconsistent user data in the database (Pierre Marchal Mystery).
@@ -119,51 +114,58 @@ A brand-new React (Vite) website has been built and is now served by the FastAPI
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, MongoDB, Cloudflare R2 SDK ().
+-   **Backend**: FastAPI, MongoDB, Jinja2 for admin templates.
+-   **Backend Logic**: Heavy use of  for Cloudflare R2 interaction, complex data aggregation for sync and admin views.
 -   **Frontend (App)**: React Native (Expo Web).
--   **Frontend (Website)**: **React + Vite**, served as a Single Page Application (SPA) by the FastAPI backend.
+-   **Frontend (Website)**: React + Vite, served as an SPA by FastAPI.
 
 **key DB schema**
--   , , , ,  collections are all actively used to populate the website content.
+-   : Heavily modified by the new sync logic. Now reliably linked to .
+-   : Now reliably linked to  after sync logic rewrite.
+-   , , : Core data models used for structuring the new admin tree view.
 
 **changes in tech stack**
--   The new website introduces a  stack, managed in the  directory.
+-   No new technologies were introduced. The session focused on refining and fixing existing stacks.
 
 **All files of reference**
--   **Files to Modify**: , , , .
--   **Reference Files (Mobile App)**: , , .
--   **Backend**:  (for API endpoint logic).
+-   **Files to Modify/Create**: , .
+-   **Key Modified Files**: , , .
+-   **User-provided Artifact**:  (contains the canonical content structure).
 
 **Areas that need refactoring**:
--    is a monolithic file and a candidate for future refactoring into  modules.
--   The user requested an improvement to the admin panel to better visualize the content hierarchy.
+-    remains monolithic and is a prime candidate for breaking into FastAPI  modules, especially after the recent addition of complex sync and view logic.
+-   The new  will replace the old , which can be deprecated/deleted once the new view is complete.
 
 **key api endpoints**
--   : Triggers a full sync of transcripts from R2.
--   , , , : Core content APIs.
--   , , : Used for the resources section.
+-   : Rewritten to be robust, scan the new R2 structure, and clean orphans.
+-   : Rewritten for positional mapping and orphan cleanup.
+-   : Modified to support filtering by .
+-   : Modified to support filtering by .
+-   : Multiple routes were modified. A new  route will be needed.
 
 **Critical Info for New Agent**
 -   **Communicate in French.**
--   Your immediate and highest-priority task is to implement the user's latest design feedback for the new React website. The goal is to make the ,  (resources), and  pages look and function *exactly* like their mobile app counterparts.
--   All the necessary reference files from the mobile app's codebase have already been identified and analyzed. Your job is to translate that structure and styling into the new React website.
--   After implementation, perform a full regression test of the site using the .
+-   Your immediate and highest-priority task is the **Admin Panel Catalogue Tree View**. The user needs this to manage their audio content effectively. The backend sync logic is now solid, so you can trust the data. Your task is to build the UI for it.
+-   Start by building the backend route in  to aggregate the data hierarchically. Then, render it in the new  template.
+-   The user has an excellent idea about uploading a manifest file () to automate content structuring. Keep this in mind as a powerful future enhancement for the admin panel once the tree view is functional.
+-   The native app bugs (login, splash screen) are still pending and blocked on getting a new build to the user for testing. De-prioritize them until the admin panel work is complete, unless the user insists otherwise.
 
 **documents and test reports created in this job**
--   Multiple test reports in  from validating the Reading Mode and Website features.
--    has been updated with completed tasks.
+-   Multiple test reports in  validating the website and bibliography viewer changes.
+-   The user provided , which serves as a specification for the desired content structure.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  User requested and received admin credentials.
-2.  User requested and received the preview link for testing.
-3.  User asked for and approved the plan for automated transcript sync from Cloudflare R2.
-4.  User confirmed the R2 folder structure for sync.
-5.  User tested the sync and approved moving on to the website.
-6.  User provided initial requirements for the website refactor.
-7.  User provided the first round of iterative feedback (logo, accents, hierarchy).
-8.  User provided the second round of feedback (correct logo, homepage text, player).
-9.  User provided the third round of feedback (About page text, new resource tab layout).
-10. **(PENDING)** User provided the final round of feedback: make website UI/UX for About page, Course Detail resources, and Resource Viewer identical to the mobile app, and fetch all timelines. This is the current task.
+1.  **Request:** Fix bibliography viewer: remove header/footer, italicize text, add font-size controls. (DONE)
+2.  **Bug Report:** Website resource filtering is broken for bibliographies and contexts. (DONE)
+3.  **Bug Report:** Website conference filtering is broken. (DONE)
+4.  **Bug Report:** Audio sync is not working for new episodes. (DONE)
+5.  **Bug Report:** Deleting files from R2 doesn't remove them from the admin panel. (DONE)
+6.  **Feature Request:** Reorganize the admin sidebar menu. (DONE)
+7.  **Feature Request:** Overhaul the Audio admin page into a hierarchical tree view mirroring R2. (IN PROGRESS)
+8.  **Clarification:** User provided a  file detailing the desired R2 structure.
+9.  **Clarification:** User asks to reorder the new admin sidebar slightly differently. (DONE)
+10. **Approval/Confirmation:** User confirms the plan for the tree view and asks that it automatically assigns all properties (title, course, etc.) correctly. (PENDING IMPLEMENTATION)
+11. **(PENDING) Idea:** User suggests a new feature idea: uploading a manifest file (like the ) directly into the admin panel to automate content linking, asking for the agent's opinion.
 
 **Project Health Check:**
 -   **Broken**: Login on the native mobile app build.
@@ -179,12 +181,11 @@ A brand-new React (Vite) website has been built and is now served by the FastAPI
 -   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: None.
+-   **Known regressions**: None from this session's work.
 
 **Credentials to test flow:**
 -   **Admin Panel**:  / 
 -   **Test User**:  / 
--   **Apple Review Test Account (Expired Trial)**:  / 
 
 **What agent forgot to execute**
-The previous agent followed the user's requests closely and did not forget to execute any planned tasks.</analysis>
+The agent successfully addressed all user requests and bug reports from the session. The final user message about uploading a manifest file was an idea/question that the agent was about to address before the session ended, so it was not forgotten but is now a pending action for the next agent.</analysis>
