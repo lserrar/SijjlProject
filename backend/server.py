@@ -5999,10 +5999,14 @@ async def admin_panel_timeline_resources(request: Request):
 @api_router.get("/admin-panel/audios", response_class=HTMLResponse)
 async def admin_panel_audios(request: Request):
     """Admin panel audios page."""
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "audios_new.html",
         {"request": request, "active_page": "audios"}
     )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @api_router.get("/admin-panel/articles", response_class=HTMLResponse)
 async def admin_panel_articles():
