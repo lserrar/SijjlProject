@@ -32,7 +32,12 @@
 - "Audio" renamed to "Catalogue"
 - "Ressources" moved from Dashboard section to Contenu section
 
-### Admin Catalogue Tree View - COMPLETED (Mar 2026)
+### Admin Manifest Upload - COMPLETED (Mar 2026)
+- Upload .docx manifest file via admin panel button "Charger manifeste"
+- Parser extracts hierarchical structure: Cursus → Cours → Modules/Penseurs → Professeurs → Épisodes prévus
+- Stored in MongoDB `manifest` collection, replaces previous manifest on re-upload
+- Enriches catalogue tree view: progress badges (25/61 ép.), manifest modules table (Module/Penseur, Professeur prévu, Ép. prévus vs réels, Statut), stats card "127 Prévus (manifeste)"
+- Endpoints: `POST /api/admin/manifest/upload`, `GET /api/admin/manifest`
 - Replaced flat audio list with hierarchical Cursus -> Cours -> Episodes collapsible tree view
 - Stats summary at top: Cursus count, Courses count, Episodes count, Synced count
 - Dynamic data from DB (not hardcoded) - uses `/admin/cursus`, `/admin/courses`, `/admin/audios`, `/admin/scholars` APIs
