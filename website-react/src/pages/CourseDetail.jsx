@@ -52,7 +52,11 @@ export default function CourseDetail() {
         }).catch(() => {})
         fetch(`${API_BASE}/resources/audio`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` }
-        }).then(r => r.json()).then(data => setAudioConferences(data.resources || [])).catch(() => {})
+        }).then(r => r.json()).then(data => {
+          const letter = courseData.cursus_id === 'cursus-falsafa' ? 'A' : courseData.cursus_id === 'cursus-theologie' ? 'B' : courseData.cursus_id === 'cursus-sciences-islamiques' ? 'C' : courseData.cursus_id === 'cursus-arts' ? 'D' : 'E'
+          const filtered = (data.resources || []).filter(c => c.cursus_letter === letter)
+          setAudioConferences(filtered)
+        }).catch(() => {})
       }
       setLoading(false)
     }).catch(() => setLoading(false))
