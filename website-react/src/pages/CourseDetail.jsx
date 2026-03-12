@@ -42,9 +42,8 @@ export default function CourseDetail() {
       setModules(modsData || [])
       setAudios(audiosData || [])
       if (courseData?.cursus_id) {
-        const letter = CURSUS_LETTER_MAP[courseData.cursus_id]
         getContextResources(courseData.cursus_id).then(r => setContextResources(r?.resources || [])).catch(() => {})
-        getBibliographies(letter).then(bibs => setBiblios(bibs || [])).catch(() => {})
+        getBibliographies(courseId).then(bibs => setBiblios(bibs || [])).catch(() => {})
         // Fetch timelines for THIS cursus only
         fetch(`${API_BASE}/timelines/cursus/${courseData.cursus_id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` }
@@ -116,11 +115,10 @@ export default function CourseDetail() {
   audios.forEach(a => { const mid = a.module_id || 'unknown'; if (!audiosByModule[mid]) audiosByModule[mid] = []; audiosByModule[mid].push(a) })
 
   const modNums = modules.map((m, i) => m.order || parseInt(m.id?.split('mod-')[1]) || (i + 1))
-  const courseCtxResources = contextResources.filter(r => modNums.includes(r.module_number))
-  const courseBiblios = biblios.filter(b => {
-    const bModNum = b.module_number || parseInt(b.id?.split('mod')[1]) || 0
-    return modNums.includes(bModNum)
-  })
+  // Context: show all resources for this cursus (like the mobile app)
+  const courseCtxResources = contextResources
+  // Biblios: already filtered by course_id from the API
+  const courseBiblios = biblios
 
   const TABS = [
     { key: 'episodes', label: `Épisodes` },

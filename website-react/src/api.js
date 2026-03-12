@@ -82,8 +82,8 @@ export async function register(name, email, password) {
   return res.json();
 }
 
-export async function getBibliographies(cursusLetter) {
-  return apiFetch(`/bibliographies${cursusLetter ? `?cursus_letter=${cursusLetter}` : ''}`);
+export async function getBibliographies(courseId) {
+  return apiFetch(`/bibliographies${courseId ? `?course_id=${courseId}` : ''}`);
 }
 
 export async function getTimelineHtml(cursusLetter) {
