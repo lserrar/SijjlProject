@@ -32,6 +32,16 @@
 - "Audio" renamed to "Catalogue"
 - "Ressources" moved from Dashboard section to Contenu section
 
+### Blog Waraqa - COMPLETED (Mar 2026)
+- Blog series "Waraqa: Chroniques de la civilisation islamique" - free public access
+- Parser extracts articles from .docx files in R2 Blog/ folder
+- Each article has: date AH/CE, epoch, title, tags, body sections (Terres d'Islam, Vie Intellectuelle, etc.), context, portrait, thesis, references, author
+- Public API: `GET /api/blog` (list), `GET /api/blog/{id}` (detail) - no auth required
+- Admin: sync from R2, toggle active/inactive per article
+- Website: Blog list page (/blog) + Article detail page (/blog/{id}) with SEO (dynamic title, meta description)
+- Admin panel: Blog management page with stats, toggle switches
+- 3 articles synced: 370 AH, 150 AH, 179 AH
+
 ### Episode Publish/Unpublish System - COMPLETED (Mar 2026)
 - Toggle switch on each episode in catalogue tree (green = published, grey = draft)
 - Inactive episodes rendered with reduced opacity
