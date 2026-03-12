@@ -8,6 +8,10 @@
         <p>Vue arborescente Cursus → Cours → Épisodes</p>
     </div>
     <div class="catalogue-actions">
+        <label class="btn btn-secondary" style="cursor:pointer;" data-testid="manifest-upload-btn">
+            <i class="fas fa-file-word"></i> Charger manifeste
+            <input type="file" accept=".docx" onchange="uploadManifest(this)" style="display:none;">
+        </label>
         <button class="btn btn-secondary" onclick="previewSync()" data-testid="preview-sync-btn"><i class="fas fa-eye"></i> Aperçu sync</button>
         <button class="btn btn-primary" onclick="executeSyncAll()" data-testid="sync-all-btn"><i class="fas fa-sync"></i> Synchroniser R2</button>
     </div>
@@ -69,7 +73,7 @@ loadCatalogue();
 const COLORS = ['#04D182','#8B5CF6','#F59E0B','#EC4899','#06B6D4','#3B82F6','#EF4444','#10B981'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-let allCursus=[], allCourses=[], allAudios=[], allScholars=[];
+let allCursus=[], allCourses=[], allAudios=[], allScholars=[], manifestData=null;
 
 function fmtDur(s) {
     if (!s) return '-';
@@ -82,16 +86,18 @@ function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 async function loadCatalogue() {
     try {
-        const [cu,co,au,sc] = await Promise.all([
+        const [cu,co,au,sc,mf] = await Promise.all([
             apiRequest('/admin/cursus'),
             apiRequest('/admin/courses'),
             apiRequest('/admin/audios'),
             apiRequest('/admin/scholars'),
+            apiRequest('/admin/manifest'),
         ]);
         allCursus = (cu||[]).sort((a,b)=>(a.order||0)-(b.order||0));
         allCourses = co||[];
         allAudios = au||[];
         allScholars = sc||[];
+        manifestData = mf?.manifest?.data || null;
         renderStats();
         renderTree();
     } catch(e) {
@@ -102,15 +108,26 @@ async function loadCatalogue() {
 function renderStats() {
     const total = allAudios.length;
     const synced = allAudios.filter(a=>a.file_key).length;
+    const expected = manifestData ? manifestData.total_episodes : null;
+    let manifestBadge = '';
+    if (manifestData) {
+        manifestBadge = `<div class="cat-stat"><div class="cat-stat-icon ${total>=expected?'green':'orange'}"><i class="fas fa-file-alt"></i></div><div class="cat-stat-val">${expected}</div><div class="cat-stat-lbl">Prévus (manifeste)</div></div>`;
+    }
     document.getElementById('catStats').innerHTML = `
         <div class="cat-stat"><div class="cat-stat-icon green"><i class="fas fa-layer-group"></i></div><div class="cat-stat-val">${allCursus.length}</div><div class="cat-stat-lbl">Cursus</div></div>
         <div class="cat-stat"><div class="cat-stat-icon blue"><i class="fas fa-book-open"></i></div><div class="cat-stat-val">${allCourses.length}</div><div class="cat-stat-lbl">Cours</div></div>
-        <div class="cat-stat"><div class="cat-stat-icon purple"><i class="fas fa-headphones"></i></div><div class="cat-stat-val">${total}</div><div class="cat-stat-lbl">Épisodes</div></div>
+        <div class="cat-stat"><div class="cat-stat-icon purple"><i class="fas fa-headphones"></i></div><div class="cat-stat-val">${total}</div><div class="cat-stat-lbl">Épisodes (réels)</div></div>
+        ${manifestBadge}
         <div class="cat-stat"><div class="cat-stat-icon ${synced<total?'orange':'green'}"><i class="fas fa-${synced<total?'exclamation-triangle':'check-circle'}"></i></div><div class="cat-stat-val">${synced}</div><div class="cat-stat-lbl">Synchronisés</div></div>`;
 }
 
 function coursesOf(cursusId) { return allCourses.filter(c=>c.cursus_id===cursusId||c.thematique_id===cursusId); }
 function audiosOf(courseId) { return allAudios.filter(a=>a.course_id===courseId).sort((a,b)=>(a.episode_number||0)-(b.episode_number||0)); }
+
+function getManifestCursus(letter) {
+    if (!manifestData) return null;
+    return manifestData.cursus.find(c => c.letter === letter);
+}
 
 function renderTree() {
     let html = '';
@@ -122,13 +139,22 @@ function renderTree() {
         let epCount = 0;
         courses.forEach(c => { epCount += allAudios.filter(a=>a.course_id===c.id).length; });
 
+        // Manifest data for this cursus
+        const mCursus = getManifestCursus(letter);
+        const expectedEps = mCursus ? mCursus.episodes_count : null;
+        let progressHtml = '';
+        if (expectedEps !== null) {
+            const pct = Math.min(100, Math.round((epCount / expectedEps) * 100));
+            progressHtml = `<span style="margin-left:12px;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(${pct>=100?'16,185,129':'245,158,11'},0.12);color:${pct>=100?'var(--success)':'var(--warning)'}">${epCount}/${expectedEps} ép.</span>`;
+        }
+
         html += `<div class="c-node" data-testid="cursus-${letter}">
             <div class="c-head" onclick="toggle(this)">
                 <i class="fas fa-chevron-right c-arrow"></i>
                 <span class="c-letter" style="background:${color}">${letter}</span>
                 <div class="c-info">
-                    <div class="c-name">${esc(cursus.name)}</div>
-                    <div class="c-meta">${courses.length} cours · ${epCount} épisode(s)</div>
+                    <div class="c-name">${esc(cursus.name)}${progressHtml}</div>
+                    <div class="c-meta">${courses.length} cours · ${epCount} épisode(s)${mCursus ? ' · '+mCursus.modules_count+' modules prévus' : ''}</div>
                 </div>
                 <span class="c-badge ${cursus.is_active?'active':'inactive'}">${cursus.is_active?'Actif':'Inactif'}</span>
             </div>
@@ -137,36 +163,100 @@ function renderTree() {
         courses.forEach((course, coi) => {
             const eps = audiosOf(course.id);
             const num = String(coi+1).padStart(2,'0');
+
+            // Find manifest course data
+            let mCourse = null;
+            if (mCursus) {
+                mCourse = mCursus.courses.find(mc => mc.number === coi+1);
+            }
+            let mExpectedEps = mCourse ? mCourse.modules.reduce((s,m)=>s+m.episodes, 0) : null;
+            let courseProgressHtml = '';
+            if (mExpectedEps !== null) {
+                courseProgressHtml = `<span style="margin-left:8px;font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(${eps.length>=mExpectedEps?'16,185,129':'245,158,11'},0.12);color:${eps.length>=mExpectedEps?'var(--success)':'var(--warning)'}">${eps.length}/${mExpectedEps}</span>`;
+            }
+
             html += `<div class="co-node">
                 <div class="co-head" onclick="toggle(this)">
                     <i class="fas fa-chevron-right co-arrow"></i>
                     <span class="co-num">${num}</span>
-                    <span class="co-title">${esc(course.title)}</span>
+                    <span class="co-title">${esc(course.title)}${courseProgressHtml}</span>
                     <span class="co-count">${eps.length} ép.</span>
                 </div>
                 <div class="co-body">`;
 
-            if (eps.length > 0) {
+            // Show manifest modules if available
+            if (mCourse && mCourse.modules.length > 0) {
                 html += `<table class="ep-table"><thead><tr>
-                    <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
+                    <th>N°</th><th>Module / Penseur (manifeste)</th><th>Professeur prévu</th><th>Ép. prévus</th><th>Ép. réels</th><th>Statut</th>
                 </tr></thead><tbody>`;
-                eps.forEach(a => {
-                    const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
-                    html += `<tr data-testid="ep-${a.id}">
-                        <td>${a.episode_number||'-'}</td>
-                        <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
-                        <td class="ep-scholar">${esc(sn)}</td>
-                        <td class="ep-dur">${fmtDur(a.duration)}</td>
-                        <td>${a.file_key?'<span class="ep-sync-dot ok" title="Synchronisé"></span>':'<span class="ep-sync-dot no" title="Pas de fichier"></span>'}</td>
-                        <td class="ep-act">
-                            <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
-                            <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
-                        </td>
+                mCourse.modules.forEach(mod => {
+                    // Try to find matching real episodes
+                    const matchingEps = eps.filter(a => {
+                        const t = (a.title||'').toLowerCase();
+                        const modName = mod.name.toLowerCase().split('(')[0].split('—')[0].trim();
+                        return t.includes(modName.substring(0, Math.min(modName.length, 15)));
+                    });
+                    const realCount = matchingEps.length;
+                    const status = realCount >= mod.episodes ? 
+                        '<span class="ep-sync-dot ok" title="Complet"></span>' : 
+                        (realCount > 0 ? '<span style="color:var(--warning);font-size:11px;">Partiel</span>' : '<span style="color:var(--danger);font-size:11px;">Manquant</span>');
+                    html += `<tr>
+                        <td>${mod.number}</td>
+                        <td class="ep-title-cell" title="${esc(mod.name)}">${esc(mod.name)}</td>
+                        <td class="ep-scholar">${esc(mod.professor)}</td>
+                        <td style="text-align:center;">${mod.episodes}</td>
+                        <td style="text-align:center;">${realCount}</td>
+                        <td style="text-align:center;">${status}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
+                
+                // Then show real episodes
+                if (eps.length > 0) {
+                    html += `<div style="border-top:1px solid var(--border-subtle);padding:8px 20px 4px 76px;"><span style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Épisodes synchronisés</span></div>`;
+                    html += `<table class="ep-table"><thead><tr>
+                        <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
+                    </tr></thead><tbody>`;
+                    eps.forEach(a => {
+                        const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
+                        html += `<tr data-testid="ep-${a.id}">
+                            <td>${a.episode_number||'-'}</td>
+                            <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
+                            <td class="ep-scholar">${esc(sn)}</td>
+                            <td class="ep-dur">${fmtDur(a.duration)}</td>
+                            <td>${a.file_key?'<span class="ep-sync-dot ok"></span>':'<span class="ep-sync-dot no"></span>'}</td>
+                            <td class="ep-act">
+                                <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
+                                <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                }
             } else {
-                html += '<div class="co-empty">Aucun épisode synchronisé</div>';
+                // No manifest — show episodes directly
+                if (eps.length > 0) {
+                    html += `<table class="ep-table"><thead><tr>
+                        <th>EP</th><th>Titre</th><th>Professeur</th><th>Durée</th><th>Sync</th><th style="width:80px;"></th>
+                    </tr></thead><tbody>`;
+                    eps.forEach(a => {
+                        const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
+                        html += `<tr data-testid="ep-${a.id}">
+                            <td>${a.episode_number||'-'}</td>
+                            <td class="ep-title-cell" title="${esc(a.title)}">${esc(a.title)}</td>
+                            <td class="ep-scholar">${esc(sn)}</td>
+                            <td class="ep-dur">${fmtDur(a.duration)}</td>
+                            <td>${a.file_key?'<span class="ep-sync-dot ok"></span>':'<span class="ep-sync-dot no"></span>'}</td>
+                            <td class="ep-act">
+                                <button onclick='openEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier"><i class="fas fa-pen"></i></button>
+                                <button class="dng" onclick="delEp('${a.id}','${esc(a.title)}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html += '<div class="co-empty">Aucun épisode synchronisé</div>';
+                }
             }
             html += '</div></div>';
         });
@@ -294,6 +384,35 @@ async function executeSyncAll() {
         const result = await apiRequest('/admin/sync-all-r2', 'POST');
         const s = result.stats;
         showToast(`Sync terminée : ${s.created} créés, ${s.updated} mis à jour, ${s.deleted_orphans} orphelins supprimés`);
+        loadCatalogue();
+    } catch(err) { showToast(err.message, 'error'); }
+}
+
+// ── Manifest Upload ────────────────────────────────────
+async function uploadManifest(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    if (!file.name.endsWith('.docx')) {
+        showToast('Le fichier doit être un .docx', 'error');
+        return;
+    }
+    showToast('Chargement du manifeste...', 'info');
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const token = localStorage.getItem('adminToken');
+        const resp = await fetch('/api/admin/manifest/upload', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData,
+        });
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.detail || 'Erreur upload');
+        }
+        const data = await resp.json();
+        showToast(`Manifeste chargé : ${data.cursus_count} cursus, ${data.total_modules} modules, ${data.total_episodes} épisodes prévus`);
         loadCatalogue();
     } catch(err) { showToast(err.message, 'error'); }
 }

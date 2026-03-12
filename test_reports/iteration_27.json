@@ -1,0 +1,130 @@
+{
+  "summary": "Iteration 27 - Manifest Upload Feature Testing Complete. ALL TESTS PASSED. The manifest upload feature allows admins to upload a .docx file that defines the expected content structure. The parsed manifest data enriches the catalogue tree view with expected vs actual episode counts, professor assignments, and completion status.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_manifest_feature.py",
+    "/app/test_reports/pytest/manifest_feature_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_manifest_feature.py"
+  ],
+  "success_rate": {
+    "backend": "100% - All 13 tests passed",
+    "frontend": "100% - All UI features working"
+  },
+  "test_credentials": {
+    "admin_email": "loubna.serrar@gmail.com",
+    "admin_password": "Admin123!"
+  },
+  "seed_data_creation": "None - used existing manifest.docx at /tmp/manifest.docx",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Manifest upload feature fully tested. Manifest is stored in MongoDB 'manifest' collection. The catalogue tree view at /api/admin-panel/audios shows manifest data alongside synced data.",
+  "features_tested": {
+    "manifest_upload_api": {
+      "endpoint": "POST /api/admin/manifest/upload",
+      "status": "PASS",
+      "details": "Uploads .docx file, parses cursus/cours/modules/episodes structure, returns parsed data"
+    },
+    "manifest_get_api": {
+      "endpoint": "GET /api/admin/manifest",
+      "status": "PASS",
+      "details": "Returns stored manifest from MongoDB with data.cursus, data.total_episodes fields"
+    },
+    "manifest_stats_in_ui": {
+      "location": "Catalogue stats bar",
+      "status": "PASS",
+      "details": "Shows '127 Prévus (manifeste)' stat card - exactly as expected from problem statement"
+    },
+    "cursus_progress_badges": {
+      "status": "PASS",
+      "details": "Each cursus shows progress badge e.g., '25/61 ép.' comparing real vs expected episodes"
+    },
+    "course_progress_badges": {
+      "status": "PASS",
+      "details": "Each course shows progress badge e.g., '2/2' when manifest is loaded"
+    },
+    "manifest_modules_table": {
+      "status": "PASS",
+      "details": "Expanding a course shows manifest modules table with columns: N°, Module/Penseur, Professeur prévu, Ép. prévus, Ép. réels, Statut"
+    },
+    "synced_episodes_table": {
+      "status": "PASS",
+      "details": "Below manifest table, 'ÉPISODES SYNCHRONISÉS' section shows real synced episodes with edit/delete buttons"
+    },
+    "upload_manifest_button": {
+      "status": "PASS",
+      "details": "data-testid='manifest-upload-btn' button visible, labeled 'Charger manifeste', triggers file input for .docx upload"
+    },
+    "edit_episode_modal": {
+      "status": "PASS",
+      "details": "Edit button opens 'Modifier l'épisode' modal with fields: Titre, Description, Professeur dropdown, Durée, Fichier R2 (readonly)"
+    },
+    "delete_episode_button": {
+      "status": "PASS",
+      "details": "Delete button (trash icon) visible on each episode row with danger styling"
+    },
+    "dashboard_regression": {
+      "url": "/api/admin-panel/",
+      "status": "PASS",
+      "details": "Dashboard still works showing: 6 Professeurs, 24 Cours, 77 Audios, 28 Utilisateurs"
+    },
+    "manifest_auth_required": {
+      "status": "PASS",
+      "details": "Both manifest endpoints return 401/403 without authentication"
+    },
+    "invalid_file_rejection": {
+      "status": "PASS",
+      "details": "Non-.docx files correctly rejected with 400 status"
+    }
+  },
+  "api_tests": {
+    "POST /api/admin/manifest/upload": {
+      "status": "200 OK",
+      "result": "Parsed manifest: 5 cursus, 44 modules, 127 episodes expected"
+    },
+    "GET /api/admin/manifest": {
+      "status": "200 OK",
+      "result": "Returns {manifest: {filename, uploaded_at, data: {cursus, total_modules, total_episodes}}}"
+    },
+    "GET /api/admin/cursus": {
+      "status": "200 OK",
+      "result": "Returns 5 cursus"
+    },
+    "GET /api/admin/courses": {
+      "status": "200 OK",
+      "result": "Returns 24 courses"
+    },
+    "GET /api/admin/audios": {
+      "status": "200 OK",
+      "result": "Returns 77 audio episodes"
+    },
+    "PUT /api/admin/audios/{id}": {
+      "status": "200 OK",
+      "result": "Episode update works correctly"
+    }
+  },
+  "manifest_parsed_structure": {
+    "total_cursus": 5,
+    "total_courses": "Variable per cursus",
+    "total_modules": 44,
+    "total_expected_episodes": 127,
+    "cursus_breakdown": [
+      "[A] La Falsafa - 7 cours, 37 modules, 61 episodes",
+      "[B] Théologie et Droit - 2 cours, 6 modules, 6 episodes",
+      "[C] Sciences islamiques - 5 cours, 12 modules, 12 episodes",
+      "[D] Arts et Sciences - 6 cours, 28 modules, 29 episodes",
+      "[E] Spiritualités - 4 cours, 18 modules, 19 episodes"
+    ]
+  }
+}

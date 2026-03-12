@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -4491,6 +4491,165 @@ async def sync_preview_r2(request: Request):
 
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+# ── Manifest Parser & API ──────────────────────────────────────────────────
+
+CURSUS_LETTER_MAP = {
+    'A': 'cursus-falsafa',
+    'B': 'cursus-theologie',
+    'C': 'cursus-sciences-islamiques',
+    'D': 'cursus-arts',
+    'E': 'cursus-spiritualites',
+}
+
+def parse_manifest_docx(file_bytes: bytes) -> dict:
+    """Parse the Sijill manifest .docx into a structured hierarchy."""
+    from docx import Document
+    import io
+    doc = Document(io.BytesIO(file_bytes))
+
+    # Parse paragraphs to find cursus and course headings
+    cursus_headings = []  # [(para_index, letter, name)]
+    course_headings = []  # [(para_index, number, title, cursus_letter)]
+
+    current_cursus_letter = None
+    for pi, p in enumerate(doc.paragraphs):
+        text = p.text.strip()
+        if not text:
+            continue
+        # Cursus heading: starts with ◆ or contains "A. ", "B. " etc at start
+        m = re.match(r'[◆◇●■□▪▸►]\s*([A-E])\.\s*(.+)', text)
+        if m:
+            current_cursus_letter = m.group(1)
+            cursus_headings.append((pi, m.group(1), m.group(2).strip()))
+            continue
+        # Course heading: starts with a number followed by "."
+        m2 = re.match(r'^(\d{1,2})\.\s+(.+)', text)
+        if m2 and current_cursus_letter:
+            course_headings.append((pi, int(m2.group(1)), m2.group(2).strip(), current_cursus_letter))
+
+    # Build course-to-table mapping based on document order
+    # Tables appear after their course heading paragraph
+    # Table 0 is the summary table, skip it
+    content_tables = doc.tables[1:]  # Skip summary table
+
+    # Map each course heading to its table
+    result = {
+        'cursus': [],
+        'total_modules': 0,
+        'total_episodes': 0,
+    }
+
+    # Group courses by cursus
+    cursus_courses = {}
+    for _, course_num, course_title, cursus_letter in course_headings:
+        if cursus_letter not in cursus_courses:
+            cursus_courses[cursus_letter] = []
+        cursus_courses[cursus_letter].append({
+            'number': course_num,
+            'title': course_title,
+            'modules': [],
+        })
+
+    # Assign tables to courses (one table per course, in order)
+    table_idx = 0
+    for cursus_letter in ['A', 'B', 'C', 'D', 'E']:
+        courses = cursus_courses.get(cursus_letter, [])
+        for course in courses:
+            if table_idx < len(content_tables):
+                table = content_tables[table_idx]
+                table_idx += 1
+                for row in table.rows[1:]:  # Skip header row
+                    cells = [c.text.strip() for c in row.cells]
+                    if len(cells) >= 4:
+                        num_str = cells[0]
+                        module_name = cells[1]
+                        professor = cells[2]
+                        ep_str = cells[3]
+                        notes = cells[4] if len(cells) > 4 else ''
+                        try:
+                            ep_count = int(re.search(r'\d+', ep_str).group()) if re.search(r'\d+', ep_str) else 1
+                        except (ValueError, AttributeError):
+                            ep_count = 1
+                        module = {
+                            'number': num_str,
+                            'name': module_name,
+                            'professor': professor,
+                            'episodes': ep_count,
+                            'notes': notes if notes != '—' else '',
+                        }
+                        course['modules'].append(module)
+                        result['total_modules'] += 1
+                        result['total_episodes'] += ep_count
+
+    # Build final structure
+    for _, letter, name in cursus_headings:
+        courses = cursus_courses.get(letter, [])
+        total_eps = sum(sum(m['episodes'] for m in c['modules']) for c in courses)
+        total_mods = sum(len(c['modules']) for c in courses)
+        result['cursus'].append({
+            'letter': letter,
+            'cursus_id': CURSUS_LETTER_MAP.get(letter, ''),
+            'name': name,
+            'courses_count': len(courses),
+            'modules_count': total_mods,
+            'episodes_count': total_eps,
+            'courses': courses,
+        })
+
+    return result
+
+
+@api_router.post("/admin/manifest/upload")
+async def upload_manifest(request: Request, file: UploadFile = File(...)):
+    """Upload and parse a manifest .docx file."""
+    await require_admin(request)
+
+    if not file.filename.endswith('.docx'):
+        raise HTTPException(400, "Le fichier doit être un .docx")
+
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:  # 10MB limit
+        raise HTTPException(400, "Fichier trop volumineux (max 10MB)")
+
+    try:
+        parsed = parse_manifest_docx(content)
+    except Exception as e:
+        logger.error(f"Manifest parse error: {e}")
+        raise HTTPException(400, f"Erreur de parsing: {str(e)}")
+
+    # Store in DB (replace previous manifest)
+    manifest_doc = {
+        'filename': file.filename,
+        'uploaded_at': datetime.now(timezone.utc).isoformat(),
+        'data': parsed,
+    }
+    await db.manifest.delete_many({})
+    await db.manifest.insert_one(manifest_doc)
+
+    return {
+        'filename': file.filename,
+        'cursus_count': len(parsed['cursus']),
+        'total_modules': parsed['total_modules'],
+        'total_episodes': parsed['total_episodes'],
+        'cursus': [{
+            'letter': c['letter'],
+            'name': c['name'],
+            'courses': c['courses_count'],
+            'modules': c['modules_count'],
+            'episodes': c['episodes_count'],
+        } for c in parsed['cursus']],
+    }
+
+
+@api_router.get("/admin/manifest")
+async def get_manifest(request: Request):
+    """Get the current manifest data."""
+    await require_admin(request)
+    doc = await db.manifest.find_one({}, {'_id': 0})
+    if not doc:
+        return {'manifest': None}
+    return {'manifest': doc}
 
 @api_router.post("/admin/sync-all-r2")
 async def sync_all_r2_audio(request: Request):
