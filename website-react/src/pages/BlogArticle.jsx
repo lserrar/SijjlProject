@@ -26,132 +26,137 @@ export default function BlogArticle() {
 
   useEffect(() => {
     if (article) {
-      document.title = `${article.title} — Waraqa #${article.number} | Sijill Project`
+      document.title = `${article.title} — Sijill Times #${article.number} | Sijill Project`
       const meta = document.querySelector('meta[name="description"]')
       if (meta) meta.setAttribute('content', article.seo_description || '')
     }
     return () => { document.title = 'Sijill Project' }
   }, [article])
 
-  if (loading) return <div className="blog-loading" style={{ minHeight: '60vh', paddingTop: '120px' }}>Chargement...</div>
+  if (loading) return <div className="st"><div className="st-loading" style={{ minHeight: '60vh', paddingTop: '140px' }}>Chargement...</div></div>
   if (!article) return (
-    <div className="blog-not-found" data-testid="blog-not-found">
-      <div style={{ textAlign: 'center', paddingTop: '120px' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '16px' }}>Article introuvable</h2>
-        <Link to="/blog" style={{ color: 'var(--accent)' }}>Retour au blog</Link>
+    <div className="st" data-testid="blog-not-found">
+      <div style={{ textAlign: 'center', paddingTop: '140px', minHeight: '60vh' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', marginBottom: '16px', color: '#1a1a1a' }}>Article introuvable</h2>
+        <Link to="/blog" style={{ color: '#04D182' }}>Retour au blog</Link>
       </div>
     </div>
   )
 
+  const hasImage = article.image_key && !article.image_key.includes('waraqa')
+
   return (
-    <article data-testid="blog-article" className="blog-article-page">
-      {/* Header */}
-      <header className="ba-header">
-        <Link to="/blog" className="ba-back" data-testid="blog-back-btn">
-          <i className="fas fa-arrow-left" /> Waraqa
-        </Link>
+    <div className="st" data-testid="blog-article">
+      <article className="ba">
+        {/* Header */}
+        <header className="ba-hdr">
+          <Link to="/blog" className="ba-back" data-testid="blog-back-btn">
+            <i className="fas fa-arrow-left" /> Sijill Times
+          </Link>
 
-        <div className="ba-meta">
-          <span className="ba-series">Waraqa #{article.number}</span>
-          <span className="ba-date">{article.date_ah} / {article.date_ce}</span>
-          <span className="ba-epoch">{article.epoch}</span>
-        </div>
-
-        <h1 className="ba-title">{article.title}</h1>
-
-        <div className="ba-tags">
-          {(article.tags || []).map(t => (
-            <span key={t} className="ba-tag">{t}</span>
-          ))}
-        </div>
-
-        <div className="ba-author">
-          <i className="fas fa-pen-nib" style={{ marginRight: '8px', color: 'var(--accent)' }} />
-          {article.author}
-        </div>
-      </header>
-
-      {/* Body sections */}
-      <div className="ba-body">
-        {(article.body_sections || []).map((section, i) => (
-          <div key={i} className={`ba-section ba-section-${section.type}`}>
-            {section.type === 'section' && (
-              <div className="ba-section-head">
-                <span className="ba-section-emoji">{section.emoji}</span>
-                <h2 className="ba-section-title">{section.title}</h2>
-                <i className={SECTION_ICONS[section.title] || 'fas fa-bookmark'} style={{ marginLeft: 'auto', color: 'var(--text-dim)', fontSize: '14px' }} />
-              </div>
-            )}
-            <div className="ba-section-content">
-              {section.content.split('\n\n').map((para, pi) => (
-                <p key={pi}>{para}</p>
-              ))}
-            </div>
+          <div className="ba-meta-row">
+            <span className="ba-pill">N° {article.number}</span>
+            <span className="ba-date-txt">{article.date_ah} / {article.date_ce}</span>
+            <span className="ba-epoch-txt">{article.epoch}</span>
           </div>
-        ))}
 
-        {/* Context box */}
-        {article.context && (
-          <aside className="ba-box ba-context">
-            <div className="ba-box-header">
-              <i className="fas fa-map-marked-alt" />
-              <span>Contexte historique</span>
-            </div>
-            <div className="ba-box-content">
-              {article.context.split('\n\n').map((p, i) => <p key={i}>{p}</p>)}
-            </div>
-          </aside>
+          <h1 className="ba-hdl">{article.title}</h1>
+
+          <div className="ba-tag-row">
+            {(article.tags || []).map(t => (
+              <span key={t} className="ba-tag">{t}</span>
+            ))}
+          </div>
+        </header>
+
+        {/* Hero image */}
+        {hasImage && (
+          <div className="ba-hero-img">
+            <img src={`${API_BASE}/blog/image/${article.id}`} alt={article.title} />
+          </div>
         )}
 
-        {/* Portrait box */}
-        {article.portrait && (
-          <aside className="ba-box ba-portrait">
-            <div className="ba-box-header">
-              <i className="fas fa-user-circle" />
-              <span>Portrait</span>
-            </div>
-            <div className="ba-box-content">
-              {article.portrait.split('\n\n').map((p, i) => <p key={i}>{p}</p>)}
-            </div>
-          </aside>
+        {/* Hook / Introduction */}
+        {article.hook && (
+          <div className="ba-hook">
+            <p>{article.hook}</p>
+          </div>
         )}
 
-        {/* Thesis box */}
-        {article.thesis && (
-          <aside className="ba-box ba-thesis">
-            <div className="ba-box-header">
-              <i className="fas fa-scroll" />
-              <span>La thèse de Waraqa #{article.number}</span>
+        {/* Body sections */}
+        <div className="ba-content">
+          {(article.body_sections || []).map((section, i) => (
+            <div key={i} className={`ba-sec ${section.type === 'intro' ? 'ba-sec--intro' : ''}`}>
+              {section.type === 'section' && (
+                <div className="ba-sec-hd">
+                  <span className="ba-sec-roman">{section.roman}.</span>
+                  <h2 className="ba-sec-ttl">{section.title}</h2>
+                  <i className={SECTION_ICONS[section.title] || 'fas fa-bookmark'} />
+                </div>
+              )}
+              <div className="ba-sec-body">
+                {section.content.split('\n\n').map((para, pi) => (
+                  <p key={pi}>{para}</p>
+                ))}
+              </div>
             </div>
-            <div className="ba-box-content">
-              {article.thesis.split('\n\n').map((p, i) => <p key={i}>{p}</p>)}
-            </div>
-          </aside>
-        )}
+          ))}
 
-        {/* References */}
-        {article.references?.length > 0 && (
-          <aside className="ba-box ba-refs">
-            <div className="ba-box-header">
-              <i className="fas fa-book" />
-              <span>Références</span>
-            </div>
-            <div className="ba-box-content">
-              {article.references.map((ref, i) => (
-                <p key={i} className="ba-ref-item">{ref.text}</p>
-              ))}
-            </div>
-          </aside>
-        )}
-      </div>
+          {/* Carte politique */}
+          {article.carte_politique?.length > 0 && (
+            <aside className="ba-aside ba-aside--carte">
+              <div className="ba-aside-hd">
+                <i className="fas fa-map-marked-alt" />
+                <span>Carte politique rapide</span>
+              </div>
+              <ul className="ba-carte-list">
+                {article.carte_politique.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </aside>
+          )}
 
-      {/* Footer */}
-      <footer className="ba-footer">
-        <div className="ba-footer-line" />
-        <Link to="/blog" className="ba-footer-link">
-          <i className="fas fa-arrow-left" /> Tous les articles Waraqa
-        </Link>
-      </footer>
-    </article>
+          {/* Portrait */}
+          {article.portrait && (
+            <aside className="ba-aside ba-aside--portrait">
+              <div className="ba-aside-hd">
+                <i className="fas fa-user-circle" />
+                <span>{article.portrait_header || 'Portrait'}</span>
+              </div>
+              <div className="ba-aside-body">
+                {article.portrait.split('\n\n').map((p, i) => <p key={i}>{p}</p>)}
+              </div>
+            </aside>
+          )}
+
+          {/* References */}
+          {article.references?.length > 0 && (
+            <aside className="ba-aside ba-aside--refs">
+              <div className="ba-aside-hd">
+                <i className="fas fa-book" />
+                <span>Références</span>
+              </div>
+              <div className="ba-aside-body">
+                {article.references.map((ref, i) => (
+                  <div key={i} className="ba-ref">
+                    <span className="ba-ref-type">{ref.type}</span>
+                    <p>{ref.text}</p>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          )}
+        </div>
+
+        {/* Footer */}
+        <footer className="ba-foot">
+          <div className="ba-foot-rule" />
+          <Link to="/blog" className="ba-foot-link">
+            <i className="fas fa-arrow-left" /> Tous les articles
+          </Link>
+        </footer>
+      </article>
+    </div>
   )
 }

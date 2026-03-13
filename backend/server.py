@@ -4674,101 +4674,79 @@ async def get_manifest(request: Request):
 # ── Blog Parser & API ──────────────────────────────────────────────────────
 
 def parse_blog_docx(file_bytes: bytes, file_key: str) -> dict:
-    """Parse a Waraqa blog article .docx into structured data."""
+    """Parse a Sijill Times blog article .docx into structured data."""
     from docx import Document
     doc = Document(io.BytesIO(file_bytes))
 
-    # Table 0: Header (series info + date)
-    t0 = doc.tables[0]
-    header_left = t0.cell(0, 0).text.strip()
-    header_right = t0.cell(0, 1).text.strip()
-    lines_r = [l.strip() for l in header_right.split('\n') if l.strip()]
-    date_ah = lines_r[0] if len(lines_r) > 0 else ''
-    date_ce = lines_r[1] if len(lines_r) > 1 else ''
-    epoch = lines_r[2] if len(lines_r) > 2 else ''
-    num_match = re.search(r'Numéro\s+(\d+)', header_left)
-    number = int(num_match.group(1)) if num_match else 0
+    # ── Paragraphs: extract metadata and body ──
+    paras = [(p.text.strip(), any(r.bold for r in p.runs if r.bold)) for p in doc.paragraphs if p.text.strip()]
 
-    # Table 1: Tags
-    tags_raw = doc.tables[1].cell(0, 0).text.strip()
-    tags = [t.strip() for t in tags_raw.replace('Tags :', '').replace('Tags:', '').split('·') if t.strip()]
-
-    # Table 2: Context
-    context = doc.tables[2].cell(0, 0).text.strip() if len(doc.tables) > 2 else ''
-
-    # Table 3: Portrait
-    portrait_text = ''
-    if len(doc.tables) > 3:
-        t3 = doc.tables[3]
-        for row in t3.rows:
-            for cell in row.cells:
-                txt = cell.text.strip()
-                if txt and len(txt) > 20:
-                    portrait_text = txt
-                    break
-
-    # Table 4: Thesis
-    thesis_text = doc.tables[4].cell(0, 0).text.strip() if len(doc.tables) > 4 else ''
-
-    # Table 5: References
-    references = []
-    if len(doc.tables) > 5:
-        for row in doc.tables[5].rows:
-            cells = [c.text.strip() for c in row.cells]
-            ref_text = cells[-1] if cells else ''
-            if ref_text:
-                ref_type = 'course' if '📚' in cells[0] else ('academic' if '🔬' in cells[0] else 'book')
-                references.append({'type': ref_type, 'text': ref_text})
-
-    # Paragraphs: subtitle, title, body sections
-    subtitle = ''
+    number = 0
+    date_ah = ''
+    date_ce = ''
+    epoch = ''
     title = ''
+    tags = []
     body_sections = []
     current_section = None
-    author = ''
 
-    section_emojis = {'🌍': 'TERRES D\'ISLAM', '📖': 'VIE INTELLECTUELLE', '🔄': 'LES ÉCHANGES', '🌐': 'LE RESTE DU MONDE', '💡': 'CE QUE ÇA CHANGE', '📚': 'POUR ALLER PLUS LOIN'}
+    SECTION_MAP = {
+        'I': "TERRES D'ISLAM",
+        'II': 'VIE INTELLECTUELLE',
+        'III': 'LES ÉCHANGES',
+        'IV': 'LE RESTE DU MONDE',
+        'V': "CE QUE ÇA CHANGE",
+        'VI': 'POUR ALLER PLUS LOIN',
+    }
 
-    for p in doc.paragraphs:
-        text = p.text.strip()
-        if not text:
+    for text, is_bold in paras:
+        # P0: "SIJILL TIMES · Chroniques..."
+        if 'SIJILL TIMES' in text:
             continue
 
-        # First two non-empty paragraphs = subtitle + title
-        if not subtitle:
-            subtitle = text
-            continue
-        if not title:
-            title = text
-            body_sections.append({'type': 'intro', 'title': '', 'content': text})
+        # P1: "Le monde en… · Numéro N"
+        nm = re.search(r'Numéro\s+(\d+)', text)
+        if nm and not number:
+            number = int(nm.group(1))
             continue
 
-        # Check for author line (last meaningful paragraph)
-        if 'Auteure' in text or 'Auteur' in text:
-            m = re.search(r'Auteure?\s*:\s*(.+)', text)
-            if m:
-                author = m.group(1).strip()
+        # P3: "Le monde en 370 — Époque buyide"
+        m_head = re.match(r'Le monde en\s+(\d+)\s*[—–-]\s*(.+)', text)
+        if m_head:
+            year = int(m_head.group(1))
+            date_ah = f"{year} AH"
+            epoch = m_head.group(2).strip()
             continue
 
-        # Check for section header (emoji at start)
-        is_header = False
-        for emoji, section_name in section_emojis.items():
-            if emoji in text:
-                if current_section:
-                    body_sections.append(current_section)
-                current_section = {'type': 'section', 'emoji': emoji, 'title': section_name, 'content': ''}
-                is_header = True
-                break
-
-        if is_header:
+        # P4: Tags line (multiple · separators, no bold)
+        if not is_bold and '·' in text and len(text.split('·')) >= 3 and not tags:
+            tags = [t.strip() for t in text.split('·') if t.strip()]
             continue
 
-        # Add to current section or intro
+        # Bold title (first bold paragraph that's not a section header)
+        if is_bold and not title:
+            sec_match = re.match(r'^(I{1,3}V?|IV|VI?)\.\s+', text)
+            if not sec_match:
+                title = text
+                continue
+
+        # Section header: "I. TERRES D'ISLAM", "II. VIE INTELLECTUELLE"
+        sec_match = re.match(r'^(I{1,3}V?|IV|VI?)\.\s+(.+)', text)
+        if sec_match and is_bold:
+            if current_section:
+                body_sections.append(current_section)
+            roman = sec_match.group(1)
+            sec_name = SECTION_MAP.get(roman, sec_match.group(2).strip())
+            current_section = {'type': 'section', 'roman': roman, 'title': sec_name, 'content': ''}
+            continue
+
+        # Content paragraphs
         if current_section:
             if current_section['content']:
                 current_section['content'] += '\n\n'
             current_section['content'] += text
-        else:
+        elif title:
+            # Pre-section content = intro
             if body_sections and body_sections[-1]['type'] == 'intro':
                 body_sections[-1]['content'] += '\n\n' + text
             else:
@@ -4777,37 +4755,88 @@ def parse_blog_docx(file_bytes: bytes, file_key: str) -> dict:
     if current_section:
         body_sections.append(current_section)
 
-    # Generate ID from date
-    ah_num = re.search(r'(\d+)', date_ah)
-    article_id = f"waraqa-{ah_num.group(1)}ah" if ah_num else f"waraqa-{number}"
+    # ── Tables ──
+    # T0: Introduction/hook (1x1)
+    hook = doc.tables[0].cell(0, 0).text.strip() if len(doc.tables) > 0 else ''
 
-    # SEO description: first ~160 chars of the first body section
-    seo_desc = ''
-    for s in body_sections:
-        if s['content'] and len(s['content']) > 50:
-            seo_desc = s['content'][:160].rsplit(' ', 1)[0] + '...'
-            break
+    # T1: Carte politique (6x1)
+    carte = []
+    if len(doc.tables) > 1:
+        for row in doc.tables[1].rows:
+            txt = row.cells[0].text.strip()
+            if txt and 'CARTE POLITIQUE' not in txt:
+                carte.append(txt)
+
+    # T2: Portrait (2x1)
+    portrait_header = ''
+    portrait_text = ''
+    if len(doc.tables) > 2:
+        portrait_header = doc.tables[2].cell(0, 0).text.strip()
+        portrait_text = doc.tables[2].cell(1, 0).text.strip() if len(doc.tables[2].rows) > 1 else ''
+
+    # T3: References (3x2)
+    references = []
+    if len(doc.tables) > 3:
+        t3 = doc.tables[3]
+        for row in t3.rows:
+            cells = [c.text.strip() for c in row.cells]
+            if len(cells) >= 2 and cells[1]:
+                references.append({'type': cells[0], 'text': cells[1]})
+
+    # ── Compute CE date from AH ──
+    ah_num = re.search(r'(\d+)', date_ah)
+    year_ah = int(ah_num.group(1)) if ah_num else 0
+    if year_ah > 0:
+        year_ce = round(year_ah * 0.970229 + 621.5)
+        date_ce = f"{year_ce} CE"
+
+    # ── Generate ID ──
+    article_id = f"mondeen-{year_ah}" if year_ah else f"mondeen-{number}"
+
+    # ── Image key (check if jpeg exists) ──
+    base = file_key.replace('.docx', '')
+    image_key = base + '.jpeg'
+
+    # ── SEO description ──
+    seo_desc = hook[:200].rsplit(' ', 1)[0] + '...' if len(hook) > 50 else (title or '')
 
     return {
         'id': article_id,
-        'series': 'Waraqa',
+        'series': 'Le monde en…',
+        'series_subtitle': 'Chroniques de la civilisation islamique',
         'number': number,
+        'year_ah': year_ah,
         'date_ah': date_ah,
         'date_ce': date_ce,
         'epoch': epoch,
-        'subtitle': subtitle,
         'title': title,
         'tags': tags,
-        'context': context,
+        'hook': hook,
+        'carte_politique': carte,
+        'portrait_header': portrait_header,
         'portrait': portrait_text,
-        'thesis': thesis_text,
         'references': references,
         'body_sections': body_sections,
-        'author': author,
         'seo_description': seo_desc,
+        'image_key': image_key,
         'file_key': file_key,
         'is_active': True,
     }
+
+
+@api_router.get("/blog/image/{article_id}")
+async def blog_image(article_id: str):
+    """Serve blog article illustration image from R2."""
+    article = await db.blog_articles.find_one({'id': article_id}, {'_id': 0, 'image_key': 1})
+    if not article or not article.get('image_key'):
+        raise HTTPException(404, "Image introuvable")
+    try:
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=article['image_key'])
+        content = resp['Body'].read()
+        return Response(content=content, media_type='image/jpeg',
+                       headers={'Cache-Control': 'public, max-age=86400'})
+    except Exception:
+        raise HTTPException(404, "Image introuvable dans R2")
 
 
 @api_router.post("/admin/blog/sync-r2")
@@ -4819,7 +4848,9 @@ async def sync_blog_r2(request: Request):
 
     try:
         response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Blog/', MaxKeys=200)
-        files = [obj for obj in response.get('Contents', []) if obj['Key'].endswith('.docx') and obj['Size'] > 0]
+        files = [obj for obj in response.get('Contents', [])
+                 if obj['Key'].endswith('.docx') and obj['Size'] > 500
+                 and '/~$' not in obj['Key']]
 
         created = 0
         updated = 0

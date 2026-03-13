@@ -3,22 +3,6 @@ import { Link } from 'react-router-dom'
 
 const API_BASE = window.location.origin + '/api'
 
-const EPOCH_COLORS = {
-  'Époque abbasside': '#C9A84C',
-  'Époque omeyyade': '#04D182',
-  'Époque bouyide': '#8B5CF6',
-}
-
-function DiamondSep() {
-  return (
-    <div className="about-diamond-sep">
-      <span className="about-diamond-sep-line" />
-      <span className="about-diamond-sep-gem" />
-      <span className="about-diamond-sep-line" />
-    </div>
-  )
-}
-
 export default function BlogList() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,75 +14,75 @@ export default function BlogList() {
       .catch(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    document.title = 'Sijill Times — Le monde en… | Sijill Project'
+  }, [])
+
   return (
-    <div data-testid="blog-page" className="blog-page">
-
-      {/* SEO: Hidden h1 for crawlers */}
-      <section className="blog-hero">
-        <div className="blog-hero-ornament" />
-        <div className="blog-hero-eyebrow">
-          <span className="about-eyebrow-line" />
-          <span className="about-eyebrow-text">Accès libre</span>
+    <div className="st" data-testid="blog-page">
+      {/* Hero */}
+      <header className="st-hero">
+        <div className="st-hero-inner">
+          <p className="st-eyebrow">Accès libre</p>
+          <h1 className="st-masthead">Sijill Times</h1>
+          <div className="st-rule" />
+          <p className="st-series-name">Le monde en…</p>
+          <p className="st-series-sub">Chroniques de la civilisation islamique</p>
+          <p className="st-hero-desc">
+            Chaque numéro explore une année charnière de l'histoire islamique, ses acteurs et ses transformations.
+          </p>
         </div>
-        <h1 className="blog-hero-title">Waraqa</h1>
-        <p className="blog-hero-subtitle">Chroniques de la civilisation islamique</p>
-        <p className="blog-hero-desc">
-          Une série d'articles autour des dates clés de l'histoire islamique.
-          Chaque numéro explore une année charnière, ses acteurs et ses transformations.
-        </p>
-      </section>
+      </header>
 
-      <DiamondSep />
-
-      <section className="blog-list-section">
-        <div className="container">
-          {loading ? (
-            <div className="blog-loading">Chargement des articles...</div>
-          ) : articles.length === 0 ? (
-            <div className="blog-empty">Aucun article publié pour le moment.</div>
-          ) : (
-            <div className="blog-grid">
-              {articles.map((a, i) => (
+      {/* Articles */}
+      <main className="st-main">
+        {loading ? (
+          <div className="st-loading">Chargement...</div>
+        ) : articles.length === 0 ? (
+          <div className="st-empty">Aucun article publié pour le moment.</div>
+        ) : (
+          <div className="st-grid">
+            {articles.map((a, i) => {
+              const hasImage = a.image_key && !a.image_key.includes('waraqa')
+              return (
                 <Link
                   to={`/blog/${a.id}`}
                   key={a.id}
-                  className="blog-card"
+                  className={`st-card ${i === 0 ? 'st-card--featured' : ''}`}
                   data-testid={`blog-card-${a.id}`}
-                  style={{ animationDelay: `${i * 0.08}s` }}
+                  style={{ animationDelay: `${i * 0.06}s` }}
                 >
-                  <div className="blog-card-number">
-                    <span className="blog-card-hash">#</span>
-                    <span className="blog-card-num">{a.number}</span>
-                  </div>
-                  <div className="blog-card-content">
-                    <div className="blog-card-date">
-                      <span className="blog-card-ah">{a.date_ah}</span>
-                      <span className="blog-card-sep">/</span>
-                      <span className="blog-card-ce">{a.date_ce}</span>
+                  {hasImage && (
+                    <div className="st-card-img">
+                      <img
+                        src={`${API_BASE}/blog/image/${a.id}`}
+                        alt={a.title}
+                        loading="lazy"
+                      />
                     </div>
-                    <div className="blog-card-epoch" style={{ color: EPOCH_COLORS[a.epoch] || 'var(--accent)' }}>
-                      {a.epoch}
+                  )}
+                  <div className="st-card-body">
+                    <div className="st-card-meta">
+                      <span className="st-card-num">N° {a.number}</span>
+                      <span className="st-card-dot" />
+                      <span className="st-card-date">{a.date_ah} / {a.date_ce}</span>
                     </div>
-                    <h2 className="blog-card-title">{a.title}</h2>
-                    <p className="blog-card-excerpt">{a.seo_description}</p>
-                    <div className="blog-card-tags">
+                    <div className="st-card-epoch">{a.epoch}</div>
+                    <h2 className="st-card-title">{a.title}</h2>
+                    <p className="st-card-excerpt">{a.seo_description}</p>
+                    <div className="st-card-tags">
                       {(a.tags || []).slice(0, 4).map(t => (
-                        <span key={t} className="blog-card-tag">{t}</span>
+                        <span key={t} className="st-card-tag">{t}</span>
                       ))}
                     </div>
-                    <div className="blog-card-author">
-                      <span className="blog-card-author-label">Par</span> {a.author}
-                    </div>
-                  </div>
-                  <div className="blog-card-arrow">
-                    <i className="fas fa-arrow-right" />
+                    <span className="st-card-read">Lire l'article <i className="fas fa-long-arrow-alt-right" /></span>
                   </div>
                 </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+              )
+            })}
+          </div>
+        )}
+      </main>
     </div>
   )
 }

@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://module-manager-9.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://islamic-learning-40.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_EMAIL = "loubna.serrar@gmail.com"

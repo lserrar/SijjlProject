@@ -7,7 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { apiRequest, useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://module-manager-9.preview.emergentagent.com';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://islamic-learning-40.preview.emergentagent.com';
 
 const CURSUS_COLORS: Record<string, string> = {
   A: '#04D182',
