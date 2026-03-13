@@ -1,7 +1,7 @@
 FROM node:20-slim AS frontend-build
 WORKDIR /build
-COPY website-react/package.json website-react/yarn.lock ./
-RUN yarn install --frozen-lockfile
+COPY website-react/package.json ./
+RUN yarn install
 COPY website-react/ ./
 RUN yarn build
 
