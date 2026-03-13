@@ -1,5 +1,11 @@
-FROM python:3.11-slim
+FROM node:20-slim AS frontend-build
+WORKDIR /build
+COPY website-react/package.json website-react/yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY website-react/ ./
+RUN yarn build
 
+FROM python:3.11-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 
 COPY backend/ ./backend/
-COPY website-react/dist/ ./website-react/dist/
+COPY --from=frontend-build /build/dist/ ./website-react/dist/
 
 WORKDIR /app/backend
 
