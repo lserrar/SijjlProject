@@ -931,31 +931,32 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
 
 @api_router.get("/courses/{course_id}/playlist")
 async def get_course_playlist(course_id: str):
-    """Return ordered list of audios for a course (only modules with an audio episode)."""
+    """Return ordered list of audios for a course."""
+    # Fetch audios directly by course_id (module_id may not be set)
+    audios = await db.audios.find(
+        {'course_id': course_id, 'is_active': True}, {'_id': 0}
+    ).sort('episode_number', 1).to_list(200)
+
+    # Also fetch modules for naming
     modules = await db.modules.find(
         {'course_id': course_id, 'is_active': True}, {'_id': 0}
     ).sort('order', 1).to_list(200)
-
-    # Batch fetch all audios for these modules (fix N+1 query)
-    module_ids = [mod['id'] for mod in modules]
-    audios_list = await db.audios.find({'module_id': {'$in': module_ids}}, {'_id': 0}).to_list(200)
-    audio_map = {a['module_id']: a for a in audios_list}
+    module_map = {mod['id']: mod for mod in modules}
 
     playlist = []
-    for mod in modules:
-        audio = audio_map.get(mod['id'])
-        if audio:
-            audio['stream_url'] = resolve_audio_url(audio)
-            playlist.append({
-                'module_id': mod['id'],
-                'module_name': clean_title(mod.get('name', '')),
-                'module_order': mod.get('order', 0),
-                'audio_id': audio['id'],
-                'audio_title': clean_title(audio.get('title', '')),
-                'stream_url': audio.get('stream_url', ''),
-                'thumbnail': audio.get('thumbnail', ''),
-                'duration': audio.get('duration', 0),
-            })
+    for idx, audio in enumerate(audios):
+        audio['stream_url'] = resolve_audio_url(audio)
+        mod = module_map.get(audio.get('module_id', ''))
+        playlist.append({
+            'module_id': audio.get('module_id', ''),
+            'module_name': clean_title(mod.get('name', '')) if mod else clean_title(audio.get('title', '')),
+            'module_order': mod.get('order', idx + 1) if mod else idx + 1,
+            'audio_id': audio['id'],
+            'audio_title': clean_title(audio.get('title', '')),
+            'stream_url': audio.get('stream_url', ''),
+            'thumbnail': audio.get('thumbnail', ''),
+            'duration': audio.get('duration', 0),
+        })
     return playlist
 
 @api_router.get("/courses/featured")
