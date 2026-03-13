@@ -14,6 +14,8 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - **Frontend (Website)**: React + Vite at `/app/website-react/`
 - **Content Storage**: Cloudflare R2
 - **Content Hierarchy**: Cursus -> Cours -> Modules -> Audios
+- **Production**: VPS Hostinger (Ubuntu 24.04, Docker Compose)
+- **Domains**: sijillproject.com (primary), .fr/.org redirect to .com
 
 ## What's Been Implemented
 - [x] Reading Mode (transcripts for audio episodes)
@@ -21,14 +23,17 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - [x] Admin Panel overhaul (tree view, manifest upload, publish/unpublish)
 - [x] Episode publishing system (active/inactive toggles)
 - [x] Blog "Sijill Times" - full backend sync + NYT-style frontend
-- [x] Blog build deployment fix (Feb 2026)
-- [x] Blog UI adjustments: bigger series title, prominent year/dates, photo thumbnails, removed article image
+- [x] Blog UI adjustments: bigger series title, prominent year/dates, photo thumbnails
 - [x] Admin: renamed "Blog Waraqa" to "Blog"
 - [x] Cursus page text updated to match app
-- [x] **SEO** (Feb 2026): OG meta tags, Twitter Cards, react-helmet-async, server-side OG injection for blog articles, robots.txt, sitemap.xml (dynamic with blog articles)
-- [x] **Social sharing** (Feb 2026): Facebook, X, LinkedIn, WhatsApp share buttons on blog articles
-- [x] **Legal pages** (Feb 2026): Mentions légales, Politique de confidentialité, CGU
-- [x] **Footer update** (Feb 2026): Social icons (Facebook, Instagram, YouTube), legal links, App Store/Google Play placeholders, Sijill Times link
+- [x] Home page hero text: "Comprendre, transmettre, penser la pluralité des savoirs islamiques"
+- [x] SEO: OG meta tags, Twitter Cards, react-helmet-async, server-side OG injection, robots.txt, sitemap.xml
+- [x] Social sharing: Facebook, X, LinkedIn, WhatsApp on blog articles
+- [x] Legal pages: Mentions légales, Politique de confidentialité, CGU
+- [x] Footer: Social icons (Facebook, Instagram), legal links, App Store/Google Play placeholders
+- [x] Bug fix: playlist endpoint (episodes were empty due to missing module_id)
+- [x] **Production deployment on Hostinger VPS** (Feb 2026): Docker Compose, Nginx, SSL, MongoDB migration
+- [x] Domain redirections: sijillproject.fr, .org → sijillproject.com
 
 ## Known Issues
 - Login fails on native mobile app (blocked - needs new EAS build)
@@ -36,7 +41,7 @@ Build "Sijill", an Islamic studies e-learning platform with:
 
 ## Prioritized Backlog
 ### P1
-- Prepare for Hostinger deployment (Docker config, migration scripts)
+- Add Google Analytics / tracking
 - Finalize App Store / Google Play submission (pending KBIS)
 
 ### P2
@@ -49,6 +54,7 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - Newsletter functionality
 - Offline mode
 - Push notifications
+- YouTube channel creation + footer link update
 
 ## Key API Endpoints
 - `POST /api/blog/sync-r2` - Sync blog articles from R2
@@ -57,9 +63,26 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - `GET /api/blog/image/{article_id}` - Article images
 - `GET /api/site/robots.txt` - SEO robots.txt
 - `GET /api/site/sitemap.xml` - Dynamic sitemap
+- `GET /api/courses/{course_id}/playlist` - Course playlist (fixed)
 - `PATCH /api/admin/audios/{audio_id}/toggle` - Toggle episode
-- `POST /api/admin/courses/{course_id}/toggle-all` - Bulk toggle
 - `GET /api/audios` - Public audios (active only)
+
+## Production URLs
+- Site: https://sijillproject.com
+- Blog: https://sijillproject.com/blog
+- Admin: https://sijillproject.com/api/admin-panel/
+- API: https://sijillproject.com/api/
+
+## Deployment
+- VPS: Hostinger KVM, Ubuntu 24.04, IP 187.124.40.195
+- Stack: Docker Compose (Nginx + FastAPI + MongoDB + Certbot)
+- SSL: Let's Encrypt (auto-renewal via certbot container)
+- Update: git pull + docker compose build --no-cache backend + docker compose up -d + restart nginx
+
+## Social Links
+- Facebook: https://www.facebook.com/sijill.project
+- Instagram: https://www.instagram.com/sijillproject/
+- YouTube: (à créer)
 
 ## 3rd Party Integrations
 - Cloudflare R2, Stripe, SendPulse, Expo EAS, python-docx
