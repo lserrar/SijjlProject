@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="footer-brand">Sijill Project<span style={{ color: 'var(--accent)' }}>.</span></div>
           <p className="footer-tagline">
             Parcours académiques en sciences islamiques.
-            Philosophie, théologie, droit, littérature et spiritualité.
+            Philosophie, théologie, droit, littérature et histoire de la mystique islamique.
           </p>
           <div className="footer-social">
             <a href="https://www.facebook.com/sijill.project" target="_blank" rel="noopener noreferrer" title="Facebook" data-testid="footer-facebook">
