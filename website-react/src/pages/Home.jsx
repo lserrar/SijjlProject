@@ -25,7 +25,7 @@ export default function Home() {
         <div className="hero-eyebrow">Plateforme académique</div>
         <h1 className="hero-title">
           Sciences islamiques,{' '}
-          <span style={{ color: 'var(--accent)' }}>tradition intellectuelle millénaire</span>
+          <span className="hero-title-sub">une tradition intellectuelle millénaire</span>
         </h1>
         <p className="hero-subtitle">
           Des parcours structurés en philosophie, théologie, droit, littérature et histoire de la mystique islamique.
