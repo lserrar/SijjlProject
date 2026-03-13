@@ -22,17 +22,22 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - [x] Episode publishing system (active/inactive toggles)
 - [x] Blog "Sijill Times" - full backend sync + NYT-style frontend
 - [x] Blog build deployment fix (Feb 2026)
-- [x] Blog UI adjustments: bigger series title, prominent year/dates, photo thumbnails on cards, removed article image, enlarged year on article page (Feb 2026)
+- [x] Blog UI adjustments: bigger series title, prominent year/dates, photo thumbnails, removed article image
+- [x] Admin: renamed "Blog Waraqa" to "Blog"
+- [x] Cursus page text updated to match app
+- [x] **SEO** (Feb 2026): OG meta tags, Twitter Cards, react-helmet-async, server-side OG injection for blog articles, robots.txt, sitemap.xml (dynamic with blog articles)
+- [x] **Social sharing** (Feb 2026): Facebook, X, LinkedIn, WhatsApp share buttons on blog articles
+- [x] **Legal pages** (Feb 2026): Mentions légales, Politique de confidentialité, CGU
+- [x] **Footer update** (Feb 2026): Social icons (Facebook, Instagram, YouTube), legal links, App Store/Google Play placeholders, Sijill Times link
 
 ## Known Issues
 - Login fails on native mobile app (blocked - needs new EAS build)
 - Splash screen "double loop" on native app (blocked)
-- Inconsistent user data in DB ("Pierre Marchal" mystery)
-- Intermittent 502 Bad Gateway errors (platform-level)
 
 ## Prioritized Backlog
 ### P1
-- Finalize App Store / Google Play submission
+- Prepare for Hostinger deployment (Docker config, migration scripts)
+- Finalize App Store / Google Play submission (pending KBIS)
 
 ### P2
 - Advanced monetization (one-time course purchases)
@@ -50,6 +55,8 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - `GET /api/blog` - Public blog articles list
 - `GET /api/blog/{slug}` - Single article by slug
 - `GET /api/blog/image/{article_id}` - Article images
+- `GET /api/site/robots.txt` - SEO robots.txt
+- `GET /api/site/sitemap.xml` - Dynamic sitemap
 - `PATCH /api/admin/audios/{audio_id}/toggle` - Toggle episode
 - `POST /api/admin/courses/{course_id}/toggle-all` - Bulk toggle
 - `GET /api/audios` - Public audios (active only)
