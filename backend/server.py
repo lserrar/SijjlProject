@@ -7433,14 +7433,14 @@ async def robots_txt():
     content = """User-agent: *
 Allow: /
 
-Sitemap: https://sijill.com/sitemap.xml
+Sitemap: https://sijillproject.com/sitemap.xml
 """
     return Response(content=content, media_type="text/plain")
 
 # ─── sitemap.xml ─────────────────────────────────────────────────────────────
 @app.get("/api/site/sitemap.xml")
 async def sitemap_xml():
-    base = "https://sijill.com"
+    base = "https://sijillproject.com"
     static_pages = [
         ("", "1.0", "weekly"),
         ("/cursus", "0.9", "weekly"),
@@ -7482,7 +7482,7 @@ async def inject_og_meta(index_html: str, article_id: str) -> str:
     if not article:
         return index_html
 
-    base = "https://sijill.com"
+    base = "https://sijillproject.com"
     title = f"{article.get('title', '')} — Sijill Times #{article.get('number', '')}"
     desc = article.get('seo_description', article.get('hook', ''))[:200]
     url = f"{base}/blog/{article_id}"

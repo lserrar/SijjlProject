@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async'
 
-const SITE_URL = 'https://sijill.com'
+const SITE_URL = 'https://sijillproject.com'
 
 export default function SEO({ title, description, path = '/', type = 'website', article = null }) {
   const fullTitle = title ? `${title} | Sijill Project` : 'Sijill Project — Plateforme académique · Sciences islamiques'

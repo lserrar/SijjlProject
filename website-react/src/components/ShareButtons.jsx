@@ -1,4 +1,4 @@
-const SITE_URL = 'https://sijill.com'
+const SITE_URL = 'https://sijillproject.com'
 
 export default function ShareButtons({ title, url, description }) {
   const fullUrl = `${SITE_URL}${url}`
