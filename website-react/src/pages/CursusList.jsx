@@ -38,15 +38,15 @@ export default function CursusList() {
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="cursus-list-page">
       <div style={{ marginBottom: 64 }}>
-        <div className="section-eyebrow">Parcours</div>
+        <div className="section-eyebrow">5 Cursus disponibles</div>
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
-          Tous les cursus
+          Les grandes voies du savoir islamique
         </h1>
         <p style={{
           fontFamily: 'var(--font-body)', fontSize: 18,
           color: 'var(--text-muted)', maxWidth: 600, marginTop: 16, lineHeight: 1.7
         }}>
-          Chaque cursus regroupe plusieurs cours thématiques. Explorez les parcours et découvrez les modules.
+          Choisissez votre parcours d'étude
         </p>
       </div>
 
