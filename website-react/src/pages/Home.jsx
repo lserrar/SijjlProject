@@ -24,8 +24,8 @@ export default function Home() {
       <section className="hero" data-testid="home-hero">
         <div className="hero-eyebrow">Plateforme académique</div>
         <h1 className="hero-title">
-          Sciences islamiques,{' '}
-          <span className="hero-title-sub">une tradition intellectuelle millénaire</span>
+          Comprendre, transmettre,{' '}
+          <span className="hero-title-sub">penser la pluralité des savoirs islamiques</span>
         </h1>
         <p className="hero-subtitle">
           Des parcours structurés en philosophie, théologie, droit, littérature et histoire de la mystique islamique.
