@@ -20,8 +20,9 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - [x] Full public website rebuild (React + Vite)
 - [x] Admin Panel overhaul (tree view, manifest upload, publish/unpublish)
 - [x] Episode publishing system (active/inactive toggles)
-- [x] Blog "Sijill Times" - full backend sync + NYT-style frontend (Feb 2026)
+- [x] Blog "Sijill Times" - full backend sync + NYT-style frontend
 - [x] Blog build deployment fix (Feb 2026)
+- [x] Blog UI adjustments: bigger series title, prominent year/dates, photo thumbnails on cards, removed article image, enlarged year on article page (Feb 2026)
 
 ## Known Issues
 - Login fails on native mobile app (blocked - needs new EAS build)
@@ -48,7 +49,7 @@ Build "Sijill", an Islamic studies e-learning platform with:
 - `POST /api/blog/sync-r2` - Sync blog articles from R2
 - `GET /api/blog` - Public blog articles list
 - `GET /api/blog/{slug}` - Single article by slug
-- `GET /api/blog/images/{image_filename}` - Article images
+- `GET /api/blog/image/{article_id}` - Article images
 - `PATCH /api/admin/audios/{audio_id}/toggle` - Toggle episode
 - `POST /api/admin/courses/{course_id}/toggle-all` - Bulk toggle
 - `GET /api/audios` - Public audios (active only)

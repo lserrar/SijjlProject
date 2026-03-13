@@ -1851,7 +1851,7 @@ button { cursor: pointer; font-family: var(--font-body); }
 }
 .st-series-name {
   font-family: 'EB Garamond', serif;
-  font-size: 22px;
+  font-size: clamp(28px, 4vw, 38px);
   font-style: italic;
   color: #333;
   margin-bottom: 4px;
@@ -1945,10 +1945,17 @@ button { cursor: pointer; font-family: var(--font-body); }
 .st-card-num { font-weight: 700; color: #04D182; }
 .st-card-dot { width: 3px; height: 3px; border-radius: 50%; background: #ccc; }
 .st-card-epoch {
-  font-size: 12px;
+  font-size: 11px;
   color: #b0a080;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+}
+.st-card-year {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
 }
 .st-card-title {
   font-family: 'EB Garamond', serif;
@@ -2039,9 +2046,10 @@ button { cursor: pointer; font-family: var(--font-body); }
 }
 .ba-date-txt {
   font-family: 'Cinzel', serif;
-  font-size: 13px;
-  color: #999;
-  letter-spacing: 1px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: 1.5px;
 }
 .ba-epoch-txt {
   font-size: 12px;

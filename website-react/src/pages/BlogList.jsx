@@ -43,7 +43,6 @@ export default function BlogList() {
         ) : (
           <div className="st-grid">
             {articles.map((a, i) => {
-              const hasImage = a.image_key && !a.image_key.includes('waraqa')
               return (
                 <Link
                   to={`/blog/${a.id}`}
@@ -52,22 +51,21 @@ export default function BlogList() {
                   data-testid={`blog-card-${a.id}`}
                   style={{ animationDelay: `${i * 0.06}s` }}
                 >
-                  {hasImage && (
-                    <div className="st-card-img">
-                      <img
-                        src={`${API_BASE}/blog/image/${a.id}`}
-                        alt={a.title}
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
+                  <div className="st-card-img">
+                    <img
+                      src={`${API_BASE}/blog/image/${a.id}`}
+                      alt={a.title}
+                      loading="lazy"
+                      onError={(e) => { e.target.parentElement.style.display = 'none' }}
+                    />
+                  </div>
                   <div className="st-card-body">
                     <div className="st-card-meta">
                       <span className="st-card-num">N° {a.number}</span>
                       <span className="st-card-dot" />
-                      <span className="st-card-date">{a.date_ah} / {a.date_ce}</span>
+                      <span className="st-card-epoch">{a.epoch}</span>
                     </div>
-                    <div className="st-card-epoch">{a.epoch}</div>
+                    <div className="st-card-year">{a.date_ah} / {a.date_ce}</div>
                     <h2 className="st-card-title">{a.title}</h2>
                     <p className="st-card-excerpt">{a.seo_description}</p>
                     <div className="st-card-tags">

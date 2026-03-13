@@ -43,8 +43,6 @@ export default function BlogArticle() {
     </div>
   )
 
-  const hasImage = article.image_key && !article.image_key.includes('waraqa')
-
   return (
     <div className="st" data-testid="blog-article">
       <article className="ba">
@@ -69,12 +67,7 @@ export default function BlogArticle() {
           </div>
         </header>
 
-        {/* Hero image */}
-        {hasImage && (
-          <div className="ba-hero-img">
-            <img src={`${API_BASE}/blog/image/${article.id}`} alt={article.title} />
-          </div>
-        )}
+        {/* Hero image removed per user request */}
 
         {/* Hook / Introduction */}
         {article.hook && (
