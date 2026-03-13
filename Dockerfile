@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+    --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 
 COPY backend/ ./backend/
 COPY --from=frontend-build /build/dist/ ./website-react/dist/
