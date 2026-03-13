@@ -3,7 +3,7 @@ WORKDIR /build
 COPY website-react/package.json ./
 RUN yarn install
 COPY website-react/ ./
-RUN yarn build
+RUN VITE_BASE_PATH=/ yarn build
 
 FROM python:3.11-slim
 WORKDIR /app
