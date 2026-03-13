@@ -22,13 +22,13 @@ export default function Home() {
     <>
       {/* Hero */}
       <section className="hero" data-testid="home-hero">
-        <div className="hero-eyebrow">Plateforme académique</div>
+        <div className="hero-eyebrow">Sciences islamiques</div>
         <h1 className="hero-title">
-          Sciences islamiques,{' '}
-          <span style={{ color: 'var(--accent)' }}>savoir ancestral</span>
+          une tradition intellectuelle{' '}
+          <span style={{ color: 'var(--accent)' }}>millénaire</span>
         </h1>
         <p className="hero-subtitle">
-          Des parcours structurés en philosophie, théologie, droit, littérature et spiritualité.
+          Des parcours structurés en philosophie, théologie, droit, littérature et histoire de la mystique islamique.
           Plus de 100 épisodes audio par les meilleurs spécialistes.
         </p>
         <div className="hero-cta">
