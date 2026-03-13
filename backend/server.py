@@ -7426,18 +7426,100 @@ app.include_router(api_router)
 WEBSITE_REACT_DIR = Path(__file__).parent.parent / "website-react" / "dist"
 WEBSITE_DIR = Path(__file__).parent.parent / "website"
 
+# ─── robots.txt ──────────────────────────────────────────────────────────────
+@app.get("/api/site/robots.txt")
+async def robots_txt():
+    content = """User-agent: *
+Allow: /
+
+Sitemap: https://sijill.com/sitemap.xml
+"""
+    return Response(content=content, media_type="text/plain")
+
+# ─── sitemap.xml ─────────────────────────────────────────────────────────────
+@app.get("/api/site/sitemap.xml")
+async def sitemap_xml():
+    base = "https://sijill.com"
+    static_pages = [
+        ("", "1.0", "weekly"),
+        ("/cursus", "0.9", "weekly"),
+        ("/catalogue", "0.9", "weekly"),
+        ("/blog", "0.9", "daily"),
+        ("/a-propos", "0.7", "monthly"),
+        ("/mentions-legales", "0.3", "yearly"),
+        ("/politique-de-confidentialite", "0.3", "yearly"),
+        ("/conditions-utilisation", "0.3", "yearly"),
+    ]
+
+    articles = await db.blog_articles.find({}, {"_id": 0, "id": 1, "synced_at": 1}).to_list(500)
+
+    urls = []
+    for path, priority, freq in static_pages:
+        urls.append(f"""  <url>
+    <loc>{base}{path}</loc>
+    <changefreq>{freq}</changefreq>
+    <priority>{priority}</priority>
+  </url>""")
+
+    for a in articles:
+        urls.append(f"""  <url>
+    <loc>{base}/blog/{a['id']}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>""")
+
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{chr(10).join(urls)}
+</urlset>"""
+    return Response(content=xml, media_type="application/xml")
+
+# ─── Server-side OG meta injection for blog articles (social crawlers) ───────
+async def inject_og_meta(index_html: str, article_id: str) -> str:
+    """Inject Open Graph meta tags into the HTML for blog article pages."""
+    article = await db.blog_articles.find_one({"id": article_id}, {"_id": 0})
+    if not article:
+        return index_html
+
+    base = "https://sijill.com"
+    title = f"{article.get('title', '')} — Sijill Times #{article.get('number', '')}"
+    desc = article.get('seo_description', article.get('hook', ''))[:200]
+    url = f"{base}/blog/{article_id}"
+    image = f"{base}/api/blog/image/{article_id}"
+    tags_meta = "".join(f'\n    <meta property="article:tag" content="{t}" />' for t in (article.get('tags') or []))
+
+    og_tags = f"""
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="{title}" />
+    <meta property="og:description" content="{desc}" />
+    <meta property="og:url" content="{url}" />
+    <meta property="og:image" content="{image}" />
+    <meta property="og:site_name" content="Sijill Project" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{title}" />
+    <meta name="twitter:description" content="{desc}" />
+    <meta name="twitter:image" content="{image}" />{tags_meta}
+    <meta name="description" content="{desc}" />
+    <title>{title}</title>"""
+
+    return index_html.replace("</head>", f"{og_tags}\n  </head>", 1)
+
 # SPA catch-all: serve index.html for all non-file /api/site/* routes
 @app.get("/api/site/{full_path:path}")
 async def serve_website_spa(full_path: str):
     """Serve the React SPA. Static assets are served by StaticFiles mount below."""
     if WEBSITE_REACT_DIR.exists():
-        # Try to serve the exact file first
         file_path = WEBSITE_REACT_DIR / full_path
         if file_path.is_file():
             return FileResponse(str(file_path))
-        # For any other path, serve index.html (SPA routing)
         index_path = WEBSITE_REACT_DIR / "index.html"
         if index_path.exists():
+            if full_path.startswith("blog/") and full_path != "blog":
+                article_id = full_path.replace("blog/", "", 1)
+                html_content = index_path.read_text()
+                injected = await inject_og_meta(html_content, article_id)
+                return Response(content=injected, media_type="text/html")
             return FileResponse(str(index_path))
     raise HTTPException(404, "Website not found")
 

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import SEO from '../components/SEO'
+import ShareButtons from '../components/ShareButtons'
 
 const API_BASE = window.location.origin + '/api'
 
@@ -45,6 +47,13 @@ export default function BlogArticle() {
 
   return (
     <div className="st" data-testid="blog-article">
+      <SEO
+        title={`${article.title} — Sijill Times #${article.number}`}
+        description={article.seo_description || article.hook}
+        path={`/blog/${article.id}`}
+        type="article"
+        article={article}
+      />
       <article className="ba">
         {/* Header */}
         <header className="ba-hdr">
@@ -65,6 +74,12 @@ export default function BlogArticle() {
               <span key={t} className="ba-tag">{t}</span>
             ))}
           </div>
+
+          <ShareButtons
+            title={article.title}
+            url={`/blog/${article.id}`}
+            description={article.seo_description}
+          />
         </header>
 
         {/* Hero image removed per user request */}

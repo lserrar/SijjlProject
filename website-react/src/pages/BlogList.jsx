@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import SEO from '../components/SEO'
 
 const API_BASE = window.location.origin + '/api'
 
@@ -20,6 +21,11 @@ export default function BlogList() {
 
   return (
     <div className="st" data-testid="blog-page">
+      <SEO
+        title="Sijill Times — Blog"
+        description="Sijill Times : explorez l'histoire islamique à travers nos articles. Chroniques historiques, analyses et réflexions."
+        path="/blog"
+      />
       {/* Hero */}
       <header className="st-hero">
         <div className="st-hero-inner">
