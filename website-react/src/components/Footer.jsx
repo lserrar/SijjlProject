@@ -14,7 +14,7 @@ export default function Footer() {
             <a href="https://www.facebook.com/sijill.project" target="_blank" rel="noopener noreferrer" title="Facebook" data-testid="footer-facebook">
               <i className="fab fa-facebook-f" />
             </a>
-            <a href="#" target="_blank" rel="noopener noreferrer" title="Instagram" data-testid="footer-instagram">
+            <a href="https://www.instagram.com/sijillproject/" target="_blank" rel="noopener noreferrer" title="Instagram" data-testid="footer-instagram">
               <i className="fab fa-instagram" />
             </a>
             <a href="#" target="_blank" rel="noopener noreferrer" title="YouTube" data-testid="footer-youtube">
