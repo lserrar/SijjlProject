@@ -1,92 +1,73 @@
-# Sijill Project - PRD
+# Sijill Project — PRD
 
-## Original Problem Statement
-Build "Sijill", an Islamic studies e-learning platform with:
-- Reading Mode for audio episode transcripts
-- Public website with course catalogue
-- Admin panel for content management
-- Blog section ("Sijill Times") - NYT-style design
-- Future: Advanced monetization (one-time course purchases)
+## Problem Statement
+Plateforme e-learning d'études islamiques "Sijill Project". Application full-stack (React/Vite Website, FastAPI Backend, MongoDB) déployée sur un VPS Hostinger via Docker.
 
-## Core Architecture
-- **Backend**: FastAPI + MongoDB + Jinja2 (admin panel)
-- **Frontend (Mobile)**: React Native (Expo Web)
-- **Frontend (Website)**: React + Vite at `/app/website-react/`
-- **Content Storage**: Cloudflare R2
-- **Content Hierarchy**: Cursus -> Cours -> Modules -> Audios
-- **Production**: VPS Hostinger (Ubuntu 24.04, Docker Compose)
-- **Domains**: sijillproject.com (primary), .fr/.org redirect to .com
+## Core Hierarchy
+Cursus -> Cours -> Modules -> Audios
+
+## Architecture
+- **Website**: React + Vite (website-react/), servi via FastAPI à /api/site/
+- **Backend**: FastAPI monolithique (backend/server.py)
+- **Mobile App**: React Native / Expo (frontend/)
+- **Database**: MongoDB (test_database)
+- **Deployment**: Docker + Nginx sur VPS Hostinger, HTTPS via Let's Encrypt
+- **Domains**: sijillproject.com (principal), .fr et .org redirigent vers .com
+
+## 6 Cursus (v3 — Février 2026)
+| Lettre | ID | Nom |
+|--------|-----|-----|
+| A | cursus-falsafa | La Falsafa et son héritage |
+| B | cursus-theologie | Théologie et Droit |
+| C | cursus-sciences-islamiques | Sciences islamiques et transmission |
+| D | cursus-arts | Arts, Littérature et Sciences |
+| E | cursus-spiritualites | La Mystique islamique |
+| F | cursus-pensees-non-islamiques | Pensées arabes non islamiques |
 
 ## What's Been Implemented
-- [x] Reading Mode (transcripts for audio episodes)
-- [x] Full public website rebuild (React + Vite)
-- [x] Admin Panel overhaul (tree view, manifest upload, publish/unpublish)
-- [x] Episode publishing system (active/inactive toggles)
-- [x] Blog "Sijill Times" - full backend sync + NYT-style frontend
-- [x] Blog UI adjustments: bigger series title, prominent year/dates, photo thumbnails
-- [x] Admin: renamed "Blog Waraqa" to "Blog"
-- [x] Cursus page text updated to match app
-- [x] Home page hero text: "Comprendre, transmettre, penser la pluralité des savoirs islamiques"
-- [x] SEO: OG meta tags, Twitter Cards, react-helmet-async, server-side OG injection, robots.txt, sitemap.xml
-- [x] Social sharing: Facebook, X, LinkedIn, WhatsApp on blog articles
-- [x] Legal pages: Mentions légales, Politique de confidentialité, CGU
-- [x] Footer: Social icons (Facebook, Instagram), legal links, App Store/Google Play placeholders
-- [x] Bug fix: playlist endpoint (episodes were empty due to missing module_id)
-- [x] **Production deployment on Hostinger VPS** (Feb 2026): Docker Compose, Nginx, SSL, MongoDB migration
-- [x] Domain redirections: sijillproject.fr, .org → sijillproject.com
 
-## Known Issues
-- Login fails on native mobile app (blocked - needs new EAS build)
-- Splash screen "double loop" on native app (blocked)
+### Phase 1-5 (Completed before this session)
+- Reading mode, website refactor, admin panel overhaul
+- Blog "Sijill Times" with NYT-inspired design
+- Full SEO (meta tags, OG tags, sitemap, robots.txt)
+- Docker deployment on Hostinger VPS with HTTPS
+- Database migration workflow
+- Social share buttons on blog articles
+- Legal pages (Mentions, Privacy, Terms)
+- Footer with social links
 
-## Prioritized Backlog
+### Phase 6 — New Feature Batch (March 2026)
+- **Quote Update**: Homepage quote changed to new Ibn Khaldun (al-Muqaddima) text
+- **Favicon**: SVG favicon "S." added to website
+- **Mobile Menu**: Full hamburger menu with overlay, auto-close on navigation, body scroll lock
+- **Catalog Update v3**: 5→6 cursus, Cursus E renamed "La Mystique islamique", new Cursus F "Pensées arabes non islamiques", updated all descriptions, backend mappings updated (regex, letter maps, R2 mappings)
+
+## Backlog
+
 ### P1
-- Add Google Analytics / tracking
-- Finalize App Store / Google Play submission (pending KBIS)
+- DNS setup for .fr and .org redirections
+- App Store / Google Play links in footer
 
 ### P2
+- YouTube channel link in footer
 - Advanced monetization (one-time course purchases)
-- Refactor `backend/server.py` into modular APIRouter structure
+- Backend refactoring (server.py → APIRouter modules)
 
 ### P3
 - Admin panel analytics dashboard
+- Newsletter, offline mode, push notifications
 - "My Subscription" page
-- Newsletter functionality
-- Offline mode
-- Push notifications
-- YouTube channel creation + footer link update
 
-## Key API Endpoints
-- `POST /api/blog/sync-r2` - Sync blog articles from R2
-- `GET /api/blog` - Public blog articles list
-- `GET /api/blog/{slug}` - Single article by slug
-- `GET /api/blog/image/{article_id}` - Article images
-- `GET /api/site/robots.txt` - SEO robots.txt
-- `GET /api/site/sitemap.xml` - Dynamic sitemap
-- `GET /api/courses/{course_id}/playlist` - Course playlist (fixed)
-- `PATCH /api/admin/audios/{audio_id}/toggle` - Toggle episode
-- `GET /api/audios` - Public audios (active only)
-
-## Production URLs
-- Site: https://sijillproject.com
-- Blog: https://sijillproject.com/blog
-- Admin: https://sijillproject.com/api/admin-panel/
-- API: https://sijillproject.com/api/
-
-## Deployment
-- VPS: Hostinger KVM, Ubuntu 24.04, IP 187.124.40.195
-- Stack: Docker Compose (Nginx + FastAPI + MongoDB + Certbot)
-- SSL: Let's Encrypt (auto-renewal via certbot container)
-- Update: git pull + docker compose build --no-cache backend + docker compose up -d + restart nginx
-
-## Social Links
-- Facebook: https://www.facebook.com/sijill.project
-- Instagram: https://www.instagram.com/sijillproject/
-- YouTube: (à créer)
-
-## 3rd Party Integrations
-- Cloudflare R2, Stripe, SendPulse, Expo EAS, python-docx
+### Known Issues
+- Native mobile app: login broken, splash screen buggy (blocked pending new builds)
+- Inconsistent user data ("Pierre Marchal" mystery)
 
 ## Credentials
 - Admin: loubna.serrar@gmail.com / Admin123!
-- Test User: loubniz@hotmail.com / loulouz
+- Test user: loubniz@hotmail.com / loulouz
+
+## Deployment
+After changes, push to GitHub then on VPS:
+```bash
+cd /root/sijill && git pull && docker compose build --no-cache && docker compose up -d
+```
