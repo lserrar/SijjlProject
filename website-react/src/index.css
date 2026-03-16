@@ -605,6 +605,7 @@ button { cursor: pointer; font-family: var(--font-body); }
 @media (max-width: 768px) {
   .site-header { padding: 0 20px; }
   .site-nav { display: none; }
+  .nav-auth { display: none; }
   .hero { padding: 100px 20px 60px; }
   .hero-stats { gap: 24px; flex-wrap: wrap; }
   .section { padding: 80px 20px; }
@@ -612,6 +613,104 @@ button { cursor: pointer; font-family: var(--font-body); }
   .courses-grid { grid-template-columns: 1fr; }
   .course-hero { padding: 120px 20px 60px; }
   .footer-top { flex-direction: column; }
+}
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  z-index: 201;
+}
+
+.hamburger-line {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: var(--text);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.mobile-menu-btn.active .hamburger-line:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+.mobile-menu-btn.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+.mobile-menu-btn.active .hamburger-line:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.97);
+  backdrop-filter: blur(24px);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.mobile-menu-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-menu-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.mobile-menu-nav a {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  transition: color 0.3s;
+}
+
+.mobile-menu-nav a:hover { color: var(--text); }
+
+.mobile-menu-divider {
+  width: 40px;
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.mobile-menu-user {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.mobile-menu-logout {
+  padding: 10px 32px;
+  font-size: 10px;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn { display: flex; }
 }
 
 /* ─── FEATURED SECTION ─── */

@@ -1,7 +1,7 @@
 // Sijill Project - Website JavaScript
 
 // ─── Configuration ─────────────────────────────────────────────────────────
-const API_URL = 'https://islamic-learning-40.preview.emergentagent.com/api';
+const API_URL = 'https://sijill-updates.preview.emergentagent.com/api';
 
 // ─── State ─────────────────────────────────────────────────────────────────
 let currentUser = null;

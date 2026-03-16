@@ -38,7 +38,7 @@ export default function CursusList() {
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="cursus-list-page">
       <div style={{ marginBottom: 64 }}>
-        <div className="section-eyebrow">5 Cursus disponibles</div>
+        <div className="section-eyebrow">6 Cursus disponibles</div>
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
           Les grandes voies du savoir islamique
         </h1>

@@ -4,6 +4,7 @@ export const CURSUS_COLORS = {
   'cursus-sciences-islamiques': '#F59E0B',
   'cursus-arts': '#EC4899',
   'cursus-spiritualites': '#06B6D4',
+  'cursus-pensees-non-islamiques': '#F97316',
 };
 
 export const CURSUS_LETTERS = {
@@ -12,6 +13,7 @@ export const CURSUS_LETTERS = {
   'cursus-sciences-islamiques': 'C',
   'cursus-arts': 'D',
   'cursus-spiritualites': 'E',
+  'cursus-pensees-non-islamiques': 'F',
 };
 
 export function getCursusColor(id) {

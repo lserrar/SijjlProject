@@ -3139,7 +3139,7 @@ async def list_available_timelines():
                 filename = key.split('/')[-1]
                 # sijill_timeline_cursus_a.html -> A
                 import re
-                match = re.search(r'cursus_([a-e])\.html', filename.lower())
+                match = re.search(r'cursus_([a-f])\.html', filename.lower())
                 if match:
                     letter = match.group(1).upper()
                     timelines.append({
@@ -3170,11 +3170,12 @@ async def get_cursus_timelines(cursus_id: str):
         'cursus-theologie': 'B', 
         'cursus-sciences-islamiques': 'C',
         'cursus-arts': 'D',
-        'cursus-spiritualites': 'E'
+        'cursus-spiritualites': 'E',
+        'cursus-pensees-non-islamiques': 'F'
     }
     
     letter = cursus_letter_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else None)
-    if not letter or letter not in ['A', 'B', 'C', 'D', 'E']:
+    if not letter or letter not in ['A', 'B', 'C', 'D', 'E', 'F']:
         return {'timelines': [], 'count': 0}
     
     # Get all timeline entries from DB for this cursus
@@ -3299,7 +3300,7 @@ async def list_context_resources():
             import re
             
             # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
-            new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+            new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
             # Try old format: Timeline_Module{N}_{Penseur}.docx
             old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
             
@@ -3367,13 +3368,14 @@ async def list_context_resources_by_cursus(cursus_id: str):
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
-    # Map cursus_id to cursus letter (A, B, C, D, E)
+    # Map cursus_id to cursus letter (A, B, C, D, E, F)
     cursus_map = {
         'cursus-falsafa': 'A',
         'cursus-theologie': 'B', 
-        'cursus-sciences': 'C',
+        'cursus-sciences-islamiques': 'C',
         'cursus-arts': 'D',
-        'cursus-connexions': 'E'
+        'cursus-spiritualites': 'E',
+        'cursus-pensees-non-islamiques': 'F'
     }
     letter = cursus_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else 'A')
     
@@ -3392,7 +3394,7 @@ async def list_context_resources_by_cursus(cursus_id: str):
             import re
             
             # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
-            new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+            new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
             
             if new_match:
                 cursus_letter = new_match.group(1).upper()
@@ -3502,7 +3504,7 @@ async def get_context_resource(resource_id: str):
         import re
         
         # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
-        new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+        new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
         # Try old format: Timeline_Module{N}_{Penseur}.docx
         old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
         
@@ -3725,7 +3727,7 @@ async def admin_list_timeline_resources(request: Request):
                 # sijill_timeline_cursus_a.html
                 # sijill_timeline_cursus_a_map.html
                 # cursus_a.html, etc.
-                match = re.search(r'cursus_([a-e])(?:_[a-z]+)?\.html', filename.lower())
+                match = re.search(r'cursus_([a-f])(?:_[a-z]+)?\.html', filename.lower())
                 if match:
                     file_info['cursus_letter'] = match.group(1).upper()
                 file_info['type'] = 'timeline_html'
@@ -3751,7 +3753,7 @@ async def admin_list_timeline_resources(request: Request):
                 file_info['type'] = 'context_docx'
                 
                 # Parse new format: sijill_{cursus}_m{NN}_{penseur}.docx
-                new_match = re.match(r'sijill_([a-e])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
+                new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
                 # Parse old format: Timeline_Module{N}_{Penseur}.docx
                 old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
                 
@@ -3875,7 +3877,7 @@ async def admin_sync_timeline_resources(request: Request):
             
             if filename.endswith('.html') and 'timeline' in filename.lower():
                 # Sync timeline HTML - support various naming formats
-                match = re.search(r'cursus_([a-e])(?:_[a-z]+)?\.html', filename.lower())
+                match = re.search(r'cursus_([a-f])(?:_[a-z]+)?\.html', filename.lower())
                 letter = match.group(1).upper() if match else None
                 
                 # Check if manual assignment exists
@@ -4197,6 +4199,7 @@ R2_CURSUS_MAPPING = {
     'cursus-c-sciences-islamiques': 'cursus-sciences-islamiques',
     'cursus-d-arts-litterature': 'cursus-arts',
     'cursus-e-spiritualites': 'cursus-spiritualites',
+    'cursus-f-pensees-non-islamiques': 'cursus-pensees-non-islamiques',
 }
 
 # ========== PROFESSOR PHOTO SYNC ==========
@@ -4273,6 +4276,7 @@ async def sync_bibliographies(request: Request):
             'C': 'cursus-sciences-islamiques',
             'D': 'cursus-arts',
             'E': 'cursus-spiritualites',
+            'F': 'cursus-pensees-non-islamiques',
         }
         
         # Pre-load all courses grouped by cursus, in their natural DB order
@@ -4521,6 +4525,7 @@ CURSUS_LETTER_MAP = {
     'C': 'cursus-sciences-islamiques',
     'D': 'cursus-arts',
     'E': 'cursus-spiritualites',
+    'F': 'cursus-pensees-non-islamiques',
 }
 
 def parse_manifest_docx(file_bytes: bytes) -> dict:
@@ -6117,6 +6122,7 @@ async def admin_standardize_bibliography_titles(request: Request):
         'C': 'cursus-sciences-islamiques',
         'D': 'cursus-arts',
         'E': 'cursus-spiritualites',
+        'F': 'cursus-pensees-non-islamiques',
     }
     
     # Pre-load courses per cursus

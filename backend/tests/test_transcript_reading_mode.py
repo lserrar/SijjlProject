@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://islamic-learning-40.preview.emergentagent.com')
+BASE_URL = os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://sijill-updates.preview.emergentagent.com')
 
 # Test credentials
 TEST_EMAIL = "loubniz@hotmail.com"

@@ -41,7 +41,7 @@ export default function Home() {
         </div>
         <div className="hero-stats">
           <div>
-            <div className="hero-stat-value">5</div>
+            <div className="hero-stat-value">6</div>
             <div className="hero-stat-label">Cursus</div>
           </div>
           <div>
@@ -62,16 +62,16 @@ export default function Home() {
       {/* Quote */}
       <section className="featured-quote">
         <p className="featured-quote-text">
-          &laquo;&nbsp;Celui qui ne connaît pas l'histoire est condamné à la revivre&nbsp;&raquo;
+          &laquo;&nbsp;L'histoire consiste à méditer, à rechercher la vérité, à expliquer les causes et les origines des événements. Elle prend ainsi racine dans la philosophie, dont elle doit être comptée comme une branche.&nbsp;&raquo;
         </p>
-        <span className="featured-quote-author">Ibn Khaldûn</span>
+        <span className="featured-quote-author">Ibn Khaldûn (al-Muqaddima)</span>
       </section>
 
       {/* Cursus section */}
       <section className="section" data-testid="home-cursus-section">
         <div className="section-header">
           <div>
-            <div className="section-eyebrow">5 cursus disponibles</div>
+            <div className="section-eyebrow">6 cursus disponibles</div>
             <h2 className="section-title">Les grandes voies du savoir islamique</h2>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--text-muted)', marginTop: 8 }}>
               Choisissez votre parcours d'étude
