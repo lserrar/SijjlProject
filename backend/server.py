@@ -2539,6 +2539,40 @@ async def seed_data():
         'subtitle': 'Poésie, arts, pédagogie et sciences',
     }})
     logger.info("Migration v3: Cursus descriptions updated")
+
+    # ─── Migration v3b: Reassign courses to match new cursus structure ────
+    # Move L'ismaélisme (cours-ismaelisme) from Cursus E → Cursus A
+    v3b_1 = await db.courses.update_one(
+        {'id': 'cours-ismaelisme', 'cursus_id': 'cursus-spiritualites'},
+        {'$set': {
+            'cursus_id': 'cursus-falsafa',
+            'thematique_id': 'cursus-falsafa',
+            'title': "Cours 8 : L'ismaélisme",
+            'order': 8,
+        }}
+    )
+    # Move Le Kalām chrétien (cours-kalam-chretien) from Cursus E → Cursus F
+    v3b_2 = await db.courses.update_one(
+        {'id': 'cours-kalam-chretien', 'cursus_id': {'$ne': 'cursus-pensees-non-islamiques'}},
+        {'$set': {
+            'cursus_id': 'cursus-pensees-non-islamiques',
+            'thematique_id': 'cursus-pensees-non-islamiques',
+            'title': 'Cours 23 : Le Kalām chrétien et les logiciens de Bagdad',
+            'order': 23,
+        }}
+    )
+    # Move La philosophie juive (cours-philo-juive) from Cursus E → Cursus F
+    v3b_3 = await db.courses.update_one(
+        {'id': 'cours-philo-juive', 'cursus_id': {'$ne': 'cursus-pensees-non-islamiques'}},
+        {'$set': {
+            'cursus_id': 'cursus-pensees-non-islamiques',
+            'thematique_id': 'cursus-pensees-non-islamiques',
+        }}
+    )
+    moved = v3b_1.modified_count + v3b_2.modified_count + v3b_3.modified_count
+    if moved > 0:
+        logger.info(f"Migration v3b: Reassigned {moved} courses to new cursus structure")
+    # ─── End Migration v3b ────────────────────────────────────────────────
     # ─── End Migration v3 ─────────────────────────────────────────────────
 
     if custom_cursus:
