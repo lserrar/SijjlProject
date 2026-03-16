@@ -2492,6 +2492,55 @@ async def seed_data():
     if sebti_update.modified_count > 0 or sebti_update2.modified_count > 0:
         logger.info(f"Migration: Set Meryem Sebti as professor for Cursus A courses ({sebti_update.modified_count + sebti_update2.modified_count} updated)")
     
+    # ─── Migration: Catalogue v3 (5→6 cursus) ──────────────────────────────
+    # Update Cursus E: rename to "La Mystique islamique"
+    v3_e = await db.cursus.update_one(
+        {'id': 'cursus-spiritualites'},
+        {'$set': {
+            'name': 'La Mystique islamique',
+            'description': 'Le premier taṣawwuf, Ibn ʿArabī, le soufisme iranien et les liens entre mystique et philosophie.',
+            'hero_title': 'La Mystique islamique',
+            'subtitle': 'Taṣawwuf',
+        }}
+    )
+    if v3_e.modified_count > 0:
+        logger.info("Migration v3: Cursus E renamed to 'La Mystique islamique'")
+
+    # Create Cursus F if it doesn't exist
+    existing_f = await db.cursus.find_one({'id': 'cursus-pensees-non-islamiques'})
+    if not existing_f:
+        await db.cursus.insert_one({
+            'id': 'cursus-pensees-non-islamiques',
+            'name': 'Pensées arabes non islamiques',
+            'description': 'Le Kalām chrétien, les logiciens de Bagdad et la philosophie juive de langue arabe, de Saʿadya Gaon à Maïmonide.',
+            'hero_title': 'Pensées arabes non islamiques',
+            'subtitle': 'Philosophie juive et chrétienne',
+            'order': 6,
+            'is_active': True,
+            'is_featured': False,
+        })
+        logger.info("Migration v3: Cursus F 'Pensées arabes non islamiques' created")
+
+    # Update descriptions for A, B, C, D
+    await db.cursus.update_one({'id': 'cursus-falsafa'}, {'$set': {
+        'description': "D'Al-Kindī à Mollā Sādrā, la falsafa, le post-avicennisme, la logique arabe, l'ismaélisme et les inclassables comme Ibn Khaldūn.",
+        'subtitle': "Philosophie en terre d'islam",
+    }})
+    await db.cursus.update_one({'id': 'cursus-theologie'}, {'$set': {
+        'description': "Le Kalām dans ses trois périodes et l'histoire de la réflexion juridique (Uṣūl al-fiqh) : les quatre écoles et le droit musulman.",
+        'subtitle': 'Kalām, Fiqh et fondements juridiques',
+    }})
+    await db.cursus.update_one({'id': 'cursus-sciences-islamiques'}, {'$set': {
+        'description': "Doxographie, transmission du Coran et du Hadith, historiographie (d'al-Ṭabarī à Ibn Khaldūn) et autobiographies dans le monde islamique.",
+        'subtitle': 'Hadith, Coran, exégèse et historiographie',
+    }})
+    await db.cursus.update_one({'id': 'cursus-arts'}, {'$set': {
+        'description': 'Art islamique, poésie (arabe, persane, préislamique), pédagogie, sciences (biologie, astronomie, mathématiques), géographie et Adab.',
+        'subtitle': 'Poésie, arts, pédagogie et sciences',
+    }})
+    logger.info("Migration v3: Cursus descriptions updated")
+    # ─── End Migration v3 ─────────────────────────────────────────────────
+
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
         logger.info("Database seeding complete")
