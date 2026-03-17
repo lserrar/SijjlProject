@@ -37,13 +37,8 @@ export default function LoginScreen() {
     
     console.log('hasSubscription:', hasSubscription, 'hasActiveSubscription:', hasActiveSubscription, 'isAdmin:', isAdmin);
     
-    if (isAdmin || hasSubscription || hasActiveSubscription) {
-      console.log('Navigating to /(tabs)');
-      router.replace('/(tabs)');
-    } else {
-      console.log('Navigating to /subscription-choice');
-      router.replace('/subscription-choice');
-    }
+    // Reader App: always go to tabs, access is checked per-content
+    router.replace('/(tabs)');
   };
 
   const handleLogin = async () => {

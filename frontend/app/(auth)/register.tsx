@@ -68,8 +68,8 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(name, email, password, referralCode || undefined);
-      // Redirect to subscription choice screen instead of tabs
-      router.replace('/subscription-choice');
+      // Reader App: go directly to tabs, access checked per-content
+      router.replace('/(tabs)');
     } catch (e: any) {
       Alert.alert('Erreur d\'inscription', e.message);
     } finally {
