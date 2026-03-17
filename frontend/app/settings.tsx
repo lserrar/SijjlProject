@@ -147,7 +147,7 @@ export default function SettingsScreen() {
             <Ionicons name="card-outline" size={20} color={colors.text.secondary} />
             <View style={styles.menuInfo}>
               <Text style={styles.menuLabel}>Mon abonnement</Text>
-              <Text style={styles.menuDesc}>Gérer votre abonnement</Text>
+              <Text style={styles.menuDesc}>Voir le statut de votre abonnement</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
           </TouchableOpacity>

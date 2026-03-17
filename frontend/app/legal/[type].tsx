@@ -78,11 +78,11 @@ Sijill est une plateforme d'apprentissage dédiée aux études islamiques, propo
 - Vous êtes responsable de la confidentialité de vos identifiants
 - Vous devez avoir au moins 16 ans pour utiliser le service
 
-## 4. Abonnement et paiement
+## 4. Abonnement
 
-- Certains contenus nécessitent un abonnement payant
-- Les paiements sont traités de manière sécurisée via Stripe
-- Les abonnements se renouvellent automatiquement sauf annulation
+- Certains contenus nécessitent un abonnement actif
+- Les abonnements sont gérés exclusivement via notre site web sijillproject.com
+- L'application permet d'accéder aux contenus avec un abonnement valide
 
 ## 5. Propriété intellectuelle
 

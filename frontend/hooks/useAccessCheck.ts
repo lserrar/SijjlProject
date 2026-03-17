@@ -66,9 +66,9 @@ export function getAccessDeniedMessage(reason: string): string {
     case 'not_authenticated':
       return 'Connectez-vous pour accéder à ce contenu';
     case 'no_access':
-      return 'Abonnez-vous pour accéder à ce contenu premium';
+      return 'Un abonnement actif est nécessaire pour accéder à ce contenu';
     case 'expired':
-      return 'Votre abonnement a expiré';
+      return 'Votre accès a expiré';
     case 'user_not_found':
       return 'Utilisateur non trouvé';
     default:
