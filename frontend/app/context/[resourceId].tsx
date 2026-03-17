@@ -34,10 +34,10 @@ interface ContextResource {
 const CURSUS_COLORS: Record<string, string> = {
   'A': '#04D182',
   'B': '#8B5CF6',
-  'C': '#F59E0B',
+  'C': '#EAD637',
   'D': '#EC4899',
   'E': '#06B6D4',
-  'F': '#C2714F',
+  'F': '#F59E0B',
 };
 
 // Section titles to detect

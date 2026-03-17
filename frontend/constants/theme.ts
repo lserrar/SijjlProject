@@ -37,10 +37,10 @@ export const colors = {
   cursus: {
     a: '#04D182',
     b: '#8B5CF6',
-    c: '#F59E0B',
+    c: '#EAD637',
     d: '#EC4899',
     e: '#06B6D4',
-    f: '#C2714F',
+    f: '#F59E0B',
   },
 };
 

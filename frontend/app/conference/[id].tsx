@@ -31,10 +31,10 @@ function formatTime(s: number) {
 const CURSUS_COLORS: Record<string, string> = {
   'cursus-falsafa': '#04D182',
   'cursus-theologie': '#8B5CF6',
-  'cursus-sciences-islamiques': '#F59E0B',
+  'cursus-sciences-islamiques': '#EAD637',
   'cursus-arts': '#EC4899',
   'cursus-spiritualites': '#06B6D4',
-  'cursus-pensees-non-islamiques': '#C2714F',
+  'cursus-pensees-non-islamiques': '#F59E0B',
 };
 
 interface AudioConference {
