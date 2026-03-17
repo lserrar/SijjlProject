@@ -13,7 +13,7 @@ const CURSUS_COLORS: Record<string, string> = {
   C: '#F59E0B',
   D: '#EC4899',
   E: '#06B6D4',
-  F: '#C9A84C',
+  F: '#C2714F',
 };
 
 type LibraryTab = 'en_cours' | 'favoris' | 'termines';

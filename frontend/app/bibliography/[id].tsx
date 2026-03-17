@@ -16,6 +16,7 @@ const CURSUS_COLORS: Record<string, string> = {
   'cursus-sciences-islamiques': '#F59E0B',
   'cursus-arts': '#EC4899',
   'cursus-spiritualites': '#06B6D4',
+  'cursus-pensees-non-islamiques': '#C2714F',
 };
 
 const FONT_SIZES = [17, 20, 24];

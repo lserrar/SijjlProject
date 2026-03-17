@@ -15,6 +15,7 @@ const CURSUS_COLORS: Record<string, string> = {
   C: '#F59E0B',
   D: '#EC4899',
   E: '#06B6D4',
+  F: '#C2714F',
 };
 
 function formatDuration(seconds: number): string {

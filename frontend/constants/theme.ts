@@ -40,6 +40,7 @@ export const colors = {
     c: '#F59E0B',
     d: '#EC4899',
     e: '#06B6D4',
+    f: '#C2714F',
   },
 };
 
