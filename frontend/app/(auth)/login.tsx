@@ -175,12 +175,9 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Register link */}
+          {/* Reader App notice */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Pas encore de compte ? </Text>
-            <TouchableOpacity testID="login-register-link" onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.footerLink}>S'inscrire</Text>
-            </TouchableOpacity>
+            <Text style={styles.footerText}>Créez votre compte sur sijillproject.com</Text>
           </View>
 
           {/* Forgot password link */}
