@@ -2,17 +2,34 @@ import { Helmet } from 'react-helmet-async'
 
 const SITE_URL = 'https://sijillproject.com'
 
-export default function SEO({ title, description, path = '/', type = 'website', article = null }) {
+export default function SEO({ title, description, path = '/', type = 'website', article = null, keywords = null }) {
   const fullTitle = title ? `${title} | Sijill Project` : 'Sijill Project — Plateforme académique · Sciences islamiques'
   const desc = description || 'Parcours académiques en sciences islamiques. Philosophie, théologie, droit, littérature et spiritualité.'
   const url = `${SITE_URL}${path}`
   const imageUrl = article?.image_url || `${SITE_URL}/api/blog/image/${article?.id || ''}`
+  const kw = keywords || (article?.tags || []).join(', ')
+
+  const jsonLd = article ? {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    'headline': article.title,
+    'description': desc,
+    'url': url,
+    'image': imageUrl,
+    'datePublished': article.published_at || article.synced_at,
+    'author': { '@type': 'Organization', 'name': 'Sijill Project', 'url': SITE_URL },
+    'publisher': { '@type': 'Organization', 'name': 'Sijill Project', 'url': SITE_URL },
+    'keywords': (article.tags || []).join(', '),
+    'inLanguage': 'fr',
+    'mainEntityOfPage': { '@type': 'WebPage', '@id': url },
+  } : null
 
   return (
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={desc} />
       <link rel="canonical" href={url} />
+      {kw && <meta name="keywords" content={kw} />}
 
       <meta property="og:type" content={type} />
       <meta property="og:title" content={fullTitle} />
@@ -35,6 +52,10 @@ export default function SEO({ title, description, path = '/', type = 'website', 
             <meta key={i} property="article:tag" content={tag} />
           ))}
         </>
+      )}
+
+      {jsonLd && (
+        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       )}
     </Helmet>
   )

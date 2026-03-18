@@ -62,6 +62,7 @@ export default function BlogList() {
         title="Sijill Times — Blog"
         description="Sijill Times : explorez l'histoire islamique à travers nos articles. Chroniques historiques, analyses et réflexions."
         path="/blog"
+        keywords="histoire islamique, civilisation islamique, philosophie arabe, sciences islamiques, Sijill Times, blog académique, falsafa, kalām, soufisme, Ibn Khaldun"
       />
       {/* Hero */}
       <header className="st-hero">

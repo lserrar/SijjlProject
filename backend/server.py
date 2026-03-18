@@ -7591,7 +7591,22 @@ async def inject_og_meta(index_html: str, article_id: str) -> str:
     <meta name="twitter:description" content="{desc}" />
     <meta name="twitter:image" content="{image}" />{tags_meta}
     <meta name="description" content="{desc}" />
-    <title>{title}</title>"""
+    <meta name="keywords" content="{', '.join(article.get('tags') or [])}" />
+    <title>{title}</title>
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "{article.get('title', '')}",
+      "description": "{desc}",
+      "url": "{url}",
+      "image": "{image}",
+      "author": {{"@type": "Organization", "name": "Sijill Project", "url": "{base}"}},
+      "publisher": {{"@type": "Organization", "name": "Sijill Project", "url": "{base}"}},
+      "keywords": "{', '.join(article.get('tags') or [])}",
+      "inLanguage": "fr"
+    }}
+    </script>"""
 
     return index_html.replace("</head>", f"{og_tags}\n  </head>", 1)
 
