@@ -4,12 +4,36 @@ import SEO from '../components/SEO'
 
 const API_BASE = window.location.origin + '/api'
 
+const CURSUS_LIST = [
+  { id: 'A', name: 'A · Falsafa', color: '#04D182', tags: ['Falsafa', 'Ibn Sina', 'Al-Kindī', 'Averroès', 'Ibn Rushd', 'Mouvement de traduction', 'Maison de la Sagesse', 'Al-Ghazālī', 'Taḥāfut al-Falāsifa', 'Aristote', 'Averroïsme latin', 'Ibn Khaldūn', 'Muqaddima', 'ʿAsabiyya', 'Sociologie', 'Historiographie'] },
+  { id: 'B', name: 'B · Kalām & Droit', color: '#8B5CF6', tags: ['Fiqh', 'Kalām', 'Abu Hanifa', 'École hanafite', 'Mālik ibn Anas', 'École mālikite', 'Qiyās', 'Sunna', 'ʿAmal'] },
+  { id: 'C', name: 'C · Sciences islamiques', color: '#EAD637', tags: ['Hadīth', 'Al-Bukhārī', 'Ṣaḥīḥ', 'Sciences islamiques', 'Isnād', 'Canon sunnite', 'Hadīth sunnisme', 'Transoxiane'] },
+  { id: 'D', name: 'D · Arts & Sciences', color: '#EC4899', tags: ['Adab', 'Poésie de cour', 'Al-Idrīsī', 'Géographie islamique', 'Cartographie', 'Nuzhat al-Mushtāq', 'Livre de Roger'] },
+  { id: 'E', name: 'E · Mystique islamique', color: '#06B6D4', tags: ['Taṣawwuf', 'Soufisme', 'Mystique islamique', 'Al-Ḥallāj', 'Ana al-Ḥaqq'] },
+  { id: 'F', name: 'F · Pensées non islamiques', color: '#F59E0B', tags: ['Maïmonide', 'Philosophie juive', 'Guide des égarés', 'Langue arabe', 'Diaspora andalouse'] },
+]
+
+function getArticleCursus(article) {
+  const result = []
+  const tags = article.tags || []
+  for (const c of CURSUS_LIST) {
+    if (tags.some(t => c.tags.includes(t))) result.push(c.id)
+  }
+  return result
+}
+
+function parseAH(dateAh) {
+  if (!dateAh) return 0
+  const m = dateAh.match(/(\d+)/)
+  return m ? parseInt(m[1], 10) : 0
+}
+
 export default function BlogList() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [sortOrder, setSortOrder] = useState('newest')
-  const [selectedEpoch, setSelectedEpoch] = useState('')
+  const [selectedCursus, setSelectedCursus] = useState('')
 
   useEffect(() => {
     fetch(`${API_BASE}/blog`)
@@ -21,12 +45,6 @@ export default function BlogList() {
   useEffect(() => {
     document.title = 'Sijill Times — Le monde en… | Sijill Project'
   }, [])
-
-  const epochs = useMemo(() => {
-    const set = new Set()
-    articles.forEach(a => { if (a.epoch) set.add(a.epoch) })
-    return [...set].sort()
-  }, [articles])
 
   const filtered = useMemo(() => {
     let result = [...articles]
@@ -41,20 +59,20 @@ export default function BlogList() {
       )
     }
 
-    if (selectedEpoch) {
-      result = result.filter(a => a.epoch === selectedEpoch)
+    if (selectedCursus) {
+      result = result.filter(a => getArticleCursus(a).includes(selectedCursus))
     }
 
     result.sort((a, b) => {
-      const na = a.number || 0
-      const nb = b.number || 0
-      return sortOrder === 'newest' ? nb - na : na - nb
+      const ahA = parseAH(a.date_ah)
+      const ahB = parseAH(b.date_ah)
+      return sortOrder === 'newest' ? ahB - ahA : ahA - ahB
     })
 
     return result
-  }, [articles, search, sortOrder, selectedEpoch])
+  }, [articles, search, sortOrder, selectedCursus])
 
-  const hasFilters = search || selectedEpoch
+  const hasFilters = search || selectedCursus
 
   return (
     <div className="st" data-testid="blog-page">
@@ -99,14 +117,14 @@ export default function BlogList() {
           </div>
           <div className="st-filters">
             <select
-              value={selectedEpoch}
-              onChange={e => setSelectedEpoch(e.target.value)}
+              value={selectedCursus}
+              onChange={e => setSelectedCursus(e.target.value)}
               className="st-filter-select"
-              data-testid="blog-filter-epoch"
+              data-testid="blog-filter-cursus"
             >
-              <option value="">Toutes les époques</option>
-              {epochs.map(e => (
-                <option key={e} value={e}>{e}</option>
+              <option value="">Tous les cursus</option>
+              {CURSUS_LIST.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
             <select
@@ -115,15 +133,15 @@ export default function BlogList() {
               className="st-filter-select"
               data-testid="blog-sort"
             >
-              <option value="newest">Plus récent</option>
-              <option value="oldest">Plus ancien</option>
+              <option value="newest">Année AH : récent → ancien</option>
+              <option value="oldest">Année AH : ancien → récent</option>
             </select>
           </div>
         </div>
         {hasFilters && (
           <div className="st-filter-status">
             <span>{filtered.length} article{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}</span>
-            <button className="st-filter-reset" onClick={() => { setSearch(''); setSelectedEpoch('') }} data-testid="blog-filter-reset">
+            <button className="st-filter-reset" onClick={() => { setSearch(''); setSelectedCursus('') }} data-testid="blog-filter-reset">
               Réinitialiser
             </button>
           </div>
