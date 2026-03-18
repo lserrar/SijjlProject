@@ -28,7 +28,9 @@ services:
       - "127.0.0.1:8001:8001"
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
     container_name: sijill-nginx
     restart: always
     ports:
