@@ -14,7 +14,7 @@ export default function BlogList() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [sortOrder, setSortOrder] = useState('number_desc')
+  const [sortOrder, setSortOrder] = useState('number_asc')
 
   useEffect(() => {
     fetch(`${API_BASE}/blog`)
