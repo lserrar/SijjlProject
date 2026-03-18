@@ -127,24 +127,28 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   // On web, don't block rendering if fonts fail to load
+  const [webFontTimeout, setWebFontTimeout] = useState(false);
   useEffect(() => {
     if (Platform.OS === 'web') {
       const timeout = setTimeout(() => {
-        if (!fontsLoaded) {
+        setWebFontTimeout(true);
+        if (!_splashCompleted) {
           _splashCompleted = true;
           setShowSplash(false);
         }
-      }, 3000);
+      }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [fontsLoaded]);
+  }, []);
 
   const handleSplashComplete = () => {
     _splashCompleted = true; // Mark as completed at module level
     setShowSplash(false);
   };
 
-  if (!fontsLoaded && !fontError) {
+  // Wait for fonts - but on web, don't block forever
+  const fontsReady = fontsLoaded || fontError || (Platform.OS === 'web' && webFontTimeout);
+  if (!fontsReady) {
     return null;
   }
 
