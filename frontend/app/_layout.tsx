@@ -27,13 +27,15 @@ import { AuthProvider } from '../context/AuthContext';
 import { PlayerProvider } from '../context/PlayerContext';
 import React from 'react';
 
-const SPLASH_DURATION = 3000; // 3 seconds
+const SPLASH_DURATION = Platform.OS === 'web' ? 1500 : 3000;
 
 // Module-level flag - set immediately when module loads
 let _splashCompleted = false;
 
-// Keep the native splash screen visible while we load fonts
-SplashScreen.preventAutoHideAsync();
+// Keep the native splash screen visible while we load fonts (native only)
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync();
+}
 
 // Simple Splash Component - No animation, shows only once
 function SimpleSplash({ onComplete }: { onComplete: () => void }) {
@@ -118,9 +120,24 @@ export default function RootLayout() {
   useEffect(() => {
     // Hide the native splash screen once fonts are loaded
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      if (Platform.OS !== 'web') {
+        SplashScreen.hideAsync();
+      }
     }
   }, [fontsLoaded, fontError]);
+
+  // On web, don't block rendering if fonts fail to load
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const timeout = setTimeout(() => {
+        if (!fontsLoaded) {
+          _splashCompleted = true;
+          setShowSplash(false);
+        }
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [fontsLoaded]);
 
   const handleSplashComplete = () => {
     _splashCompleted = true; // Mark as completed at module level

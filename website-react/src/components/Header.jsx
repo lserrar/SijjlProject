@@ -33,7 +33,7 @@ export default function Header() {
           <Link to="/a-propos" data-testid="nav-about">A propos</Link>
         </nav>
         <div className="nav-auth" data-testid="nav-auth">
-          <a href={APP_URL} className="btn-open-app" data-testid="nav-open-app">
+          <a href={APP_URL} className="btn-open-app" data-testid="nav-open-app" target="_blank" rel="noopener noreferrer">
             <i className="fas fa-circle-play" />
             Ouvrir l'App
           </a>
