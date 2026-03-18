@@ -7610,6 +7610,21 @@ async def inject_og_meta(index_html: str, article_id: str) -> str:
 
     return index_html.replace("</head>", f"{og_tags}\n  </head>", 1)
 
+# ─── WebApp (Expo Web) served at /webapp/* ─────────────────────────────────
+WEBAPP_DIR = Path(__file__).parent.parent / "webapp" / "dist"
+
+@app.get("/webapp/{full_path:path}")
+async def serve_webapp(full_path: str):
+    """Serve the Expo webapp SPA."""
+    if WEBAPP_DIR.exists():
+        file_path = WEBAPP_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        index_path = WEBAPP_DIR / "index.html"
+        if index_path.exists():
+            return FileResponse(str(index_path))
+    raise HTTPException(404, "Webapp not found")
+
 # SPA catch-all: serve index.html for all non-file /api/site/* routes
 @app.get("/api/site/{full_path:path}")
 async def serve_website_spa(full_path: str):

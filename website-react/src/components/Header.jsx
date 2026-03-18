@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 
+const APP_URL = 'https://app.sijillproject.com'
+
 export default function Header() {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -31,6 +33,10 @@ export default function Header() {
           <Link to="/a-propos" data-testid="nav-about">A propos</Link>
         </nav>
         <div className="nav-auth" data-testid="nav-auth">
+          <a href={APP_URL} className="btn-open-app" data-testid="nav-open-app">
+            <i className="fas fa-circle-play" />
+            Ouvrir l'App
+          </a>
           {user ? (
             <div className="user-menu">
               <span className="user-name">{user.name || user.email}</span>
@@ -43,9 +49,9 @@ export default function Header() {
             </div>
           ) : (
             <>
-              <Link to="/connexion" data-testid="nav-login">Connexion</Link>
-              <Link to="/inscription" className="btn-accent" data-testid="nav-register">
-                S'inscrire
+              <Link to="/inscription" data-testid="nav-register">S'inscrire</Link>
+              <Link to="/connexion" className="btn-accent" data-testid="nav-login">
+                Connexion
               </Link>
             </>
           )}
@@ -70,6 +76,10 @@ export default function Header() {
           <Link to="/blog" data-testid="mobile-nav-blog">Blog</Link>
           <Link to="/a-propos" data-testid="mobile-nav-about">A propos</Link>
           <div className="mobile-menu-divider" />
+          <a href={APP_URL} className="mobile-menu-app-link" data-testid="mobile-nav-open-app">
+            <i className="fas fa-circle-play" /> Ouvrir l'App
+          </a>
+          <div className="mobile-menu-divider" />
           {user ? (
             <>
               <span className="mobile-menu-user">{user.name || user.email}</span>
@@ -79,9 +89,9 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link to="/connexion" data-testid="mobile-nav-login">Connexion</Link>
-              <Link to="/inscription" className="btn-accent" data-testid="mobile-nav-register">
-                S'inscrire
+              <Link to="/inscription" data-testid="mobile-nav-register">S'inscrire</Link>
+              <Link to="/connexion" className="btn-accent" data-testid="mobile-nav-login">
+                Connexion
               </Link>
             </>
           )}
