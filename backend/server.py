@@ -4879,8 +4879,8 @@ def parse_blog_docx(file_bytes: bytes, file_key: str) -> dict:
         year_ce = round(year_ah * 0.970229 + 621.5)
         date_ce = f"{year_ce} CE"
 
-    # ── Generate ID ──
-    article_id = f"mondeen-{year_ah}" if year_ah else f"mondeen-{number}"
+    # ── Generate ID (use number to avoid collisions when multiple articles share the same year) ──
+    article_id = f"mondeen-{number}" if number else f"mondeen-{year_ah}"
 
     # ── Image key (check if jpeg exists) ──
     base = file_key.replace('.docx', '')

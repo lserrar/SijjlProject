@@ -41,6 +41,7 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 ## Ce qui fonctionne
 - ✅ Site principal `sijillproject.com` (homepage, catalogue, blog)
 - ✅ Blog avec recherche, tri par chronique/année Hijri, SEO (meta keywords, JSON-LD)
+- ✅ Blog sync : 50 articles synchronisés correctement depuis R2 — CORRIGÉ collision IDs (Fév 2026)
 - ✅ Web App `app.sijillproject.com` — CORRIGÉ (Fév 2026)
 - ✅ Backend API complet (auth, courses, audios, streaming, admin)
 - ✅ Système de parrainage
