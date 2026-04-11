@@ -100,3 +100,20 @@ export async function getResourceContent(resourceId) {
 export async function getMe() {
   return apiFetch('/auth/me');
 }
+
+export async function preregister(prenom, email) {
+  const res = await fetch(`${API_BASE}/preregistration`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prenom, email }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Erreur lors de la pré-inscription");
+  }
+  return res.json();
+}
+
+export async function getPreregistrationCount() {
+  return apiFetch('/preregistration/count');
+}

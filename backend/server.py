@@ -893,6 +893,42 @@ async def me(request: Request):
 async def logout():
     return {'message': 'Déconnexion réussie'}
 
+
+# ─── Pre-Registration Routes ────────────────────────────────────────────────
+
+class PreRegistrationRequest(BaseModel):
+    email: EmailStr
+    prenom: str
+
+@api_router.post("/preregistration")
+async def preregister(body: PreRegistrationRequest):
+    email = body.email.lower().strip()
+    prenom = body.prenom.strip()
+    if not prenom:
+        raise HTTPException(400, "Le prénom est requis")
+    existing = await db.preregistrations.find_one({'email': email})
+    if existing:
+        return {'message': 'Vous êtes déjà pré-inscrit(e). Merci !', 'already_registered': True}
+    await db.preregistrations.insert_one({
+        'email': email,
+        'prenom': prenom,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    })
+    count = await db.preregistrations.count_documents({})
+    return {'message': 'Pré-inscription confirmée ! Vous serez informé(e) en priorité.', 'already_registered': False, 'total': count}
+
+@api_router.get("/preregistration/count")
+async def preregistration_count():
+    count = await db.preregistrations.count_documents({})
+    return {'count': count}
+
+@api_router.get("/admin/preregistrations")
+async def admin_list_preregistrations(request: Request):
+    await require_admin(request)
+    preinscriptions = await db.preregistrations.find({}, {'_id': 0}).sort('created_at', -1).to_list(1000)
+    return preinscriptions
+
+
 # ─── Scholar Routes ─────────────────────────────────────────────────────────
 
 @api_router.get("/scholars")

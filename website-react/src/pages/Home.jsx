@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { getCursus, getCourses } from '../api'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { getCursus, getCourses, preregister } from '../api'
 import { getCursusColor, getCursusLetter } from '../constants'
 
 export default function Home() {
   const [cursus, setCursus] = useState([])
   const [featuredCourses, setFeaturedCourses] = useState([])
+  const [prenom, setPrenom] = useState('')
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
+  const formRef = useRef(null)
+  const location = useLocation()
 
   useEffect(() => {
     getCursus().then(data => {
@@ -18,43 +25,103 @@ export default function Home() {
     })
   }, [])
 
+  // Scroll to #preinscription if hash is present
+  useEffect(() => {
+    if (location.hash === '#preinscription' && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [location])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setResult(null)
+    if (!prenom.trim() || !email.trim()) {
+      setError('Veuillez remplir tous les champs.')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await preregister(prenom.trim(), email.trim())
+      setResult(res)
+      if (!res.already_registered) {
+        setPrenom('')
+        setEmail('')
+      }
+    } catch (err) {
+      setError(err.message || "Une erreur est survenue.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <>
-      {/* Hero */}
-      <section className="hero" data-testid="home-hero">
-        <div className="hero-eyebrow">Plateforme académique</div>
-        <h1 className="hero-title">
-          Comprendre, transmettre,{' '}
-          <span className="hero-title-sub">penser la pluralité des savoirs islamiques</span>
-        </h1>
-        <p className="hero-subtitle">
-          Des parcours structurés en philosophie, théologie, droit, littérature et histoire de la mystique islamique.
-          Plus de 100 épisodes audio par les meilleurs spécialistes.
-        </p>
-        <div className="hero-cta">
-          <Link to="/cursus" className="btn-accent" data-testid="hero-explore-btn">
-            Explorer les cursus
-          </Link>
-          <Link to="/inscription" className="btn-outline" data-testid="hero-register-btn">
-            Créer un compte
-          </Link>
-        </div>
-        <div className="hero-stats">
-          <div>
-            <div className="hero-stat-value">6</div>
-            <div className="hero-stat-label">Cursus</div>
+      {/* Hero — Pre-registration */}
+      <section className="hero prereg-hero" id="preinscription" ref={formRef} data-testid="prereg-hero">
+        <div className="prereg-layout">
+          <div className="prereg-content">
+            <div className="hero-eyebrow">Ouverture septembre 2026</div>
+            <h1 className="prereg-title">
+              Sijill Project
+            </h1>
+            <p className="prereg-subtitle">
+              La premiere plateforme academique audio pour comprendre la pluralite des savoirs islamiques, en francais.
+            </p>
+            <div className="prereg-stats-inline">
+              <span>7 cursus</span>
+              <span className="prereg-dot"></span>
+              <span>17 universitaires</span>
+              <span className="prereg-dot"></span>
+              <span>+80 episodes</span>
+            </div>
           </div>
-          <div>
-            <div className="hero-stat-value">24</div>
-            <div className="hero-stat-label">Cours</div>
-          </div>
-          <div>
-            <div className="hero-stat-value">100+</div>
-            <div className="hero-stat-label">Épisodes</div>
-          </div>
-          <div>
-            <div className="hero-stat-value">50+</div>
-            <div className="hero-stat-label">Heures</div>
+          <div className="prereg-form-card" data-testid="prereg-form-card">
+            <div className="prereg-form-badge">Tarif fondateur</div>
+            <div className="prereg-form-price">
+              <span className="prereg-price-amount">7</span>
+              <span className="prereg-price-unit">&euro;/mois</span>
+            </div>
+            <div className="prereg-form-places">200 places uniquement</div>
+            {result ? (
+              <div className="prereg-success" data-testid="prereg-success">
+                <div className="prereg-success-icon">&#10003;</div>
+                <p>{result.message}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="prereg-form" data-testid="prereg-form">
+                <input
+                  type="text"
+                  placeholder="Prenom"
+                  value={prenom}
+                  onChange={e => setPrenom(e.target.value)}
+                  className="prereg-input"
+                  data-testid="prereg-prenom"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="prereg-input"
+                  data-testid="prereg-email"
+                  required
+                />
+                {error && <div className="prereg-error" data-testid="prereg-error">{error}</div>}
+                <button
+                  type="submit"
+                  className="prereg-submit"
+                  disabled={submitting}
+                  data-testid="prereg-submit"
+                >
+                  {submitting ? 'Inscription...' : "Je m'inscris"}
+                </button>
+                <p className="prereg-disclaimer">
+                  Aucun spam. Vous recevrez uniquement les actualites du lancement.
+                </p>
+              </form>
+            )}
           </div>
         </div>
       </section>
@@ -62,9 +129,9 @@ export default function Home() {
       {/* Quote */}
       <section className="featured-quote">
         <p className="featured-quote-text">
-          &laquo;&nbsp;L'histoire consiste à méditer, à rechercher la vérité, à expliquer les causes et les origines des événements. Elle prend ainsi racine dans la philosophie, dont elle doit être comptée comme une branche.&nbsp;&raquo;
+          &laquo;&nbsp;L'histoire consiste a mediter, a rechercher la verite, a expliquer les causes et les origines des evenements. Elle prend ainsi racine dans la philosophie, dont elle doit etre comptee comme une branche.&nbsp;&raquo;
         </p>
-        <span className="featured-quote-author">Ibn Khaldûn (al-Muqaddima)</span>
+        <span className="featured-quote-author">Ibn Khaldun (al-Muqaddima)</span>
       </section>
 
       {/* Cursus section */}
@@ -74,7 +141,7 @@ export default function Home() {
             <div className="section-eyebrow">6 cursus disponibles</div>
             <h2 className="section-title">Les grandes voies du savoir islamique</h2>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--text-muted)', marginTop: 8 }}>
-              Choisissez votre parcours d'étude
+              Choisissez votre parcours d'etude
             </p>
           </div>
           <Link to="/cursus" className="btn-outline">Voir tout</Link>
@@ -117,7 +184,7 @@ export default function Home() {
         <section className="section" style={{ paddingTop: 0 }} data-testid="home-courses-section">
           <div className="section-header">
             <div>
-              <div className="section-eyebrow">À la une</div>
+              <div className="section-eyebrow">A la une</div>
               <h2 className="section-title">Commencez par la Falsafa</h2>
             </div>
           </div>
@@ -144,15 +211,15 @@ export default function Home() {
         </section>
       )}
 
-      {/* CTA */}
+      {/* CTA — repeat pre-registration */}
       <section className="section" style={{ textAlign: 'center', paddingTop: 40 }}>
-        <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Prêt à commencer ?</div>
+        <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Pret a commencer ?</div>
         <h2 className="section-title" style={{ textAlign: 'center', marginBottom: 32 }}>
           Rejoignez Sijill Project
         </h2>
-        <Link to="/inscription" className="btn-accent" data-testid="home-cta-register">
-          Créer un compte gratuitement
-        </Link>
+        <a href="#preinscription" className="btn-accent" data-testid="home-cta-prereg">
+          Se pre-inscrire
+        </a>
       </section>
     </>
   )

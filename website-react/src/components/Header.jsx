@@ -33,6 +33,9 @@ export default function Header() {
           <Link to="/a-propos" data-testid="nav-about">A propos</Link>
         </nav>
         <div className="nav-auth" data-testid="nav-auth">
+          <Link to="/#preinscription" className="btn-prereg" data-testid="nav-prereg">
+            Pre-inscription
+          </Link>
           <a href={APP_URL} className="btn-open-app" data-testid="nav-open-app" target="_blank" rel="noopener noreferrer">
             <i className="fas fa-circle-play" />
             Ouvrir l'App
@@ -79,6 +82,9 @@ export default function Header() {
           <a href={APP_URL} className="mobile-menu-app-link" data-testid="mobile-nav-open-app">
             <i className="fas fa-circle-play" /> Ouvrir l'App
           </a>
+          <Link to="/#preinscription" className="btn-accent" data-testid="mobile-nav-prereg" onClick={() => setMenuOpen(false)}>
+            Pre-inscription
+          </Link>
           <div className="mobile-menu-divider" />
           {user ? (
             <>
