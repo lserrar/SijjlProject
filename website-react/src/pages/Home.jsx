@@ -66,14 +66,14 @@ export default function Home() {
               Sijill Project
             </h1>
             <p className="prereg-subtitle">
-              La premiere plateforme academique audio pour comprendre la pluralite des savoirs islamiques, en francais.
+              La premi&egrave;re plateforme acad&eacute;mique audio pour comprendre la pluralit&eacute; des savoirs islamiques, en fran&ccedil;ais.
             </p>
             <div className="prereg-stats-inline">
               <span>7 cursus</span>
               <span className="prereg-dot"></span>
               <span>17 universitaires</span>
               <span className="prereg-dot"></span>
-              <span>+80 episodes</span>
+              <span>+80 &eacute;pisodes</span>
             </div>
           </div>
           <div className="prereg-form-card" data-testid="prereg-form-card">
@@ -92,7 +92,7 @@ export default function Home() {
               <form onSubmit={handleSubmit} className="prereg-form" data-testid="prereg-form">
                 <input
                   type="text"
-                  placeholder="Prenom"
+                  placeholder={`Pr\u00e9nom`}
                   value={prenom}
                   onChange={e => setPrenom(e.target.value)}
                   className="prereg-input"
@@ -118,7 +118,7 @@ export default function Home() {
                   {submitting ? 'Inscription...' : "Je m'inscris"}
                 </button>
                 <p className="prereg-disclaimer">
-                  Aucun spam. Vous recevrez uniquement les actualites du lancement.
+                  Aucun spam. Vous recevrez uniquement les actualit&eacute;s du lancement.
                 </p>
               </form>
             )}
@@ -129,9 +129,9 @@ export default function Home() {
       {/* Quote */}
       <section className="featured-quote">
         <p className="featured-quote-text">
-          &laquo;&nbsp;L'histoire consiste a mediter, a rechercher la verite, a expliquer les causes et les origines des evenements. Elle prend ainsi racine dans la philosophie, dont elle doit etre comptee comme une branche.&nbsp;&raquo;
+          &laquo;&nbsp;L'histoire consiste &agrave; m&eacute;diter, &agrave; rechercher la v&eacute;rit&eacute;, &agrave; expliquer les causes et les origines des &eacute;v&eacute;nements. Elle prend ainsi racine dans la philosophie, dont elle doit &ecirc;tre compt&eacute;e comme une branche.&nbsp;&raquo;
         </p>
-        <span className="featured-quote-author">Ibn Khaldun (al-Muqaddima)</span>
+        <span className="featured-quote-author">Ibn Khald&ucirc;n (al-Muqaddima)</span>
       </section>
 
       {/* Cursus section */}
@@ -141,7 +141,7 @@ export default function Home() {
             <div className="section-eyebrow">6 cursus disponibles</div>
             <h2 className="section-title">Les grandes voies du savoir islamique</h2>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--text-muted)', marginTop: 8 }}>
-              Choisissez votre parcours d'etude
+              Choisissez votre parcours d'&eacute;tude
             </p>
           </div>
           <Link to="/cursus" className="btn-outline">Voir tout</Link>
@@ -213,12 +213,12 @@ export default function Home() {
 
       {/* CTA — repeat pre-registration */}
       <section className="section" style={{ textAlign: 'center', paddingTop: 40 }}>
-        <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Pret a commencer ?</div>
+        <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Pr&ecirc;t &agrave; commencer ?</div>
         <h2 className="section-title" style={{ textAlign: 'center', marginBottom: 32 }}>
           Rejoignez Sijill Project
         </h2>
         <a href="#preinscription" className="btn-accent" data-testid="home-cta-prereg">
-          Se pre-inscrire
+          Se pr&eacute;-inscrire
         </a>
       </section>
     </>

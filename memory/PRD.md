@@ -42,8 +42,9 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ Site principal `sijillproject.com` (homepage, catalogue, blog)
 - ✅ Blog avec recherche, tri par chronique/année Hijri, SEO (meta keywords, JSON-LD)
 - ✅ Blog sync : 50 articles synchronisés correctement depuis R2 — CORRIGÉ collision IDs (Fév 2026)
-- ✅ Web App `app.sijillproject.com` — CORRIGÉ (Fév 2026)
-- ✅ Backend API complet (auth, courses, audios, streaming, admin)
+- ✅ Web App `app.sijillproject.com` — CORRIGÉ architecture nginx (Fév 2026)
+- ✅ Page de pré-inscription avec formulaire (prénom + email), hero sur homepage, bouton header — AJOUTÉ (Avr 2026)
+- ✅ Backend API complet (auth, courses, audios, streaming, admin, pre-registration)
 - ✅ Système de parrainage
 - ✅ Système d'abonnement Stripe
 - ✅ 6 cursus avec couleurs personnalisées
@@ -52,8 +53,10 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 ## Tâches à venir
 
 ### P1 - Prioritaire
-- [ ] Convertir la web app en **PWA** (manifest, service worker, icônes)
-- [ ] Tester et finaliser **Sign in with Apple** sur la web app
+- [ ] Corriger les pistes audio non synchronisées (épisodes manquants)
+- [ ] Corriger les photos des articles du blog (images du dossier R2 non récupérées)
+- [ ] Configurer la tarification et les abonnements Stripe (nouveau compte bancaire Sijill)
+- [ ] Mettre à jour le catalogue des cours (professeurs, descriptions, "bientôt disponible")
 
 ### P2 - Futur
 - [ ] Retour au développement natif mobile (prévu septembre)
