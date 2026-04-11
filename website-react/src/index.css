@@ -2638,78 +2638,41 @@ button { cursor: pointer; font-family: var(--font-body); }
   color: #0A0A0A !important;
 }
 
-/* ─── PRE-REGISTRATION HERO ─── */
-.prereg-hero {
-  min-height: 100vh;
+/* ─── FONDATEUR OFFER SECTION ─── */
+.fondateur-section {
   display: flex;
-  flex-direction: column;
   justify-content: center;
-  padding: 120px 40px 80px;
+  padding: 60px 24px 80px;
 }
 
-.prereg-layout {
-  display: flex;
-  align-items: center;
-  gap: 80px;
-  max-width: 1200px;
-  margin: 0 auto;
+.fondateur-card {
+  max-width: 460px;
   width: 100%;
-}
-
-.prereg-content {
-  flex: 1;
-}
-
-.prereg-title {
-  font-family: var(--font-display);
-  font-size: clamp(40px, 5vw, 72px);
-  line-height: 1.1;
-  font-weight: 400;
-  color: var(--text);
-  margin-bottom: 24px;
-}
-
-.prereg-subtitle {
-  font-family: var(--font-body);
-  font-size: clamp(18px, 2vw, 22px);
-  color: var(--text-muted);
-  line-height: 1.7;
-  max-width: 520px;
-  margin-bottom: 24px;
-}
-
-.prereg-stats-inline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.prereg-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-/* ─── FORM CARD ─── */
-.prereg-form-card {
-  width: 380px;
-  flex-shrink: 0;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  padding: 40px 32px;
+  padding: 48px 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
 
+.fondateur-engagement {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.fondateur-standard {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+
+/* ─── FORM CARD SHARED STYLES ─── */
 .prereg-form-badge {
   font-family: var(--font-display);
   font-size: 9px;
@@ -2741,13 +2704,6 @@ button { cursor: pointer; font-family: var(--font-body); }
   font-size: 16px;
   color: var(--text-muted);
   letter-spacing: 1px;
-}
-
-.prereg-form-places {
-  font-family: var(--font-body);
-  font-size: 15px;
-  color: var(--text-dim);
-  margin-bottom: 28px;
 }
 
 /* ─── FORM FIELDS ─── */
@@ -2842,30 +2798,8 @@ button { cursor: pointer; font-family: var(--font-body); }
   line-height: 1.6;
 }
 
-/* ─── RESPONSIVE ─── */
 @media (max-width: 900px) {
-  .prereg-layout {
-    flex-direction: column;
-    gap: 48px;
-    text-align: center;
-  }
-  .prereg-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .prereg-subtitle {
-    max-width: 100%;
-  }
-  .prereg-stats-inline {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .prereg-form-card {
-    width: 100%;
-    max-width: 420px;
-  }
-  .prereg-hero {
-    padding: 100px 24px 60px;
+  .fondateur-card {
+    padding: 36px 24px;
   }
 }

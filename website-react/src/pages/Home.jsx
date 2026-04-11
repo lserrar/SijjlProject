@@ -25,7 +25,6 @@ export default function Home() {
     })
   }, [])
 
-  // Scroll to #preinscription if hash is present
   useEffect(() => {
     if (location.hash === '#preinscription' && formRef.current) {
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -57,71 +56,41 @@ export default function Home() {
 
   return (
     <>
-      {/* Hero — Pre-registration */}
-      <section className="hero prereg-hero" id="preinscription" ref={formRef} data-testid="prereg-hero">
-        <div className="prereg-layout">
-          <div className="prereg-content">
-            <div className="hero-eyebrow">Ouverture septembre 2026</div>
-            <h1 className="prereg-title">
-              Sijill Project
-            </h1>
-            <p className="prereg-subtitle">
-              La premi&egrave;re plateforme acad&eacute;mique audio pour comprendre la pluralit&eacute; des savoirs islamiques, en fran&ccedil;ais.
-            </p>
-            <div className="prereg-stats-inline">
-              <span>7 cursus</span>
-              <span className="prereg-dot"></span>
-              <span>17 universitaires</span>
-              <span className="prereg-dot"></span>
-              <span>+80 &eacute;pisodes</span>
-            </div>
+      {/* Hero */}
+      <section className="hero" data-testid="home-hero">
+        <div className="hero-eyebrow">Plateforme acad&eacute;mique</div>
+        <h1 className="hero-title">
+          Comprendre, transmettre,{' '}
+          <span className="hero-title-sub">penser la pluralit&eacute; des savoirs islamiques</span>
+        </h1>
+        <p className="hero-subtitle">
+          Des parcours structur&eacute;s en philosophie, th&eacute;ologie, droit, litt&eacute;rature et histoire de la mystique islamique.
+          Plus de 100 &eacute;pisodes audio par les meilleurs sp&eacute;cialistes.
+        </p>
+        <div className="hero-cta">
+          <Link to="/cursus" className="btn-accent" data-testid="hero-explore-btn">
+            Explorer les cursus
+          </Link>
+          <a href="#preinscription" className="btn-outline" data-testid="hero-prereg-btn">
+            Pr&eacute;-inscription
+          </a>
+        </div>
+        <div className="hero-stats">
+          <div>
+            <div className="hero-stat-value">6</div>
+            <div className="hero-stat-label">Cursus</div>
           </div>
-          <div className="prereg-form-card" data-testid="prereg-form-card">
-            <div className="prereg-form-badge">Tarif fondateur</div>
-            <div className="prereg-form-price">
-              <span className="prereg-price-amount">7</span>
-              <span className="prereg-price-unit">&euro;/mois</span>
-            </div>
-            <div className="prereg-form-places">200 places uniquement</div>
-            {result ? (
-              <div className="prereg-success" data-testid="prereg-success">
-                <div className="prereg-success-icon">&#10003;</div>
-                <p>{result.message}</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="prereg-form" data-testid="prereg-form">
-                <input
-                  type="text"
-                  placeholder={`Pr\u00e9nom`}
-                  value={prenom}
-                  onChange={e => setPrenom(e.target.value)}
-                  className="prereg-input"
-                  data-testid="prereg-prenom"
-                  required
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="prereg-input"
-                  data-testid="prereg-email"
-                  required
-                />
-                {error && <div className="prereg-error" data-testid="prereg-error">{error}</div>}
-                <button
-                  type="submit"
-                  className="prereg-submit"
-                  disabled={submitting}
-                  data-testid="prereg-submit"
-                >
-                  {submitting ? 'Inscription...' : "Je m'inscris"}
-                </button>
-                <p className="prereg-disclaimer">
-                  Aucun spam. Vous recevrez uniquement les actualit&eacute;s du lancement.
-                </p>
-              </form>
-            )}
+          <div>
+            <div className="hero-stat-value">24</div>
+            <div className="hero-stat-label">Cours</div>
+          </div>
+          <div>
+            <div className="hero-stat-value">100+</div>
+            <div className="hero-stat-label">&Eacute;pisodes</div>
+          </div>
+          <div>
+            <div className="hero-stat-value">50+</div>
+            <div className="hero-stat-label">Heures</div>
           </div>
         </div>
       </section>
@@ -184,7 +153,7 @@ export default function Home() {
         <section className="section" style={{ paddingTop: 0 }} data-testid="home-courses-section">
           <div className="section-header">
             <div>
-              <div className="section-eyebrow">A la une</div>
+              <div className="section-eyebrow">&Agrave; la une</div>
               <h2 className="section-title">Commencez par la Falsafa</h2>
             </div>
           </div>
@@ -211,15 +180,56 @@ export default function Home() {
         </section>
       )}
 
-      {/* CTA — repeat pre-registration */}
-      <section className="section" style={{ textAlign: 'center', paddingTop: 40 }}>
-        <div className="section-eyebrow" style={{ textAlign: 'center', justifyContent: 'center' }}>Pr&ecirc;t &agrave; commencer ?</div>
-        <h2 className="section-title" style={{ textAlign: 'center', marginBottom: 32 }}>
-          Rejoignez Sijill Project
-        </h2>
-        <a href="#preinscription" className="btn-accent" data-testid="home-cta-prereg">
-          Se pr&eacute;-inscrire
-        </a>
+      {/* Offre fondateur + Pré-inscription */}
+      <section className="section fondateur-section" id="preinscription" ref={formRef} data-testid="fondateur-section">
+        <div className="fondateur-card" data-testid="fondateur-card">
+          <div className="prereg-form-badge">Tarif fondateur &mdash; 200 places uniquement</div>
+          <div className="prereg-form-price">
+            <span className="prereg-price-amount">7</span>
+            <span className="prereg-price-unit">&euro;/mois</span>
+          </div>
+          <div className="fondateur-engagement">engagement 12 mois</div>
+          <div className="fondateur-standard">(tarif standard apr&egrave;s lancement : 12 &euro;/mois)</div>
+          {result ? (
+            <div className="prereg-success" data-testid="prereg-success">
+              <div className="prereg-success-icon">&#10003;</div>
+              <p>{result.message}</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="prereg-form" data-testid="prereg-form">
+              <input
+                type="text"
+                placeholder={`Pr\u00e9nom`}
+                value={prenom}
+                onChange={e => setPrenom(e.target.value)}
+                className="prereg-input"
+                data-testid="prereg-prenom"
+                required
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="prereg-input"
+                data-testid="prereg-email"
+                required
+              />
+              {error && <div className="prereg-error" data-testid="prereg-error">{error}</div>}
+              <button
+                type="submit"
+                className="prereg-submit"
+                disabled={submitting}
+                data-testid="prereg-submit"
+              >
+                {submitting ? 'Inscription...' : "Je m'inscris"}
+              </button>
+              <p className="prereg-disclaimer">
+                Aucun spam. Vous recevrez uniquement les actualit&eacute;s du lancement.
+              </p>
+            </form>
+          )}
+        </div>
       </section>
     </>
   )
