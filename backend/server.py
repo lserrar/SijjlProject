@@ -107,10 +107,12 @@ PUBLIC_URL = os.environ.get('PUBLIC_URL', '')
 # ─── Stripe Config ───────────────────────────────────────────────────────────
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
-# Default subscription plans (can be modified via admin panel)
+# Default subscription plans
 DEFAULT_PLANS = {
-    'monthly': {'name': 'Abonnement Mensuel', 'price': 9.99, 'duration_days': 30, 'type': 'subscription'},
-    'annual': {'name': 'Abonnement Annuel', 'price': 89.99, 'duration_days': 365, 'type': 'subscription'},
+    'fondateur_mensuel': {'name': 'Fondateur Mensuel', 'price': 7.00, 'duration_days': 30, 'type': 'subscription', 'is_fondateur': True},
+    'fondateur_annuel': {'name': 'Fondateur Annuel', 'price': 84.00, 'duration_days': 365, 'type': 'subscription', 'is_fondateur': True},
+    'standard_mensuel': {'name': 'Standard Mensuel', 'price': 12.00, 'duration_days': 30, 'type': 'subscription', 'is_fondateur': False},
+    'standard_annuel': {'name': 'Standard Annuel', 'price': 120.00, 'duration_days': 365, 'type': 'subscription', 'is_fondateur': False},
 }
 
 def get_presigned_stream_url(file_key: str) -> Optional[str]:
@@ -2613,6 +2615,18 @@ async def seed_data():
 
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
+        # Migrate plans to fondateur pricing
+        for plan_id, plan_data in DEFAULT_PLANS.items():
+            await db.plans.update_one(
+                {'plan_id': plan_id},
+                {'$set': {**plan_data, 'plan_id': plan_id, 'is_active': plan_data.get('is_fondateur', False)}},
+                upsert=True
+            )
+        await db.plans.update_many(
+            {'plan_id': {'$nin': list(DEFAULT_PLANS.keys())}},
+            {'$set': {'is_active': False}}
+        )
+        logger.info("Plans migration complete")
         logger.info("Database seeding complete")
         return
 
@@ -2799,6 +2813,20 @@ async def seed_data():
     )
     if phil_update.modified_count > 0:
         logger.info(f"Reassigned {phil_update.modified_count} philosophy courses to Meryem Sebti")
+
+    # 9. Migrate plans to fondateur pricing
+    for plan_id, plan_data in DEFAULT_PLANS.items():
+        await db.plans.update_one(
+            {'plan_id': plan_id},
+            {'$set': {**plan_data, 'plan_id': plan_id, 'is_active': plan_data.get('is_fondateur', False)}},
+            upsert=True
+        )
+    # Deactivate old plans
+    await db.plans.update_many(
+        {'plan_id': {'$nin': list(DEFAULT_PLANS.keys())}},
+        {'$set': {'is_active': False}}
+    )
+    logger.info("Plans migration complete")
 
     logger.info("Database seeding complete")
 
@@ -6741,10 +6769,12 @@ async def get_plans():
     """Get all active subscription and purchase plans."""
     plans = await db.plans.find({'is_active': True}, {'_id': 0}).to_list(100)
     if not plans:
-        # Return default plans if none configured
+        # Return fondateur plans (active now) + standard plans (inactive, for later)
         return [
-            {'plan_id': 'monthly', 'name': 'Abonnement Mensuel', 'price': 9.99, 'duration_days': 30, 'type': 'subscription', 'description': 'Acces illimite pendant 1 mois'},
-            {'plan_id': 'annual', 'name': 'Abonnement Annuel', 'price': 89.99, 'duration_days': 365, 'type': 'subscription', 'description': 'Acces illimite pendant 1 an - Economisez 30%'},
+            {'plan_id': 'fondateur_mensuel', 'name': 'Fondateur Mensuel', 'price': 7.00, 'duration_days': 30, 'type': 'subscription', 'description': '7 \u20ac/mois \u00b7 engagement 12 mois', 'is_fondateur': True, 'is_active': True, 'max_places': 200},
+            {'plan_id': 'fondateur_annuel', 'name': 'Fondateur Annuel', 'price': 84.00, 'duration_days': 365, 'type': 'subscription', 'description': '84 \u20ac/an (soit 7 \u20ac/mois) \u00b7 paiement unique', 'is_fondateur': True, 'is_active': True, 'max_places': 200},
+            {'plan_id': 'standard_mensuel', 'name': 'Standard Mensuel', 'price': 12.00, 'duration_days': 30, 'type': 'subscription', 'description': '12 \u20ac/mois', 'is_fondateur': False, 'is_active': False},
+            {'plan_id': 'standard_annuel', 'name': 'Standard Annuel', 'price': 120.00, 'duration_days': 365, 'type': 'subscription', 'description': '120 \u20ac/an (soit 10 \u20ac/mois)', 'is_fondateur': False, 'is_active': False},
         ]
     return plans
 
@@ -6769,10 +6799,9 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
         if not plan:
             # Check default plans
-            if body.plan_id == 'monthly':
-                plan = {'plan_id': 'monthly', 'name': 'Abonnement Mensuel', 'price': 9.99, 'duration_days': 30, 'type': 'subscription'}
-            elif body.plan_id == 'annual':
-                plan = {'plan_id': 'annual', 'name': 'Abonnement Annuel', 'price': 89.99, 'duration_days': 365, 'type': 'subscription'}
+            default = DEFAULT_PLANS.get(body.plan_id)
+            if default:
+                plan = {'plan_id': body.plan_id, **default}
             else:
                 raise HTTPException(404, "Plan non trouve")
         amount = float(plan['price'])
@@ -7315,10 +7344,9 @@ async def start_free_trial(body: StartTrialRequest, request: Request):
         plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
         if not plan:
             # Check default plans
-            if body.plan_id == 'monthly':
-                plan = {'plan_id': 'monthly', 'trial_days': 7}
-            elif body.plan_id == 'annual':
-                plan = {'plan_id': 'annual', 'trial_days': 14}
+            default = DEFAULT_PLANS.get(body.plan_id)
+            if default:
+                plan = {'plan_id': body.plan_id, 'trial_days': 7, **default}
             else:
                 raise HTTPException(404, "Plan non trouvé")
         
