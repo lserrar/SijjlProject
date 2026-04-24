@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Pré-inscriptions - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Pré-inscriptions</h1>
+        <p class="page-description">Liste d'attente pour le lancement</p>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="exportCSV()">
+        <i class="fas fa-download"></i> Exporter CSV
+    </button>
+</div>
+
+<div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-users"></i></div>
+        <div class="stat-value" id="totalCount">-</div>
+        <div class="stat-label">Inscrits</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-calendar-day"></i></div>
+        <div class="stat-value" id="todayCount">-</div>
+        <div class="stat-label">Aujourd'hui</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-value" id="weekCount">-</div>
+        <div class="stat-label">Cette semaine</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Tous les inscrits</div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" class="search-input" placeholder="Rechercher..." id="searchInput" oninput="filterTable()">
+        </div>
+    </div>
+    <div class="table-container">
+        <table id="preregTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Prénom</th>
+                    <th>Email</th>
+                    <th>Date d'inscription</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="4" class="loading"><div class="spinner"></div> Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_init %}
+loadPreregistrations();
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allData = [];
+
+async function loadPreregistrations() {
+    try {
+        const data = await apiRequest('/admin/preregistrations');
+        allData = data || [];
+        renderStats();
+        renderTable(allData);
+    } catch (e) {
+        document.getElementById('tableBody').innerHTML =
+            '<tr><td colspan="4" style="color:var(--danger);text-align:center;padding:40px;">Erreur de chargement</td></tr>';
+    }
+}
+
+function renderStats() {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const weekAgo = new Date(now - 7 * 86400000).toISOString();
+
+    const todayCount = allData.filter(p => p.created_at && p.created_at.slice(0, 10) === today).length;
+    const weekCount = allData.filter(p => p.created_at && p.created_at >= weekAgo).length;
+
+    document.getElementById('totalCount').textContent = allData.length;
+    document.getElementById('todayCount').textContent = todayCount;
+    document.getElementById('weekCount').textContent = weekCount;
+}
+
+function renderTable(data) {
+    const tbody = document.getElementById('tableBody');
+    if (!data.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="4">
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>Aucune pré-inscription</h3>
+                    <p>Les inscriptions apparaîtront ici</p>
+                </div>
+            </td></tr>`;
+        return;
+    }
+    tbody.innerHTML = data.map((p, i) => `
+        <tr>
+            <td style="color:var(--text-muted)">${i + 1}</td>
+            <td><strong>${escapeHtml(p.prenom)}</strong></td>
+            <td><a href="mailto:${escapeHtml(p.email)}" style="color:var(--brand-primary);text-decoration:none">${escapeHtml(p.email)}</a></td>
+            <td style="color:var(--text-secondary);font-size:13px">${formatDate(p.created_at)}</td>
+        </tr>
+    `).join('');
+}
+
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    if (!q) { renderTable(allData); return; }
+    const filtered = allData.filter(p =>
+        (p.prenom || '').toLowerCase().includes(q) ||
+        (p.email || '').toLowerCase().includes(q)
+    );
+    renderTable(filtered);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function exportCSV() {
+    if (!allData.length) { showToast('Aucune donnée à exporter', 'warning'); return; }
+    const header = 'Prénom,Email,Date\n';
+    const rows = allData.map(p =>
+        `"${(p.prenom||'').replace(/"/g,'""')}","${(p.email||'').replace(/"/g,'""')}","${p.created_at || ''}"`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `preinscriptions_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export CSV téléchargé');
+}
+</script>
+{% endblock %}

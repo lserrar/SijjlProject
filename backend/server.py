@@ -6611,6 +6611,14 @@ async def admin_panel_articles():
     """Admin panel articles page."""
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
 
+@api_router.get("/admin-panel/preregistrations", response_class=HTMLResponse)
+async def admin_panel_preregistrations(request: Request):
+    """Admin panel pre-registrations page."""
+    return templates.TemplateResponse(
+        "preregistrations.html",
+        {"request": request, "active_page": "preregistrations"}
+    )
+
 @api_router.get("/admin-panel/thematiques", response_class=HTMLResponse)
 async def admin_panel_thematiques(request: Request):
     """Admin panel thematiques page - redirects to cursus."""
