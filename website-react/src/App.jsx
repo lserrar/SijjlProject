@@ -14,6 +14,7 @@ import BlogArticle from './pages/BlogArticle'
 import MentionsLegales from './pages/MentionsLegales'
 import PolitiqueConfidentialite from './pages/PolitiqueConfidentialite'
 import CGU from './pages/CGU'
+import AdminPanel from './pages/AdminPanel'
 
 import ResourceViewer from './pages/ResourceViewer'
 
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/mentions-legales" element={<MentionsLegales />} />
           <Route path="/politique-de-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/conditions-utilisation" element={<CGU />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </main>
       <Footer />

@@ -2617,6 +2617,120 @@ button { cursor: pointer; font-family: var(--font-body); }
 }
 
 
+/* ─── ADMIN PANEL ─── */
+.admin-panel {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 120px 24px 80px;
+}
+
+.admin-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 48px;
+}
+
+.admin-section {
+  margin-bottom: 48px;
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.admin-section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--accent);
+  color: #0A0A0A;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 14px;
+}
+
+.admin-error {
+  color: #e74c3c;
+  font-family: var(--font-body);
+  margin-bottom: 16px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.admin-table thead th {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--bg-elevated);
+}
+
+.admin-table td {
+  padding: 14px 16px;
+  color: var(--text);
+}
+
+.admin-table a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.admin-table a:hover {
+  text-decoration: underline;
+}
+
+.admin-td-num {
+  color: var(--text-dim);
+  width: 40px;
+}
+
+.admin-td-date {
+  color: var(--text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+
 /* ─── PRE-REGISTRATION HEADER BUTTON ─── */
 .btn-prereg {
   display: inline-block;

@@ -117,3 +117,11 @@ export async function preregister(prenom, email) {
 export async function getPreregistrationCount() {
   return apiFetch('/preregistration/count');
 }
+
+export async function getAdminPreregistrations() {
+  return apiFetch('/admin/preregistrations');
+}
+
+export async function getAdminStats() {
+  return apiFetch('/admin/stats');
+}
