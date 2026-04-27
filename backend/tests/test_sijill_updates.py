@@ -7,7 +7,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://learn-preview-4.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://phased-launch-1.preview.emergentagent.com').rstrip('/')
 
 class TestCursusAPI:
     """Tests for /api/cursus endpoint - should return 6 cursus items"""

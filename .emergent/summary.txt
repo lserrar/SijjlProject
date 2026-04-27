@@ -1,196 +1,168 @@
-<analysis>**original_problem_statement:** The user wants to build Sijill, an Islamic studies e-learning platform. The project is being developed in phases:
-1.  **Reading Mode**: Display transcripts for audio episodes. (COMPLETED)
-2.  **Website Refactor**: A full rebuild of the public website. (COMPLETED)
-3.  **Admin Panel Overhaul**: A major refactoring of the admin panel, including a hierarchical content view, manifest upload, and publish/unpublish controls. (COMPLETED)
-4.  **Blog Section**: Add a free-to-access blog, now named Sijill Times. (IN PROGRESS)
-5.  **Advanced Monetization**: Introduce one-time course purchases. (FUTURE)
+<analysis>**original_problem_statement:** The user is building Sijill, an Islamic studies e-learning platform (). The strategic direction has changed: **Native mobile app and PWA development are officially cancelled/paused.** The current focus is strictly on the main React/Vite website and FastAPI backend. Immediate needs include: updating the course catalog to reflect a phased launch, integrating unlisted YouTube videos for course episodes, adding supplementary documents (bibliographies/glossaries), and fixing lingering content bugs (audio sync and blog photos).
 
 **PRODUCT REQUIREMENTS**:
 -   **App Name**: Sijill Project
--   **Core Hierarchy**: Cursus -> Cours -> Modules -> Audios.
--   **Blog**: A new section called Sijill Times with a New York Times inspired white background design, featuring articles synced from  files in a Cloudflare R2 bucket.
--   **Content Storage**: Cloudflare R2 for all media, articles, and manifests.
--   **Admin Panel**: A web-based admin panel to manage all content, including audios and blog articles.
+-   **Main Website**:  (React/Vite)
+-   **Deployment**: Docker containerized on user's Hostinger VPS. Updates require manual SSH and .
+-   **Monetization**: Stripe integration with new Founder plans (7 €/month or 84 €/year).
 
-**User's preferred language**: French
+**User's preferred language**: French (The next agent MUST respond in French only).
 
-**what currently exists?**
-A full-stack application with a React Native (Expo Web) frontend, a FastAPI backend, and a MongoDB database. A separate React+Vite site serves as the public-facing website.
-
-The admin panel is highly functional, featuring a hierarchical tree view for audio content (), a  manifest upload system to compare planned vs. synced content, and an episode publishing system (active/inactive toggles).
-
-A complete blog system (Sijill Times) has been built. The backend can sync and parse  articles and associated images from an R2 bucket (), storing them in the database. It exposes public APIs to serve this content. The frontend has been refactored with a new white-background, NYT-style design, and an admin page for managing blog content has been created.
+**what currently exists?** 
+A full-stack application featuring a React/Vite frontend and a monolithic FastAPI backend (7700+ lines). MongoDB is used for the database. An Admin Panel is built directly into the backend using Jinja2 templates (). The system recently integrated a Pre-registration flow with exclusive founder pricing via Stripe. Nginx serves the frontend directly.
 
 **Last working item**:
--   **Last item agent was working**: The agent was completing a major redesign of the blog section (Sijill Times). It implemented a new parser for an updated  format, added support for article illustration images, and rewrote the frontend CSS for a white-background, New York Times inspired style. However, after applying the final CSS changes to , the agent **failed to rebuild the Vite project**. This means the currently served website does not reflect the final, correct styling.
--   **Status**: BLOCKED
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: manual testing by curl. First, the agent must rebuild the frontend. Then, use the screenshot tool to verify the new blog UI. Finally, use the frontend testing agent for a full regression test.
--   **User Testing Done**: N
+    - **Last item agent was working**: The agent just started the session, analyzed the problem statement, and sent a proposed plan to the user using the  tool regarding the phased catalog launch updates ( and ) and YouTube video integration. The agent is currently waiting for the user's response to proceed.
+    - **Status**: USER VERIFICATION PENDING
+    - **Agent Testing Done**: N
+    - **Which testing method agent to use?**: Both. Use  for backend endpoint updates, screenshot tool for UI verification of the Catalog changes, and manual testing via  once the YouTube integration and Admin Panel updates are complete.
+    - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: Blog Redesign is not deployed correctly (P0)
--   **Issue 2**: Login fails on the native mobile app (P1)
--   **Issue 3**: Splash screen is buggy on native app (P1)
+  Issue 1: Update Catalog & Cursus Display (P0)
+  Issue 2: Integrate Unlisted YouTube Videos & Documents (P0)
+  Issue 3: Blog photos not loading (P1)
+  Issue 4: Audio tracks not synchronized (P1)
 
-**Issues Detail**:
--   **Issue 1**:
-    -   **Description**: The agent completed the CSS changes for the new white-themed blog but forgot to run the yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. command for the React website. The currently deployed version is unstyled or has incorrect styles, even though the code is correct.
-    -   **Attempted fixes**: The agent successfully wrote all the necessary JSX and CSS code. The only missing step is the build process.
-    -   **Next debug checklist**:
-        1.  Execute the command: yarn run v1.22.22
-$ vite build
-vite v5.4.21 building for production...
-transforming...
-✓ 49 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/index.html                   0.94 kB │ gzip:  0.52 kB
-dist/assets/index-DfBf8fel.css   35.06 kB │ gzip:  6.33 kB
-dist/assets/index-Dyj2Z1d3.js   215.11 kB │ gzip: 66.57 kB
-✓ built in 1.38s
-Done in 1.77s.
-        2.  Take a screenshot of the main blog page to verify the new design is live.
-        3.  Take a screenshot of a blog article page to confirm styles are applied there too.
-        4.  Present the screenshots to the user for final confirmation.
-    -   **Why fix this issue and what will be achieved with the fix?**: This will complete the user's latest and most important request, delivering the fully redesigned blog.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None
+  Issues Detail:
+  - Issue 1: Update Catalog & Cursus Display
+     - Attempted fixes: Agent proposed a plan via  and is waiting for confirmation.
+     - Next debug checklist: 
+        1. In , add the text: Sijill Project se construit par vagues successives. Chaque cursus senrichit au fil des mois, au rythme des contributions de nos intervenants académiques. Ce que vous découvrez ici est la première vague — dautres suivront.
+        2. In , filter the view to only show the currently available launch catalog.
+     - Why fix this issue and what will be achieved with the fix? Aligns the public-facing site with the actual available content delivery schedule.
+     - Status: USER VERIFICATION PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
 
--   **Issue 2**:
-    -   **Description**: From previous handoffs. When the user tries to log in on the native iOS app, nothing happens. The web login works, pointing to a client-side issue in the native build.
-    -   **Status**: BLOCKED (requires a new native EAS build for the user to test).
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend (native app)
-    -   **Blocked on other issue**: None
+  - Issue 2: Integrate Unlisted YouTube Videos & Admin UI
+     - Attempted fixes: None yet.
+     - Next debug checklist: 
+        1. Add a  field to the course/episode schema in .
+        2. Update the Jinja2 Admin Panel () to allow the user to input/edit the YouTube link for each episode.
+        3. Update the frontend course viewer to embed the YouTube iframe instead of (or alongside) the audio player if a YouTube URL is present.
+        4. Add support for bibliography/glossary documents (UI display).
+     - Why fix this issue and what will be achieved with the fix? Shifts the platform's content delivery from purely audio to video-first via YouTube embeds.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: None
 
--   **Issue 3**:
-    -   **Description**: From previous handoffs. The user reported that the splash screen shows a double loop on the native app.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None
+  - Issue 3: Blog photos not loading
+     - Attempted fixes: None yet.
+     - Next debug checklist: Check the blog photo retrieval endpoint in  and how  references images. User stated photos are in the folder but not rendering.
+     - Why fix this issue and what will be achieved with the fix? Broken images severely degrade UX.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: None
+
+  - Issue 4: Audio tracks not synchronized / missing episodes
+     - Attempted fixes: None yet.
+     - Next debug checklist: Investigate the audio track metadata and the DB sync logic. Note: Check with the user if this is superseded by the new YouTube integration for these courses.
+     - Why fix this issue and what will be achieved with the fix? Missing content for users.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Backend
+     - Blocked on other issue: None
 
 **In progress Task List**:
-- There are no tasks currently in progress. The agent's last task is blocked by the build issue described above.
+  None (Captured in issues)
 
-**Upcoming and Future Tasks**
-**Upcoming Tasks**:
--   **(P1) Finalize App Store & Google Play Submission**: Assist the user with any further issues from Apple/Google reviews, particularly related to the login and splash screen bugs, once a new build can be tested.
+**Upcoming and Future Tasks**:
+  - P2: Implement one-time course purchases (User mentioned keeping this for later).
+  - P2: Refactor the monolithic  using FastAPI's .
 
-**Future Tasks**:
--   **(P2) Advanced Monetization**: Implement one-time course purchases.
--   **(P2) Refactor Backend**: Break down the monolithic  into a modular structure using FastAPI .
--   **(P3) Admin Panel Analytics**: Add a dashboard for analytics.
--   **(P3) User Features**: Implement a My Subscription page, Newsletter functionality, Offline mode, and Push notifications.
+**Completed work in this session**:
+- None in this specific session (the agent only invoked  and is waiting for a response).
+*(Note: From prior sessions: Splash Screen Bug, PWA Deprecation, Blog ID Collision Bug, Pre-registration Flow, Stripe Pricing Update, and Admin Panel Pre-registrations View were completed).*
 
-**Completed work in this session**
--   **Admin Catalogue Tree View**: Implemented and stabilized the hierarchical tree view for audio content (), resolving complex CSS and caching issues to achieve a stable, functional UI.
--   **Admin Manifest Upload**: Integrated a  manifest upload feature, allowing the user to compare their planned content structure against the actually synced content from R2.
--   **Episode Publishing System**: Built a complete publish/unpublish workflow. The admin can now toggle episodes as active/inactive individually or in bulk per course. Public APIs were updated to only serve active episodes.
--   **Blog Section (Sijill Times)**: Executed a full-cycle feature development and refactor:
-    -   Created an initial blog (Waraqa) with backend sync, admin page, and public UI.
-    -   Performed a complete overhaul based on user feedback, renaming it to Sijill Times.
-    -   Rewrote the backend  parser for a new article format and added support for syncing/serving associated illustration images from R2.
-    -   Completely redesigned the frontend blog pages (list and article) to a white-background, New York Times inspired style.
+**Earlier issues found/mentioned but not fixed**:
+   Issue 1: Blog photos not loading
+   - Debug checklist: Check  and backend static serving.
+   - Why to solve this issue and what will be achieved with this? Broken images degrade UX.
+   - Should Test frontend/backend/both after fix: Both
+   - Is recurring issue? N
 
-**Earlier issues found/mentioned but not fixed**
--   Inconsistent user data in the database (Pierre Marchal Mystery).
--   Intermittent  errors (likely platform-level instability).
+   Issue 2: Audio tracks not synchronized / episodes not visible
+   - Debug checklist: Investigate DB sync logic.
+   - Why to solve this issue and what will be achieved with this? Fixes missing content.
+   - Should Test frontend/backend/both after fix: Backend
+   - Is recurring issue? N
 
-**Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Native app bugs (login, splash screen) and platform instability ().
--   **Recurrence count**: Persistent across several forks.
--   **Status**: BLOCKED (for native apps).
+**Known issue recurrence from previous fork**:
+  - Issue recurrence in previous fork: None. 
+  - Recurrence count: 0
+  - Status: RESOLVED
 
-**Code Architecture**
-site/
+**Code Architecture**:
 
-**Key Technical Concepts**
--   **Backend**: FastAPI, MongoDB, Jinja2 for the admin panel.
--   **Frontend (Website)**: React + Vite.
--   **Content Sync**: Heavy use of  for Cloudflare R2 interaction and  for parsing content from  files for both the course manifest and blog articles.
 
-**key DB schema**
--   : Contains an  (boolean) field to control visibility.
--   : Stores the parsed data from the uploaded .
--   : Stores parsed articles, including , , , , , , , and HTML .
+**Key Technical Concepts**:
+- Frontend: React, Vite, React Router
+- Backend: FastAPI, Jinja2 Templates (Admin Panel)
+- Database: MongoDB (Motor async driver)
+- Deployment: Docker Compose, Nginx, Let's Encrypt (Certbot), Hostinger VPS
 
-**changes in tech stack**
--   No new technologies were introduced.
+**key DB schema**:
+  - : {first_name, email, created_at}
+  - : {plan_id, name, price, interval, is_active}
+  - : {id (now uses chronicle number), title, content, year_ah}
+  -  & : Core educational content.
 
-**All files of reference**
--   **File to rebuild**: 
--   
--   
--   
--   
--   
+**changes in tech stack**:
+  - Nginx now serves the webapp directly via a custom image, instead of the FastAPI backend mounting a  directory.
+
+**All files of reference**:
+  -  
+  -  
+  -  
+  -  
+  - 
 
 **Areas that need refactoring**:
--    is now dangerously monolithic after adding extensive logic for the catalogue, manifest, and two full versions of the blog system. It urgently needs to be broken down into smaller, manageable modules using FastAPI's .
+-  is extremely large (~7700 lines) and mixes API routes, DB seeding, Stripe webhooks, and Jinja2 template rendering. Needs to be split using .
 
-**key api endpoints**
--   : Syncs new/updated blog articles from R2.
--   : Public endpoint to fetch all published blog articles.
--   : Public endpoint to fetch a single article by its slug.
--   : Serves illustration images for articles.
--   : Activates/deactivates a single episode.
--   : Bulk activates/deactivates all episodes in a course.
--   : Public endpoint, modified to return only  audios.
+**key api endpoints**:
+  -  (POST)
+  -  (GET - Jinja2 HTML)
+  -  (POST - Stripe)
 
-**Critical Info for New Agent**
--   **Communicate in French.**
--   Your immediate and highest-priority task is to **fix the broken blog deployment**. The code is finished, but the final yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. command was missed. You must run the build command in  and then verify with the user that the new Sijill Times design is live and correct.
--   Do not attempt any other feature or fix until the blog deployment is confirmed as successful by the user.
--   The  file is extremely large. Be very cautious if you need to edit it. Prioritize refactoring it into smaller routers as a future task to improve maintainability.
--   The native app bugs (login, splash screen) are long-standing and blocked. De-prioritize them until the web-based features are complete, unless the user specifically asks to address them.
+**Critical Info for New Agent**:
+- **WAIT FOR HUMAN**: The agent just sent a plan to the user via . Read the incoming user message to see if they approve the plan before writing any code.
+- **PWA AND NATIVE APP ARE DEAD.** Do not work on anything inside the  (React Native) directory. Focus entirely on  and .
+- **Language:** Communicate entirely in French.
+- **Deployment:** The user deploys manually. Provide these exact commands when a deployment is ready:
+  
 
-**documents and test reports created in this job**
--    (Catalogue Tree View Validation)
--    (Manifest Upload Validation)
--    (Initial Blog Waraqa Validation)
+**documents and test reports created in this job**:
+  - 
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **Request (192)**: Asked how to make episodes active/inactive to prepare content in advance.
-2.  **Confirmation (195)**: Agreed to the agent's plan to add toggle switches.
-3.  **Request (234)**: Announced the creation of a blog section with articles in Cloudflare.
-4.  **Clarification (251)**: Specified the blog should be public, free, and SEO-friendly.
-5.  **Request (346)**: Asked for all the test links for the newly created site.
-6.  **Major Refactor Request (348)**: Announced a complete change of plans for the blog: rename to Sijill Times, new series name, new article documents, new illustration images, and a complete redesign to a white background NYT-style.
-7.  **Correction (357)**: Corrected the spelling of the new blog series title (Le monde en…).
-8.  **Confirmation (357)**: Approved the agent's plan for the blog refactor.
-9.  **(Implicitly Pending)**: The user is waiting to see the result of the major blog refactor requested in message #348.
+**Last 10 User Messages and any pending HUMAN messages**:
+ - *User*: Provided handoff summary of the existing app state and issues.
+ - *User*: Please use ask_human tool and confirm your plan now.
+ - *Agent*: Fired  tool with the proposed plan.
+ - **PENDING HUMAN MESSAGE**:  -> **The user is currently reviewing the plan.**
 
 **Project Health Check:**
--   **Broken**:
-    -   Public blog website UI (due to missed build step).
-    -   Login on the native mobile app build.
--   **Mocked**: None.
--   **Blocked**:
-    -   Native app bug fixing is blocked until the user can test a new EAS build.
+  - Broken: Blog images not displaying, audio track sync.
+  - Mocked: None.
 
-**3rd Party Integrations**
--   Cloudflare R2 (Content Storage)
--   Stripe (Payments - implemented but not a focus)
--   SendPulse (Email - implemented but not a focus)
--   Expo Application Services (EAS) (Native builds)
--    (Backend parsing)
+**3rd Party Integrations**:
+  - Stripe (Payments) — requires User API Key (already configured in )
+  - Cloudflare R2 (Storage) — requires User API Key (already configured in )
+  - YouTube (Video Embedding) — Standard iframe embeds, no special API key required.
 
-**Testing status**
--   **Testing agent used after significant changes**: YES, for all major features *except* the final blog redesign.
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None
--   **Known regressions**: The public blog UI is currently broken/unstyled.
+**Testing status**:
+  - Testing agent used after significant changes: NO (No coding done yet in this session).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None
 
 **Credentials to test flow:**
--   **Admin Panel**:  / 
--   **Test User**:  / 
+  - Demo Account:  / 
+  - Admin Panel: Accessible via 
 
-**What agent forgot to execute**
--   The agent forgot to run yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. in the  directory after making the final CSS changes for the blog redesign. This is the critical next action.</analysis>
+**What agent forgot to execute**:
+  - Previously missed fixing the blog photos not loading and the audio sync issues. In this immediate session, nothing was forgotten as the agent correctly paused for user input via .</analysis>
