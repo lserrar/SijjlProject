@@ -51,7 +51,13 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ **Catalogue de lancement Mai 2026** : page Catalogue filtrée sur `is_launch_catalog=true` (19 cours) — AJOUTÉ Fév 2026
 - ✅ **Page Cursus** : bandeau "Première vague — Mai 2026", catalogue complet visible, badges « bientôt disponible » — AJOUTÉ Fév 2026
 - ✅ **YouTube unlisted** : embed `youtube-nocookie.com` (cours et épisodes), priorité épisode → cours, lien masqué via `sandbox` + `onContextMenu` — AJOUTÉ Fév 2026
-- ✅ **Admin Panel** : champs YouTube + flags `is_launch_catalog` / `coming_soon` / `available_date` éditables via `/api/admin-panel/courses` et `/api/admin-panel/audios` — AJOUTÉ Fév 2026
+- ✅ **Admin Panel — Filtres Catalogue de lancement** (Fév 2026) :
+  - Onglet **Cours** : checkbox « Catalogue de lancement uniquement » activée par défaut
+  - Onglet **Professeurs** : même filtre, calcul automatique via les `scholar_id` des cours du lancement (ID + matching par nom dans `scholar_name`)
+  - Onglet **Catalogue** : toggle « Lancement uniquement » (doré, actif par défaut) + arborescence enrichie **Cursus → Cours → Module → Épisodes** (correspondant fichier Excel) avec tags `LANCEMENT` et `coming_soon`, et avertissement pour les épisodes non rattachés à un module
+- ✅ **Migration v4 défensive** (Fév 2026) : nettoie automatiquement les éventuels doublons de cursus « Histoire du monde islamique » avec ID différent de `cursus-histoire`
+- ✅ **Home.jsx dynamisé** (Fév 2026) : compteur cursus = `cursus.length` au lieu de hardcodé 6
+- ✅ **Al-Kindī épisodes 1-3** ajoutés en BDD via migration avec leurs URLs YouTube (incluant la nouvelle URL ép. 3 fournie par l'utilisateur)
 - ✅ Apple Sign-In (backend prêt)
 
 ## Tâches à venir

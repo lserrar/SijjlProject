@@ -8,6 +8,9 @@
         <p>Vue arborescente Cursus → Cours → Épisodes</p>
     </div>
     <div class="catalogue-actions">
+        <button id="launchOnlyBtn" class="btn btn-secondary active" onclick="toggleLaunchOnly()" data-testid="launch-only-toggle" style="background:rgba(201,168,76,0.15);border:1px solid #C9A84C;color:#C9A84C;">
+            <i class="fas fa-star"></i> Lancement uniquement
+        </button>
         <label class="btn btn-secondary" style="cursor:pointer;" data-testid="manifest-upload-btn">
             <i class="fas fa-file-word"></i> Charger manifeste
             <input type="file" accept=".docx" onchange="uploadManifest(this)" style="display:none;">
@@ -74,7 +77,8 @@ loadCatalogue();
 const COLORS = ['#04D182','#8B5CF6','#F59E0B','#EC4899','#06B6D4','#3B82F6','#EF4444','#10B981'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-let allCursus=[], allCourses=[], allAudios=[], allScholars=[], manifestData=null;
+let allCursus=[], allCourses=[], allAudios=[], allScholars=[], allModules=[], manifestData=null;
+let launchOnly = true;
 
 function fmtDur(s) {
     if (!s) return '-';
@@ -87,23 +91,31 @@ function esc(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 async function loadCatalogue() {
     try {
-        const [cu,co,au,sc,mf] = await Promise.all([
+        const [cu,co,au,sc,mod,mf] = await Promise.all([
             apiRequest('/admin/cursus'),
             apiRequest('/admin/courses'),
             apiRequest('/admin/audios'),
             apiRequest('/admin/scholars'),
+            apiRequest('/admin/modules'),
             apiRequest('/admin/manifest'),
         ]);
         allCursus = (cu||[]).sort((a,b)=>(a.order||0)-(b.order||0));
         allCourses = co||[];
         allAudios = au||[];
         allScholars = sc||[];
+        allModules = mod||[];
         manifestData = mf?.manifest?.data || null;
         renderStats();
         renderTree();
     } catch(e) {
         document.getElementById('treeContainer').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Erreur de chargement</p></div>';
     }
+}
+
+function toggleLaunchOnly() {
+    launchOnly = !launchOnly;
+    document.getElementById('launchOnlyBtn').classList.toggle('active', launchOnly);
+    renderTree();
 }
 
 function renderStats() {
@@ -124,8 +136,24 @@ function renderStats() {
         <div class="cat-stat"><div class="cat-stat-icon ${synced<total?'orange':'green'}"><i class="fas fa-${synced<total?'exclamation-triangle':'check-circle'}"></i></div><div class="cat-stat-val">${synced}</div><div class="cat-stat-lbl">Synchronisés</div></div>`;
 }
 
-function coursesOf(cursusId) { return allCourses.filter(c=>c.cursus_id===cursusId||c.thematique_id===cursusId); }
+function coursesOf(cursusId) {
+    let list = allCourses.filter(c=>c.cursus_id===cursusId||c.thematique_id===cursusId);
+    if (launchOnly) list = list.filter(c => c.is_launch_catalog === true);
+    return list;
+}
 function audiosOf(courseId) { return allAudios.filter(a=>a.course_id===courseId).sort((a,b)=>(a.episode_number||0)-(b.episode_number||0)); }
+function modulesOf(courseId) { return allModules.filter(m=>m.course_id===courseId).sort((a,b)=>(a.order||0)-(b.order||0)); }
+function audiosOfModule(courseId, moduleId) {
+    return allAudios
+        .filter(a => a.course_id===courseId && a.module_id===moduleId)
+        .sort((a,b)=>(a.episode_number||0)-(b.episode_number||0));
+}
+function audiosWithoutModule(courseId) {
+    const moduleIds = new Set(allModules.filter(m=>m.course_id===courseId).map(m=>m.id));
+    return allAudios
+        .filter(a => a.course_id===courseId && (!a.module_id || !moduleIds.has(a.module_id)))
+        .sort((a,b)=>(a.episode_number||0)-(b.episode_number||0));
+}
 
 function epRow(a) {
     const sn = a.scholar_name || (allScholars.find(s=>s.id===a.scholar_id)||{}).name || '-';
@@ -187,73 +215,64 @@ function renderTree() {
 
         courses.forEach((course, coi) => {
             const eps = audiosOf(course.id);
+            const courseModules = modulesOf(course.id);
             const num = String(coi+1).padStart(2,'0');
 
-            // Find manifest course data
-            let mCourse = null;
-            if (mCursus) {
-                mCourse = mCursus.courses.find(mc => mc.number === coi+1);
-            }
-            let mExpectedEps = mCourse ? mCourse.modules.reduce((s,m)=>s+m.episodes, 0) : null;
-            let courseProgressHtml = '';
-            if (mExpectedEps !== null) {
-                courseProgressHtml = `<span style="margin-left:8px;font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(${eps.length>=mExpectedEps?'16,185,129':'245,158,11'},0.12);color:${eps.length>=mExpectedEps?'var(--success)':'var(--warning)'}">${eps.length}/${mExpectedEps}</span>`;
-            }
+            const launchTag = course.is_launch_catalog === true
+                ? '<span style="margin-left:8px;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:rgba(201,168,76,0.18);color:#C9A84C;">Lancement</span>'
+                : '';
+            const comingTag = course.coming_soon === true
+                ? `<span style="margin-left:6px;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:rgba(245,158,11,0.18);color:var(--warning);">${esc(course.available_date||'Bientôt')}</span>`
+                : '';
 
             html += `<div class="co-node">
                 <div class="co-head" onclick="toggle(this)">
                     <i class="fas fa-chevron-right co-arrow"></i>
                     <span class="co-num">${num}</span>
-                    <span class="co-title">${esc(course.title)}${courseProgressHtml}</span>
-                    <span class="co-count">${eps.filter(a=>a.is_active).length}/${eps.length} publiés</span>
+                    <span class="co-title">${esc(course.title)}${launchTag}${comingTag}</span>
+                    <span class="co-count">${eps.filter(a=>a.is_active).length}/${eps.length} publiés · ${courseModules.length} module(s)</span>
                     <button class="bulk-btn" onclick="event.stopPropagation();bulkToggle('${course.id}',true)" title="Tout publier"><i class="fas fa-eye"></i></button>
                     <button class="bulk-btn" onclick="event.stopPropagation();bulkToggle('${course.id}',false)" title="Tout dépublier"><i class="fas fa-eye-slash"></i></button>
                 </div>
                 <div class="co-body">`;
 
-            // Show manifest modules if available
-            if (mCourse && mCourse.modules.length > 0) {
-                html += `<table class="ep-table"><thead><tr>
-                    <th>N°</th><th>Module / Penseur (manifeste)</th><th>Professeur prévu</th><th>Ép. prévus</th><th>Ép. réels</th><th>Statut</th>
-                </tr></thead><tbody>`;
-                mCourse.modules.forEach(mod => {
-                    // Try to find matching real episodes
-                    const matchingEps = eps.filter(a => {
-                        const t = (a.title||'').toLowerCase();
-                        const modName = mod.name.toLowerCase().split('(')[0].split('—')[0].trim();
-                        return t.includes(modName.substring(0, Math.min(modName.length, 15)));
-                    });
-                    const realCount = matchingEps.length;
-                    const status = realCount >= mod.episodes ? 
-                        '<span class="ep-sync-dot ok" title="Complet"></span>' : 
-                        (realCount > 0 ? '<span style="color:var(--warning);font-size:11px;">Partiel</span>' : '<span style="color:var(--danger);font-size:11px;">Manquant</span>');
-                    html += `<tr>
-                        <td>${mod.number}</td>
-                        <td class="ep-title-cell" title="${esc(mod.name)}">${esc(mod.name)}</td>
-                        <td class="ep-scholar">${esc(mod.professor)}</td>
-                        <td style="text-align:center;">${mod.episodes}</td>
-                        <td style="text-align:center;">${realCount}</td>
-                        <td style="text-align:center;">${status}</td>
-                    </tr>`;
+            if (courseModules.length > 0) {
+                // Group episodes by module (matches Excel structure: Cours → Module → Épisodes)
+                courseModules.forEach((mod, mi) => {
+                    const modEps = audiosOfModule(course.id, mod.id);
+                    const modNum = String(mi+1).padStart(2,'0');
+                    html += `<div class="mod-node" style="border-top:1px solid var(--border-subtle);">
+                        <div class="mod-head" onclick="toggle(this)" style="display:flex;align-items:center;gap:10px;padding:10px 20px 10px 56px;cursor:pointer;background:rgba(201,168,76,0.04);">
+                            <i class="fas fa-chevron-right mod-arrow" style="font-size:10px;color:var(--text-muted);transition:transform 0.2s;"></i>
+                            <span style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;">${modNum}</span>
+                            <span style="font-size:13px;font-weight:600;flex:1;">${esc(mod.name||mod.title||'Module')}</span>
+                            <span style="font-size:11px;color:var(--text-muted);">${modEps.length} épisode(s)</span>
+                        </div>
+                        <div class="mod-body" style="display:none;">`;
+                    if (modEps.length > 0) {
+                        html += epTableHeader();
+                        modEps.forEach(a => { html += epRow(a); });
+                        html += '</tbody></table>';
+                    } else {
+                        html += '<div class="co-empty" style="padding-left:80px;">Aucun épisode synchronisé pour ce module</div>';
+                    }
+                    html += '</div></div>';
                 });
+                // Episodes attached directly to course (no module link)
+                const orphanEps = audiosWithoutModule(course.id);
+                if (orphanEps.length > 0) {
+                    html += `<div style="border-top:1px solid var(--border-subtle);padding:8px 20px 4px 76px;background:rgba(245,158,11,0.06);"><span style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--warning);font-weight:600;">⚠ Épisodes non rattachés à un module (${orphanEps.length})</span></div>`;
+                    html += epTableHeader();
+                    orphanEps.forEach(a => { html += epRow(a); });
+                    html += '</tbody></table>';
+                }
+            } else if (eps.length > 0) {
+                // No modules — show flat episode list
+                html += epTableHeader();
+                eps.forEach(a => { html += epRow(a); });
                 html += '</tbody></table>';
-                
-                // Then show real episodes
-                if (eps.length > 0) {
-                    html += `<div style="border-top:1px solid var(--border-subtle);padding:8px 20px 4px 76px;"><span style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Épisodes synchronisés</span></div>`;
-                    html += epTableHeader();
-                    eps.forEach(a => { html += epRow(a); });
-                    html += '</tbody></table>';
-                }
             } else {
-                // No manifest — show episodes directly
-                if (eps.length > 0) {
-                    html += epTableHeader();
-                    eps.forEach(a => { html += epRow(a); });
-                    html += '</tbody></table>';
-                } else {
-                    html += '<div class="co-empty">Aucun épisode synchronisé</div>';
-                }
+                html += '<div class="co-empty">Aucun épisode synchronisé</div>';
             }
             html += '</div></div>';
         });
@@ -298,10 +317,16 @@ function renderTree() {
 }
 
 function toggle(head) {
-    const arrow = head.querySelector('.c-arrow,.co-arrow');
+    const arrow = head.querySelector('.c-arrow,.co-arrow,.mod-arrow');
     const body = head.nextElementSibling;
-    arrow.classList.toggle('open');
-    body.classList.toggle('open');
+    if (arrow) arrow.classList.toggle('open');
+    if (head.classList.contains('mod-head')) {
+        // Module body uses inline display:none/block instead of CSS class
+        body.style.display = body.style.display === 'block' ? 'none' : 'block';
+        if (arrow) arrow.style.transform = body.style.display === 'block' ? 'rotate(90deg)' : 'rotate(0deg)';
+    } else {
+        body.classList.toggle('open');
+    }
 }
 
 // ── Toggle & Bulk ──────────────────────────────────────

@@ -18,11 +18,16 @@
     </div>
 </div>
 
-<div class="toolbar" style="margin-bottom: 20px;">
+<div class="toolbar" style="margin-bottom: 20px; display:flex; gap:16px; align-items:center;">
     <div class="search-box">
         <i class="fas fa-search"></i>
         <input type="text" class="search-input" placeholder="Rechercher un professeur..." id="searchInput" oninput="filterProfessors()" data-testid="search-professor-input">
     </div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:8px;color:#C9A84C;font-size:13px;font-weight:500;">
+        <input type="checkbox" id="launchOnlyFilter" checked onchange="filterProfessors()" data-testid="launch-only-filter" style="cursor:pointer;">
+        <i class="fas fa-star"></i>
+        <span>Catalogue de lancement uniquement</span>
+    </label>
 </div>
 
 <div class="card">
@@ -148,12 +153,16 @@ async function toggleProfessor(id) {
     }
 }
 
+let launchScholarIds = new Set();
+
 function filterProfessors() {
     const query = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = professors.filter(s => 
-        s.name.toLowerCase().includes(query) || 
+    const launchOnly = document.getElementById('launchOnlyFilter')?.checked;
+    let filtered = professors.filter(s =>
+        s.name.toLowerCase().includes(query) ||
         (s.university && s.university.toLowerCase().includes(query))
     );
+    if (launchOnly) filtered = filtered.filter(s => launchScholarIds.has(s.id));
     renderProfessors(filtered);
 }
 
@@ -226,7 +235,19 @@ function editProfessor(id) {
 async function loadProfessors() {
     try {
         professors = await apiRequest('/admin/scholars') || [];
-        renderProfessors(professors);
+        // Build set of scholar_ids appearing in launch-catalog courses
+        try {
+            const allCourses = await apiRequest('/admin/courses') || [];
+            const launchCourses = allCourses.filter(c => c.is_launch_catalog === true);
+            launchScholarIds = new Set(launchCourses.filter(c => c.scholar_id).map(c => c.scholar_id));
+            launchCourses.forEach(c => {
+                (c.scholar_name || '').split(/[·,]/).map(s => s.trim()).filter(Boolean).forEach(n => {
+                    const m = professors.find(p => p.name === n);
+                    if (m) launchScholarIds.add(m.id);
+                });
+            });
+        } catch (e) { /* fallback: show all */ }
+        filterProfessors();
     } catch (error) {
         showToast('Erreur de chargement', 'error');
     }

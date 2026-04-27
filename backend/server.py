@@ -2632,6 +2632,14 @@ async def seed_data():
     # D=Arts, E=Falsafa (was A), F=Mystique (was E), G=Pensées non-islamiques
     
     # 1. Insert new Cursus A "Histoire du monde islamique"
+    # Defensive: clean up any duplicate "Histoire" cursus that might exist with different ids
+    duplicates = await db.cursus.delete_many({
+        'id': {'$ne': 'cursus-histoire'},
+        'name': {'$regex': '^histoire du monde islamique$', '$options': 'i'},
+    })
+    if duplicates.deleted_count > 0:
+        logger.warning(f"Migration v4: removed {duplicates.deleted_count} duplicate Histoire cursus record(s)")
+    
     existing_histoire = await db.cursus.find_one({'id': 'cursus-histoire'})
     if not existing_histoire:
         await db.cursus.insert_one({
