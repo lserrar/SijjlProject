@@ -2813,6 +2813,34 @@ async def seed_data():
         r = await db.audios.update_many(query, {'$set': {'youtube_url': url}})
         yt_set += r.modified_count
     logger.info(f"Migration v4: youtube_url set on {yt_set} audio(s)")
+    
+    # 7. Upsert Al-Kindī episodes 2 & 3 (video-only, audio not yet on R2)
+    al_kindi_episodes = [
+        {'episode_number': 1, 'youtube_url': 'https://youtu.be/LDeseoNGAPQ', 'title': 'Al-Kindī — Épisode 1'},
+        {'episode_number': 2, 'youtube_url': 'https://youtu.be/YK7LJRJheDg', 'title': 'Al-Kindī — Épisode 2'},
+        {'episode_number': 3, 'youtube_url': 'https://www.youtube.com/watch?v=hBzgQV2XgrE', 'title': 'Al-Kindī — Épisode 3'},
+    ]
+    for ep in al_kindi_episodes:
+        audio_id = f"aud_cours-falsafa-grands-al-kindi-ep{ep['episode_number']:02d}"
+        await db.audios.update_one(
+            {'id': audio_id},
+            {'$set': {
+                'id': audio_id,
+                'title': ep['title'],
+                'description': '',
+                'course_id': 'cours-falsafa-grands',
+                'module_id': 'cours-falsafa-grands-mod-1',
+                'scholar_id': 'sch-006',
+                'scholar_name': 'Prof. Meryem Sebti',
+                'episode_number': ep['episode_number'],
+                'duration': 0,
+                'youtube_url': ep['youtube_url'],
+                'type': 'episode',
+                'is_active': True,
+            }},
+            upsert=True,
+        )
+    logger.info("Migration v4: Al-Kindī episodes 1-3 upserted with YouTube URLs")
     # ─── End Migration v4 ──────────────────────────────────────────────────
 
     if custom_cursus:

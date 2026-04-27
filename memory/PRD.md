@@ -59,7 +59,6 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 ### P1 - Prioritaire
 - [ ] Corriger les pistes audio non synchronisées (épisodes manquants) — peut être superposé par YouTube
 - [ ] Corriger les photos des articles du blog (images du dossier R2 non récupérées)
-- [ ] Configurer la tarification et les abonnements Stripe (nouveau compte bancaire Sijill)
 - [ ] Saisir les liens YouTube pour les épisodes restants via le panneau admin
 - [ ] Affiner les descriptions des 4 cours du cursus A (Histoire) avec contenu fourni par les professeurs
 
