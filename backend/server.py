@@ -2849,6 +2849,13 @@ async def seed_data():
             upsert=True,
         )
     logger.info("Migration v4: Al-Kindī episodes 1-3 upserted with YouTube URLs")
+    
+    # 8. Set youtube_url on Histoire de l'art islamique épisode 1
+    await db.audios.update_one(
+        {'id': 'aud_cours-art-ep01'},
+        {'$set': {'youtube_url': 'https://www.youtube.com/watch?v=5zqtVXI9S1Y'}}
+    )
+    logger.info("Migration v4: youtube_url set on cours-art ep01")
     # ─── End Migration v4 ──────────────────────────────────────────────────
 
     if custom_cursus:
