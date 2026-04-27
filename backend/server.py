@@ -2638,7 +2638,25 @@ async def seed_data():
         'name': {'$regex': '^histoire du monde islamique$', '$options': 'i'},
     })
     if duplicates.deleted_count > 0:
-        logger.warning(f"Migration v4: removed {duplicates.deleted_count} duplicate Histoire cursus record(s)")
+        logger.warning(f"Migration v4: removed {duplicates.deleted_count} duplicate Histoire cursus record(s) with different id")
+    
+    # Defensive: deduplicate cursus by `id` field (MongoDB allows multiple docs with same `id` since only `_id` is unique)
+    # Find all duplicate ids and keep only the first occurrence
+    pipeline = [
+        {'$group': {'_id': '$id', 'docs': {'$push': '$_id'}, 'count': {'$sum': 1}}},
+        {'$match': {'count': {'$gt': 1}}},
+    ]
+    dups_removed = 0
+    async for group in db.cursus.aggregate(pipeline):
+        # Keep the first _id, remove the rest
+        keep_id = group['docs'][0]
+        remove_ids = group['docs'][1:]
+        if remove_ids:
+            r = await db.cursus.delete_many({'_id': {'$in': remove_ids}})
+            dups_removed += r.deleted_count
+            logger.warning(f"Migration v4: deduplicated cursus id='{group['_id']}' — removed {r.deleted_count} extra record(s), kept _id={keep_id}")
+    if dups_removed > 0:
+        logger.warning(f"Migration v4: total {dups_removed} duplicate cursus removed by id-dedup")
     
     existing_histoire = await db.cursus.find_one({'id': 'cursus-histoire'})
     if not existing_histoire:
