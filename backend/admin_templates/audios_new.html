@@ -56,6 +56,11 @@
                     <div class="form-group"><label class="form-label">Professeur</label><select class="form-select" id="editScholar" data-testid="edit-scholar"></select></div>
                     <div class="form-group"><label class="form-label">Durée (sec)</label><input type="number" class="form-input" id="editDuration" min="0" data-testid="edit-duration"></div>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Module (rattachement de l'épisode)</label>
+                    <select class="form-select" id="editModule" data-testid="edit-module"></select>
+                    <small style="color:var(--text-muted);font-size:11px;display:block;margin-top:4px;">Modules du cours <span id="editModuleCourseHint" style="color:var(--text-primary);font-weight:600;"></span>. Laissez « — Aucun module — » si l'épisode n'est pas encore rattaché.</small>
+                </div>
                 <div class="form-group"><label class="form-label">Fichier R2</label><input type="text" class="form-input" id="editFileKey" readonly style="opacity:0.6;" data-testid="edit-filekey"></div>
                 <div class="form-group"><label class="form-label">URL YouTube (vidéo non répertoriée)</label><input type="url" class="form-input" id="editYoutubeUrl" placeholder="https://youtu.be/..." data-testid="edit-youtube-url"></div>
             </div>
@@ -364,6 +369,13 @@ function openEdit(audio) {
     const sel = document.getElementById('editScholar');
     sel.innerHTML = '<option value="">-- Aucun --</option>' +
         allScholars.map(s=>`<option value="${s.id}" ${s.id===audio.scholar_id?'selected':''}>${esc(s.name)}</option>`).join('');
+    // Module selector — limited to modules of the audio's course
+    const modSel = document.getElementById('editModule');
+    const courseModules = (allModules||[]).filter(m=>m.course_id===audio.course_id).sort((a,b)=>(a.order||0)-(b.order||0));
+    const courseTitle = (allCourses.find(c=>c.id===audio.course_id)||{}).title || audio.course_id || '—';
+    document.getElementById('editModuleCourseHint').textContent = courseTitle;
+    modSel.innerHTML = '<option value="">— Aucun module —</option>' +
+        courseModules.map(m=>`<option value="${m.id}" ${m.id===audio.module_id?'selected':''}>${esc(m.name||m.title||m.id)}</option>`).join('');
     document.getElementById('editOv').classList.add('active');
 }
 
@@ -380,6 +392,7 @@ async function saveEpisode(e) {
             scholar_name: scholar?scholar.name:'',
             duration: parseInt(document.getElementById('editDuration').value)||0,
             youtube_url: document.getElementById('editYoutubeUrl').value || null,
+            module_id: document.getElementById('editModule').value || null,
         });
         showToast('Épisode modifié');
         document.getElementById('editOv').classList.remove('active');

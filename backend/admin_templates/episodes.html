@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.ep-toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:24px; }
+.ep-toolbar .search-box { flex:1; min-width:240px; max-width:380px; }
+.ep-toolbar select.form-select { width:auto; min-width:180px; }
+.ep-grid-table { width:100%; border-collapse:collapse; }
+.ep-grid-table thead th { background:var(--bg-tertiary); text-align:left; padding:10px 12px; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); border-bottom:1px solid var(--border-subtle); position:sticky; top:0; z-index:5; }
+.ep-grid-table tbody td { padding:10px 12px; border-bottom:1px solid var(--border-subtle); font-size:13px; vertical-align:middle; }
+.ep-grid-table tbody tr:hover { background:rgba(201,168,76,0.04); }
+.ep-grid-table tbody tr.inactive { opacity:0.5; }
+.ep-cursus-badge { display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; font-size:11px; font-weight:700; color:#000; border-radius:4px; }
+.ep-yt-yes { color:#dc3545; font-weight:600; }
+.ep-yt-no { color:var(--text-muted); }
+.ep-row-actions { display:flex; gap:6px; }
+.ep-row-actions button { background:transparent; border:1px solid var(--border-subtle); color:var(--text-secondary); padding:6px 10px; border-radius:4px; cursor:pointer; font-size:12px; }
+.ep-row-actions button:hover { border-color:var(--brand-primary); color:var(--brand-primary); }
+.ep-row-actions button.danger:hover { border-color:var(--danger); color:var(--danger); }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Épisodes</h1>
+        <p class="page-description">Vue à plat de tous les épisodes — édition rapide titre, prof, module, lien YouTube</p>
+    </div>
+</div>
+
+<div class="ep-toolbar">
+    <div class="search-box" style="position:relative;">
+        <i class="fas fa-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+        <input type="text" class="search-input" placeholder="Rechercher (titre, prof, ID)..." id="epSearch" oninput="renderEpisodes()" data-testid="ep-search">
+    </div>
+    <select class="form-select" id="epCursusFilter" onchange="onCursusChange()" data-testid="ep-cursus-filter">
+        <option value="">Tous les cursus</option>
+    </select>
+    <select class="form-select" id="epCourseFilter" onchange="renderEpisodes()" data-testid="ep-course-filter">
+        <option value="">Tous les cours</option>
+    </select>
+    <select class="form-select" id="epStatusFilter" onchange="renderEpisodes()" data-testid="ep-status-filter">
+        <option value="">Tous les statuts</option>
+        <option value="published">Publiés</option>
+        <option value="draft">Brouillons</option>
+        <option value="orphan">Sans module</option>
+        <option value="with-yt">Avec YouTube</option>
+        <option value="without-yt">Sans YouTube</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:8px;color:#C9A84C;font-size:13px;font-weight:500;">
+        <input type="checkbox" id="epLaunchOnly" checked onchange="renderEpisodes()" data-testid="ep-launch-only">
+        <i class="fas fa-star"></i>
+        <span>Lancement uniquement</span>
+    </label>
+    <span id="epCount" style="color:var(--text-muted);font-size:13px;margin-left:auto;"></span>
+</div>
+
+<div class="card" style="overflow:hidden;">
+    <div style="max-height:calc(100vh - 280px); overflow:auto;">
+        <table class="ep-grid-table" data-testid="episodes-table">
+            <thead>
+                <tr>
+                    <th>Cursus</th>
+                    <th>Cours</th>
+                    <th>Module</th>
+                    <th>N°</th>
+                    <th>Titre</th>
+                    <th>Professeur</th>
+                    <th>YouTube</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="epTbody">
+                <tr><td colspan="9" style="text-align:center;padding:32px;"><div class="spinner"></div> Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal (réutilise la même structure que Catalogue) -->
+<div class="ov" id="epEditOv" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="mdl" style="max-width:640px;" onclick="event.stopPropagation()">
+        <div class="mdl-hd"><h3>Modifier l'épisode</h3><button class="mdl-cls" onclick="document.getElementById('epEditOv').classList.remove('active')">&times;</button></div>
+        <form id="epEditForm" onsubmit="saveEpEdit(event)">
+            <div class="mdl-bd">
+                <input type="hidden" id="epEditId">
+                <div class="form-group"><label class="form-label">Cursus / Cours</label><input type="text" class="form-input" id="epEditContext" readonly style="opacity:0.6;"></div>
+                <div class="form-group"><label class="form-label">Titre</label><input type="text" class="form-input" id="epEditTitle" data-testid="ep-edit-title"></div>
+                <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="epEditDesc" rows="3" data-testid="ep-edit-desc"></textarea></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group"><label class="form-label">Professeur</label><select class="form-select" id="epEditScholar" data-testid="ep-edit-scholar"></select></div>
+                    <div class="form-group"><label class="form-label">Durée (sec)</label><input type="number" class="form-input" id="epEditDuration" min="0" data-testid="ep-edit-duration"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Module</label>
+                    <select class="form-select" id="epEditModule" data-testid="ep-edit-module"></select>
+                </div>
+                <div class="form-group"><label class="form-label">URL YouTube (vidéo non répertoriée)</label><input type="url" class="form-input" id="epEditYoutube" placeholder="https://youtu.be/..." data-testid="ep-edit-youtube"></div>
+                <div class="form-group"><label class="form-label">Fichier R2 (lecture seule)</label><input type="text" class="form-input" id="epEditFileKey" readonly style="opacity:0.6;"></div>
+            </div>
+            <div class="mdl-ft">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('epEditOv').classList.remove('active')">Annuler</button>
+                <button type="submit" class="btn btn-primary" data-testid="ep-edit-save"><i class="fas fa-save"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CURSUS_COLORS = ['#D97757','#8B5CF6','#EAD637','#EC4899','#04D182','#06B6D4','#F59E0B'];
+let allCursus=[], allCourses=[], allModules=[], allAudios=[], allScholars=[];
+
+document.addEventListener('DOMContentLoaded', loadAll);
+
+async function loadAll() {
+    try {
+        const [cu, co, mo, au, sc] = await Promise.all([
+            apiRequest('/admin/cursus'),
+            apiRequest('/admin/courses'),
+            apiRequest('/admin/modules'),
+            apiRequest('/admin/audios'),
+            apiRequest('/admin/scholars'),
+        ]);
+        allCursus = (cu||[]).sort((a,b)=>(a.order||0)-(b.order||0));
+        allCourses = co||[];
+        allModules = mo||[];
+        allAudios = au||[];
+        allScholars = sc||[];
+        // Populate cursus filter
+        const cuSel = document.getElementById('epCursusFilter');
+        cuSel.innerHTML = '<option value="">Tous les cursus</option>' +
+            allCursus.map((c,i)=>`<option value="${c.id}">${c.letter||String.fromCharCode(65+i)}. ${esc(c.name)}</option>`).join('');
+        onCursusChange();
+    } catch(e) {
+        document.getElementById('epTbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--danger);">Erreur de chargement</td></tr>';
+    }
+}
+
+function onCursusChange() {
+    const cursusId = document.getElementById('epCursusFilter').value;
+    const courseSel = document.getElementById('epCourseFilter');
+    let courses = allCourses;
+    if (cursusId) courses = courses.filter(c => c.cursus_id===cursusId || c.thematique_id===cursusId);
+    courseSel.innerHTML = '<option value="">Tous les cours</option>' +
+        courses.sort((a,b)=>(a.title||'').localeCompare(b.title||''))
+            .map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join('');
+    renderEpisodes();
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function renderEpisodes() {
+    const q = document.getElementById('epSearch').value.toLowerCase().trim();
+    const cursusId = document.getElementById('epCursusFilter').value;
+    const courseId = document.getElementById('epCourseFilter').value;
+    const status = document.getElementById('epStatusFilter').value;
+    const launchOnly = document.getElementById('epLaunchOnly').checked;
+
+    const launchCourseIds = new Set(allCourses.filter(c=>c.is_launch_catalog===true).map(c=>c.id));
+    const courseById = Object.fromEntries(allCourses.map(c=>[c.id, c]));
+    const moduleById = Object.fromEntries(allModules.map(m=>[m.id, m]));
+    const cursusById = Object.fromEntries(allCursus.map((c,i)=>[c.id, {...c, _idx:i}]));
+
+    let rows = allAudios.filter(a => {
+        const c = courseById[a.course_id];
+        if (!c) return false;
+        if (launchOnly && !launchCourseIds.has(a.course_id)) return false;
+        if (cursusId && c.cursus_id !== cursusId && c.thematique_id !== cursusId) return false;
+        if (courseId && a.course_id !== courseId) return false;
+        if (status === 'published' && a.is_active === false) return false;
+        if (status === 'draft' && a.is_active !== false) return false;
+        if (status === 'orphan' && a.module_id) return false;
+        if (status === 'with-yt' && !a.youtube_url) return false;
+        if (status === 'without-yt' && a.youtube_url) return false;
+        if (q) {
+            const blob = `${a.title||''} ${a.scholar_name||''} ${a.id||''}`.toLowerCase();
+            if (!blob.includes(q)) return false;
+        }
+        return true;
+    });
+
+    rows.sort((a,b) => {
+        const ca = courseById[a.course_id], cb = courseById[b.course_id];
+        const cua = cursusById[ca.cursus_id||ca.thematique_id]?._idx ?? 99;
+        const cub = cursusById[cb.cursus_id||cb.thematique_id]?._idx ?? 99;
+        if (cua !== cub) return cua - cub;
+        if (a.course_id !== b.course_id) return (ca.title||'').localeCompare(cb.title||'');
+        return (a.episode_number||0) - (b.episode_number||0);
+    });
+
+    document.getElementById('epCount').textContent = `${rows.length} épisode${rows.length>1?'s':''}`;
+    if (rows.length === 0) {
+        document.getElementById('epTbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted);">Aucun épisode</td></tr>';
+        return;
+    }
+
+    document.getElementById('epTbody').innerHTML = rows.map(a => {
+        const c = courseById[a.course_id];
+        const cursus = cursusById[c.cursus_id||c.thematique_id];
+        const letter = cursus?.letter || (cursus ? String.fromCharCode(65+cursus._idx) : '?');
+        const color = cursus ? CURSUS_COLORS[cursus._idx % CURSUS_COLORS.length] : '#666';
+        const mod = moduleById[a.module_id];
+        const isActive = a.is_active !== false;
+        return `<tr class="${isActive?'':'inactive'}" data-testid="ep-row-${a.id}">
+            <td><span class="ep-cursus-badge" style="background:${color};">${letter}</span></td>
+            <td title="${esc(c.title)}" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.title)}</td>
+            <td title="${esc(mod?.name||mod?.title||'—')}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${mod?'var(--text-primary)':'var(--warning)'};">${mod ? esc(mod.name||mod.title) : '⚠ aucun'}</td>
+            <td>${a.episode_number ?? '-'}</td>
+            <td title="${esc(a.title)}" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">${esc(a.title)}</td>
+            <td style="color:var(--text-muted);">${esc(a.scholar_name||'—')}</td>
+            <td>${a.youtube_url ? `<a href="${esc(a.youtube_url)}" target="_blank" rel="noopener" class="ep-yt-yes" title="${esc(a.youtube_url)}"><i class="fab fa-youtube"></i> Oui</a>` : '<span class="ep-yt-no">—</span>'}</td>
+            <td>${isActive ? '<span style="color:var(--success);font-size:11px;">Publié</span>' : '<span style="color:var(--text-muted);font-size:11px;">Brouillon</span>'}</td>
+            <td><div class="ep-row-actions">
+                <button onclick='openEpEdit(${JSON.stringify(a).replace(/\x27/g,"&#39;")})' title="Modifier" data-testid="ep-edit-btn-${a.id}"><i class="fas fa-pen"></i></button>
+                <button onclick="toggleEp('${a.id}', ${isActive})" title="${isActive?'Dépublier':'Publier'}"><i class="fas fa-${isActive?'eye':'eye-slash'}"></i></button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+function openEpEdit(audio) {
+    const c = allCourses.find(co=>co.id===audio.course_id) || {};
+    const cursus = allCursus.find(cu=>cu.id===c.cursus_id || cu.id===c.thematique_id) || {};
+    document.getElementById('epEditId').value = audio.id;
+    document.getElementById('epEditContext').value = `[${cursus.letter||'?'}] ${cursus.name||''} — ${c.title||audio.course_id}`;
+    document.getElementById('epEditTitle').value = audio.title||'';
+    document.getElementById('epEditDesc').value = audio.description||'';
+    document.getElementById('epEditDuration').value = audio.duration||0;
+    document.getElementById('epEditFileKey').value = audio.file_key||'';
+    document.getElementById('epEditYoutube').value = audio.youtube_url||'';
+    document.getElementById('epEditScholar').innerHTML = '<option value="">— Aucun —</option>' +
+        allScholars.map(s=>`<option value="${s.id}" ${s.id===audio.scholar_id?'selected':''}>${esc(s.name)}</option>`).join('');
+    const courseModules = allModules.filter(m=>m.course_id===audio.course_id).sort((a,b)=>(a.order||0)-(b.order||0));
+    document.getElementById('epEditModule').innerHTML = '<option value="">— Aucun module —</option>' +
+        courseModules.map(m=>`<option value="${m.id}" ${m.id===audio.module_id?'selected':''}>${esc(m.name||m.title||m.id)}</option>`).join('');
+    document.getElementById('epEditOv').classList.add('active');
+}
+
+async function saveEpEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('epEditId').value;
+    const scholarId = document.getElementById('epEditScholar').value;
+    const scholar = allScholars.find(s=>s.id===scholarId);
+    try {
+        await apiRequest(`/admin/audios/${id}`, 'PUT', {
+            title: document.getElementById('epEditTitle').value,
+            description: document.getElementById('epEditDesc').value,
+            scholar_id: scholarId,
+            scholar_name: scholar ? scholar.name : '',
+            duration: parseInt(document.getElementById('epEditDuration').value) || 0,
+            module_id: document.getElementById('epEditModule').value || null,
+            youtube_url: document.getElementById('epEditYoutube').value || null,
+        });
+        showToast('Épisode mis à jour');
+        document.getElementById('epEditOv').classList.remove('active');
+        // Update local state
+        const a = allAudios.find(x=>x.id===id);
+        if (a) {
+            a.title = document.getElementById('epEditTitle').value;
+            a.description = document.getElementById('epEditDesc').value;
+            a.scholar_id = scholarId;
+            a.scholar_name = scholar ? scholar.name : '';
+            a.duration = parseInt(document.getElementById('epEditDuration').value)||0;
+            a.module_id = document.getElementById('epEditModule').value || null;
+            a.youtube_url = document.getElementById('epEditYoutube').value || null;
+        }
+        renderEpisodes();
+    } catch(err) { showToast(err.message,'error'); }
+}
+
+async function toggleEp(id, currentlyActive) {
+    try {
+        await apiRequest(`/admin/audios/${id}/toggle`, 'PATCH');
+        const a = allAudios.find(x=>x.id===id);
+        if (a) a.is_active = !currentlyActive;
+        renderEpisodes();
+    } catch(err) { showToast(err.message,'error'); }
+}
+</script>
+{% endblock %}

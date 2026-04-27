@@ -6817,6 +6817,14 @@ async def admin_panel_courses(request: Request):
         {"request": request, "active_page": "courses"}
     )
 
+@api_router.get("/admin-panel/episodes", response_class=HTMLResponse)
+async def admin_panel_episodes(request: Request):
+    """Admin panel flat episodes view — fast per-episode editing."""
+    return templates.TemplateResponse(
+        "episodes.html",
+        {"request": request, "active_page": "episodes"}
+    )
+
 @api_router.get("/admin-panel/users", response_class=HTMLResponse)
 async def admin_panel_users(request: Request):
     """Admin panel users page."""
