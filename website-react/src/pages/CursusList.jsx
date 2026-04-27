@@ -38,7 +38,7 @@ export default function CursusList() {
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="cursus-list-page">
       <div style={{ marginBottom: 64 }}>
-        <div className="section-eyebrow">6 Cursus disponibles</div>
+        <div className="section-eyebrow">{cursus.length} Cursus disponibles</div>
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
           Les grandes voies du savoir islamique
         </h1>
@@ -48,6 +48,33 @@ export default function CursusList() {
         }}>
           Choisissez votre parcours d'étude
         </p>
+
+        <div
+          data-testid="launch-wave-notice"
+          style={{
+            marginTop: 32,
+            padding: '20px 24px',
+            background: 'var(--bg-card)',
+            borderLeft: '2px solid var(--accent, #C9A84C)',
+            maxWidth: 720,
+          }}
+        >
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 11,
+            letterSpacing: 3, textTransform: 'uppercase',
+            color: 'var(--accent, #C9A84C)', marginBottom: 10,
+          }}>
+            Première vague — Mai 2026
+          </div>
+          <p style={{
+            fontFamily: 'var(--font-body)', fontSize: 15,
+            color: 'var(--text-muted)', lineHeight: 1.7, margin: 0,
+          }}>
+            Sijill Project se construit par vagues successives. Chaque cursus s'enrichit au fil
+            des mois, au rythme des contributions de nos intervenants académiques. Ce que vous
+            découvrez ici est la première vague — d'autres suivront.
+          </p>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -136,9 +163,25 @@ export default function CursusList() {
                           to={`/cours/${course.id}`}
                           className="course-card"
                           data-testid={`course-card-${course.id}`}
-                          style={{ border: `1px solid ${color}22` }}
+                          style={{ border: `1px solid ${color}22`, position: 'relative' }}
                         >
                           <div className="course-card-dot" style={{ background: color }} />
+                          {course.coming_soon && (
+                            <div
+                              data-testid={`coming-soon-badge-${course.id}`}
+                              style={{
+                                position: 'absolute', top: 12, right: 12,
+                                fontFamily: 'var(--font-display)', fontSize: 9,
+                                letterSpacing: 1.5, textTransform: 'uppercase',
+                                color: 'var(--accent, #C9A84C)',
+                                padding: '3px 8px',
+                                border: `1px solid var(--accent, #C9A84C)`,
+                                borderRadius: 2,
+                              }}
+                            >
+                              {course.available_date || 'Bientôt'}
+                            </div>
+                          )}
                           <div className="course-card-title">{course.title || course.name}</div>
                           <div className="course-card-desc">{course.description}</div>
                           <div className="course-card-episodes" style={{ color: `${color}88` }}>

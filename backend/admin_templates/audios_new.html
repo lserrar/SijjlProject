@@ -54,6 +54,7 @@
                     <div class="form-group"><label class="form-label">Durée (sec)</label><input type="number" class="form-input" id="editDuration" min="0" data-testid="edit-duration"></div>
                 </div>
                 <div class="form-group"><label class="form-label">Fichier R2</label><input type="text" class="form-input" id="editFileKey" readonly style="opacity:0.6;" data-testid="edit-filekey"></div>
+                <div class="form-group"><label class="form-label">URL YouTube (vidéo non répertoriée)</label><input type="url" class="form-input" id="editYoutubeUrl" placeholder="https://youtu.be/..." data-testid="edit-youtube-url"></div>
             </div>
             <div class="mdl-ft">
                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('editOv').classList.remove('active')">Annuler</button>
@@ -334,6 +335,7 @@ function openEdit(audio) {
     document.getElementById('editDesc').value = audio.description||'';
     document.getElementById('editDuration').value = audio.duration||0;
     document.getElementById('editFileKey').value = audio.file_key||'';
+    document.getElementById('editYoutubeUrl').value = audio.youtube_url||'';
     const sel = document.getElementById('editScholar');
     sel.innerHTML = '<option value="">-- Aucun --</option>' +
         allScholars.map(s=>`<option value="${s.id}" ${s.id===audio.scholar_id?'selected':''}>${esc(s.name)}</option>`).join('');
@@ -352,6 +354,7 @@ async function saveEpisode(e) {
             scholar_id: scholarId,
             scholar_name: scholar?scholar.name:'',
             duration: parseInt(document.getElementById('editDuration').value)||0,
+            youtube_url: document.getElementById('editYoutubeUrl').value || null,
         });
         showToast('Épisode modifié');
         document.getElementById('editOv').classList.remove('active');

@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 31 — Sijill Phased Launch V4 testing COMPLETE. Backend: 14/14 pytest tests PASS. Frontend: all 4 UI flows verified (cursus page with 7 cursus + launch-wave-notice + coming-soon badges, catalogue page with H1 'Mai 2026 — Première vague' and 19 launch cards, course-andalus/historiographie YouTube iframes using youtube-nocookie.com, cours-mamelouke 'Disponible mai 2026' badge). Minor spec note: cursus id for sciences is actually 'cursus-sciences-islamiques' (not 'cursus-sciences' as stated in review). Existing flows (login, register, blog, preregistration, home) all load 200.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "startup migration log", "issue": "On repeat startup, log reads 'Migration v4: launch_catalog set on 0 (in) / 0 (out)' and 'youtube_url set on 0 audio(s)'. This is normal idempotent behavior (already applied on previous startup) but may be misleading compared to the expected '15 in / 9 out / 5 audios' log. Actual DB state is correct (>=15 launch courses, andalus/historiographie youtube_url set, cours-traduction audios have youtube_url). No action required."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phased_launch_v4.py",
+    "/app/test_reports/pytest/v4_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Review request states cursus id '3=cursus-sciences' but actual DB id is 'cursus-sciences-islamiques' (letter C, order 3). Either the request wording is informal (sciences=shorthand) or the id should be renamed. Current behavior is consistent with existing data (all previous 6 cursus preserved their ids).",
+    "The course list endpoint (GET /api/courses) strips None values, so 'youtube_url', 'coming_soon', 'available_date' keys are absent on courses that don't have them set. This is consistent Pydantic exclude_none behavior but means frontend must handle undefined. Works correctly in current React components (optional chaining)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phased_launch_v4.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 pytest)",
+    "frontend": "100% (all 4 UI flows + existing flows verified)"
+  },
+  "test_credentials": {
+    "admin_email": "loubna.serrar@gmail.com",
+    "admin_password": "Admin123!",
+    "note": "/app/memory/test_credentials.md file is missing — main agent should create it for future agents."
+  },
+  "seed_data_creation": "None created. Test uses existing Migration v4 seed: cursus-histoire with 4 courses (cours-debuts-islam, cours-andalus, cours-mamelouke, cours-ottoman). Admin PUT tests restore original state after modification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "V4 migration fully verified. Backend test file at /app/backend/tests/test_phased_launch_v4.py can be reused for regression. Key data facts: 7 cursus (A-G, orders 1-7), sciences cursus id = 'cursus-sciences-islamiques'. Histoire has 4 courses all with is_launch_catalog=true. cours-mamelouke (coming_soon, mai 2026) & cours-ottoman (coming_soon, sept. 2026). cours-andalus youtube_url=https://youtu.be/cow2JfYaSC0, cours-historiographie youtube_url=https://youtu.be/RUc8p0K6Qg4. catalogue renders 19 cards. YouTube iframes use youtube-nocookie.com/embed/{id} wrapped in a DIV with data-testid='course-youtube-embed' (not on the iframe itself — testers should query the inner <iframe> for src). course-coming-soon-badge text = 'Disponible mai 2026'. Admin endpoints PUT /api/admin/courses/{id} and PUT /api/admin/audios/{id} both accept and persist new fields.",
+  "rca of the issue": "No issues to RCA — all features working as specified."
+}

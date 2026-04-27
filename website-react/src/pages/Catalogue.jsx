@@ -13,7 +13,9 @@ export default function Catalogue() {
       const map = {}
       ;(allCursus || []).forEach(c => { map[c.id] = c })
       setCursusMap(map)
-      const sorted = (allCourses || []).sort((a, b) =>
+      // Only show courses flagged as part of the launch catalog
+      const launchCourses = (allCourses || []).filter(c => c.is_launch_catalog === true)
+      const sorted = launchCourses.sort((a, b) =>
         (a.title || a.name || '').localeCompare(b.title || b.name || '', 'fr')
       )
       setCourses(sorted)
@@ -26,15 +28,16 @@ export default function Catalogue() {
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="catalogue-page">
       <div style={{ marginBottom: 64 }}>
-        <div className="section-eyebrow">Catalogue</div>
+        <div className="section-eyebrow">Catalogue de lancement</div>
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
-          Tous les cours
+          Mai 2026 — Première vague
         </h1>
         <p style={{
           fontFamily: 'var(--font-body)', fontSize: 18,
-          color: 'var(--text-muted)', maxWidth: 600, marginTop: 16, lineHeight: 1.7
+          color: 'var(--text-muted)', maxWidth: 640, marginTop: 16, lineHeight: 1.7
         }}>
-          {courses.length} cours classés par ordre alphabétique, à travers les cinq cursus.
+          {courses.length} cours sélectionnés pour le lancement, à travers les sept cursus.
+          Le catalogue complet, en cours de production, est consultable depuis la page <Link to="/cursus" style={{ color: 'var(--accent, #C9A84C)', textDecoration: 'underline' }}>Cursus</Link>.
         </p>
       </div>
 

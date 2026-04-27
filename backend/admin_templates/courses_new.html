@@ -90,6 +90,28 @@
                     <label class="form-label">Tags (séparés par des virgules)</label>
                     <input type="text" class="form-input" id="tags">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">URL YouTube (vidéo non répertoriée)</label>
+                    <input type="url" class="form-input" id="youtube_url" placeholder="https://youtu.be/..." data-testid="course-youtube-input">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" id="is_launch_catalog" data-testid="course-is-launch-checkbox">
+                            <span>Inclure dans le catalogue de lancement</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" id="coming_soon" data-testid="course-coming-soon-checkbox">
+                            <span>Bientôt disponible</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date de disponibilité (texte libre, ex: « mai 2026 »)</label>
+                    <input type="text" class="form-input" id="available_date" placeholder="mai 2026" data-testid="course-available-date-input">
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
@@ -127,6 +149,10 @@ function openModal(course = null) {
         document.getElementById('duration').value = course.duration || 0;
         document.getElementById('thumbnail').value = course.thumbnail || '';
         document.getElementById('tags').value = (course.tags || []).join(', ');
+        document.getElementById('youtube_url').value = course.youtube_url || '';
+        document.getElementById('is_launch_catalog').checked = course.is_launch_catalog === true;
+        document.getElementById('coming_soon').checked = course.coming_soon === true;
+        document.getElementById('available_date').value = course.available_date || '';
     } else {
         document.getElementById('courseForm').reset();
         document.getElementById('courseId').value = '';
@@ -170,7 +196,11 @@ async function saveCourse(event) {
         duration: parseInt(document.getElementById('duration').value) || 0,
         thumbnail: document.getElementById('thumbnail').value,
         tags: document.getElementById('tags').value.split(',').map(s => s.trim()).filter(s => s),
-        language: 'Francais'
+        language: 'Francais',
+        youtube_url: document.getElementById('youtube_url').value || null,
+        is_launch_catalog: document.getElementById('is_launch_catalog').checked,
+        coming_soon: document.getElementById('coming_soon').checked,
+        available_date: document.getElementById('available_date').value || null,
     };
 
     try {

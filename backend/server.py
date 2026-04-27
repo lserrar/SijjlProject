@@ -326,6 +326,9 @@ class AudioCreate(BaseModel):
     module_id: Optional[str] = None  # Link to a module (NEW - replaces course_id)
     episode_number: Optional[int] = None
     is_active: bool = False
+    youtube_url: Optional[str] = None  # Unlisted YouTube video URL
+    coming_soon: Optional[bool] = None  # Episode planned but not yet available
+    available_date: Optional[str] = None  # e.g. "mai 2026", "sept. 2026"
 
 class AudioUpdate(BaseModel):
     title: Optional[str] = None
@@ -342,6 +345,9 @@ class AudioUpdate(BaseModel):
     is_active: Optional[bool] = None
     file_key: Optional[str] = None
     audio_url: Optional[str] = None
+    youtube_url: Optional[str] = None
+    coming_soon: Optional[bool] = None
+    available_date: Optional[str] = None
 
 class ScholarCreate(BaseModel):
     name: str
@@ -374,6 +380,10 @@ class CourseCreate(BaseModel):
     r2_folder: Optional[str] = None
     hero_title: Optional[str] = None
     hero_description: Optional[str] = None
+    youtube_url: Optional[str] = None  # Unlisted YouTube URL (for whole course or single-episode courses)
+    is_launch_catalog: Optional[bool] = None  # Show in public launch Catalogue page
+    coming_soon: Optional[bool] = None  # Course planned but not yet available
+    available_date: Optional[str] = None  # e.g. "mai 2026"
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
@@ -393,6 +403,10 @@ class CourseUpdate(BaseModel):
     r2_folder: Optional[str] = None
     hero_title: Optional[str] = None
     hero_description: Optional[str] = None
+    youtube_url: Optional[str] = None
+    is_launch_catalog: Optional[bool] = None
+    coming_soon: Optional[bool] = None
+    available_date: Optional[str] = None
 
 # ─── Conference Models ─────────────────────────────────────────────────────────
 
@@ -1104,9 +1118,9 @@ async def get_audio(audio_id: str):
         a['course_title'] = course.get('title', '')
         a['total_episodes'] = course.get('modules_count', 0)
 
-        # Enrich cursus color/letter
-        CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
-        CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
+        # Enrich cursus color/letter (7 cursus: A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques)
+        CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        CURSUS_COLORS = ['#D97757', '#8B5CF6', '#EAD637', '#EC4899', '#04D182', '#06B6D4', '#F59E0B']
         cursus = await db.cursus.find_one({'id': course.get('cursus_id', '')}, {'_id': 0}) if course.get('cursus_id') else None
         if cursus:
             order = max(0, min(cursus.get('order', 1) - 1, len(CURSUS_LETTERS) - 1))
@@ -1727,9 +1741,9 @@ async def get_home(request: Request):
     user = await get_current_user(request)
     user_id = user['user_id'] if user else None
 
-    # Pre-load all cursus for fast lookup
-    CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
-    CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
+    # Pre-load all cursus for fast lookup (7 cursus: A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques)
+    CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    CURSUS_COLORS = ['#D97757', '#8B5CF6', '#EAD637', '#EC4899', '#04D182', '#06B6D4', '#F59E0B']
     all_cursus_list = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(20)
     cursus_map = {c['id']: c for c in all_cursus_list}
 
@@ -2247,8 +2261,8 @@ async def get_user_library(request: Request):
         raise HTTPException(401, "Authentification requise")
     
     user_id = user['user_id']
-    CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
-    CURSUS_COLORS = ['#04D182', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4', '#C9A84C']
+    CURSUS_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+    CURSUS_COLORS = ['#D97757', '#8B5CF6', '#EAD637', '#EC4899', '#04D182', '#06B6D4', '#F59E0B']
     
     # Pre-load cursus for enrichment
     all_cursus = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(20)
@@ -2612,6 +2626,194 @@ async def seed_data():
         logger.info(f"Migration v3b: Reassigned {moved} courses to new cursus structure")
     # ─── End Migration v3b ────────────────────────────────────────────────
     # ─── End Migration v3 ─────────────────────────────────────────────────
+
+    # ─── Migration v4: Catalogue de lancement Mai 2026 ────────────────────
+    # New cursus structure (7 cursus): A=Histoire, B=Théologie, C=Sciences,
+    # D=Arts, E=Falsafa (was A), F=Mystique (was E), G=Pensées non-islamiques
+    
+    # 1. Insert new Cursus A "Histoire du monde islamique"
+    existing_histoire = await db.cursus.find_one({'id': 'cursus-histoire'})
+    if not existing_histoire:
+        await db.cursus.insert_one({
+            'id': 'cursus-histoire',
+            'name': 'Histoire du monde islamique',
+            'description': "Des débuts de l'islam à l'époque ottomane, en passant par al-Andalus et les Mamelouks : les grandes époques de l'histoire islamique.",
+            'hero_title': 'Histoire du monde islamique',
+            'subtitle': 'Des origines à l\'époque ottomane',
+            'icon': 'book-open',
+            'order': 1,
+            'is_active': True,
+            'is_featured': False,
+            'letter': 'A',
+        })
+        logger.info("Migration v4: Cursus A 'Histoire du monde islamique' created")
+    
+    # 2. Update orders + letters for all cursus
+    cursus_order_map = [
+        ('cursus-histoire', 1, 'A'),
+        ('cursus-theologie', 2, 'B'),
+        ('cursus-sciences-islamiques', 3, 'C'),
+        ('cursus-arts', 4, 'D'),
+        ('cursus-falsafa', 5, 'E'),
+        ('cursus-spiritualites', 6, 'F'),
+        ('cursus-pensees-non-islamiques', 7, 'G'),
+    ]
+    for cid, ordr, letter in cursus_order_map:
+        await db.cursus.update_one({'id': cid}, {'$set': {'order': ordr, 'letter': letter}})
+    logger.info("Migration v4: Cursus orders + letters updated (7 cursus A-G)")
+    
+    # 3. Create 4 placeholder courses for Cursus A (Histoire)
+    histoire_courses = [
+        {
+            'id': 'cours-debuts-islam',
+            'title': "Cours 1 : Les débuts de l'islam",
+            'description': "Les origines de l'islam, du Prophète Muhammad aux premiers califats. Cours présenté par Hassan Bouali et Mehdi Ghouirgate.",
+            'cursus_id': 'cursus-histoire',
+            'thematique_id': 'cursus-histoire',
+            'topic': 'Histoire',
+            'level': 'Debutant',
+            'language': 'Francais',
+            'scholar_id': '',
+            'scholar_name': 'Hassan Bouali · Mehdi Ghouirgate',
+            'duration': 0,
+            'thumbnail': '',
+            'modules_count': 2,
+            'tags': ['Histoire', 'Origines', 'Califat'],
+            'is_active': True,
+            'is_featured': False,
+            'is_launch_catalog': True,
+            'order': 1,
+        },
+        {
+            'id': 'cours-andalus',
+            'title': 'Cours 2 : Al-Andalus',
+            'description': "Histoire d'al-Andalus, de la conquête omeyyade à la chute de Grenade. Par Mehdi Ghouirgate.",
+            'cursus_id': 'cursus-histoire',
+            'thematique_id': 'cursus-histoire',
+            'topic': 'Histoire',
+            'level': 'Debutant',
+            'language': 'Francais',
+            'scholar_id': '',
+            'scholar_name': 'Mehdi Ghouirgate',
+            'duration': 0,
+            'thumbnail': '',
+            'modules_count': 1,
+            'tags': ['Histoire', 'Al-Andalus', 'Espagne musulmane'],
+            'is_active': True,
+            'is_featured': False,
+            'is_launch_catalog': True,
+            'youtube_url': 'https://youtu.be/cow2JfYaSC0',
+            'order': 2,
+        },
+        {
+            'id': 'cours-mamelouke',
+            'title': "Cours 3 : L'époque mamelouke",
+            'description': "Le sultanat mamelouk d'Égypte et de Syrie (1250-1517). Cours présenté par Sami Benkherfallah.",
+            'cursus_id': 'cursus-histoire',
+            'thematique_id': 'cursus-histoire',
+            'topic': 'Histoire',
+            'level': 'Intermediaire',
+            'language': 'Francais',
+            'scholar_id': '',
+            'scholar_name': 'Sami Benkherfallah',
+            'duration': 0,
+            'thumbnail': '',
+            'modules_count': 1,
+            'tags': ['Histoire', 'Mamelouks', 'Égypte', 'Syrie'],
+            'is_active': True,
+            'is_featured': False,
+            'is_launch_catalog': True,
+            'coming_soon': True,
+            'available_date': 'mai 2026',
+            'order': 3,
+        },
+        {
+            'id': 'cours-ottoman',
+            'title': 'Cours 4 : Le monde ottoman',
+            'description': "L'empire ottoman, de ses origines anatoliennes à son apogée méditerranéen. Cours présenté par Aysu Saban.",
+            'cursus_id': 'cursus-histoire',
+            'thematique_id': 'cursus-histoire',
+            'topic': 'Histoire',
+            'level': 'Intermediaire',
+            'language': 'Francais',
+            'scholar_id': '',
+            'scholar_name': 'Aysu Saban',
+            'duration': 0,
+            'thumbnail': '',
+            'modules_count': 1,
+            'tags': ['Histoire', 'Ottomans', 'Empire'],
+            'is_active': True,
+            'is_featured': False,
+            'is_launch_catalog': True,
+            'coming_soon': True,
+            'available_date': 'sept. 2026',
+            'order': 4,
+        },
+    ]
+    for c in histoire_courses:
+        await db.courses.update_one({'id': c['id']}, {'$set': c}, upsert=True)
+    logger.info(f"Migration v4: {len(histoire_courses)} Histoire courses upserted")
+    
+    # 4. Mark courses with is_launch_catalog flag based on Excel data
+    launch_course_ids = {
+        # Cursus E (Falsafa)
+        'cours-traduction', 'cours-falsafa-grands', 'cours-post-avicennisme',
+        'cours-falsafa-occident', 'cours-falsafa-persan', 'cours-inclassables',
+        # Cursus B (Théologie)
+        'cours-kalam', 'cours-fiqh',
+        # Cursus C (Sciences)
+        'cours-coran', 'cours-hadith', 'cours-historiographie',
+        # Cursus D (Arts)
+        'cours-art', 'cours-sciences',
+        # Cursus F (Mystique)
+        'cours-soufisme',
+        # Cursus G (Pensées non-islamiques)
+        'cours-philo-juive',
+        # Cursus A (Histoire) - all 4 included above
+        'cours-debuts-islam', 'cours-andalus', 'cours-mamelouke', 'cours-ottoman',
+    }
+    # Mark IN-launch courses
+    in_launch = await db.courses.update_many(
+        {'id': {'$in': list(launch_course_ids)}},
+        {'$set': {'is_launch_catalog': True}}
+    )
+    # Mark NOT-in-launch courses  
+    not_in_launch = await db.courses.update_many(
+        {'id': {'$nin': list(launch_course_ids)}, 'is_launch_catalog': {'$ne': False}},
+        {'$set': {'is_launch_catalog': False}}
+    )
+    logger.info(f"Migration v4: launch_catalog set on {in_launch.modified_count} (in) / {not_in_launch.modified_count} (out)")
+    
+    # 5. Set youtube_url on specific courses (where Excel has 1 episode/URL pair)
+    youtube_course_map = {
+        'cours-historiographie': 'https://youtu.be/RUc8p0K6Qg4',  # Ibn Khaldun by Ghouirgate
+    }
+    for cid, url in youtube_course_map.items():
+        await db.courses.update_one({'id': cid}, {'$set': {'youtube_url': url}})
+    
+    # 6. Set youtube_url on specific audios from Excel
+    # Format: { audio_id_substring: youtube_url }
+    audio_youtube_map = [
+        # Cursus A - Histoire (mapped to placeholder courses, audios may not exist yet)
+        # cours-debuts-islam by Mehdi Ghouirgate
+        ({'course_id': 'cours-debuts-islam'}, 'https://youtu.be/kB-fr8wwcAA'),
+        # Cursus E - Falsafa
+        ({'course_id': 'cours-traduction'}, 'https://www.youtube.com/watch?v=5EsSIUfeP-o'),
+        # Al-Kindi episodes (cours-falsafa-grands)
+        ({'id': {'$regex': 'al-kindi', '$options': 'i'}, 'episode_number': 1}, 'https://youtu.be/LDeseoNGAPQ'),
+        ({'id': {'$regex': 'al-kindi', '$options': 'i'}, 'episode_number': 2}, 'https://youtu.be/YK7LJRJheDg'),
+        # Avicenne ep1
+        ({'id': {'$regex': '^aud_cours-falsafa-grands-avicenne-ep01$'}}, 'https://www.youtube.com/watch?v=PaqA6eCZSRY'),
+        # Cursus G - Maïmonide episodes
+        ({'id': {'$regex': 'maimonide', '$options': 'i'}, 'episode_number': 1}, 'https://youtu.be/kYWqboZxQP0'),
+        ({'id': {'$regex': 'maimonide', '$options': 'i'}, 'episode_number': 2}, 'https://youtu.be/nkXImE6euX4'),
+    ]
+    yt_set = 0
+    for query, url in audio_youtube_map:
+        r = await db.audios.update_many(query, {'$set': {'youtube_url': url}})
+        yt_set += r.modified_count
+    logger.info(f"Migration v4: youtube_url set on {yt_set} audio(s)")
+    # ─── End Migration v4 ──────────────────────────────────────────────────
 
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
@@ -3311,18 +3513,19 @@ async def get_cursus_timelines(cursus_id: str):
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
-    # Map cursus_id to letter
+    # Map cursus_id to letter (7 cursus: A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques)
     cursus_letter_map = {
-        'cursus-falsafa': 'A',
-        'cursus-theologie': 'B', 
+        'cursus-histoire': 'A',
+        'cursus-theologie': 'B',
         'cursus-sciences-islamiques': 'C',
         'cursus-arts': 'D',
-        'cursus-spiritualites': 'E',
-        'cursus-pensees-non-islamiques': 'F'
+        'cursus-falsafa': 'E',
+        'cursus-spiritualites': 'F',
+        'cursus-pensees-non-islamiques': 'G',
     }
     
     letter = cursus_letter_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else None)
-    if not letter or letter not in ['A', 'B', 'C', 'D', 'E', 'F']:
+    if not letter or letter not in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
         return {'timelines': [], 'count': 0}
     
     # Get all timeline entries from DB for this cursus
@@ -3515,14 +3718,15 @@ async def list_context_resources_by_cursus(cursus_id: str):
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
-    # Map cursus_id to cursus letter (A, B, C, D, E, F)
+    # Map cursus_id to cursus letter (7 cursus: A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques)
     cursus_map = {
-        'cursus-falsafa': 'A',
-        'cursus-theologie': 'B', 
+        'cursus-histoire': 'A',
+        'cursus-theologie': 'B',
         'cursus-sciences-islamiques': 'C',
         'cursus-arts': 'D',
-        'cursus-spiritualites': 'E',
-        'cursus-pensees-non-islamiques': 'F'
+        'cursus-falsafa': 'E',
+        'cursus-spiritualites': 'F',
+        'cursus-pensees-non-islamiques': 'G',
     }
     letter = cursus_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else 'A')
     
@@ -4339,12 +4543,17 @@ R2_TO_COURSE_MAPPING = {
     '24-philosophie-juive': 'cours-philo-juive',
 }
 
-# R2 cursus folder → cursus_id mapping
+# R2 cursus folder → cursus_id mapping (7 cursus)
 R2_CURSUS_MAPPING = {
-    'cursus-a-falsafa': 'cursus-falsafa',
+    'cursus-a-histoire': 'cursus-histoire',
     'cursus-b-theologie-droit': 'cursus-theologie',
     'cursus-c-sciences-islamiques': 'cursus-sciences-islamiques',
     'cursus-d-arts-litterature': 'cursus-arts',
+    'cursus-e-falsafa': 'cursus-falsafa',
+    'cursus-f-mystique': 'cursus-spiritualites',
+    'cursus-g-pensees-non-islamiques': 'cursus-pensees-non-islamiques',
+    # Legacy folder names (backward compatibility)
+    'cursus-a-falsafa': 'cursus-falsafa',
     'cursus-e-spiritualites': 'cursus-spiritualites',
     'cursus-f-pensees-non-islamiques': 'cursus-pensees-non-islamiques',
 }
@@ -4418,12 +4627,13 @@ async def sync_bibliographies(request: Request):
         from collections import defaultdict
         
         cursus_mapping = {
-            'A': 'cursus-falsafa',
+            'A': 'cursus-histoire',
             'B': 'cursus-theologie',
             'C': 'cursus-sciences-islamiques',
             'D': 'cursus-arts',
-            'E': 'cursus-spiritualites',
-            'F': 'cursus-pensees-non-islamiques',
+            'E': 'cursus-falsafa',
+            'F': 'cursus-spiritualites',
+            'G': 'cursus-pensees-non-islamiques',
         }
         
         # Pre-load all courses grouped by cursus, in their natural DB order
@@ -4667,12 +4877,13 @@ async def sync_preview_r2(request: Request):
 # ── Manifest Parser & API ──────────────────────────────────────────────────
 
 CURSUS_LETTER_MAP = {
-    'A': 'cursus-falsafa',
+    'A': 'cursus-histoire',
     'B': 'cursus-theologie',
     'C': 'cursus-sciences-islamiques',
     'D': 'cursus-arts',
-    'E': 'cursus-spiritualites',
-    'F': 'cursus-pensees-non-islamiques',
+    'E': 'cursus-falsafa',
+    'F': 'cursus-spiritualites',
+    'G': 'cursus-pensees-non-islamiques',
 }
 
 def parse_manifest_docx(file_bytes: bytes) -> dict:
@@ -6264,12 +6475,13 @@ async def admin_standardize_bibliography_titles(request: Request):
     import re
     
     letter_to_cursus = {
-        'A': 'cursus-falsafa',
+        'A': 'cursus-histoire',
         'B': 'cursus-theologie',
         'C': 'cursus-sciences-islamiques',
         'D': 'cursus-arts',
-        'E': 'cursus-spiritualites',
-        'F': 'cursus-pensees-non-islamiques',
+        'E': 'cursus-falsafa',
+        'F': 'cursus-spiritualites',
+        'G': 'cursus-pensees-non-islamiques',
     }
     
     # Pre-load courses per cursus

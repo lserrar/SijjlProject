@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getCourseDetail, getModules, getAudios, getAudioStreamUrl, getAudioTranscript, getContextResources, getBibliographies } from '../api'
-import { getCursusColor, getCursusLetter } from '../constants'
+import { getCursusColor, getCursusLetter, buildYouTubeEmbedUrl } from '../constants'
 import { useAuth } from '../AuthContext'
 
 const CURSUS_LETTER_MAP = {
@@ -83,11 +83,17 @@ export default function CourseDetail() {
       else { audioRef.current?.play(); setIsPlaying(true) }
       return
     }
+    setCurrentAudio(audioItem)
+    setShowTranscript(false)
+    setTranscript(null)
+    // If episode has YouTube video, just update the embed (no audio file needed)
+    if (audioItem.youtube_url) {
+      setIsPlaying(false)
+      setProgress(0); setCurrentTime(0); setDuration(0)
+      if (audioRef.current) { try { audioRef.current.pause() } catch {} }
+    }
     try {
       const streamData = await getAudioStreamUrl(audioItem.id)
-      setCurrentAudio(audioItem)
-      setShowTranscript(false)
-      setTranscript(null)
       setTimeout(() => {
         if (audioRef.current) {
           audioRef.current.src = streamData.stream_url || streamData.url
@@ -96,7 +102,10 @@ export default function CourseDetail() {
         }
       }, 100)
       getAudioTranscript(audioItem.id).then(t => { if (t?.has_transcript) setTranscript(t) }).catch(() => {})
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      // No audio available — that's OK if this is a video-only episode
+      if (!audioItem.youtube_url) console.error(e)
+    }
   }
 
   function seekTo(e) {
@@ -147,11 +156,71 @@ export default function CourseDetail() {
         <h1 className="course-detail-title" data-testid="course-title">{course.title || course.name}</h1>
         <p className="course-detail-desc">{course.description}</p>
 
-        <div style={{ display: 'flex', gap: 24, marginBottom: 40, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 24, marginBottom: 40, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="detail-stat">{modules.length} module{modules.length > 1 ? 's' : ''}</div>
           <div className="detail-stat">{audios.length} épisode{audios.length > 1 ? 's' : ''}</div>
           {course.scholar_name && <div className="detail-stat">Par {course.scholar_name}</div>}
+          {course.coming_soon && (
+            <div
+              data-testid="course-coming-soon-badge"
+              style={{
+                fontFamily: 'var(--font-display)', fontSize: 10,
+                letterSpacing: 2, textTransform: 'uppercase',
+                color: 'var(--accent, #C9A84C)',
+                padding: '6px 12px',
+                border: '1px solid var(--accent, #C9A84C)',
+                borderRadius: 2,
+              }}
+            >
+              Disponible {course.available_date || 'prochainement'}
+            </div>
+          )}
         </div>
+
+        {/* Video embed: episode-level priority, fallback to course-level */}
+        {(() => {
+          const videoUrl = currentAudio?.youtube_url || course.youtube_url
+          const embedUrl = buildYouTubeEmbedUrl(videoUrl)
+          if (!embedUrl) return null
+          const isEpisodeVideo = !!currentAudio?.youtube_url
+          return (
+            <div
+              data-testid={isEpisodeVideo ? 'episode-youtube-embed' : 'course-youtube-embed'}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: 880,
+                aspectRatio: '16 / 9',
+                marginBottom: 24,
+                background: '#000',
+                border: `1px solid ${color}33`,
+              }}
+            >
+              <iframe
+                src={embedUrl}
+                title={isEpisodeVideo ? currentAudio?.title || 'Épisode vidéo' : 'Cours vidéo'}
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+              />
+              {isEpisodeVideo && (
+                <div style={{
+                  position: 'absolute', top: 12, left: 12,
+                  fontFamily: 'var(--font-display)', fontSize: 10,
+                  letterSpacing: 2, textTransform: 'uppercase',
+                  color: '#fff', background: 'rgba(0,0,0,0.6)',
+                  padding: '4px 10px', borderRadius: 2, pointerEvents: 'none',
+                }}>
+                  {currentAudio.title}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* 5 Tabs */}
         <div className="course-tabs" data-testid="course-tabs">
@@ -195,6 +264,7 @@ export default function CourseDetail() {
                             <span className="episode-num" style={{ color: isCurrent ? color : `${color}55` }}>{String(ei + 1).padStart(2, '0')}</span>
                             <span className="episode-title" style={{ color: isCurrent ? color : 'var(--text)' }}>{ep.title}</span>
                             {ep.has_transcript && <span className="tag-texte">Texte</span>}
+                            {ep.youtube_url && <span className="tag-texte" style={{ background: 'rgba(220,53,69,0.12)', color: '#dc3545', borderColor: 'rgba(220,53,69,0.3)' }}>Vidéo</span>}
                             {!user ? <span className="episode-lock">&#128274;</span> :
                              isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> :
                              <span style={{ color: user ? color : 'var(--text-dim)', fontSize: 14 }}>&#9654;</span>}
