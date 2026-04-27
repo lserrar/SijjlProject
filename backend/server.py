@@ -962,7 +962,7 @@ async def get_scholar(scholar_id: str):
 # ─── Course Routes ──────────────────────────────────────────────────────────
 
 @api_router.get("/courses")
-async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None, thematique_id: Optional[str] = None, cursus_id: Optional[str] = None):
+async def get_courses(request: Request, topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None, thematique_id: Optional[str] = None, cursus_id: Optional[str] = None):
     query: dict = {'is_active': {'$ne': False}}  # Only show active courses
     if topic:
         query['topic'] = topic
@@ -975,10 +975,18 @@ async def get_courses(topic: Optional[str] = None, level: Optional[str] = None, 
     if filter_id:
         query['$or'] = [{'cursus_id': filter_id}, {'thematique_id': filter_id}]
     courses = await db.courses.find(query, {'_id': 0}).to_list(100)
-    # Clean titles
+    # Determine access per-course to strip youtube_url for non-subscribers
+    user = await get_current_user(request)
     for c in courses:
         if c.get('title'):
             c['title'] = clean_title(c['title'])
+        if c.get('youtube_url'):
+            has_access = False
+            if user:
+                access = await check_user_access(user['user_id'], content_type='course', content_id=c['id'])
+                has_access = access.get('has_access', False)
+            if not has_access:
+                c.pop('youtube_url', None)
     return courses
 
 @api_router.get("/courses/{course_id}/playlist")
@@ -1020,12 +1028,20 @@ async def get_featured_course():
     return course
 
 @api_router.get("/courses/{course_id}")
-async def get_course(course_id: str):
+async def get_course(course_id: str, request: Request):
     c = await db.courses.find_one({'id': course_id}, {'_id': 0})
     if not c:
         raise HTTPException(404, "Cours non trouvé")
     if c.get('title'):
         c['title'] = clean_title(c['title'])
+    # Strip protected fields (youtube_url) if user has no access
+    user = await get_current_user(request)
+    has_access = False
+    if user:
+        access = await check_user_access(user['user_id'], content_type='course', content_id=course_id)
+        has_access = access.get('has_access', False)
+    if not has_access:
+        c.pop('youtube_url', None)
     return c
 
 @api_router.get("/courses/{course_id}/suggestions")
@@ -1084,7 +1100,7 @@ async def get_conference(conference_id: str):
 # ─── Audio Routes ───────────────────────────────────────────────────────────
 
 @api_router.get("/audios")
-async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = None, scholar_id: Optional[str] = None, module_id: Optional[str] = None, course_id: Optional[str] = None):
+async def get_audios(request: Request, topic: Optional[str] = None, audio_type: Optional[str] = None, scholar_id: Optional[str] = None, module_id: Optional[str] = None, course_id: Optional[str] = None):
     query: dict = {'is_active': True}
     if topic:
         query['topic'] = topic
@@ -1097,17 +1113,38 @@ async def get_audios(topic: Optional[str] = None, audio_type: Optional[str] = No
     if course_id:
         query['course_id'] = course_id
     audios = await db.audios.find(query, {'_id': 0}).to_list(100)
-    # Attach resolved stream URL to each audio
+    # Determine access once per course to strip youtube_url for non-subscribers
+    user = await get_current_user(request)
+    has_access_cache: dict = {}
     for a in audios:
         a['stream_url'] = resolve_audio_url(a)
+        # Gate youtube_url behind access check
+        if a.get('youtube_url'):
+            cid = a.get('course_id', '')
+            if cid not in has_access_cache:
+                if user:
+                    access = await check_user_access(user['user_id'], content_type='course', content_id=cid)
+                    has_access_cache[cid] = access.get('has_access', False)
+                else:
+                    has_access_cache[cid] = False
+            if not has_access_cache[cid]:
+                a.pop('youtube_url', None)
     return audios
 
 @api_router.get("/audios/{audio_id}")
-async def get_audio(audio_id: str):
+async def get_audio(audio_id: str, request: Request):
     a = await db.audios.find_one({'id': audio_id, 'is_active': True}, {'_id': 0})
     if not a:
         raise HTTPException(404, "Audio non trouvé")
     a['stream_url'] = resolve_audio_url(a)
+    # Gate youtube_url behind access check
+    user = await get_current_user(request)
+    has_access = False
+    if user and a.get('course_id'):
+        access = await check_user_access(user['user_id'], content_type='course', content_id=a['course_id'])
+        has_access = access.get('has_access', False)
+    if not has_access:
+        a.pop('youtube_url', None)
 
     # Enrich with course + cursus data
     course = await db.courses.find_one({'id': a.get('course_id', '')}, {'_id': 0}) if a.get('course_id') else None
@@ -1169,22 +1206,38 @@ async def track_play(audio_id: str):
 
 @api_router.get("/audios/{audio_id}/stream-url")
 async def get_audio_stream_url(audio_id: str, request: Request):
-    """Return a proxy streaming URL (avoids R2 CORS restrictions)."""
+    """Return a proxy streaming URL (avoids R2 CORS restrictions). Requires active subscription/trial/admin access."""
+    # Authentication + access check
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    access = await check_user_access(user['user_id'], content_type='audio', content_id=audio_id)
+    if not access.get('has_access'):
+        raise HTTPException(403, {"error": "subscription_required", "reason": access.get('reason', 'no_access')})
+    
     a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
     if not a:
         raise HTTPException(404, "Audio non trouvé")
+    
+    # Sign a short-lived (1h) token for the /stream endpoint (which is hit by <audio src>, no headers)
+    stream_token = create_jwt({
+        'sub': user['user_id'],
+        'audio_id': audio_id,
+        'scope': 'audio_stream',
+        'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+    })
+    
     file_key = a.get('file_key')
     if file_key and r2_client:
-        # Build the external base URL from forwarded headers (set by Cloudflare/ingress)
         scheme = request.headers.get('x-forwarded-proto', 'https')
         host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
-        proxy_url = f"{scheme}://{host}/api/audios/{audio_id}/stream"
+        proxy_url = f"{scheme}://{host}/api/audios/{audio_id}/stream?t={stream_token}"
         return {
             'audio_id': audio_id,
             'stream_url': proxy_url,
             'file_key': file_key,
             'source': 'proxy',
-            'expires_in': None,
+            'expires_in': 3600,
         }
     # Fallback: presigned R2 URL if R2 unavailable
     stream_url = resolve_audio_url(a)
@@ -1193,12 +1246,27 @@ async def get_audio_stream_url(audio_id: str, request: Request):
         'stream_url': stream_url,
         'file_key': a.get('file_key'),
         'source': 'fallback',
-        'expires_in': None,
+        'expires_in': 3600,
     }
 
 @api_router.api_route("/audios/{audio_id}/stream", methods=["GET", "HEAD"])
-async def stream_audio(audio_id: str, request: Request):
-    """Proxy the audio file from R2 to the client, supporting Range requests."""
+async def stream_audio(audio_id: str, request: Request, t: Optional[str] = None):
+    """Proxy the audio file from R2 to the client. Requires a valid short-lived stream token (?t=)."""
+    # Validate stream token (delivered by /stream-url after auth+access check)
+    token = t or request.query_params.get('t')
+    if not token:
+        # Allow authenticated users via Authorization header as fallback (admin preview)
+        user = await get_current_user(request)
+        if not user:
+            raise HTTPException(401, "Jeton de streaming requis")
+        access = await check_user_access(user['user_id'], content_type='audio', content_id=audio_id)
+        if not access.get('has_access'):
+            raise HTTPException(403, "Abonnement requis")
+    else:
+        payload = verify_jwt(token)
+        if not payload or payload.get('scope') != 'audio_stream' or payload.get('audio_id') != audio_id:
+            raise HTTPException(403, "Jeton invalide ou expiré")
+    
     import httpx
     a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
     if not a:

@@ -15,7 +15,9 @@
       "infoPlist": {
         "NSMicrophoneUsageDescription": "Enregistrer des notes audio pour vos cours",
         "NSCameraUsageDescription": "Scanner des documents pour vos cours",
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -27,7 +29,11 @@
       "edgeToEdgeEnabled": true,
       "package": "com.sijillproject.app",
       "versionCode": 2,
-      "permissions": ["INTERNET", "READ_EXTERNAL_STORAGE", "FOREGROUND_SERVICE"]
+      "permissions": [
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "FOREGROUND_SERVICE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -50,7 +56,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#0A0A0A"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

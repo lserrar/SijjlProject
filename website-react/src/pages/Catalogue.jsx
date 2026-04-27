@@ -13,8 +13,8 @@ export default function Catalogue() {
       const map = {}
       ;(allCursus || []).forEach(c => { map[c.id] = c })
       setCursusMap(map)
-      // Only show courses flagged as part of the launch catalog
-      const launchCourses = (allCourses || []).filter(c => c.is_launch_catalog === true)
+      // Only show courses flagged as part of the launch catalog AND actually available (not coming_soon)
+      const launchCourses = (allCourses || []).filter(c => c.is_launch_catalog === true && c.coming_soon !== true)
       const sorted = launchCourses.sort((a, b) =>
         (a.title || a.name || '').localeCompare(b.title || b.name || '', 'fr')
       )

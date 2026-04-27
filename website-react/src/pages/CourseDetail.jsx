@@ -30,7 +30,23 @@ export default function CourseDetail() {
   const [currentTime, setCurrentTime] = useState(0)
   const [transcript, setTranscript] = useState(null)
   const [showTranscript, setShowTranscript] = useState(false)
+  const [hasAccess, setHasAccess] = useState(false)
   const audioRef = useRef(null)
+
+  useEffect(() => {
+    // Check subscription access
+    const token = localStorage.getItem('sijill_token')
+    if (token) {
+      fetch(`${API_BASE}/user/access?content_type=course&content_id=${courseId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.ok ? r.json() : { has_access: false })
+        .then(data => setHasAccess(!!data.has_access))
+        .catch(() => setHasAccess(false))
+    } else {
+      setHasAccess(false)
+    }
+  }, [courseId, user])
 
   useEffect(() => {
     Promise.all([
@@ -77,7 +93,16 @@ export default function CourseDetail() {
   }, [currentAudio])
 
   async function playAudio(audioItem) {
-    if (!user) return
+    if (!user) {
+      // Unauthenticated: redirect to login
+      window.location.href = '/connexion?next=' + encodeURIComponent(window.location.pathname)
+      return
+    }
+    if (!hasAccess) {
+      // Authenticated but no subscription
+      window.location.href = '/pre-inscription'
+      return
+    }
     if (currentAudio?.id === audioItem.id) {
       if (isPlaying) { audioRef.current?.pause(); setIsPlaying(false) }
       else { audioRef.current?.play(); setIsPlaying(true) }
@@ -177,12 +202,116 @@ export default function CourseDetail() {
           )}
         </div>
 
-        {/* Video embed: episode-level priority, fallback to course-level */}
+        {/* Video embed (ACCESS-GATED): episode-level priority, fallback to course-level. Paywall for non-subscribers. */}
         {(() => {
           const videoUrl = currentAudio?.youtube_url || course.youtube_url
+          const hasVideo = !!videoUrl
           const embedUrl = buildYouTubeEmbedUrl(videoUrl)
-          if (!embedUrl) return null
           const isEpisodeVideo = !!currentAudio?.youtube_url
+          if (!hasVideo && !currentAudio) return null
+
+          // PAYWALL: not authenticated or no active subscription
+          if (!hasAccess) {
+            return (
+              <div
+                data-testid="paywall-cta"
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  maxWidth: 880,
+                  aspectRatio: '16 / 9',
+                  marginBottom: 24,
+                  background: `linear-gradient(135deg, ${color}22, ${color}08)`,
+                  border: `1px solid ${color}55`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  padding: 32,
+                }}
+              >
+                <div style={{ maxWidth: 520 }}>
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 11,
+                    letterSpacing: 3, textTransform: 'uppercase',
+                    color: color, marginBottom: 16,
+                  }}>
+                    Contenu réservé aux abonnés
+                  </div>
+                  <h2 style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'clamp(22px, 3vw, 32px)',
+                    fontWeight: 400, margin: '0 0 16px 0',
+                    lineHeight: 1.2,
+                  }}>
+                    Accédez à l'intégralité de nos cours vidéo et podcast
+                  </h2>
+                  <p style={{
+                    fontFamily: 'var(--font-body)', fontSize: 15,
+                    color: 'var(--text-muted)', lineHeight: 1.6,
+                    margin: '0 0 24px 0',
+                  }}>
+                    Abonnement fondateur à 7&nbsp;€/mois ou 84&nbsp;€/an pour débloquer tous les cursus et épisodes.
+                  </p>
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {!user ? (
+                      <>
+                        <Link
+                          to="/pre-inscription"
+                          data-testid="paywall-cta-subscribe"
+                          style={{
+                            padding: '12px 28px',
+                            background: color,
+                            color: '#000', fontWeight: 600,
+                            fontSize: 14, letterSpacing: 1,
+                            textTransform: 'uppercase',
+                            textDecoration: 'none',
+                            borderRadius: 2,
+                          }}
+                        >
+                          Je m'abonne
+                        </Link>
+                        <Link
+                          to="/connexion"
+                          data-testid="paywall-cta-login"
+                          style={{
+                            padding: '12px 28px',
+                            border: `1px solid ${color}`,
+                            color: color, fontWeight: 500,
+                            fontSize: 14, letterSpacing: 1,
+                            textTransform: 'uppercase',
+                            textDecoration: 'none',
+                            borderRadius: 2,
+                          }}
+                        >
+                          J'ai déjà un compte
+                        </Link>
+                      </>
+                    ) : (
+                      <Link
+                        to="/pre-inscription"
+                        data-testid="paywall-cta-subscribe-loggedin"
+                        style={{
+                          padding: '12px 28px',
+                          background: color,
+                          color: '#000', fontWeight: 600,
+                          fontSize: 14, letterSpacing: 1,
+                          textTransform: 'uppercase',
+                          textDecoration: 'none',
+                          borderRadius: 2,
+                        }}
+                      >
+                        Activer mon abonnement
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
+          // Has access: show the actual embed
+          if (!embedUrl) return null
           return (
             <div
               data-testid={isEpisodeVideo ? 'episode-youtube-embed' : 'course-youtube-embed'}

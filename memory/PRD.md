@@ -51,7 +51,13 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ **Catalogue de lancement Mai 2026** : page Catalogue filtrée sur `is_launch_catalog=true` (19 cours) — AJOUTÉ Fév 2026
 - ✅ **Page Cursus** : bandeau "Première vague — Mai 2026", catalogue complet visible, badges « bientôt disponible » — AJOUTÉ Fév 2026
 - ✅ **YouTube unlisted** : embed `youtube-nocookie.com` (cours et épisodes), priorité épisode → cours, lien masqué via `sandbox` + `onContextMenu` — AJOUTÉ Fév 2026
-- ✅ **Admin Panel — Filtres Catalogue de lancement** (Fév 2026) :
+- ✅ **Sécurité du contenu premium** (Fév 2026) — Contenu vidéo/podcast restreint aux abonnés :
+  - Backend : `youtube_url` retiré des réponses publiques (`/api/courses`, `/api/courses/{id}`, `/api/audios`, `/api/audios/{id}`) si l'utilisateur n'a pas un abonnement actif, un essai gratuit ou le flag admin
+  - Backend : `/api/audios/{id}/stream-url` requiert auth + accès actif → retourne une URL signée avec JWT `scope=audio_stream` (expiration 1h)
+  - Backend : `/api/audios/{id}/stream` vérifie le token `?t=` sur chaque requête (ou Authorization header en fallback)
+  - Frontend CourseDetail : paywall CTA « Contenu réservé aux abonnés » (7 €/mois ou 84 €/an) à la place de l'iframe YouTube si pas d'accès
+  - Frontend CourseDetail : clic sur « play » audio redirige vers `/connexion` ou `/pre-inscription` selon l'état
+- ✅ **Catalogue filtré sur les cours disponibles** (Fév 2026) : `coming_soon !== true` ajouté au filtre en complément de `is_launch_catalog === true` (17 cours affichés au lieu de 19 — les 2 cours « Mamelouke » et « Ottoman » bientôt disponibles restent visibles uniquement sur la page Cursus)
   - Onglet **Cours** : checkbox « Catalogue de lancement uniquement » activée par défaut
   - Onglet **Professeurs** : même filtre, calcul automatique via les `scholar_id` des cours du lancement (ID + matching par nom dans `scholar_name`)
   - Onglet **Catalogue** : toggle « Lancement uniquement » (doré, actif par défaut) + arborescence enrichie **Cursus → Cours → Module → Épisodes** (correspondant fichier Excel) avec tags `LANCEMENT` et `coming_soon`, et avertissement pour les épisodes non rattachés à un module
