@@ -24,6 +24,10 @@ export async function getAllCourses() {
   return apiFetch('/courses');
 }
 
+export async function getCatalogue() {
+  return apiFetch('/catalogue');
+}
+
 export async function getCourseDetail(courseId) {
   return apiFetch(`/courses/${courseId}`);
 }

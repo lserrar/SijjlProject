@@ -961,6 +961,80 @@ async def get_scholar(scholar_id: str):
 
 # ─── Course Routes ──────────────────────────────────────────────────────────
 
+@api_router.get("/catalogue")
+async def get_catalogue():
+    """Public catalogue view: returns module-level granularity for multi-module launch courses,
+    falls back to course-level for single-module or module-less courses.
+    Each item = one 'card' to render on the Catalogue page.
+    """
+    launch_courses = await db.courses.find(
+        {'is_launch_catalog': True, 'is_active': {'$ne': False}},
+        {'_id': 0}
+    ).sort('order', 1).to_list(200)
+    if not launch_courses:
+        return []
+    course_ids = [c['id'] for c in launch_courses]
+    modules = await db.modules.find(
+        {'course_id': {'$in': course_ids}, 'is_active': {'$ne': False}},
+        {'_id': 0}
+    ).sort('order', 1).to_list(1000)
+    audios = await db.audios.find(
+        {'course_id': {'$in': course_ids}},
+        {'_id': 0, 'course_id': 1, 'module_id': 1}
+    ).to_list(3000)
+    mods_by_course: dict = {}
+    for m in modules:
+        mods_by_course.setdefault(m['course_id'], []).append(m)
+    audios_per_module: dict = {}
+    audios_per_course_unassigned: dict = {}
+    for a in audios:
+        cid = a.get('course_id')
+        mid = a.get('module_id')
+        if mid:
+            audios_per_module[mid] = audios_per_module.get(mid, 0) + 1
+        else:
+            audios_per_course_unassigned[cid] = audios_per_course_unassigned.get(cid, 0) + 1
+    items = []
+    for c in launch_courses:
+        course_modules = mods_by_course.get(c['id'], [])
+        if len(course_modules) >= 2:
+            for m in course_modules:
+                items.append({
+                    'type': 'module',
+                    'id': f"{c['id']}::{m['id']}",
+                    'course_id': c['id'],
+                    'module_id': m['id'],
+                    'title': m.get('name') or m.get('title') or '',
+                    'description': m.get('description') or '',
+                    'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
+                    'course_title': c.get('title'),
+                    'episode_count': audios_per_module.get(m['id'], 0),
+                    'coming_soon': c.get('coming_soon', False),
+                    'available_date': c.get('available_date'),
+                    'order': (c.get('order') or 0) * 1000 + (m.get('order') or 0),
+                })
+        else:
+            ep_count = sum(audios_per_module.get(m['id'], 0) for m in course_modules)
+            ep_count += audios_per_course_unassigned.get(c['id'], 0)
+            items.append({
+                'type': 'course',
+                'id': c['id'],
+                'course_id': c['id'],
+                'module_id': None,
+                'title': c.get('title') or c.get('name') or '',
+                'description': c.get('description', ''),
+                'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
+                'course_title': c.get('title'),
+                'episode_count': ep_count,
+                'coming_soon': c.get('coming_soon', False),
+                'available_date': c.get('available_date'),
+                'order': (c.get('order') or 0) * 1000,
+            })
+    items.sort(key=lambda x: (bool(x['coming_soon']), x['order']))
+    return items
+
+
+
 @api_router.get("/courses")
 async def get_courses(request: Request, topic: Optional[str] = None, level: Optional[str] = None, scholar_id: Optional[str] = None, thematique_id: Optional[str] = None, cursus_id: Optional[str] = None):
     query: dict = {'is_active': {'$ne': False}}  # Only show active courses
