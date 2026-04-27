@@ -47,21 +47,27 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ Backend API complet (auth, courses, audios, streaming, admin, pre-registration)
 - ✅ Système de parrainage
 - ✅ Système d'abonnement Stripe
-- ✅ 6 cursus avec couleurs personnalisées
+- ✅ **7 cursus** (A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques) — RESTRUCTURÉ Fév 2026
+- ✅ **Catalogue de lancement Mai 2026** : page Catalogue filtrée sur `is_launch_catalog=true` (19 cours) — AJOUTÉ Fév 2026
+- ✅ **Page Cursus** : bandeau "Première vague — Mai 2026", catalogue complet visible, badges « bientôt disponible » — AJOUTÉ Fév 2026
+- ✅ **YouTube unlisted** : embed `youtube-nocookie.com` (cours et épisodes), priorité épisode → cours, lien masqué via `sandbox` + `onContextMenu` — AJOUTÉ Fév 2026
+- ✅ **Admin Panel** : champs YouTube + flags `is_launch_catalog` / `coming_soon` / `available_date` éditables via `/api/admin-panel/courses` et `/api/admin-panel/audios` — AJOUTÉ Fév 2026
 - ✅ Apple Sign-In (backend prêt)
 
 ## Tâches à venir
 
 ### P1 - Prioritaire
-- [ ] Corriger les pistes audio non synchronisées (épisodes manquants)
+- [ ] Corriger les pistes audio non synchronisées (épisodes manquants) — peut être superposé par YouTube
 - [ ] Corriger les photos des articles du blog (images du dossier R2 non récupérées)
 - [ ] Configurer la tarification et les abonnements Stripe (nouveau compte bancaire Sijill)
-- [ ] Mettre à jour le catalogue des cours (professeurs, descriptions, "bientôt disponible")
+- [ ] Saisir les liens YouTube pour les épisodes restants via le panneau admin
+- [ ] Affiner les descriptions des 4 cours du cursus A (Histoire) avec contenu fourni par les professeurs
 
 ### P2 - Futur
 - [ ] Retour au développement natif mobile (prévu septembre)
 - [ ] Achats ponctuels de cours
 - [ ] Refactoring `backend/server.py` avec APIRouter
+- [ ] Page « Catalogue complet » publique (vs catalogue de lancement)
 
 ## Comptes de test
 - Admin : `loubna.serrar@gmail.com` / `Admin123!`
