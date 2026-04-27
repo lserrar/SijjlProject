@@ -38,43 +38,27 @@ export default function CursusList() {
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="cursus-list-page">
       <div style={{ marginBottom: 64 }}>
-        <div className="section-eyebrow">{cursus.length} Cursus disponibles</div>
+        <div className="section-eyebrow">Notre ambition</div>
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
           Les grandes voies du savoir islamique
         </h1>
         <p style={{
-          fontFamily: 'var(--font-body)', fontSize: 18,
-          color: 'var(--text-muted)', maxWidth: 600, marginTop: 16, lineHeight: 1.7
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 20, lineHeight: 1.75
         }}>
-          Choisissez votre parcours d'étude
+          Notre ambition est de bâtir une vision large et rigoureuse de la pluralité
+          des savoirs islamiques classiques, à travers <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>7 cursus thématiques</strong>
+          {' '}couvrant la philosophie, la théologie, l'histoire, les sciences, les arts,
+          la mystique et les pensées arabes non islamiques.
         </p>
-
-        <div
-          data-testid="launch-wave-notice"
-          style={{
-            marginTop: 32,
-            padding: '20px 24px',
-            background: 'var(--bg-card)',
-            borderLeft: '2px solid var(--accent, #C9A84C)',
-            maxWidth: 720,
-          }}
-        >
-          <div style={{
-            fontFamily: 'var(--font-display)', fontSize: 11,
-            letterSpacing: 3, textTransform: 'uppercase',
-            color: 'var(--accent, #C9A84C)', marginBottom: 10,
-          }}>
-            Première vague — Mai 2026
-          </div>
-          <p style={{
-            fontFamily: 'var(--font-body)', fontSize: 15,
-            color: 'var(--text-muted)', lineHeight: 1.7, margin: 0,
-          }}>
-            Sijill Project se construit par vagues successives. Chaque cursus s'enrichit au fil
-            des mois, au rythme des contributions de nos intervenants académiques. Ce que vous
-            découvrez ici est la première vague — d'autres suivront.
-          </p>
-        </div>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 16, lineHeight: 1.75
+        }}>
+          Le catalogue complet est en cours de construction. La première vague est
+          disponible dès maintenant — découvrez-la dans la page{' '}
+          <Link to="/catalogue" style={{ color: 'var(--accent, #C9A84C)', textDecoration: 'underline' }}>Catalogue</Link>.
+        </p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -184,9 +168,6 @@ export default function CursusList() {
                           )}
                           <div className="course-card-title">{course.title || course.name}</div>
                           <div className="course-card-desc">{course.description}</div>
-                          <div className="course-card-episodes" style={{ color: `${color}88` }}>
-                            {course.modules_count || course.module_count || '?'} modules
-                          </div>
                         </Link>
                       ))}
                     </div>

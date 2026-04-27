@@ -154,7 +154,7 @@ export default function Home() {
           <div className="section-header">
             <div>
               <div className="section-eyebrow">&Agrave; la une</div>
-              <h2 className="section-title">Commencez par la Falsafa</h2>
+              <h2 className="section-title">Histoire du monde islamique</h2>
             </div>
           </div>
           <div className="courses-grid">

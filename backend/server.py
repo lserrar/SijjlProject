@@ -2942,6 +2942,14 @@ async def seed_data():
         {'$set': {'youtube_url': 'https://www.youtube.com/watch?v=5zqtVXI9S1Y'}}
     )
     logger.info("Migration v4: youtube_url set on cours-art ep01")
+    
+    # 9. Feature the new Histoire course on home page (replaces Falsafa featured)
+    await db.courses.update_many({'is_featured': True}, {'$set': {'is_featured': False}})
+    await db.courses.update_one(
+        {'id': 'cours-debuts-islam'},
+        {'$set': {'is_featured': True, 'hero_title': 'Histoire du monde islamique', 'hero_description': "Des débuts de l'islam à l'époque ottomane — parcourez l'histoire du monde islamique avec Hassan Bouali et Mehdi Ghouirgate."}}
+    )
+    logger.info("Migration v4: Histoire du monde islamique featured on home")
     # ─── End Migration v4 ──────────────────────────────────────────────────
 
     if custom_cursus:
