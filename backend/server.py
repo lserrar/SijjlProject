@@ -1052,6 +1052,7 @@ async def get_catalogue():
                     'description': m.get('description') or '',
                     'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                     'course_title': c.get('title'),
+                    'scholar_name': m.get('scholar_name') or c.get('scholar_name'),
                     'episode_count': ep_count,
                     'coming_soon': c.get('coming_soon', False) or ep_count == 0,
                     'available_date': c.get('available_date'),
@@ -1090,6 +1091,7 @@ async def get_catalogue():
                 'description': c.get('description', ''),
                 'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                 'course_title': c.get('title'),
+                'scholar_name': c.get('scholar_name'),
                 'episode_count': ep_count,
                 'coming_soon': c.get('coming_soon', False),
                 'available_date': c.get('available_date'),
@@ -3151,10 +3153,12 @@ async def seed_data():
     # ─── Migration v6: Cleanup orphan audios (no module_id, no youtube_url) ────
     # User explicitly approved deleting old placeholder audios that don't appear in the launch catalog.
     # Curated audios (those with youtube_url manually set) are preserved.
+    # Also preserve placeholder episodes created by v8/v9 (is_placeholder=True).
     orphan_cleanup = await db.audios.delete_many({
         '$and': [
             {'$or': [{'module_id': None}, {'module_id': ''}]},
             {'$or': [{'youtube_url': None}, {'youtube_url': ''}, {'youtube_url': {'$exists': False}}]},
+            {'is_placeholder': {'$ne': True}},
         ]
     })
     if orphan_cleanup.deleted_count > 0:
@@ -3248,6 +3252,164 @@ async def seed_data():
         )
         logger.info("Migration v8: re-linked aud_cours-falsafa-grands-avicenne-ep01 to mod-3")
     # ─── End Migration v8 ──────────────────────────────────────────────────
+
+    # ─── Migration v9: Excel update Mai 2026 v2 ─────────────────────────────
+    # Source: user-provided Sijill_Catalogue_Lancement_Mai2026_Emergent.xlsx (v2)
+    # 1) Remove cours-post-avicennisme from launch catalogue (per user message)
+    await db.courses.update_one(
+        {'id': 'cours-post-avicennisme'},
+        {'$set': {'is_launch_catalog': False}}
+    )
+    logger.info("Migration v9: cours-post-avicennisme removed from launch catalogue")
+
+    # 2) Set scholar_name on each launch course (used by Catalogue card to show professor)
+    SCHOLAR_BY_COURSE = {
+        'cours-debuts-islam': 'Hassan Bouali · Mehdi Ghouirgate',
+        'cours-andalus': 'Mehdi Ghouirgate',
+        'cours-mamelouke': 'Sami Benkherfallah',
+        'cours-ottoman': 'Aysu Saban',
+        'cours-kalam': 'Ilyas Harifi',
+        'cours-fiqh': 'Yanis Mahil',
+        'cours-coran': 'Mehdi Azaiez',
+        'cours-hadith': 'Hassan Chahdi',
+        'cours-historiographie': 'Mehdi Ghouirgate',
+        'cours-art': 'Camille Grandpierre',
+        'cours-sciences': 'Marouane Ben Miled · Meyssa Ben Saad',
+        'cours-traduction': 'Meryem Sebti',
+        'cours-falsafa-grands': 'Meryem Sebti',
+        'cours-falsafa-occident': 'Yassir Mechelloukh',
+        'cours-falsafa-persan': 'Sajjad Rizvi',
+        'cours-inclassables': 'Cédric Molino-Mochetto',
+        'cours-soufisme': 'Gregory Vandamme',
+        'cours-philo-juive': 'Géraldine Roux',
+    }
+    for cid, sname in SCHOLAR_BY_COURSE.items():
+        await db.courses.update_one({'id': cid}, {'$set': {'scholar_name': sname}})
+    logger.info(f"Migration v9: scholar_name set on {len(SCHOLAR_BY_COURSE)} courses")
+
+    # 2bis) Set scholar_name on Falsafa modules per Excel (all by Meryem Sebti)
+    SEBTI_MODULE_IDS = [
+        'cours-falsafa-grands-mod-1',  # Al-Kindī
+        'cours-falsafa-grands-mod-2',  # Al-Fārābī
+        'cours-falsafa-grands-mod-3',  # Avicenne
+        'cours-falsafa-grands-mod-ghazali',  # Al-Ghazālī
+    ]
+    await db.modules.update_many(
+        {'id': {'$in': SEBTI_MODULE_IDS}},
+        {'$set': {'scholar_name': 'Meryem Sebti'}}
+    )
+    logger.info(f"Migration v9: scholar_name='Meryem Sebti' set on {len(SEBTI_MODULE_IDS)} Falsafa modules")
+
+    # 3) Hassan Bouali — 4 sub-episodes for "Les débuts de l'islam" + 1 Ghouirgate
+    DEBUTS_ISLAM_EPISODES = [
+        (1, "Muhammad et les débuts de l'islam", 'Hassan Bouali', None),
+        (2, "Le califat au début de l'islam : de Médine à la sortie d'Arabie", 'Hassan Bouali', None),
+        (3, "Les futūḥāt / conquêtes", 'Hassan Bouali', None),
+        (4, "Le ḥajj et son intégration progressive à la piété musulmane", 'Hassan Bouali', None),
+        (5, "Les débuts de l'islam (introduction générale)", 'Mehdi Ghouirgate', 'https://youtu.be/kB-fr8wwcAA'),
+    ]
+    for ep_num, ep_title, scholar, yt_url in DEBUTS_ISLAM_EPISODES:
+        audio_id = f"aud_cours-debuts-islam-ep{ep_num:02d}"
+        await db.audios.update_one(
+            {'id': audio_id},
+            {'$set': {
+                'id': audio_id,
+                'course_id': 'cours-debuts-islam',
+                'module_id': None,
+                'title': ep_title,
+                'episode_number': ep_num,
+                'duration_seconds': 0,
+                'youtube_url': yt_url,
+                'audio_url': None,
+                'file_key': None,
+                'scholar_name': scholar,
+                'is_placeholder': yt_url is None,
+                'is_active': True,
+                'created_at': datetime.now(timezone.utc),
+            }},
+            upsert=True
+        )
+    logger.info("Migration v9: cours-debuts-islam — 5 episodes upserted (4 Bouali + 1 Ghouirgate)")
+
+    # 4) Update Al-Kindī — add ep4 with URL + ep5 placeholder per Excel
+    await db.audios.update_one(
+        {'id': 'aud_cours-falsafa-grands-al-kindi-ep04'},
+        {'$set': {
+            'id': 'aud_cours-falsafa-grands-al-kindi-ep04',
+            'course_id': 'cours-falsafa-grands',
+            'module_id': 'cours-falsafa-grands-mod-1',
+            'title': 'Al-Kindī — Épisode 4',
+            'episode_number': 4,
+            'youtube_url': 'https://www.youtube.com/watch?v=GeAHez38fzw',
+            'scholar_name': 'Meryem Sebti',
+            'is_active': True,
+            'created_at': datetime.now(timezone.utc),
+        }},
+        upsert=True
+    )
+    await db.audios.update_one(
+        {'id': 'aud_cours-falsafa-grands-al-kindi-ep05'},
+        {'$set': {
+            'id': 'aud_cours-falsafa-grands-al-kindi-ep05',
+            'course_id': 'cours-falsafa-grands',
+            'module_id': 'cours-falsafa-grands-mod-1',
+            'title': 'Al-Kindī — Épisode 5',
+            'episode_number': 5,
+            'youtube_url': None,
+            'scholar_name': 'Meryem Sebti',
+            'is_placeholder': True,
+            'is_active': True,
+            'created_at': datetime.now(timezone.utc),
+        }},
+        upsert=True
+    )
+    logger.info("Migration v9: Al-Kindī ep4 (URL) + ep5 (placeholder) upserted")
+
+    # 5) Histoire de l'art islamique — 4 episodes per Excel (replace ep1 URL, add ep2 URL, ep3-4 placeholders)
+    ART_EPISODES = [
+        (1, "Histoire de l'art islamique — Épisode 1", 'https://www.youtube.com/watch?v=tNzuUgeMGb4'),
+        (2, "Histoire de l'art islamique — Épisode 2", 'https://www.youtube.com/watch?v=QDK4iVJ7b2k'),
+        (3, "Histoire de l'art islamique — Épisode 3", None),
+        (4, "Histoire de l'art islamique — Épisode 4", None),
+    ]
+    for ep_num, ep_title, yt in ART_EPISODES:
+        audio_id = f"aud_cours-art-ep{ep_num:02d}"
+        await db.audios.update_one(
+            {'id': audio_id},
+            {'$set': {
+                'id': audio_id,
+                'course_id': 'cours-art',
+                'module_id': None,
+                'title': ep_title,
+                'episode_number': ep_num,
+                'youtube_url': yt,
+                'scholar_name': 'Camille Grandpierre',
+                'is_placeholder': yt is None,
+                'is_active': True,
+                'created_at': datetime.now(timezone.utc),
+            }},
+            upsert=True
+        )
+    logger.info("Migration v9: cours-art — 4 episodes upserted (ep1+ep2 URL, ep3+ep4 placeholders)")
+
+    # 6) Maïmonide ep2 (cours-philo-juive)
+    await db.audios.update_one(
+        {'id': 'aud_cours-philo-juive-maimonide-ep02'},
+        {'$set': {
+            'id': 'aud_cours-philo-juive-maimonide-ep02',
+            'course_id': 'cours-philo-juive',
+            'module_id': None,
+            'title': 'Moïse Maïmonide — Épisode 2',
+            'episode_number': 2,
+            'youtube_url': 'https://youtu.be/nkXImE6euX4',
+            'scholar_name': 'Géraldine Roux',
+            'is_active': True,
+            'created_at': datetime.now(timezone.utc),
+        }},
+        upsert=True
+    )
+    logger.info("Migration v9: cours-philo-juive ep2 upserted")
+    # ─── End Migration v9 ──────────────────────────────────────────────────
 
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")

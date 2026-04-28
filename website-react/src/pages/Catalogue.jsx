@@ -103,7 +103,7 @@ export default function Catalogue() {
                 </div>
               )}
               {it.description && <div className="course-card-desc">{it.description}</div>}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', gap: 12 }}>
                 <div style={{
                   fontFamily: 'var(--font-display)', fontSize: 10,
                   letterSpacing: 1.5, textTransform: 'uppercase',
@@ -113,14 +113,29 @@ export default function Catalogue() {
                     ? `${it.episode_count} épisode${it.episode_count > 1 ? 's' : ''}`
                     : (it.available_date ? `En ${it.available_date}` : 'Bientôt')}
                 </div>
-                <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 8,
-                  letterSpacing: 2, textTransform: 'uppercase',
-                  color: 'var(--text-dim)', padding: '3px 8px',
-                  border: `1px solid ${color}33`,
-                }}>
-                  {cursusName}
-                </div>
+                {it.scholar_name ? (
+                  <div
+                    data-testid={`scholar-${it.id}`}
+                    title={it.scholar_name}
+                    style={{
+                      fontFamily: 'var(--font-body)', fontSize: 11,
+                      color: 'var(--text-muted)', fontStyle: 'italic',
+                      textAlign: 'right', maxWidth: '60%',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {it.scholar_name}
+                  </div>
+                ) : (
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 8,
+                    letterSpacing: 2, textTransform: 'uppercase',
+                    color: 'var(--text-dim)', padding: '3px 8px',
+                    border: `1px solid ${color}33`,
+                  }}>
+                    {cursusName}
+                  </div>
+                )}
               </div>
             </Link>
           )

@@ -210,7 +210,7 @@ export default function CourseDetail() {
       <audio ref={audioRef} preload="auto" />
 
       <div className="course-hero">
-        <Link to="/cursus" className="course-back" data-testid="course-back-btn">&#8592; Retour aux cursus</Link>
+        <Link to="/catalogue" className="course-back" data-testid="course-back-btn">&#8592; Retour au catalogue</Link>
 
         <div className="course-cursus-badge" style={{ borderColor: `${color}66`, color }}>
           <span style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 10 }}>{letter}</span>
