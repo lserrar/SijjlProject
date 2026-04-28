@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getResourceContent, getBibliographies } from '../api'
 import { getCursusColor } from '../constants'
+import { useAuth } from '../AuthContext'
 
 const SECTION_TITLES = ['Contexte dynastique', 'Contexte intellectuel', 'Chronologie biographique']
 
@@ -72,25 +73,32 @@ function parseContextContent(content) {
 
 export default function ResourceViewer() {
   const { type, resourceId } = useParams()
+  const { user } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [denied, setDenied] = useState(false)
   const [fontSizeIdx, setFontSizeIdx] = useState(0)
 
   const fontSize = FONT_SIZES[fontSizeIdx]
 
   useEffect(() => {
+    const handleErr = (err) => {
+      const msg = String(err?.message || '')
+      if (msg.includes('401') || msg.includes('403')) setDenied(true)
+    }
     if (type === 'fiche') {
       getResourceContent(resourceId)
         .then(d => setData(d))
-        .catch(() => {})
+        .catch(handleErr)
         .finally(() => setLoading(false))
     } else if (type === 'biblio') {
       getBibliographies()
         .then(bibs => {
           const found = bibs.find(b => b.id === resourceId)
+          if (found && found.locked) { setDenied(true); return }
           setData(found || null)
         })
-        .catch(() => {})
+        .catch(handleErr)
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -98,6 +106,28 @@ export default function ResourceViewer() {
   }, [type, resourceId])
 
   if (loading) return <div className="loading">Chargement...</div>
+  if (denied) {
+    return (
+      <div data-testid="resource-viewer-paywall" className="rv-page">
+        <section className="rv-container" style={{ textAlign: 'center', padding: '64px 24px' }}>
+          <div className="rv-top-bar">
+            <Link to={-1} className="course-back" data-testid="rv-back-btn">&#8592; Retour</Link>
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 3,
+            textTransform: 'uppercase', color: '#C9A84C', margin: '32px 0 16px',
+          }}>Contenu réservé aux abonnés</div>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--text-muted)', maxWidth: 520, margin: '0 auto 24px', lineHeight: 1.6 }}>
+            Cette ressource est accessible avec un abonnement Sijill — 7&nbsp;€/mois ou 84&nbsp;€/an.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to={user ? '/pre-inscription' : '/inscription'} className="btn-accent">{user ? "Activer mon abonnement" : "Je m'abonne"}</Link>
+            {!user && <Link to="/connexion" className="btn-outline">J'ai déjà un compte</Link>}
+          </div>
+        </section>
+      </div>
+    )
+  }
   if (!data) return <div className="loading">Ressource introuvable</div>
 
   const color = getCursusColor(`cursus-${

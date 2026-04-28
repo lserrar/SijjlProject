@@ -166,6 +166,45 @@ export default function CourseDetail() {
     { key: 'conferences', label: `Conférences` },
   ]
 
+  // Premium paywall block reused for Frise/Contexte/Biblio/Conférences
+  const PaywallBlock = ({ testid, label }) => (
+    <div data-testid={testid} style={{
+      padding: 32, border: `1px solid ${color}33`, borderRadius: 4,
+      background: `linear-gradient(135deg, ${color}11, transparent)`, textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 3,
+        textTransform: 'uppercase', color, marginBottom: 16,
+      }}>Contenu réservé aux abonnés</div>
+      <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.6 }}>
+        {label} accessible avec un abonnement Sijill — 7&nbsp;€/mois ou 84&nbsp;€/an.
+      </p>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Link to={user ? '/pre-inscription' : '/inscription'} className="btn-accent">{user ? "Activer mon abonnement" : "Je m'abonne"}</Link>
+        {!user && <Link to="/connexion" className="btn-outline">J'ai déjà un compte</Link>}
+      </div>
+    </div>
+  )
+
+  // Open a timeline securely via signed-token URL (issued only for subscribers)
+  const openTimeline = async (tl) => {
+    const token = localStorage.getItem('sijill_token')
+    if (!token) { window.location.href = '/connexion?next=' + encodeURIComponent(window.location.pathname); return }
+    const letter = course.cursus_id?.split('cursus-')[1]?.[0]?.toUpperCase() || 'A'
+    const path = tl.filename
+      ? `/timeline/file/${tl.filename}/access-url`
+      : `/timeline/${letter}/access-url`
+    try {
+      const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error(String(res.status))
+      const data = await res.json()
+      if (data.url) window.open(data.url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      // Fall back to login redirect on auth failure
+      window.location.href = '/connexion?next=' + encodeURIComponent(window.location.pathname)
+    }
+  }
+
   return (
     <div data-testid="course-detail-page">
       <audio ref={audioRef} preload="auto" />
@@ -452,10 +491,19 @@ export default function CourseDetail() {
         {/* FRISE CHRONOLOGIQUE TAB */}
         {activeTab === 'frise' && (
           <div style={{ maxWidth: 800 }} data-testid="frise-tab">
-            {timelines.length === 0 ? (
+            {!hasAccess ? (
+              <PaywallBlock testid="frise-paywall" label="La frise chronologique interactive est" />
+            ) : timelines.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune frise disponible.</p>
             ) : timelines.map(tl => (
-              <a key={tl.filename || tl.id} href={tl.url || `${API_BASE}/timeline/${course.cursus_id?.split('cursus-')[1]?.[0]?.toUpperCase() || 'A'}`} target="_blank" rel="noopener noreferrer" className="res-card" data-testid={`timeline-${tl.id || tl.filename}`}>
+              <button
+                type="button"
+                key={tl.filename || tl.id}
+                onClick={() => openTimeline(tl)}
+                className="res-card"
+                data-testid={`timeline-${tl.id || tl.filename}`}
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', font: 'inherit', color: 'inherit' }}
+              >
                 <div className="res-card-icon" style={{ background: `${color}1A` }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                 </div>
@@ -464,7 +512,7 @@ export default function CourseDetail() {
                   <div className="res-card-subtitle">Timeline interactive · Plein écran</div>
                 </div>
                 <span className="res-card-chevron">&#8250;</span>
-              </a>
+              </button>
             ))}
           </div>
         )}
@@ -472,7 +520,9 @@ export default function CourseDetail() {
         {/* CONTEXTE TAB */}
         {activeTab === 'contexte' && (
           <div style={{ maxWidth: 800 }} data-testid="contexte-tab">
-            {courseCtxResources.length === 0 ? (
+            {!hasAccess ? (
+              <PaywallBlock testid="contexte-paywall" label="Les fiches de contexte historique sont" />
+            ) : courseCtxResources.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune fiche contextuelle disponible.</p>
             ) : courseCtxResources.map(ctx => (
               <Link key={ctx.id} to={`/ressource/fiche/${ctx.id}`} className="res-card" data-testid={`context-${ctx.id}`}>
@@ -492,7 +542,9 @@ export default function CourseDetail() {
         {/* BIBLIOGRAPHIE TAB */}
         {activeTab === 'biblio' && (
           <div style={{ maxWidth: 800 }} data-testid="biblio-tab">
-            {courseBiblios.length === 0 ? (
+            {!hasAccess ? (
+              <PaywallBlock testid="biblio-paywall" label="Les bibliographies sélectives sont" />
+            ) : courseBiblios.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune bibliographie disponible.</p>
             ) : courseBiblios.map(bib => (
               <Link key={bib.id} to={`/ressource/biblio/${bib.id}`} className="res-card" data-testid={`biblio-${bib.id}`}>
@@ -549,7 +601,7 @@ export default function CourseDetail() {
         {!user && (
           <div className="course-cta" data-testid="course-cta-login" style={{ marginTop: 32 }}>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--text-muted)', marginBottom: 16 }}>
-              Frise et Contexte sont accessibles librement. Pour les épisodes vidéo et podcast, abonnez-vous.
+              L'ensemble des contenus (épisodes, frise, contexte, bibliographie, conférences) est réservé aux abonnés Sijill.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <Link to="/connexion" className="btn-outline">Se connecter</Link>

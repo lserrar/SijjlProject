@@ -219,6 +219,45 @@ async def require_admin(request: Request) -> dict:
         raise HTTPException(403, "Accès réservé aux administrateurs")
     return user
 
+async def require_subscriber(request: Request) -> dict:
+    """Require authenticated user with active subscription/trial/admin/free_access.
+    Used to gate premium content endpoints (frises, contextes, bibliographies)."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    # Inline access check to avoid forward reference to check_user_access
+    if user.get('role') == 'admin' or user.get('free_access'):
+        return user
+    now = datetime.now(timezone.utc)
+    trial = user.get('trial')
+    if trial and trial.get('expires_at'):
+        exp = trial['expires_at']
+        if isinstance(exp, str):
+            exp = datetime.fromisoformat(exp.replace('Z', '+00:00'))
+        if exp > now:
+            return user
+    sub = user.get('subscription')
+    if sub and sub.get('expires_at'):
+        exp = sub['expires_at']
+        if isinstance(exp, str):
+            exp = datetime.fromisoformat(exp.replace('Z', '+00:00'))
+        if exp > now:
+            return user
+    raise HTTPException(403, {"error": "subscription_required", "reason": "no_access"})
+
+async def verify_content_access(request: Request, token: Optional[str] = None) -> dict:
+    """Verify access for content endpoints (HTML opened in new tab).
+    Accepts either Authorization header (subscribed user) OR a short-lived signed token (?t=...).
+    Returns the user dict (or token payload) on success, raises 401/403 otherwise."""
+    user = await get_current_user(request)
+    if user:
+        return await require_subscriber(request)
+    if token:
+        payload = verify_jwt(token)
+        if payload and payload.get('scope') == 'content_access':
+            return {'token_user_id': payload.get('sub'), 'token_payload': payload}
+    raise HTTPException(401, "Authentification requise")
+
 # ─── Pydantic Models ────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
@@ -3680,9 +3719,51 @@ async def list_r2_folder_files(folder_name: str, request: Request):
 
 # ─── Timeline Routes ───────────────────────────────────────────────────────────
 
+@api_router.get("/timeline/{cursus_letter}/access-url")
+async def get_timeline_access_url(cursus_letter: str, request: Request):
+    """Issue a short-lived signed URL to view the timeline HTML in a new tab.
+    Requires authentication + active subscription/trial/admin/free_access."""
+    user = await require_subscriber(request)
+    letter = cursus_letter.upper().strip()
+    if letter not in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
+        raise HTTPException(400, "Cursus invalide")
+    token = create_jwt({
+        'sub': user['user_id'],
+        'cursus_letter': letter,
+        'scope': 'content_access',
+        'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+    })
+    scheme = request.headers.get('x-forwarded-proto', 'https')
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
+    return {
+        'url': f"{scheme}://{host}/api/timeline/{letter}?t={token}",
+        'expires_in': 3600,
+    }
+
+@api_router.get("/timeline/file/{filename}/access-url")
+async def get_timeline_file_access_url(filename: str, request: Request):
+    """Issue a short-lived signed URL for a specific timeline file."""
+    user = await require_subscriber(request)
+    if not filename.endswith('.html'):
+        filename = f"{filename}.html"
+    token = create_jwt({
+        'sub': user['user_id'],
+        'filename': filename,
+        'scope': 'content_access',
+        'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+    })
+    scheme = request.headers.get('x-forwarded-proto', 'https')
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
+    return {
+        'url': f"{scheme}://{host}/api/timeline/file/{filename}?t={token}",
+        'expires_in': 3600,
+    }
+
 @api_router.get("/timeline/{cursus_letter}")
-async def get_timeline_html(cursus_letter: str):
-    """Get timeline HTML content for a cursus (A, B, C, D, E)."""
+async def get_timeline_html(cursus_letter: str, request: Request, t: Optional[str] = None):
+    """Get timeline HTML content for a cursus (A, B, C, D, E).
+    Requires authentication + active subscription, either via Authorization header or signed token (?t=)."""
+    await verify_content_access(request, t)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
@@ -3823,8 +3904,9 @@ async def get_cursus_timelines(cursus_id: str):
     return {'timelines': timelines, 'count': len(timelines)}
 
 @api_router.get("/timeline/file/{filename}")
-async def get_timeline_by_filename(filename: str):
-    """Get timeline HTML by filename."""
+async def get_timeline_by_filename(filename: str, request: Request, t: Optional[str] = None):
+    """Get timeline HTML by filename. Requires authentication + active subscription (header or signed token)."""
+    await verify_content_access(request, t)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
@@ -4045,8 +4127,10 @@ async def list_context_resources_by_cursus(cursus_id: str):
 
 
 @api_router.get("/resources/context/{resource_id}")
-async def get_context_resource(resource_id: str):
-    """Get a specific context resource content (parsed from Word document)."""
+async def get_context_resource(resource_id: str, request: Request):
+    """Get a specific context resource content (parsed from Word document).
+    Requires authentication + active subscription."""
+    await require_subscriber(request)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
@@ -5029,8 +5113,9 @@ async def sync_bibliographies(request: Request):
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
 @api_router.get("/bibliographies")
-async def list_bibliographies(cursus_id: str = None, course_id: str = None):
-    """List bibliographies, optionally filtered by cursus or course."""
+async def list_bibliographies(request: Request, cursus_id: str = None, course_id: str = None):
+    """List bibliographies, optionally filtered by cursus or course.
+    Strips full 'content' for non-subscribers to avoid leaking premium material."""
     query = {
         'content': {'$exists': True, '$ne': ''},  # Only new format with content
         'module_number': {'$exists': True}
@@ -5041,11 +5126,35 @@ async def list_bibliographies(cursus_id: str = None, course_id: str = None):
         query['course_id'] = course_id
     
     biblios = await db.bibliographies.find(query, {'_id': 0}).sort('module_number', 1).to_list(100)
+    
+    # Determine subscriber status (no exception if guest)
+    is_subscriber = False
+    user = await get_current_user(request)
+    if user:
+        if user.get('role') == 'admin' or user.get('free_access'):
+            is_subscriber = True
+        else:
+            now = datetime.now(timezone.utc)
+            for fld in ('trial', 'subscription'):
+                v = user.get(fld)
+                if v and v.get('expires_at'):
+                    exp = v['expires_at']
+                    if isinstance(exp, str):
+                        exp = datetime.fromisoformat(exp.replace('Z', '+00:00'))
+                    if exp > now:
+                        is_subscriber = True
+                        break
+    
+    if not is_subscriber:
+        for b in biblios:
+            b.pop('content', None)
+            b['locked'] = True
     return biblios
 
 @api_router.get("/bibliographies/{biblio_id}")
-async def get_bibliography(biblio_id: str):
-    """Get a specific bibliography by ID."""
+async def get_bibliography(biblio_id: str, request: Request):
+    """Get a specific bibliography by ID. Requires authentication + active subscription."""
+    await require_subscriber(request)
     biblio = await db.bibliographies.find_one({'id': biblio_id}, {'_id': 0})
     if not biblio:
         raise HTTPException(404, "Bibliographie non trouvée")
