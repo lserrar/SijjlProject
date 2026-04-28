@@ -3431,30 +3431,48 @@ async def seed_data():
 
     # ─── Migration v10: Seed all scholars from Excel + link courses ────────
     SCHOLARS_SEED = [
-        ('sch-bouali', 'Hassan Bouali', "Historien spécialiste des débuts de l'islam et du premier califat."),
-        ('sch-ghouirgate', 'Mehdi Ghouirgate', "Médiéviste, spécialiste de l'Occident musulman et d'al-Andalus, professeur à l'Université Bordeaux Montaigne."),
-        ('sch-benkherfallah', 'Sami Benkherfallah', "Historien de l'époque mamelouke."),
-        ('sch-saban', 'Aysu Saban', "Historienne du monde ottoman."),
-        ('sch-harifi', 'Ilyas Harifi', "Spécialiste du Kalām et de la théologie classique."),
-        ('sch-mahil', 'Yanis Mahil', "Docteur en droit, spécialiste du droit musulman et de l'uṣūl al-fiqh."),
-        ('sch-azaiez', 'Mehdi Azaiez', "Spécialiste de la transmission du Coran et des études coraniques."),
-        ('sch-chahdi', 'Hassan Chahdi', "Spécialiste des sciences du Hadith et de l'historiographie islamique."),
-        ('sch-grandpierre', 'Camille Grandpierre', "Historienne de l'art islamique."),
-        ('sch-benmiled', 'Marouane Ben Miled', "Historien des mathématiques arabes médiévales."),
-        ('sch-bensaad', 'Meyssa Ben Saad', "Historienne des sciences naturelles dans le monde islamique."),
-        ('sch-sebti', 'Meryem Sebti', "Directrice de recherche au CNRS, spécialiste de la falsafa et d'Avicenne."),
-        ('sch-mechelloukh', 'Yassir Mechelloukh', "Spécialiste de la falsafa en Occident musulman (Ibn Bajja, Ibn Ṭufayl, Averroès)."),
-        ('sch-rizvi', 'Sajjad Rizvi', "Professeur, spécialiste de la philosophie islamique tardive et de Mullā Ṣadrā."),
-        ('sch-molino', 'Cédric Molino-Mochetto', "Spécialiste d'Ibn Khaldūn et de la pensée philosophico-historique."),
-        ('sch-vandamme', 'Gregory Vandamme', "Spécialiste de la mystique islamique et d'Ibn ʿArabī."),
-        ('sch-roux', 'Géraldine Roux', "Spécialiste de Maïmonide et de la philosophie juive de langue arabe."),
+        ('sch-bouali', 'Hassan Bouali', 'Docteur en histoire médiévale',
+         "Historien médiéviste islamisant, ses travaux portent sur les débuts de l'islam et l'histoire politique et religieuse des premiers siècles de l'ère islamique. Il est chercheur associé au CEFREPA (CNRS) et au Centre d'Histoire des Sociétés Médiévales et Modernes (Mémo)."),
+        ('sch-ghouirgate', 'Mehdi Ghouirgate', "Professeur d'histoire médiévale",
+         "Professeur d'histoire médiévale à l'Université Bordeaux-Montaigne et professeur associé à l'Université Mohammed VI, il est spécialiste de l'histoire de l'Occident musulman médiéval. Son ouvrage « Ibn Khaldūn : itinéraire d'un penseur maghrébin » a reçu le Prix de la biographie littéraire 2025 de l'Académie française."),
+        ('sch-benkherfallah', 'Sami Benkherfallah', None,
+         "Spécialiste de l'époque mamelouke, ses affiliations et titre exacts sont en cours de confirmation."),
+        ('sch-saban', 'Aysu Saban', 'Doctorante contractuelle en histoire et philologie',
+         "Doctorante à l'EPHE/PSL, sa thèse porte sur l'ascension de la maison d'ʿOsmān de c. 1300 à 1453. Formée en histoire byzantine et ottomane, elle est également chargée de l'inventorisation du fonds Beldiceanu au Collège de France."),
+        ('sch-harifi', 'Ilyas Harifi', None,
+         "Spécialiste de l'histoire du Kalām, ses affiliations et titre exacts sont en cours de confirmation."),
+        ('sch-mahil', 'Dr. Yanis Mahil', 'Assistant Professor of Islamic Studies',
+         "Assistant Professor of Islamic Studies à la GISTU University, il est spécialiste du droit islamique et de la théorie des sources (Uṣūl al-fiqh)."),
+        ('sch-azaiez', 'Mehdi Azaiez', "Professeur d'islamologie",
+         "Professeur d'islamologie à l'Université catholique de Louvain (UCLouvain), il est spécialiste des études coraniques et de l'histoire de l'islam ancien. Il a dirigé le projet international Qur'ān Seminar et est chercheur associé à l'IREMAM."),
+        ('sch-chahdi', 'Hassan Chahdi', None,
+         "Spécialiste de la transmission du hadith, ses affiliations et titre exacts sont en cours de confirmation."),
+        ('sch-grandpierre', 'Camille Grandpierre', None,
+         "Spécialiste de l'histoire de l'art islamique, elle est rattachée à l'Institut national d'histoire de l'art (INHA)."),
+        ('sch-benmiled', 'Marouane Ben Miled', 'Enseignant-chercheur',
+         "Enseignant-chercheur à l'École Nationale d'Ingénieurs de Tunis (ENIT), il est spécialiste de l'histoire des mathématiques arabes. Il est chercheur LAMSIN et associé CGGG (CNRS)."),
+        ('sch-bensaad', 'Meyssa Ben Saad', None,
+         "Spécialiste de l'histoire des sciences naturelles islamiques, ses affiliations et titre exacts sont en cours de confirmation."),
+        ('sch-sebti', 'Meryem Sebti', 'Directrice de recherche au CNRS',
+         "Directrice de recherche au CNRS, spécialiste de philosophie médiévale arabe, elle travaille sur la pensée d'al-Kindī, d'al-Fārābī et d'Avicenne, ainsi que sur la transmission de la philosophie grecque dans le monde islamique. Elle est co-fondatrice de Sijill Project."),
+        ('sch-mechelloukh', 'Yassir Mechelloukh', 'Doctorant et professeur certifié de philosophie',
+         "Doctorant en histoire de la philosophie arabe à l'INALCO et à l'Université Paris 1 Panthéon-Sorbonne, ses recherches portent sur la première métaphysique d'Averroès. Il est membre de plusieurs groupes de recherche."),
+        ('sch-rizvi', 'Sajjad H. Rizvi', 'Professor of Islamic Intellectual History',
+         "Professeur d'histoire intellectuelle islamique à l'Université d'Exeter, il est un spécialiste mondial de la tradition philosophique islamique orientale et de l'œuvre de Mullā Ṣadrā. Il est Fellow de la Royal Society of Arts, de la Royal Historical Society et de la Royal Asiatic Society."),
+        ('sch-molino', 'Cédric Molino Mochetto', None,
+         "Spécialiste de la pensée d'Ibn Khaldūn, ses affiliations et titre exacts sont en cours de confirmation."),
+        ('sch-vandamme', 'Gregory Vandamme', None,
+         "Spécialiste de la mystique islamique, notamment du soufisme et d'Ibn ʿArabī, ses affiliations et titre exacts sont en cours de confirmation."),
+        ('sch-roux', 'Géraldine Roux', 'Agrégée et docteure en philosophie',
+         "Agrégée et docteure en philosophie, spécialiste de philosophie juive médiévale et autrice de \"Maïmonide ou la nostalgie de la sagesse\". Elle est chercheure associée au CRIMEL (Université de Reims Champagne-Ardenne)."),
     ]
-    for sid, sname, sbio in SCHOLARS_SEED:
+    for sid, sname, stitle, sbio in SCHOLARS_SEED:
         await db.scholars.update_one(
             {'id': sid},
             {'$setOnInsert': {
                 'id': sid,
                 'name': sname,
+                'title': stitle,
                 'bio': sbio,
                 'photo_url': None,
                 'is_active': True,
@@ -3462,10 +3480,10 @@ async def seed_data():
             }},
             upsert=True
         )
-        # Always update name+bio so corrections to the seed propagate
+        # Always update name+title+bio so corrections to the seed propagate
         await db.scholars.update_one(
             {'id': sid},
-            {'$set': {'name': sname, 'bio': sbio, 'is_active': True}}
+            {'$set': {'name': sname, 'title': stitle, 'bio': sbio, 'is_active': True}}
         )
     # Link scholar_id on each course (the catalogue card now shows scholar_name from this)
     SCHOLAR_LINK = {

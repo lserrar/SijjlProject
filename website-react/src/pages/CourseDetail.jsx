@@ -635,6 +635,11 @@ export default function CourseDetail() {
                           <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)', marginBottom: 8 }}>
                             {s.name}
                           </div>
+                          {s.title && (
+                            <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--accent, #C9A84C)', fontStyle: 'italic', marginBottom: 8 }}>
+                              {s.title}
+                            </div>
+                          )}
                           <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)' }}>
                             Voir la fiche complète &nbsp;&#8250;
                           </div>

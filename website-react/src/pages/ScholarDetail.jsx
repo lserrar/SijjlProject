@@ -63,6 +63,15 @@ export default function ScholarDetail() {
           <h1 className="section-title" style={{ fontSize: 'clamp(28px, 4vw, 44px)', marginTop: 8 }}>
             {scholar.name}
           </h1>
+          {scholar.title && (
+            <div style={{
+              fontFamily: 'var(--font-body)', fontSize: 16,
+              color: 'var(--accent, #C9A84C)', fontStyle: 'italic',
+              marginTop: 12,
+            }} data-testid="scholar-title">
+              {scholar.title}
+            </div>
+          )}
           {scholar.bio && (
             <p style={{
               fontFamily: 'var(--font-body)', fontSize: 17,

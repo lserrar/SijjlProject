@@ -102,6 +102,15 @@ export default function Intervenants() {
                   }}>
                     {s.name}
                   </div>
+                  {s.title && (
+                    <div style={{
+                      fontFamily: 'var(--font-body)', fontSize: 12,
+                      color: 'var(--accent, #C9A84C)', fontStyle: 'italic',
+                      marginBottom: 6,
+                    }}>
+                      {s.title}
+                    </div>
+                  )}
                   <div style={{
                     fontFamily: 'var(--font-display)', fontSize: 10,
                     letterSpacing: 1.5, textTransform: 'uppercase',
