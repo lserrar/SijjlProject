@@ -1037,12 +1037,13 @@ async def get_catalogue():
     for c in launch_courses:
         course_modules = mods_by_course.get(c['id'], [])
         if len(course_modules) >= 2:
+            visible_modules = []
             for m in course_modules:
                 ep_count = audios_per_module.get(m['id'], 0)
                 # Hide modules without any episode (old seed artifacts not part of the launch catalog)
                 if ep_count == 0 and not m.get('is_launch_catalog'):
                     continue
-                items.append({
+                visible_modules.append({
                     'type': 'module',
                     'id': f"{c['id']}::{m['id']}",
                     'course_id': c['id'],
@@ -1055,6 +1056,24 @@ async def get_catalogue():
                     'coming_soon': c.get('coming_soon', False) or ep_count == 0,
                     'available_date': c.get('available_date'),
                     'order': (c.get('order') or 0) * 1000 + (m.get('order') or 0),
+                })
+            if visible_modules:
+                items.extend(visible_modules)
+            else:
+                # Fallback: course has multiple modules but none visible — show course-level as "Bientôt"
+                items.append({
+                    'type': 'course',
+                    'id': c['id'],
+                    'course_id': c['id'],
+                    'module_id': None,
+                    'title': c.get('title') or c.get('name') or '',
+                    'description': c.get('description', ''),
+                    'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
+                    'course_title': c.get('title'),
+                    'episode_count': 0,
+                    'coming_soon': True,
+                    'available_date': c.get('available_date'),
+                    'order': (c.get('order') or 0) * 1000,
                 })
         else:
             ep_count = sum(audios_per_module.get(m['id'], 0) for m in course_modules)
@@ -3141,6 +3160,47 @@ async def seed_data():
     if orphan_cleanup.deleted_count > 0:
         logger.warning(f"Migration v6: cleaned up {orphan_cleanup.deleted_count} orphan audio(s) without module_id and without youtube_url")
     # ─── End Migration v6 ──────────────────────────────────────────────────
+
+    # ─── Migration v7: Mark launch-catalog modules per the May 2026 Excel ──
+    # User-provided Excel `Sijill_Catalogue_Lancement_Mai2026_Emergent.xlsx` defines
+    # which sub-modules of multi-module courses must appear in the public catalogue.
+    # We mark them is_launch_catalog=True so they show up (as "Bientôt" if no episode yet)
+    # and explicitly mark the others False to keep the catalogue clean.
+    LAUNCH_MODULES_INCLUDE = {
+        # cours-falsafa-grands → only Al-Kindī, Al-Fārābī, Avicenne (NOT "Avicenne dans le monde latin" etc.)
+        'cours-falsafa-grands': ['cours-falsafa-grands-mod-1', 'cours-falsafa-grands-mod-2', 'cours-falsafa-grands-mod-3'],
+    }
+    for course_id, included_module_ids in LAUNCH_MODULES_INCLUDE.items():
+        await db.modules.update_many(
+            {'course_id': course_id, 'id': {'$in': included_module_ids}},
+            {'$set': {'is_launch_catalog': True}}
+        )
+        await db.modules.update_many(
+            {'course_id': course_id, 'id': {'$nin': included_module_ids}},
+            {'$set': {'is_launch_catalog': False}}
+        )
+    # Ensure Al-Ghazālī module exists in cours-falsafa-grands (per Excel) — create if missing
+    has_ghazali = await db.modules.find_one({'course_id': 'cours-falsafa-grands', 'id': 'cours-falsafa-grands-mod-ghazali'})
+    if not has_ghazali:
+        await db.modules.insert_one({
+            'id': 'cours-falsafa-grands-mod-ghazali',
+            'course_id': 'cours-falsafa-grands',
+            'name': "Al-Ghazālī (m. 1111)",
+            'title': "Al-Ghazālī (m. 1111)",
+            'description': "",
+            'order': 4,
+            'is_active': True,
+            'is_launch_catalog': True,
+            'created_at': datetime.now(timezone.utc),
+        })
+        logger.info("Migration v7: created module 'Al-Ghazālī' under cours-falsafa-grands")
+    else:
+        await db.modules.update_one(
+            {'id': 'cours-falsafa-grands-mod-ghazali'},
+            {'$set': {'is_launch_catalog': True, 'is_active': True}}
+        )
+    logger.info("Migration v7: launch-catalog modules pinned per Excel (Falsafa: Kindī, Fārābī, Avicenne, Ghazālī)")
+    # ─── End Migration v7 ──────────────────────────────────────────────────
 
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")

@@ -30,12 +30,20 @@ export default function Catalogue() {
         <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
           Catalogue de lancement
         </h1>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 19, color: 'var(--text-secondary)', maxWidth: 760, marginTop: 24, lineHeight: 1.7 }}>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 20, lineHeight: 1.75
+        }}>
           Sijill Project se construit par vagues successives. Chaque cursus s'enrichit au fil
           des mois, au rythme des contributions de nos intervenants académiques. Ce que vous
-          découvrez ici est la première vague — d'autres suivront. Les cours sélectionnés
-          pour le lancement couvrent les sept cursus. Le catalogue complet, en cours de
-          production, est consultable depuis la page{' '}
+          découvrez ici est la première vague — d'autres suivront.
+        </p>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 16, lineHeight: 1.75
+        }}>
+          Les cours sélectionnés pour le lancement couvrent les sept cursus. Le catalogue
+          complet, en cours de production, est consultable depuis la page{' '}
           <Link to="/cursus" style={{ color: 'var(--accent, #C9A84C)', textDecoration: 'underline' }}>Cursus</Link>.
         </p>
         <div style={{
