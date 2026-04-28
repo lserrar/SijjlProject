@@ -178,7 +178,7 @@ export default function CourseDetail() {
           Cursus {letter}
         </div>
 
-        <h1 className="course-detail-title" data-testid="course-title">{course.title || course.name}</h1>
+        <h1 className="course-detail-title" data-testid="course-title">{(course.title || course.name || '').replace(/^Cours \d+\s*:\s*/, '')}</h1>
         <p className="course-detail-desc">{course.description}</p>
 
         <div style={{ display: 'flex', gap: 24, marginBottom: 40, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -371,40 +371,81 @@ export default function CourseDetail() {
         {/* ÉPISODES TAB */}
         {activeTab === 'episodes' && (
           <div style={{ maxWidth: 800 }}>
-            {modules.map((mod, mi) => {
-              const modAudios = audiosByModule[mod.id] || []
-              const isOpen = openModule === mod.id
+            {!hasAccess ? (
+              <div data-testid="episodes-paywall" style={{
+                padding: 32, border: `1px solid ${color}33`, borderRadius: 4,
+                background: `linear-gradient(135deg, ${color}11, transparent)`, textAlign: 'center',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 3,
+                  textTransform: 'uppercase', color, marginBottom: 16,
+                }}>Contenu réservé aux abonnés</div>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.6 }}>
+                  Les épisodes vidéo et podcast sont accessibles avec un abonnement Sijill — 7&nbsp;€/mois ou 84&nbsp;€/an.
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Link to={user ? '/pre-inscription' : '/inscription'} className="btn-accent" data-testid="episodes-paywall-cta">{user ? "Activer mon abonnement" : "Je m'abonne"}</Link>
+                  {!user && <Link to="/connexion" className="btn-outline">J'ai déjà un compte</Link>}
+                </div>
+              </div>
+            ) : (() => {
+              // Only show modules that have at least one episode
+              const visibleModules = modules.filter(mod => (audiosByModule[mod.id] || []).length > 0)
+              const orphanAudios = audios.filter(a => !a.module_id || !modules.find(m => m.id === a.module_id))
+              if (visibleModules.length === 0 && orphanAudios.length === 0) {
+                return <div style={{ padding: '32px 0', color: 'var(--text-dim)', fontSize: 14, textAlign: 'center' }}>Aucun épisode publié pour ce cours pour le moment.</div>
+              }
               return (
-                <div key={mod.id} data-testid={`module-item-${mi}`} style={{ marginBottom: 4 }}>
-                  <div onClick={() => setOpenModule(isOpen ? null : mod.id)} className="module-row" style={{ borderLeftColor: isOpen ? color : 'transparent' }}>
-                    <span className="module-num" style={{ color: `${color}88` }}>M{String(mi + 1).padStart(2, '0')}</span>
-                    <span className="module-title">{mod.title || mod.name}</span>
-                    <span className="module-ep-count">{modAudios.length} ép.</span>
-                    <span style={{ fontSize: 12, color: 'var(--text-dim)', transition: 'transform 0.3s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>&#9660;</span>
-                  </div>
-                  {isOpen && (
-                    <div className="episode-list-container" style={{ borderLeftColor: `${color}33` }}>
-                      {modAudios.length === 0 ? (
-                        <div style={{ padding: '16px 24px', color: 'var(--text-dim)', fontSize: 14 }}>Pas encore d'épisodes.</div>
-                      ) : modAudios.map((ep, ei) => {
+                <>
+                  {visibleModules.map((mod, mi) => {
+                    const modAudios = audiosByModule[mod.id] || []
+                    const isOpen = openModule === mod.id
+                    return (
+                      <div key={mod.id} data-testid={`module-item-${mi}`} style={{ marginBottom: 4 }}>
+                        <div onClick={() => setOpenModule(isOpen ? null : mod.id)} className="module-row" style={{ borderLeftColor: isOpen ? color : 'transparent' }}>
+                          <span className="module-num" style={{ color: `${color}88` }}>M{String(mi + 1).padStart(2, '0')}</span>
+                          <span className="module-title">{mod.title || mod.name}</span>
+                          <span className="module-ep-count">{modAudios.length} ép.</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-dim)', transition: 'transform 0.3s', transform: isOpen ? 'rotate(180deg)' : 'none' }}>&#9660;</span>
+                        </div>
+                        {isOpen && (
+                          <div className="episode-list-container" style={{ borderLeftColor: `${color}33` }}>
+                            {modAudios.map((ep, ei) => {
+                              const isCurrent = currentAudio?.id === ep.id
+                              return (
+                                <div key={ep.id} className={`episode-row ${isCurrent ? 'episode-active' : ''}`} onClick={() => playAudio(ep)} data-testid={`episode-${mi}-${ei}`} style={{ cursor: 'pointer' }}>
+                                  <span className="episode-num" style={{ color: isCurrent ? color : `${color}55` }}>{String(ei + 1).padStart(2, '0')}</span>
+                                  <span className="episode-title" style={{ color: isCurrent ? color : 'var(--text)' }}>{ep.title}</span>
+                                  {ep.has_transcript && <span className="tag-texte">Texte</span>}
+                                  {ep.youtube_url && <span className="tag-texte" style={{ background: 'rgba(220,53,69,0.12)', color: '#dc3545', borderColor: 'rgba(220,53,69,0.3)' }}>Vidéo</span>}
+                                  {isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> : <span style={{ color, fontSize: 14 }}>&#9654;</span>}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {orphanAudios.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      {orphanAudios.map((ep, ei) => {
                         const isCurrent = currentAudio?.id === ep.id
                         return (
-                          <div key={ep.id} className={`episode-row ${isCurrent ? 'episode-active' : ''}`} onClick={() => user && playAudio(ep)} data-testid={`episode-${mi}-${ei}`} style={{ cursor: user ? 'pointer' : 'default' }}>
+                          <div key={ep.id} className={`episode-row ${isCurrent ? 'episode-active' : ''}`} onClick={() => playAudio(ep)} data-testid={`orphan-episode-${ei}`} style={{ cursor: 'pointer' }}>
                             <span className="episode-num" style={{ color: isCurrent ? color : `${color}55` }}>{String(ei + 1).padStart(2, '0')}</span>
                             <span className="episode-title" style={{ color: isCurrent ? color : 'var(--text)' }}>{ep.title}</span>
                             {ep.has_transcript && <span className="tag-texte">Texte</span>}
                             {ep.youtube_url && <span className="tag-texte" style={{ background: 'rgba(220,53,69,0.12)', color: '#dc3545', borderColor: 'rgba(220,53,69,0.3)' }}>Vidéo</span>}
-                            {!user ? <span className="episode-lock">&#128274;</span> :
-                             isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> :
-                             <span style={{ color: user ? color : 'var(--text-dim)', fontSize: 14 }}>&#9654;</span>}
+                            {isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> : <span style={{ color, fontSize: 14 }}>&#9654;</span>}
                           </div>
                         )
                       })}
                     </div>
                   )}
-                </div>
+                </>
               )
-            })}
+            })()}
           </div>
         )}
 
@@ -471,7 +512,24 @@ export default function CourseDetail() {
         {/* CONFÉRENCES TAB */}
         {activeTab === 'conferences' && (
           <div style={{ maxWidth: 800 }} data-testid="conferences-tab">
-            {audioConferences.length === 0 ? (
+            {!hasAccess ? (
+              <div data-testid="conferences-paywall" style={{
+                padding: 32, border: `1px solid ${color}33`, borderRadius: 4,
+                background: `linear-gradient(135deg, ${color}11, transparent)`, textAlign: 'center',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 3,
+                  textTransform: 'uppercase', color, marginBottom: 16,
+                }}>Contenu réservé aux abonnés</div>
+                <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.6 }}>
+                  Les conférences audio sont accessibles avec un abonnement Sijill — 7&nbsp;€/mois ou 84&nbsp;€/an.
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <Link to={user ? '/pre-inscription' : '/inscription'} className="btn-accent">{user ? "Activer mon abonnement" : "Je m'abonne"}</Link>
+                  {!user && <Link to="/connexion" className="btn-outline">J'ai déjà un compte</Link>}
+                </div>
+              </div>
+            ) : audioConferences.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune conférence disponible.</p>
             ) : audioConferences.map(conf => (
               <div key={conf.id} className="res-card" data-testid={`conf-${conf.id}`}>
@@ -489,12 +547,13 @@ export default function CourseDetail() {
         )}
 
         {!user && (
-          <div className="course-cta" data-testid="course-cta-login">
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, marginBottom: 12 }}>Écoutez ce cours</div>
-            <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 24 }}>Connectez-vous ou créez un compte pour accéder à l'intégralité du contenu.</p>
+          <div className="course-cta" data-testid="course-cta-login" style={{ marginTop: 32 }}>
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--text-muted)', marginBottom: 16 }}>
+              Frise et Contexte sont accessibles librement. Pour les épisodes vidéo et podcast, abonnez-vous.
+            </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <Link to="/connexion" className="btn-accent">Se connecter</Link>
-              <Link to="/inscription" className="btn-outline">S'inscrire</Link>
+              <Link to="/connexion" className="btn-outline">Se connecter</Link>
+              <Link to="/inscription" className="btn-accent">S'inscrire</Link>
             </div>
           </div>
         )}

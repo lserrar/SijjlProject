@@ -1016,6 +1016,9 @@ async def get_catalogue():
         else:
             ep_count = sum(audios_per_module.get(m['id'], 0) for m in course_modules)
             ep_count += audios_per_course_unassigned.get(c['id'], 0)
+            # Count course-level YouTube URL as +1 episode (mono-video courses like cours-andalus)
+            if c.get('youtube_url'):
+                ep_count += 1
             items.append({
                 'type': 'course',
                 'id': c['id'],
@@ -3025,6 +3028,34 @@ async def seed_data():
     )
     logger.info("Migration v4: Histoire du monde islamique featured on home")
     # ─── End Migration v4 ──────────────────────────────────────────────────
+
+    # ─── Migration v5: Deduplicate courses by id ──────────────────────────
+    course_dup_pipeline = [
+        {'$group': {'_id': '$id', 'docs': {'$push': '$_id'}, 'count': {'$sum': 1}}},
+        {'$match': {'count': {'$gt': 1}}},
+    ]
+    course_dups_removed = 0
+    async for group in db.courses.aggregate(course_dup_pipeline):
+        # Get all duplicate documents to choose the "best" one to keep
+        dup_docs = await db.courses.find({'_id': {'$in': group['docs']}}).to_list(20)
+        # Score by content richness: featured > has_youtube_url > has_description > first
+        def score(d):
+            s = 0
+            if d.get('is_featured'): s += 100
+            if d.get('youtube_url'): s += 50
+            if d.get('hero_title'): s += 20
+            if d.get('description'): s += 10
+            return s
+        dup_docs.sort(key=score, reverse=True)
+        keep = dup_docs[0]
+        remove_ids = [d['_id'] for d in dup_docs[1:]]
+        if remove_ids:
+            r = await db.courses.delete_many({'_id': {'$in': remove_ids}})
+            course_dups_removed += r.deleted_count
+            logger.warning(f"Migration v5: deduplicated course id='{group['_id']}' — kept _id={keep['_id']}, removed {r.deleted_count}")
+    if course_dups_removed > 0:
+        logger.warning(f"Migration v5: total {course_dups_removed} duplicate courses removed")
+    # ─── End Migration v5 ──────────────────────────────────────────────────
 
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
