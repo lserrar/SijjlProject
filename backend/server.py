@@ -3057,6 +3057,19 @@ async def seed_data():
         logger.warning(f"Migration v5: total {course_dups_removed} duplicate courses removed")
     # ─── End Migration v5 ──────────────────────────────────────────────────
 
+    # ─── Migration v6: Cleanup orphan audios (no module_id, no youtube_url) ────
+    # User explicitly approved deleting old placeholder audios that don't appear in the launch catalog.
+    # Curated audios (those with youtube_url manually set) are preserved.
+    orphan_cleanup = await db.audios.delete_many({
+        '$and': [
+            {'$or': [{'module_id': None}, {'module_id': ''}]},
+            {'$or': [{'youtube_url': None}, {'youtube_url': ''}, {'youtube_url': {'$exists': False}}]},
+        ]
+    })
+    if orphan_cleanup.deleted_count > 0:
+        logger.warning(f"Migration v6: cleaned up {orphan_cleanup.deleted_count} orphan audio(s) without module_id and without youtube_url")
+    # ─── End Migration v6 ──────────────────────────────────────────────────
+
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
         # Migrate plans to fondateur pricing
