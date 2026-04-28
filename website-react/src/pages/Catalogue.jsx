@@ -103,7 +103,7 @@ export default function Catalogue() {
                 }}>
                   {hasEpisodes
                     ? `${it.episode_count} épisode${it.episode_count > 1 ? 's' : ''}`
-                    : 'Commandé'}
+                    : (it.available_date ? `En ${it.available_date}` : 'Bientôt')}
                 </div>
                 <div style={{
                   fontFamily: 'var(--font-display)', fontSize: 8,
