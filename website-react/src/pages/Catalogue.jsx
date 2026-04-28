@@ -20,9 +20,6 @@ export default function Catalogue() {
 
   if (loading) return <div className="loading">Chargement...</div>
 
-  const available = items.filter(i => !i.coming_soon && i.episode_count > 0)
-  const ordered = items.filter(i => i.coming_soon || i.episode_count === 0)
-
   return (
     <section className="section" style={{ paddingTop: 140 }} data-testid="catalogue-page">
       <div style={{ marginBottom: 64 }}>
@@ -51,10 +48,10 @@ export default function Catalogue() {
           fontFamily: 'var(--font-display)', fontSize: 11,
           letterSpacing: 2, textTransform: 'uppercase', color: 'var(--text-dim)',
         }}>
-          <span data-testid="available-count"><span style={{ color: 'var(--success, #04D182)' }}>●</span>&nbsp;&nbsp;{available.length} disponibles</span>
-          {ordered.length > 0 && (
-            <span data-testid="coming-count"><span style={{ color: 'var(--accent, #C9A84C)' }}>●</span>&nbsp;&nbsp;{ordered.length} commandés</span>
-          )}
+          <span data-testid="catalogue-totals">
+            <span style={{ color: 'var(--accent, #C9A84C)' }}>●</span>
+            &nbsp;&nbsp;21 cours · 72 épisodes au lancement
+          </span>
         </div>
       </div>
 

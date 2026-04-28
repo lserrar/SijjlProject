@@ -3411,6 +3411,77 @@ async def seed_data():
     logger.info("Migration v9: cours-philo-juive ep2 upserted")
     # ─── End Migration v9 ──────────────────────────────────────────────────
 
+    # ─── Migration v10: Seed all scholars from Excel + link courses ────────
+    SCHOLARS_SEED = [
+        ('sch-bouali', 'Hassan Bouali', "Historien spécialiste des débuts de l'islam et du premier califat."),
+        ('sch-ghouirgate', 'Mehdi Ghouirgate', "Médiéviste, spécialiste de l'Occident musulman et d'al-Andalus, professeur à l'Université Bordeaux Montaigne."),
+        ('sch-benkherfallah', 'Sami Benkherfallah', "Historien de l'époque mamelouke."),
+        ('sch-saban', 'Aysu Saban', "Historienne du monde ottoman."),
+        ('sch-harifi', 'Ilyas Harifi', "Spécialiste du Kalām et de la théologie classique."),
+        ('sch-mahil', 'Yanis Mahil', "Docteur en droit, spécialiste du droit musulman et de l'uṣūl al-fiqh."),
+        ('sch-azaiez', 'Mehdi Azaiez', "Spécialiste de la transmission du Coran et des études coraniques."),
+        ('sch-chahdi', 'Hassan Chahdi', "Spécialiste des sciences du Hadith et de l'historiographie islamique."),
+        ('sch-grandpierre', 'Camille Grandpierre', "Historienne de l'art islamique."),
+        ('sch-benmiled', 'Marouane Ben Miled', "Historien des mathématiques arabes médiévales."),
+        ('sch-bensaad', 'Meyssa Ben Saad', "Historienne des sciences naturelles dans le monde islamique."),
+        ('sch-sebti', 'Meryem Sebti', "Directrice de recherche au CNRS, spécialiste de la falsafa et d'Avicenne."),
+        ('sch-mechelloukh', 'Yassir Mechelloukh', "Spécialiste de la falsafa en Occident musulman (Ibn Bajja, Ibn Ṭufayl, Averroès)."),
+        ('sch-rizvi', 'Sajjad Rizvi', "Professeur, spécialiste de la philosophie islamique tardive et de Mullā Ṣadrā."),
+        ('sch-molino', 'Cédric Molino-Mochetto', "Spécialiste d'Ibn Khaldūn et de la pensée philosophico-historique."),
+        ('sch-vandamme', 'Gregory Vandamme', "Spécialiste de la mystique islamique et d'Ibn ʿArabī."),
+        ('sch-roux', 'Géraldine Roux', "Spécialiste de Maïmonide et de la philosophie juive de langue arabe."),
+    ]
+    for sid, sname, sbio in SCHOLARS_SEED:
+        await db.scholars.update_one(
+            {'id': sid},
+            {'$setOnInsert': {
+                'id': sid,
+                'name': sname,
+                'bio': sbio,
+                'photo_url': None,
+                'is_active': True,
+                'created_at': datetime.now(timezone.utc),
+            }},
+            upsert=True
+        )
+        # Always update name+bio so corrections to the seed propagate
+        await db.scholars.update_one(
+            {'id': sid},
+            {'$set': {'name': sname, 'bio': sbio, 'is_active': True}}
+        )
+    # Link scholar_id on each course (the catalogue card now shows scholar_name from this)
+    SCHOLAR_LINK = {
+        'cours-debuts-islam': 'sch-bouali',  # primary; Ghouirgate is co-intervenant
+        'cours-andalus': 'sch-ghouirgate',
+        'cours-mamelouke': 'sch-benkherfallah',
+        'cours-ottoman': 'sch-saban',
+        'cours-kalam': 'sch-harifi',
+        'cours-fiqh': 'sch-mahil',
+        'cours-coran': 'sch-azaiez',
+        'cours-hadith': 'sch-chahdi',
+        'cours-historiographie': 'sch-ghouirgate',
+        'cours-art': 'sch-grandpierre',
+        'cours-sciences': 'sch-benmiled',
+        'cours-traduction': 'sch-sebti',
+        'cours-falsafa-grands': 'sch-sebti',
+        'cours-falsafa-occident': 'sch-mechelloukh',
+        'cours-falsafa-persan': 'sch-rizvi',
+        'cours-inclassables': 'sch-molino',
+        'cours-soufisme': 'sch-vandamme',
+        'cours-philo-juive': 'sch-roux',
+    }
+    for cid, sid in SCHOLAR_LINK.items():
+        await db.courses.update_one({'id': cid}, {'$set': {'scholar_id': sid}})
+    logger.info(f"Migration v10: seeded {len(SCHOLARS_SEED)} scholars + linked to {len(SCHOLAR_LINK)} courses")
+    # Clean up duplicate scholars (legacy random IDs created before the named-id seed)
+    legacy_dup = await db.scholars.delete_many({
+        'id': {'$nin': [s[0] for s in SCHOLARS_SEED]},
+        'name': {'$in': [s[1] for s in SCHOLARS_SEED]}
+    })
+    if legacy_dup.deleted_count > 0:
+        logger.info(f"Migration v10: removed {legacy_dup.deleted_count} duplicate legacy scholar(s)")
+    # ─── End Migration v10 ─────────────────────────────────────────────────
+
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
         # Migrate plans to fondateur pricing

@@ -1,6 +1,6 @@
 const API_BASE = window.location.origin + '/api';
 
-async function apiFetch(path, options = {}) {
+export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('sijill_token');
   const headers = { ...options.headers };
   if (token) headers['Authorization'] = `Bearer ${token}`;

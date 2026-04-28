@@ -29,6 +29,7 @@ export default function Header() {
         <nav className="site-nav" data-testid="desktop-nav">
           <Link to="/cursus" data-testid="nav-cursus">Cursus</Link>
           <Link to="/catalogue" data-testid="nav-catalogue">Catalogue</Link>
+          <Link to="/intervenants" data-testid="nav-intervenants">Intervenants</Link>
           <Link to="/blog" data-testid="nav-blog">Blog</Link>
           <Link to="/a-propos" data-testid="nav-about">A propos</Link>
         </nav>

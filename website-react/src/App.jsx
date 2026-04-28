@@ -17,6 +17,8 @@ import CGU from './pages/CGU'
 import AdminPanel from './pages/AdminPanel'
 
 import ResourceViewer from './pages/ResourceViewer'
+import Intervenants from './pages/Intervenants'
+import ScholarDetail from './pages/ScholarDetail'
 
 export default function App() {
   return (
@@ -27,6 +29,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/cursus" element={<CursusList />} />
           <Route path="/catalogue" element={<Catalogue />} />
+          <Route path="/intervenants" element={<Intervenants />} />
+          <Route path="/intervenant/:scholarId" element={<ScholarDetail />} />
           <Route path="/cours/:courseId" element={<CourseDetail />} />
           <Route path="/ressource/:type/:resourceId" element={<ResourceViewer />} />
           <Route path="/connexion" element={<Login />} />

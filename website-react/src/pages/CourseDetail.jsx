@@ -163,7 +163,7 @@ export default function CourseDetail() {
     { key: 'frise', label: `Frise` },
     { key: 'contexte', label: `Contexte` },
     { key: 'biblio', label: `Bibliographie` },
-    { key: 'conferences', label: `Conférences` },
+    { key: 'professeur', label: `Professeur` },
   ]
 
   // Premium paywall block reused for Frise/Contexte/Biblio/Conférences
@@ -562,39 +562,54 @@ export default function CourseDetail() {
         )}
 
         {/* CONFÉRENCES TAB */}
-        {activeTab === 'conferences' && (
-          <div style={{ maxWidth: 800 }} data-testid="conferences-tab">
-            {!hasAccess ? (
-              <div data-testid="conferences-paywall" style={{
-                padding: 32, border: `1px solid ${color}33`, borderRadius: 4,
-                background: `linear-gradient(135deg, ${color}11, transparent)`, textAlign: 'center',
-              }}>
+        {activeTab === 'professeur' && (
+          <div style={{ maxWidth: 800 }} data-testid="professeur-tab">
+            {course.scholar_id ? (
+              <Link
+                to={`/intervenant/${course.scholar_id}`}
+                data-testid={`professeur-card-${course.scholar_id}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 24,
+                  padding: 24, border: `1px solid ${color}33`, borderRadius: 4,
+                  textDecoration: 'none', color: 'inherit',
+                  background: `linear-gradient(135deg, ${color}11, transparent)`,
+                  transition: 'transform 0.2s ease, border-color 0.2s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = color }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = `${color}33` }}
+              >
                 <div style={{
-                  fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 3,
-                  textTransform: 'uppercase', color, marginBottom: 16,
-                }}>Contenu réservé aux abonnés</div>
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.6 }}>
-                  Les conférences audio sont accessibles avec un abonnement Sijill — 7&nbsp;€/mois ou 84&nbsp;€/an.
-                </p>
-                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <Link to={user ? '/pre-inscription' : '/inscription'} className="btn-accent">{user ? "Activer mon abonnement" : "Je m'abonne"}</Link>
-                  {!user && <Link to="/connexion" className="btn-outline">J'ai déjà un compte</Link>}
+                  width: 96, height: 96, borderRadius: '50%',
+                  backgroundColor: 'var(--bg-card)',
+                  border: `1px solid ${color}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-display)', fontSize: 32,
+                  color, flexShrink: 0,
+                }}>
+                  {(course.scholar_name || '').split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2,
+                    textTransform: 'uppercase', color, marginBottom: 8,
+                  }}>Intervenant</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)', marginBottom: 8 }}>
+                    {course.scholar_name}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)' }}>
+                    Voir la fiche complète &nbsp;&#8250;
+                  </div>
+                </div>
+              </Link>
+            ) : course.scholar_name ? (
+              <div style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 4 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)' }}>
+                  {course.scholar_name}
                 </div>
               </div>
-            ) : audioConferences.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune conférence disponible.</p>
-            ) : audioConferences.map(conf => (
-              <div key={conf.id} className="res-card" data-testid={`conf-${conf.id}`}>
-                <div className="res-card-icon" style={{ background: `${color}1A` }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-                </div>
-                <div className="res-card-body">
-                  <div className="res-card-title">{conf.title}</div>
-                  <div className="res-card-subtitle">{conf.speaker || ''}{conf.module_number ? ` · Module ${conf.module_number}` : ''}{conf.size_mb ? ` · ${conf.size_mb} Mo` : ''}</div>
-                </div>
-                <span className="res-card-chevron">&#8250;</span>
-              </div>
-            ))}
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Intervenant à venir.</p>
+            )}
           </div>
         )}
 

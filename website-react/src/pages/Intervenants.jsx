@@ -1,0 +1,130 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { apiFetch } from '../api'
+
+function getInitials(name) {
+  if (!name) return '?'
+  return name.split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('')
+}
+
+export default function Intervenants() {
+  const [scholars, setScholars] = useState([])
+  const [courses, setCourses] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      apiFetch('/scholars'),
+      apiFetch('/courses'),
+    ]).then(([s, c]) => {
+      setScholars(s || [])
+      setCourses(c || [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div className="loading">Chargement...</div>
+
+  // Group courses by scholar_id
+  const coursesByScholar = {}
+  courses.forEach(c => {
+    if (c.scholar_id && c.is_launch_catalog) {
+      coursesByScholar[c.scholar_id] = coursesByScholar[c.scholar_id] || []
+      coursesByScholar[c.scholar_id].push(c)
+    }
+  })
+
+  // Sort scholars: those with launch courses first, then alphabetical
+  const sorted = [...scholars].sort((a, b) => {
+    const aHas = (coursesByScholar[a.id] || []).length > 0
+    const bHas = (coursesByScholar[b.id] || []).length > 0
+    if (aHas !== bHas) return aHas ? -1 : 1
+    return (a.name || '').localeCompare(b.name || '', 'fr')
+  })
+
+  return (
+    <section className="section" style={{ paddingTop: 140 }} data-testid="intervenants-page">
+      <div style={{ marginBottom: 64 }}>
+        <div className="section-eyebrow">Académiciens et chercheurs</div>
+        <h1 className="section-title" style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>
+          Nos intervenants
+        </h1>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 20, lineHeight: 1.75,
+        }}>
+          Chaque cours de Sijill Project est confié à un·e spécialiste reconnu·e de son domaine.
+          Universitaires, chercheurs et chercheuses apportent leur expertise pour transmettre
+          la richesse des savoirs islamiques classiques.
+        </p>
+      </div>
+
+      <div
+        className="courses-grid"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}
+        data-testid="scholars-grid"
+      >
+        {sorted.map(s => {
+          const sCourses = coursesByScholar[s.id] || []
+          return (
+            <Link
+              key={s.id}
+              to={`/intervenant/${s.id}`}
+              className="course-card"
+              data-testid={`scholar-card-${s.id}`}
+              style={{ position: 'relative', textDecoration: 'none' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                {s.photo_url ? (
+                  <img
+                    src={s.photo_url}
+                    alt={s.name}
+                    style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }}
+                  />
+                ) : (
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--accent, #C9A84C)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-display)', fontSize: 22,
+                    color: 'var(--accent, #C9A84C)', flexShrink: 0,
+                  }}>
+                    {getInitials(s.name)}
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 18,
+                    color: 'var(--text-primary)', marginBottom: 4,
+                  }}>
+                    {s.name}
+                  </div>
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 10,
+                    letterSpacing: 1.5, textTransform: 'uppercase',
+                    color: sCourses.length > 0 ? 'var(--success, #04D182)' : 'var(--text-dim)',
+                  }}>
+                    {sCourses.length > 0
+                      ? `${sCourses.length} cours au lancement`
+                      : 'Bientôt'}
+                  </div>
+                </div>
+              </div>
+              {s.bio && (
+                <div style={{
+                  fontFamily: 'var(--font-body)', fontSize: 14,
+                  color: 'var(--text-muted)', lineHeight: 1.6,
+                  display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
+                  {s.bio}
+                </div>
+              )}
+            </Link>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
