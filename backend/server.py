@@ -1535,20 +1535,49 @@ class TranscriptCreate(BaseModel):
     title: Optional[str] = None
 
 @api_router.get("/transcripts/{audio_id}")
-async def get_transcript(audio_id: str):
-    """Get the transcript for an audio episode."""
+async def get_transcript(audio_id: str, request: Request):
+    """Get the transcript for an audio episode. Requires auth + active subscription."""
+    await require_subscriber(request)
     transcript = await db.transcripts.find_one({'audio_id': audio_id}, {'_id': 0})
     if not transcript:
         raise HTTPException(404, "Transcript non trouvé")
     return transcript
 
 @api_router.get("/audios/{audio_id}/transcript")
-async def get_audio_transcript(audio_id: str):
-    """Get the transcript for an audio episode (alternative endpoint)."""
+async def get_audio_transcript(audio_id: str, request: Request):
+    """Get the transcript for an audio episode (alternative endpoint).
+    Returns content only for subscribers; non-subscribers see only the existence flag."""
     transcript = await db.transcripts.find_one({'audio_id': audio_id}, {'_id': 0})
     if not transcript:
         # Return empty response instead of 404 (audio may not have transcript yet)
         return {'audio_id': audio_id, 'has_transcript': False}
+    # Check subscription before returning content
+    user = await get_current_user(request)
+    is_subscriber = False
+    if user:
+        if user.get('role') == 'admin' or user.get('free_access'):
+            is_subscriber = True
+        else:
+            now = datetime.now(timezone.utc)
+            for fld in ('trial', 'subscription'):
+                v = user.get(fld)
+                if v and v.get('expires_at'):
+                    exp = v['expires_at']
+                    if isinstance(exp, str):
+                        exp = datetime.fromisoformat(exp.replace('Z', '+00:00'))
+                    if exp > now:
+                        is_subscriber = True
+                        break
+    if not is_subscriber:
+        # Strip premium fields, expose only existence + metadata
+        return {
+            'audio_id': audio_id,
+            'has_transcript': True,
+            'locked': True,
+            'word_count': transcript.get('word_count'),
+            'reading_time_minutes': transcript.get('reading_time_minutes'),
+            'title': transcript.get('title'),
+        }
     transcript['has_transcript'] = True
     return transcript
 
@@ -4248,8 +4277,9 @@ async def get_context_resource(resource_id: str, request: Request):
 # ─── Audio Resources (Conferences) ─────────────────────────────────────────────
 
 @api_router.get("/resources/audio")
-async def list_audio_resources():
-    """List all audio resources (conferences) from the audio folder."""
+async def list_audio_resources(request: Request):
+    """List all audio resources (conferences) from the audio folder.
+    Strips stream_url for non-subscribers so they cannot bypass the paywall."""
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     
@@ -4308,13 +4338,61 @@ async def list_audio_resources():
         
         # Sort by module number then subject
         resources.sort(key=lambda x: (x['module_number'], x['subject']))
+        # Strip stream_url for non-subscribers (paywall)
+        user = await get_current_user(request)
+        is_subscriber = False
+        if user:
+            if user.get('role') == 'admin' or user.get('free_access'):
+                is_subscriber = True
+            else:
+                now = datetime.now(timezone.utc)
+                for fld in ('trial', 'subscription'):
+                    v = user.get(fld)
+                    if v and v.get('expires_at'):
+                        exp = v['expires_at']
+                        if isinstance(exp, str):
+                            exp = datetime.fromisoformat(exp.replace('Z', '+00:00'))
+                        if exp > now:
+                            is_subscriber = True
+                            break
+        if not is_subscriber:
+            for r in resources:
+                r.pop('stream_url', None)
+                r['locked'] = True
         return {'resources': resources, 'count': len(resources)}
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
+@api_router.get("/resources/audio/{filename}/access-url")
+async def get_audio_resource_access_url(filename: str, request: Request):
+    """Issue a short-lived signed URL to stream an audio resource (conférence).
+    Requires authentication + active subscription/trial/admin/free_access."""
+    user = await require_subscriber(request)
+    token = create_jwt({
+        'sub': user['user_id'],
+        'filename': filename,
+        'scope': 'audio_resource_stream',
+        'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+    })
+    scheme = request.headers.get('x-forwarded-proto', 'https')
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
+    return {
+        'url': f"{scheme}://{host}/api/resources/audio/stream/{filename}?t={token}",
+        'expires_in': 3600,
+    }
+
 @api_router.get("/resources/audio/stream/{filename}")
-async def stream_audio_resource(filename: str, request: Request):
-    """Stream an audio resource file from R2."""
+async def stream_audio_resource(filename: str, request: Request, t: Optional[str] = None):
+    """Stream an audio resource file from R2.
+    Requires either a valid signed token (?t=, scope=audio_resource_stream) or Authorization header with active subscription."""
+    # Authentication gate
+    token = t or request.query_params.get('t')
+    if token:
+        payload = verify_jwt(token)
+        if not payload or payload.get('scope') != 'audio_resource_stream' or payload.get('filename') != filename:
+            raise HTTPException(403, "Jeton invalide ou expiré")
+    else:
+        await require_subscriber(request)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
     

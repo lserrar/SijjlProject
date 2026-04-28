@@ -57,14 +57,18 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - Backend : `/api/audios/{id}/stream` vérifie le token `?t=` sur chaque requête (ou Authorization header en fallback)
   - Frontend CourseDetail : paywall CTA « Contenu réservé aux abonnés » (7 €/mois ou 84 €/an) à la place de l'iframe YouTube si pas d'accès
   - Frontend CourseDetail : clic sur « play » audio redirige vers `/connexion` ou `/pre-inscription` selon l'état
-- ✅ **Sécurité Frises / Contexte / Bibliographies** (Fév 2026) — Verrou complet sur les ressources premium :
+- ✅ **Sécurité Frises / Contexte / Bibliographies / Transcripts / Conférences** (Fév 2026) — Verrou complet sur TOUTES les ressources premium :
   - Backend : `GET /api/timeline/{cursus_letter}` et `GET /api/timeline/file/{filename}` requièrent désormais auth + abonnement actif (header `Authorization` ou token signé `?t=`, scope `content_access`, expiration 1h)
-  - Backend : nouveaux endpoints `/api/timeline/{letter}/access-url` et `/api/timeline/file/{filename}/access-url` qui délivrent une URL tokenisée pour ouverture dans un nouvel onglet (équivalent au flux `stream-url` audio)
+  - Backend : nouveaux endpoints `/api/timeline/{letter}/access-url`, `/api/timeline/file/{filename}/access-url`, `/api/resources/audio/{filename}/access-url` qui délivrent une URL tokenisée pour ouverture/streaming dans un nouvel onglet
   - Backend : `GET /api/resources/context/{resource_id}` (parsing Word docx) et `GET /api/bibliographies/{biblio_id}` requièrent auth + abonnement
-  - Backend : `GET /api/bibliographies` (listing) retire le champ `content` et ajoute `locked: true` pour les non-abonnés (les listings restent visibles pour l'UI paywall)
-  - Frontend `CourseDetail.jsx` : onglets Frise / Contexte / Bibliographie affichent un paywall « Contenu réservé aux abonnés » si l'utilisateur n'a pas d'accès actif (`hasAccess`)
-  - Frontend `CourseDetail.jsx` : le bouton de la frise appelle `/timeline/{letter}/access-url` puis `window.open(url)` au lieu d'un `<a target="_blank">` direct (qui ne portait pas le header `Authorization`)
-  - Frontend `ResourceViewer.jsx` (`/ressource/fiche/:id` et `/ressource/biblio/:id`) : intercepte les 401/403 et `locked: true` pour afficher le paywall au lieu de « Ressource introuvable »
+  - Backend : `GET /api/transcripts/{audio_id}` requiert auth + abonnement (texte intégral des podcasts)
+  - Backend : `GET /api/audios/{audio_id}/transcript` retire le champ `content` et ajoute `locked: true` pour les non-abonnés (existence + métadonnées seulement)
+  - Backend : `GET /api/resources/audio/stream/{filename}` (conférences audio) requiert token signé `?t=` (scope `audio_resource_stream`) ou Authorization header
+  - Backend : `GET /api/bibliographies` (listing) retire le champ `content` et ajoute `locked: true` pour les non-abonnés
+  - Backend : `GET /api/resources/audio` (listing conférences) retire le champ `stream_url` et ajoute `locked: true` pour les non-abonnés
+  - Frontend `CourseDetail.jsx` : onglets Frise / Contexte / Bibliographie affichent un paywall si pas d'accès actif
+  - Frontend `CourseDetail.jsx` : le bouton de la frise appelle `/timeline/{letter}/access-url` puis `window.open(url)` au lieu d'un `<a target="_blank">` direct
+  - Frontend `ResourceViewer.jsx` : intercepte 401/403 et `locked: true` pour afficher le paywall
 - ✅ **Catalogue filtré sur les cours disponibles** (Fév 2026) : `coming_soon !== true` ajouté au filtre en complément de `is_launch_catalog === true` (17 cours affichés au lieu de 19 — les 2 cours « Mamelouke » et « Ottoman » bientôt disponibles restent visibles uniquement sur la page Cursus)
   - Onglet **Cours** : checkbox « Catalogue de lancement uniquement » activée par défaut
   - Onglet **Professeurs** : même filtre, calcul automatique via les `scholar_id` des cours du lancement (ID + matching par nom dans `scholar_name`)
