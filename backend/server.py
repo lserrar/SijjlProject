@@ -5322,49 +5322,84 @@ R2_CURSUS_MAPPING = {
 # ========== PROFESSOR PHOTO SYNC ==========
 @api_router.post("/admin/sync-professor-photos")
 async def sync_professor_photos(request: Request):
-    """Sync professor photos from R2 Prof/ folder"""
+    """Sync professor photos from R2 Prof/ folder.
+    Matching is tolerant to: accents, common typos (Granpierre↔Grandpierre, Ghouirate↔Ghouirgate),
+    and uses Levenshtein-like distance via shared prefix matching."""
     await require_admin(request)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    
+
+    import re, unicodedata
+
+    def normalize(s: str) -> str:
+        """Strip accents + lowercase + remove non-alphanum."""
+        s = unicodedata.normalize('NFD', s)
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        return re.sub(r'[^a-z0-9]', '', s.lower())
+
     try:
-        # List all files in Prof/ folder
         response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Prof/', MaxKeys=100)
-        
+        # Pre-load all scholars once
+        all_scholars = await db.scholars.find({}, {'_id': 0}).to_list(200)
+        scholar_norms = [(s, normalize(s.get('name', ''))) for s in all_scholars]
+
         updated = 0
+        skipped = []
         for obj in response.get('Contents', []):
             key = obj['Key']
             filename = key.replace('Prof/', '')
-            
-            # Extract professor name from filename (e.g., Prof_MeryemSebti.jpg -> Meryem Sebti)
-            if filename.startswith('Prof_'):
-                name_part = filename.replace('Prof_', '').rsplit('.', 1)[0]
-                # Handle special cases like "1973_HenriCorbin" -> "Henri Corbin"
-                name_part = name_part.split('_')[-1] if '_' in name_part else name_part
-                # Convert CamelCase to spaces
-                import re
-                name = re.sub(r'([a-z])([A-Z])', r'\1 \2', name_part)
-                
-                # Find matching scholar
-                scholar = await db.scholars.find_one({
-                    'name': {'$regex': name.replace(' ', '.*'), '$options': 'i'}
-                })
-                
-                if scholar:
-                    # Update photo URL - use relative path for flexibility
-                    photo_url = f"/api/images/{filename}"
-                    await db.scholars.update_one(
-                        {'id': scholar['id']},
-                        {'$set': {'photo': photo_url, 'photo_key': key}}
-                    )
-                    logger.info(f"Updated photo for {scholar['name']}: {photo_url}")
-                    updated += 1
-                else:
-                    logger.warning(f"No matching scholar found for: {name} (from {filename})")
-        
+            if not filename or filename.endswith('/'):
+                continue
+            # Extract candidate name from filename
+            stem = filename.rsplit('.', 1)[0]
+            stem = re.sub(r'^(Prof_|\d+_)', '', stem)
+            # Convert CamelCase to spaces, then normalize
+            spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', stem)
+            target = normalize(spaced)
+            if not target:
+                skipped.append({'file': filename, 'reason': 'empty target'})
+                continue
+
+            # Find best scholar by largest shared prefix length (handles typos like Ghouirate ↔ Ghouirgate)
+            best, best_score = None, 0
+            for s, sn in scholar_norms:
+                if not sn:
+                    continue
+                # Skip very short normalized names to avoid false positives
+                if len(sn) < 4:
+                    continue
+                # Score = length of common prefix (works well for misspellings missing a letter)
+                score = 0
+                for a, b in zip(target, sn):
+                    if a == b:
+                        score += 1
+                    else:
+                        break
+                # Bonus if either fully contains the other (Granpierre ⊂ Grandpierre)
+                if target in sn or sn in target:
+                    score = max(score, min(len(target), len(sn)))
+                # Require ≥ 70% of the shorter normalized name to be common
+                threshold = max(5, int(min(len(target), len(sn)) * 0.7))
+                if score >= threshold and score > best_score:
+                    best, best_score = s, score
+
+            if best:
+                photo_url = f"/api/images/{filename}"
+                await db.scholars.update_one(
+                    {'id': best['id']},
+                    {'$set': {'photo_url': photo_url, 'photo': photo_url, 'photo_key': key}}
+                )
+                logger.info(f"sync_professor_photos: {filename} → {best['name']} (score={best_score})")
+                updated += 1
+            else:
+                skipped.append({'file': filename, 'reason': 'no scholar match'})
+                logger.warning(f"sync_professor_photos: no match for {filename}")
+
         return {
             'message': 'Synchronisation des photos terminée',
-            'photos_updated': updated
+            'photos_updated': updated,
+            'photos_skipped': skipped,
+            'total_files_in_r2': len(response.get('Contents', [])),
         }
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
