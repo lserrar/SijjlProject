@@ -43,15 +43,20 @@ export default function CursusList() {
           Les grandes voies du savoir islamique
         </h1>
         <p style={{
-          fontFamily: 'var(--font-body)', fontSize: 19,
-          color: 'var(--text-secondary)', maxWidth: 760, marginTop: 24, lineHeight: 1.7,
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 20, lineHeight: 1.75
         }}>
           Notre ambition est de bâtir une vision large et rigoureuse de la pluralité
           des savoirs islamiques classiques, à travers <strong style={{ color: 'var(--text-primary)', fontWeight: 500 }}>7 cursus thématiques</strong>
           {' '}couvrant la philosophie, la théologie, l'histoire, les sciences, les arts,
-          la mystique et les pensées arabes non islamiques. Le catalogue complet
-          est en cours de construction. Découvrez notre catalogue de lancement
-          dans la page{' '}
+          la mystique et les pensées arabes non islamiques.
+        </p>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontSize: 17,
+          color: 'var(--text-muted)', maxWidth: 720, marginTop: 16, lineHeight: 1.75
+        }}>
+          Le catalogue complet est en cours de construction. Découvrez notre catalogue
+          de lancement dans la page{' '}
           <Link to="/catalogue" style={{ color: 'var(--accent, #C9A84C)', textDecoration: 'underline' }}>Catalogue</Link>.
         </p>
       </div>

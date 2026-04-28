@@ -999,6 +999,10 @@ async def get_catalogue():
         course_modules = mods_by_course.get(c['id'], [])
         if len(course_modules) >= 2:
             for m in course_modules:
+                ep_count = audios_per_module.get(m['id'], 0)
+                # Hide modules without any episode (old seed artifacts not part of the launch catalog)
+                if ep_count == 0 and not m.get('is_launch_catalog'):
+                    continue
                 items.append({
                     'type': 'module',
                     'id': f"{c['id']}::{m['id']}",
@@ -1008,8 +1012,8 @@ async def get_catalogue():
                     'description': m.get('description') or '',
                     'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                     'course_title': c.get('title'),
-                    'episode_count': audios_per_module.get(m['id'], 0),
-                    'coming_soon': c.get('coming_soon', False),
+                    'episode_count': ep_count,
+                    'coming_soon': c.get('coming_soon', False) or ep_count == 0,
                     'available_date': c.get('available_date'),
                     'order': (c.get('order') or 0) * 1000 + (m.get('order') or 0),
                 })
