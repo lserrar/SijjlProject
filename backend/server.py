@@ -3202,6 +3202,53 @@ async def seed_data():
     logger.info("Migration v7: launch-catalog modules pinned per Excel (Falsafa: Kindī, Fārābī, Avicenne, Ghazālī)")
     # ─── End Migration v7 ──────────────────────────────────────────────────
 
+    # ─── Migration v8: Placeholder episodes for Falsafa modules (URLs pending) ─
+    # Per user Excel: Al-Fārābī (5 ép), Avicenne (5 ép), Al-Ghazālī (1 ép).
+    # Episodes are created without youtube_url; URLs will be added later via Admin Panel.
+    # The episodes will appear in the catalogue with their count; playback will display
+    # a "Vidéo bientôt disponible" placeholder until URLs are filled in.
+    PLACEHOLDER_EPISODES = [
+        ('cours-falsafa-grands-mod-2', 'al-farabi', 'Al-Fārābī', 5),
+        ('cours-falsafa-grands-mod-3', 'avicenne', 'Avicenne', 5),
+        ('cours-falsafa-grands-mod-ghazali', 'al-ghazali', 'Al-Ghazālī', 1),
+    ]
+    placeholder_count = 0
+    for module_id, slug, label, n_episodes in PLACEHOLDER_EPISODES:
+        for ep in range(1, n_episodes + 1):
+            audio_id = f"aud_cours-falsafa-grands-{slug}-ep{ep:02d}"
+            existing = await db.audios.find_one({'id': audio_id})
+            if existing:
+                # Ensure existing placeholders are active (idempotent fix for v8 first run)
+                if existing.get('is_active') is not True:
+                    await db.audios.update_one({'id': audio_id}, {'$set': {'is_active': True}})
+                continue
+            await db.audios.insert_one({
+                'id': audio_id,
+                'course_id': 'cours-falsafa-grands',
+                'module_id': module_id,
+                'title': f"{label} — Épisode {ep}",
+                'episode_number': ep,
+                'duration_seconds': 0,
+                'youtube_url': None,
+                'audio_url': None,
+                'file_key': None,
+                'is_placeholder': True,
+                'is_active': True,
+                'created_at': datetime.now(timezone.utc),
+            })
+            placeholder_count += 1
+    if placeholder_count > 0:
+        logger.info(f"Migration v8: {placeholder_count} placeholder episode(s) created (URLs pending)")
+    # Re-link any pre-existing Avicenne ep1 that was created before module_id was set
+    legacy_avicenne_ep1 = await db.audios.find_one({'id': 'aud_cours-falsafa-grands-avicenne-ep01'})
+    if legacy_avicenne_ep1 and legacy_avicenne_ep1.get('module_id') != 'cours-falsafa-grands-mod-3':
+        await db.audios.update_one(
+            {'id': 'aud_cours-falsafa-grands-avicenne-ep01'},
+            {'$set': {'module_id': 'cours-falsafa-grands-mod-3'}}
+        )
+        logger.info("Migration v8: re-linked aud_cours-falsafa-grands-avicenne-ep01 to mod-3")
+    # ─── End Migration v8 ──────────────────────────────────────────────────
+
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
         # Migrate plans to fondateur pricing
