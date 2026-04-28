@@ -31,7 +31,20 @@ export default function CourseDetail() {
   const [transcript, setTranscript] = useState(null)
   const [showTranscript, setShowTranscript] = useState(false)
   const [hasAccess, setHasAccess] = useState(false)
+  const [scholarsMap, setScholarsMap] = useState({})
   const audioRef = useRef(null)
+
+  useEffect(() => {
+    // Load all scholars once for the Professeur tab (primary + co-intervenants)
+    fetch(`${API_BASE}/scholars`)
+      .then(r => r.ok ? r.json() : [])
+      .then(list => {
+        const map = {}
+        ;(list || []).forEach(s => { if (s.id) map[s.id] = s })
+        setScholarsMap(map)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     // Check subscription access
@@ -564,52 +577,74 @@ export default function CourseDetail() {
         {/* CONFÉRENCES TAB */}
         {activeTab === 'professeur' && (
           <div style={{ maxWidth: 800 }} data-testid="professeur-tab">
-            {course.scholar_id ? (
-              <Link
-                to={`/intervenant/${course.scholar_id}`}
-                data-testid={`professeur-card-${course.scholar_id}`}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 24,
-                  padding: 24, border: `1px solid ${color}33`, borderRadius: 4,
-                  textDecoration: 'none', color: 'inherit',
-                  background: `linear-gradient(135deg, ${color}11, transparent)`,
-                  transition: 'transform 0.2s ease, border-color 0.2s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = color }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = `${color}33` }}
-              >
-                <div style={{
-                  width: 96, height: 96, borderRadius: '50%',
-                  backgroundColor: 'var(--bg-card)',
-                  border: `1px solid ${color}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-display)', fontSize: 32,
-                  color, flexShrink: 0,
-                }}>
-                  {(course.scholar_name || '').split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2,
-                    textTransform: 'uppercase', color, marginBottom: 8,
-                  }}>Intervenant</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)', marginBottom: 8 }}>
-                    {course.scholar_name}
+            {(() => {
+              const ids = [course.scholar_id, ...(course.co_scholar_ids || [])].filter(Boolean)
+              if (ids.length === 0 && !course.scholar_name) {
+                return <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Intervenant à venir.</p>
+              }
+              if (ids.length === 0) {
+                return (
+                  <div style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 4 }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)' }}>
+                      {course.scholar_name}
+                    </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)' }}>
-                    Voir la fiche complète &nbsp;&#8250;
-                  </div>
+                )
+              }
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {ids.map((sid, idx) => {
+                    const s = scholarsMap[sid] || { id: sid, name: sid }
+                    const initials = (s.name || '').split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')
+                    return (
+                      <Link
+                        key={sid}
+                        to={`/intervenant/${sid}`}
+                        data-testid={`professeur-card-${sid}`}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 24,
+                          padding: 24, border: `1px solid ${color}33`, borderRadius: 4,
+                          textDecoration: 'none', color: 'inherit',
+                          backgroundImage: `linear-gradient(135deg, ${color}11, transparent)`,
+                          transition: 'transform 0.2s ease, border-color 0.2s ease',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = color }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = `${color}33` }}
+                      >
+                        {s.photo_url ? (
+                          <img
+                            src={s.photo_url}
+                            alt={s.name}
+                            style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: `1px solid ${color}`, flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: 96, height: 96, borderRadius: '50%',
+                            backgroundColor: 'var(--bg-card)',
+                            border: `1px solid ${color}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontFamily: 'var(--font-display)', fontSize: 32,
+                            color, flexShrink: 0,
+                          }}>{initials}</div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2,
+                            textTransform: 'uppercase', color, marginBottom: 8,
+                          }}>{idx === 0 ? 'Intervenant principal' : 'Co-intervenant'}</div>
+                          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)', marginBottom: 8 }}>
+                            {s.name}
+                          </div>
+                          <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)' }}>
+                            Voir la fiche complète &nbsp;&#8250;
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
                 </div>
-              </Link>
-            ) : course.scholar_name ? (
-              <div style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 4 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-primary)' }}>
-                  {course.scholar_name}
-                </div>
-              </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Intervenant à venir.</p>
-            )}
+              )
+            })()}
           </div>
         )}
 

@@ -25,13 +25,15 @@ export default function Intervenants() {
 
   if (loading) return <div className="loading">Chargement...</div>
 
-  // Group courses by scholar_id
+  // Group courses by scholar_id (primary OR co-intervenant)
   const coursesByScholar = {}
   courses.forEach(c => {
-    if (c.scholar_id && c.is_launch_catalog) {
-      coursesByScholar[c.scholar_id] = coursesByScholar[c.scholar_id] || []
-      coursesByScholar[c.scholar_id].push(c)
-    }
+    if (!c.is_launch_catalog) return
+    const ids = [c.scholar_id, ...(c.co_scholar_ids || [])].filter(Boolean)
+    ids.forEach(sid => {
+      coursesByScholar[sid] = coursesByScholar[sid] || []
+      coursesByScholar[sid].push(c)
+    })
   })
 
   // Sort scholars: those with launch courses first, then alphabetical

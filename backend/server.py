@@ -1033,6 +1033,22 @@ async def get_catalogue():
             audios_per_module[mid] = audios_per_module.get(mid, 0) + 1
         else:
             audios_per_course_unassigned[cid] = audios_per_course_unassigned.get(cid, 0) + 1
+    # Pre-load scholars name map (used to join primary + co-intervenant names on each card)
+    all_scholars = await db.scholars.find({}, {'_id': 0, 'id': 1, 'name': 1}).to_list(200)
+    scholar_name_by_id = {s['id']: s.get('name', '') for s in all_scholars}
+
+    def _scholar_label(c_doc):
+        """Return 'Primary · Co1 · Co2' or fallback to scholar_name field."""
+        names = []
+        primary = scholar_name_by_id.get(c_doc.get('scholar_id'))
+        if primary:
+            names.append(primary)
+        for co_id in (c_doc.get('co_scholar_ids') or []):
+            n = scholar_name_by_id.get(co_id)
+            if n and n not in names:
+                names.append(n)
+        return ' · '.join(names) if names else c_doc.get('scholar_name')
+
     items = []
     for c in launch_courses:
         course_modules = mods_by_course.get(c['id'], [])
@@ -1052,7 +1068,7 @@ async def get_catalogue():
                     'description': m.get('description') or '',
                     'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                     'course_title': c.get('title'),
-                    'scholar_name': m.get('scholar_name') or c.get('scholar_name'),
+                    'scholar_name': m.get('scholar_name') or _scholar_label(c),
                     'episode_count': ep_count,
                     'coming_soon': c.get('coming_soon', False) or ep_count == 0,
                     'available_date': c.get('available_date'),
@@ -1071,6 +1087,7 @@ async def get_catalogue():
                     'description': c.get('description', ''),
                     'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                     'course_title': c.get('title'),
+                    'scholar_name': _scholar_label(c),
                     'episode_count': 0,
                     'coming_soon': True,
                     'available_date': c.get('available_date'),
@@ -1091,7 +1108,7 @@ async def get_catalogue():
                 'description': c.get('description', ''),
                 'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                 'course_title': c.get('title'),
-                'scholar_name': c.get('scholar_name'),
+                'scholar_name': _scholar_label(c),
                 'episode_count': ep_count,
                 'coming_soon': c.get('coming_soon', False),
                 'available_date': c.get('available_date'),
@@ -1110,7 +1127,8 @@ async def get_courses(request: Request, topic: Optional[str] = None, level: Opti
     if level:
         query['level'] = level
     if scholar_id:
-        query['scholar_id'] = scholar_id
+        # Match courses where the scholar is primary OR co-intervenant
+        query['$or'] = [{'scholar_id': scholar_id}, {'co_scholar_ids': scholar_id}]
     # Support both old (thematique_id) and new (cursus_id) field names
     filter_id = cursus_id or thematique_id
     if filter_id:
@@ -3472,7 +3490,19 @@ async def seed_data():
     }
     for cid, sid in SCHOLAR_LINK.items():
         await db.courses.update_one({'id': cid}, {'$set': {'scholar_id': sid}})
-    logger.info(f"Migration v10: seeded {len(SCHOLARS_SEED)} scholars + linked to {len(SCHOLAR_LINK)} courses")
+    # Co-intervenants per Excel (multi-scholar courses)
+    CO_SCHOLARS = {
+        'cours-debuts-islam': ['sch-ghouirgate'],  # Bouali (primary) + Ghouirgate (co)
+        'cours-sciences': ['sch-bensaad'],          # Ben Miled (primary) + Ben Saad (co)
+    }
+    for cid, co_ids in CO_SCHOLARS.items():
+        await db.courses.update_one({'id': cid}, {'$set': {'co_scholar_ids': co_ids}})
+    # Ensure absent field is empty list on others to keep payloads predictable
+    await db.courses.update_many(
+        {'co_scholar_ids': {'$exists': False}},
+        {'$set': {'co_scholar_ids': []}}
+    )
+    logger.info(f"Migration v10: seeded {len(SCHOLARS_SEED)} scholars + linked to {len(SCHOLAR_LINK)} courses + {len(CO_SCHOLARS)} co-intervenant(s)")
     # Clean up duplicate scholars (legacy random IDs created before the named-id seed)
     legacy_dup = await db.scholars.delete_many({
         'id': {'$nin': [s[0] for s in SCHOLARS_SEED]},
