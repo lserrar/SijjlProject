@@ -3453,6 +3453,39 @@ async def seed_data():
         {'$set': {'module_id': 'cours-philo-juive-mod-9'}}
     )
     logger.info("Migration v9: Maïmonide module pinned as launch + 2 episodes re-linked to mod-9")
+
+    # 6ter) PILOT — Maïmonide: video R2 + script per episode + biblio + glossaire (course-level)
+    # Files in R2 under cursus-f-nonarabe/24-philosophie-juive/maimonide/
+    MAIMONIDE_R2_PREFIX = "cursus-f-nonarabe/24-philosophie-juive/maimonide"
+    await db.audios.update_one(
+        {'id': 'aud_cours-philo-juive-maimonide-ep01'},
+        {'$set': {
+            'r2_video_key': f"{MAIMONIDE_R2_PREFIX}/episode1_maimounide.mp4",
+            'episode_resources': [
+                {'type': 'script', 'label': "Script de l'épisode", 'r2_key': f"{MAIMONIDE_R2_PREFIX}/episode1_maimounide.pdf", 'mime': 'application/pdf'},
+            ],
+        }}
+    )
+    await db.audios.update_one(
+        {'id': 'aud_cours-philo-juive-maimonide-ep02'},
+        {'$set': {
+            'r2_video_key': f"{MAIMONIDE_R2_PREFIX}/episode2_maimounide.mp4",
+            'episode_resources': [
+                {'type': 'script', 'label': "Script de l'épisode", 'r2_key': f"{MAIMONIDE_R2_PREFIX}/episode2_maimounide.pdf", 'mime': 'application/pdf'},
+            ],
+        }}
+    )
+    # Course-level resources for Maïmonide (biblio + glossaire shared across all episodes)
+    await db.courses.update_one(
+        {'id': 'cours-philo-juive'},
+        {'$set': {
+            'course_resources': [
+                {'type': 'biblio', 'label': 'Bibliographie sélective', 'r2_key': f"{MAIMONIDE_R2_PREFIX}/bibliographie_maimounide.pdf", 'mime': 'application/pdf'},
+                {'type': 'glossaire', 'label': 'Glossaire des termes', 'r2_key': f"{MAIMONIDE_R2_PREFIX}/glossaire-maimounide.pdf", 'mime': 'application/pdf'},
+            ],
+        }}
+    )
+    logger.info("Migration v9 PILOT: Maïmonide R2 video + scripts + biblio + glossaire wired")
     # ─── End Migration v9 ──────────────────────────────────────────────────
 
     # ─── Migration v10: Seed all scholars from Excel + link courses ────────
