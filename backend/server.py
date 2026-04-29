@@ -986,17 +986,26 @@ async def admin_list_preregistrations(request: Request):
 
 # ─── Scholar Routes ─────────────────────────────────────────────────────────
 
+def _normalize_scholar_photo(s: dict) -> dict:
+    """Ensure both 'photo_url' and 'photo' fields are populated from whichever exists.
+    Avoids legacy/new field mismatch (admin panel writes 'photo', frontend reads 'photo_url')."""
+    pu = s.get('photo_url') or s.get('photo')
+    if pu:
+        s['photo_url'] = pu
+        s['photo'] = pu
+    return s
+
 @api_router.get("/scholars")
 async def get_scholars():
     scholars = await db.scholars.find({'is_active': {'$ne': False}}, {'_id': 0}).to_list(100)
-    return scholars
+    return [_normalize_scholar_photo(s) for s in scholars]
 
 @api_router.get("/scholars/{scholar_id}")
 async def get_scholar(scholar_id: str):
     s = await db.scholars.find_one({'id': scholar_id}, {'_id': 0})
     if not s:
         raise HTTPException(404, "Érudit non trouvé")
-    return s
+    return _normalize_scholar_photo(s)
 
 # ─── Course Routes ──────────────────────────────────────────────────────────
 

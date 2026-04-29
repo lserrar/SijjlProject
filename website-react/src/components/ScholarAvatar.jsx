@@ -13,7 +13,9 @@ function getInitials(name) {
  */
 export default function ScholarAvatar({ scholar, size = 64, color = '#C9A84C' }) {
   const [errored, setErrored] = useState(false)
-  const showImg = scholar?.photo_url && !errored
+  // Accept either field — old admin sync writes 'photo', new sync writes 'photo_url'
+  const photoSrc = scholar?.photo_url || scholar?.photo
+  const showImg = photoSrc && !errored
 
   const baseStyle = {
     width: size,

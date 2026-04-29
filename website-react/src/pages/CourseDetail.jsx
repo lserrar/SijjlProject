@@ -595,6 +595,7 @@ export default function CourseDetail() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {ids.map((sid, idx) => {
                     const s = scholarsMap[sid] || { id: sid, name: sid }
+                    const photoSrc = s.photo_url || s.photo
                     const initials = (s.name || '').split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')
                     return (
                       <Link
@@ -611,9 +612,9 @@ export default function CourseDetail() {
                         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = color }}
                         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = `${color}33` }}
                       >
-                        {s.photo_url ? (
+                        {photoSrc ? (
                           <img
-                            src={s.photo_url}
+                            src={photoSrc}
                             alt={s.name}
                             width={96}
                             height={96}
@@ -622,7 +623,7 @@ export default function CourseDetail() {
                           />
                         ) : null}
                         <div style={{
-                          display: s.photo_url ? 'none' : 'flex',
+                          display: photoSrc ? 'none' : 'flex',
                           width: 96, height: 96, borderRadius: '50%',
                           backgroundColor: 'var(--bg-card)',
                           border: `1px solid ${color}`,
