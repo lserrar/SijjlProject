@@ -76,6 +76,24 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ **Migration v4 défensive** (Fév 2026) : nettoie automatiquement les éventuels doublons de cursus « Histoire du monde islamique » avec ID différent de `cursus-histoire`
 - ✅ **Home.jsx dynamisé** (Fév 2026) : compteur cursus = `cursus.length` au lieu de hardcodé 6
 - ✅ **Al-Kindī épisodes 1-3** ajoutés en BDD via migration avec leurs URLs YouTube (incluant la nouvelle URL ép. 3 fournie par l'utilisateur)
+- ✅ **PILOT Maïmonide — Onglet Ressources + Lecteur audio R2** (Avr 2026) :
+  - Migration v9 PILOT enrichie : probe HEAD sur `episode{N}_maimounide.mp3` → set `r2_audio_key` + `has_r2_audio` (False tant que .mp3 pas uploadé)
+  - Nouveaux endpoints backend (tous gated `require_subscriber`) :
+    - `GET /api/courses/{id}/resources` → liste agrégée `course_resources` + `episode_resources` (scope, label, mime, episode_number)
+    - `POST /api/courses/{id}/resource-access-url` → token JWT signé (1 h, `scope=course_resource`) après whitelist du `r2_key`
+    - `GET /api/files/r2-stream?t=...` → proxy R2 streaming (PDF inline, supporte Range/HEAD)
+    - `GET /api/files/r2-html?t=...` → conversion DOCX → HTML via **mammoth** (Word uniquement)
+    - `GET /api/audios/{id}/audio-access-url` → URL signée podcast `.mp3` (scope `episode_audio`)
+  - Sécurité : `youtube_url`, `r2_video_key`, `r2_audio_key`, `episode_resources`, `course_resources` strippés pour non-abonnés sur `/api/audios` et `/api/courses/{id}` (seul `has_r2_audio` boolean reste exposé)
+  - Frontend `CourseDetail.jsx` :
+    - Onglet `Bibliographie` → renommé en **`Ressources`** (data-testid=tab-ressources)
+    - Composant `ResourceList` : agrège script + glossaire + bibliographie sous deux sections (« Ressources du cours » / « Épisode N »)
+    - PDF : ouverture dans nouvel onglet via URL signée
+    - DOCX : modal inline avec HTML converti via mammoth
+    - Lecteur audio podcast (data-testid=episode-podcast-player) sous l'iframe YouTube, affiché uniquement si `currentAudio.has_r2_audio === true`
+    - Helpers `getCourseResources` / `getResourceAccessUrl` / `getEpisodeAudioAccessUrl` ajoutés à `api.js`
+  - Tests : 19/19 backend pytest PASS + 6/6 UI flows verified (testing agent iteration_32)
+  - Bug bonus corrigé : legacy `/api/audios/{id}/stream` retourne désormais 404 (au lieu de 500) si la clé R2 n'existe pas
 - ✅ Apple Sign-In (backend prêt)
 
 ## Tâches à venir

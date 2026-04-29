@@ -1474,6 +1474,12 @@ async def stream_audio(audio_id: str, request: Request, t: Optional[str] = None)
         status_code = 206 if range_header else 200
         from fastapi.responses import Response
         return Response(content=body, status_code=status_code, headers=headers, media_type=content_type)
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code', '')
+        if code in ('NoSuchKey', '404'):
+            raise HTTPException(404, "Fichier audio non disponible")
+        logging.getLogger(__name__).error(f"Stream error for {audio_id}: {e}")
+        raise HTTPException(500, "Erreur de lecture du fichier audio")
     except Exception as e:
         logging.getLogger(__name__).error(f"Stream error for {audio_id}: {e}")
         raise HTTPException(500, "Erreur de lecture du fichier audio")
