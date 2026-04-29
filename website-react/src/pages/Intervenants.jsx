@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
-
-function getInitials(name) {
-  if (!name) return '?'
-  return name.split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('')
-}
+import ScholarAvatar from '../components/ScholarAvatar'
 
 export default function Intervenants() {
   const [scholars, setScholars] = useState([])
@@ -77,24 +73,7 @@ export default function Intervenants() {
               style={{ position: 'relative', textDecoration: 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                {s.photo_url ? (
-                  <img
-                    src={s.photo_url}
-                    alt={s.name}
-                    style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }}
-                  />
-                ) : (
-                  <div style={{
-                    width: 64, height: 64, borderRadius: '50%',
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--accent, #C9A84C)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--font-display)', fontSize: 22,
-                    color: 'var(--accent, #C9A84C)', flexShrink: 0,
-                  }}>
-                    {getInitials(s.name)}
-                  </div>
-                )}
+                <ScholarAvatar scholar={s} size={64} color="var(--accent, #C9A84C)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontFamily: 'var(--font-display)', fontSize: 18,

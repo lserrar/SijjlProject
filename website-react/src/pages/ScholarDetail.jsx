@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import { getCursusColor } from '../constants'
-
-function getInitials(name) {
-  if (!name) return '?'
-  return name.split(/[\s·-]+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('')
-}
+import ScholarAvatar from '../components/ScholarAvatar'
 
 export default function ScholarDetail() {
   const { scholarId } = useParams()
@@ -40,24 +36,7 @@ export default function ScholarDetail() {
         display: 'flex', gap: 32, alignItems: 'flex-start', flexWrap: 'wrap',
         marginBottom: 48,
       }}>
-        {scholar.photo_url ? (
-          <img
-            src={scholar.photo_url}
-            alt={scholar.name}
-            style={{ width: 160, height: 160, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
-          />
-        ) : (
-          <div style={{
-            width: 160, height: 160, borderRadius: '50%',
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--accent, #C9A84C)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-display)', fontSize: 56,
-            color: 'var(--accent, #C9A84C)', flexShrink: 0,
-          }} data-testid="scholar-avatar">
-            {getInitials(scholar.name)}
-          </div>
-        )}
+        <ScholarAvatar scholar={scholar} size={160} color="var(--accent, #C9A84C)" />
         <div style={{ flex: 1, minWidth: 280 }}>
           <div className="section-eyebrow">Intervenant</div>
           <h1 className="section-title" style={{ fontSize: 'clamp(28px, 4vw, 44px)', marginTop: 8 }}>

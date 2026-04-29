@@ -615,18 +615,21 @@ export default function CourseDetail() {
                           <img
                             src={s.photo_url}
                             alt={s.name}
+                            width={96}
+                            height={96}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
                             style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: `1px solid ${color}`, flexShrink: 0 }}
                           />
-                        ) : (
-                          <div style={{
-                            width: 96, height: 96, borderRadius: '50%',
-                            backgroundColor: 'var(--bg-card)',
-                            border: `1px solid ${color}`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontFamily: 'var(--font-display)', fontSize: 32,
-                            color, flexShrink: 0,
-                          }}>{initials}</div>
-                        )}
+                        ) : null}
+                        <div style={{
+                          display: s.photo_url ? 'none' : 'flex',
+                          width: 96, height: 96, borderRadius: '50%',
+                          backgroundColor: 'var(--bg-card)',
+                          border: `1px solid ${color}`,
+                          alignItems: 'center', justifyContent: 'center',
+                          fontFamily: 'var(--font-display)', fontSize: 32,
+                          color, flexShrink: 0,
+                        }}>{initials}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
                             fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 2,
