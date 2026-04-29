@@ -90,6 +90,21 @@ export async function getBibliographies(courseId) {
   return apiFetch(`/bibliographies${courseId ? `?course_id=${courseId}` : ''}`);
 }
 
+export async function getCourseResources(courseId) {
+  return apiFetch(`/courses/${courseId}/resources`);
+}
+
+export async function getResourceAccessUrl(courseId, r2_key) {
+  return apiFetch(`/courses/${courseId}/resource-access-url`, {
+    method: 'POST',
+    body: JSON.stringify({ r2_key }),
+  });
+}
+
+export async function getEpisodeAudioAccessUrl(audioId) {
+  return apiFetch(`/audios/${audioId}/audio-access-url`);
+}
+
 export async function getTimelineHtml(cursusLetter) {
   const res = await fetch(`${API_BASE}/timeline/${cursusLetter}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` },

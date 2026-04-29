@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 32 — Sijill PILOT Maïmonide course resources testing COMPLETE. Backend: 19/19 pytest tests PASS (covering /api/courses/{id}/resources, /resource-access-url, /files/r2-stream incl. Range/HEAD, /files/r2-html, /audios/{id}/audio-access-url, gating on /api/audios?course_id=cours-philo-juive and /api/courses/cours-philo-juive). Frontend: All UI flows verified — RESSOURCES tab renders 'Ressources du cours' header with 2 items (Bibliographie sélective + Glossaire des termes) + 'Épisode 1' / 'Épisode 2' headers each with 1 'Script de l'épisode' card; BIBLIOGRAPHIE tab no longer exists (replaced by RESSOURCES); all 5 tabs (Épisodes, Frise, Contexte, Ressources, Professeur) work without errors; episode-podcast-player correctly HIDDEN for ep01 (has_r2_audio=False because .mp3 not yet uploaded); YouTube iframe renders for ep01.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/audios/{id}/stream", "issue": "Pre-existing legacy audio stream path returns 500 'NoSuchKey' for aud_cours-philo-juive-maimonide-ep01 (different from new /audio-access-url endpoint). Out of scope for this iteration but main agent should be aware: legacy file_key for Maïmonide audios still points to R2 keys that don't exist. Suggest catching ClientError NoSuchKey → 404 to avoid 500."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sijill_iter32_resources_pilot.py",
+    "/app/test_reports/pytest/iter32_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "[Optional] /api/audios/{id}/stream legacy endpoint should map R2 NoSuchKey to HTTP 404 instead of 500 (currently surfaces as Internal Server Error in browser network tab when ep01 is clicked). Not blocking iter 32 since the new /audio-access-url path correctly returns 404.",
+    "[Defense-in-depth] /api/files/r2-stream and /api/files/r2-html accept tokens but do not re-verify subscriber access at call time — they rely entirely on the JWT scope claim. Fine for short-lived (1h) tokens but worth noting if a user's subscription is revoked mid-token-lifetime."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sijill_iter32_resources_pilot.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 pytest)",
+    "frontend": "100% (all 6 review-request UI flows verified)"
+  },
+  "test_credentials": {
+    "admin_email": "loubna.serrar@gmail.com",
+    "admin_password": "Admin123!"
+  },
+  "seed_data_creation": "None. Used existing Migration v9 PILOT seed: cours-philo-juive course_resources [biblio, glossaire] + 2 audios (aud_cours-philo-juive-maimonide-ep0{1,2}) episode_resources [script]. has_r2_audio=False on both audios (confirmed by /audios endpoint and HEAD probe at startup — .mp3 files not uploaded to R2 yet, expected per option (b)).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "PILOT seed verified: 4 resources for cours-philo-juive (2 course-level pdfs + 2 episode-level scripts), all PDF mime. All gating works correctly (anon strips youtube_url/r2_audio_key/r2_video_key/episode_resources from /api/audios, and course_resources/youtube_url from /api/courses/{id}). Tab keys for CourseDetail.jsx: tab-episodes, tab-frise, tab-contexte, tab-ressources, tab-professeur. Resource card data-testid format: resource-card-{filename.ext}. The PDF opens via window.open() with signed URL /api/files/r2-stream?t={jwt}; signed URL serves real PDF (verified: content-type=application/pdf, content-disposition=inline, accept-ranges=bytes, %PDF magic bytes, supports Range→206 and HEAD). DOCX-only conversion endpoint /api/files/r2-html returns 400 if token mime is not Word (verified). Episode podcast player only renders when currentAudio.has_r2_audio is true; for Maïmonide ep01 has_r2_audio=False so player is correctly hidden. Audio access URL endpoint /api/audios/{id}/audio-access-url returns 404 'Audio podcast non disponible' for ep01 because has_r2_audio=False (verified). Note legacy /audios/{id}/stream still 500s on NoSuchKey (pre-existing issue, out of scope).",
+  "rca of the issue": "No issues to RCA — all features working as specified per option (b)."
+}

@@ -1210,6 +1210,7 @@ async def get_course(course_id: str, request: Request):
         has_access = access.get('has_access', False)
     if not has_access:
         c.pop('youtube_url', None)
+        c.pop('course_resources', None)
     return c
 
 @api_router.get("/courses/{course_id}/suggestions")
@@ -1286,17 +1287,18 @@ async def get_audios(request: Request, topic: Optional[str] = None, audio_type: 
     has_access_cache: dict = {}
     for a in audios:
         a['stream_url'] = resolve_audio_url(a)
-        # Gate youtube_url behind access check
-        if a.get('youtube_url'):
-            cid = a.get('course_id', '')
-            if cid not in has_access_cache:
-                if user:
-                    access = await check_user_access(user['user_id'], content_type='course', content_id=cid)
-                    has_access_cache[cid] = access.get('has_access', False)
-                else:
-                    has_access_cache[cid] = False
-            if not has_access_cache[cid]:
-                a.pop('youtube_url', None)
+        cid = a.get('course_id', '')
+        if cid not in has_access_cache:
+            if user:
+                access = await check_user_access(user['user_id'], content_type='course', content_id=cid)
+                has_access_cache[cid] = access.get('has_access', False)
+            else:
+                has_access_cache[cid] = False
+        if not has_access_cache[cid]:
+            a.pop('youtube_url', None)
+            a.pop('r2_audio_key', None)
+            a.pop('r2_video_key', None)
+            a.pop('episode_resources', None)
     return audios
 
 @api_router.get("/audios/{audio_id}")
@@ -3457,24 +3459,32 @@ async def seed_data():
     # 6ter) PILOT — Maïmonide: video R2 + script per episode + biblio + glossaire (course-level)
     # Files in R2 under cursus-f-nonarabe/24-philosophie-juive/maimonide/
     MAIMONIDE_R2_PREFIX = "cursus-f-nonarabe/24-philosophie-juive/maimonide"
-    await db.audios.update_one(
-        {'id': 'aud_cours-philo-juive-maimonide-ep01'},
-        {'$set': {
-            'r2_video_key': f"{MAIMONIDE_R2_PREFIX}/episode1_maimounide.mp4",
-            'episode_resources': [
-                {'type': 'script', 'label': "Script de l'épisode", 'r2_key': f"{MAIMONIDE_R2_PREFIX}/episode1_maimounide.pdf", 'mime': 'application/pdf'},
-            ],
-        }}
-    )
-    await db.audios.update_one(
-        {'id': 'aud_cours-philo-juive-maimonide-ep02'},
-        {'$set': {
-            'r2_video_key': f"{MAIMONIDE_R2_PREFIX}/episode2_maimounide.mp4",
-            'episode_resources': [
-                {'type': 'script', 'label': "Script de l'épisode", 'r2_key': f"{MAIMONIDE_R2_PREFIX}/episode2_maimounide.pdf", 'mime': 'application/pdf'},
-            ],
-        }}
-    )
+
+    def _probe_r2_key(key: str) -> bool:
+        """HEAD-check a candidate key in R2; returns True if the file exists."""
+        if not r2_client or not key:
+            return False
+        try:
+            r2_client.head_object(Bucket=R2_BUCKET, Key=key)
+            return True
+        except Exception:
+            return False
+
+    for _ep_num in (1, 2):
+        _audio_id = f"aud_cours-philo-juive-maimonide-ep0{_ep_num}"
+        _audio_key = f"{MAIMONIDE_R2_PREFIX}/episode{_ep_num}_maimounide.mp3"
+        _has_audio = _probe_r2_key(_audio_key)
+        await db.audios.update_one(
+            {'id': _audio_id},
+            {'$set': {
+                'r2_video_key': f"{MAIMONIDE_R2_PREFIX}/episode{_ep_num}_maimounide.mp4",
+                'r2_audio_key': _audio_key,
+                'has_r2_audio': _has_audio,
+                'episode_resources': [
+                    {'type': 'script', 'label': "Script de l'épisode", 'r2_key': f"{MAIMONIDE_R2_PREFIX}/episode{_ep_num}_maimounide.pdf", 'mime': 'application/pdf'},
+                ],
+            }}
+        )
     # Course-level resources for Maïmonide (biblio + glossaire shared across all episodes)
     await db.courses.update_one(
         {'id': 'cours-philo-juive'},
@@ -4908,6 +4918,222 @@ async def stream_audio_resource(filename: str, request: Request, t: Optional[str
         if error_code == 'NoSuchKey':
             raise HTTPException(404, f"Fichier audio non trouvé: {filename}")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+
+# ─── Course Resources (Pilot Maïmonide) ────────────────────────────────────
+
+@api_router.get("/courses/{course_id}/resources")
+async def list_course_resources(course_id: str, request: Request):
+    """List all resources attached to a course (course-level + per-episode).
+    Requires authentication + active subscription/trial/admin/free_access."""
+    await require_subscriber(request)
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0})
+    if not course:
+        raise HTTPException(404, "Cours non trouvé")
+    items = []
+    for r in (course.get('course_resources') or []):
+        if not r.get('r2_key'):
+            continue
+        items.append({
+            'r2_key': r['r2_key'],
+            'type': r.get('type'),
+            'label': r.get('label') or r.get('r2_key', '').split('/')[-1],
+            'mime': r.get('mime') or 'application/octet-stream',
+            'scope': 'course',
+        })
+    audios_cur = db.audios.find(
+        {'course_id': course_id, 'is_active': True, 'episode_resources': {'$exists': True, '$ne': []}},
+        {'_id': 0},
+    )
+    audios = await audios_cur.to_list(200)
+    audios.sort(key=lambda a: (a.get('episode_number') or 0, a.get('order') or 0))
+    for a in audios:
+        for r in (a.get('episode_resources') or []):
+            if not r.get('r2_key'):
+                continue
+            items.append({
+                'r2_key': r['r2_key'],
+                'type': r.get('type'),
+                'label': r.get('label') or r.get('r2_key', '').split('/')[-1],
+                'mime': r.get('mime') or 'application/octet-stream',
+                'scope': 'episode',
+                'audio_id': a['id'],
+                'audio_title': a.get('title'),
+                'episode_number': a.get('episode_number'),
+            })
+    return {'resources': items, 'count': len(items)}
+
+
+@api_router.post("/courses/{course_id}/resource-access-url")
+async def get_course_resource_access_url(course_id: str, body: dict, request: Request):
+    """Issue a signed URL to fetch a course-scoped R2 resource (PDF/DOCX).
+    The r2_key MUST be whitelisted in this course's resources."""
+    user = await require_subscriber(request)
+    r2_key = (body or {}).get('r2_key')
+    if not r2_key or not isinstance(r2_key, str):
+        raise HTTPException(400, "r2_key requis")
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'course_resources': 1})
+    found = None
+    for r in (course.get('course_resources') or []) if course else []:
+        if r.get('r2_key') == r2_key:
+            found = r
+            break
+    if not found:
+        audio = await db.audios.find_one(
+            {'course_id': course_id, 'episode_resources.r2_key': r2_key},
+            {'_id': 0, 'episode_resources': 1},
+        )
+        for r in (audio.get('episode_resources') or []) if audio else []:
+            if r.get('r2_key') == r2_key:
+                found = r
+                break
+    if not found:
+        raise HTTPException(404, "Ressource non rattachée à ce cours")
+    mime = found.get('mime') or 'application/octet-stream'
+    token = create_jwt({
+        'sub': user['user_id'],
+        'r2_key': r2_key,
+        'mime': mime,
+        'scope': 'course_resource',
+        'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+    })
+    scheme = request.headers.get('x-forwarded-proto', 'https')
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
+    is_docx = 'wordprocessingml' in mime or mime == 'application/msword'
+    return {
+        'url': f"{scheme}://{host}/api/files/r2-stream?t={token}",
+        'html_url': (f"{scheme}://{host}/api/files/r2-html?t={token}" if is_docx else None),
+        'mime': mime,
+        'label': found.get('label'),
+        'expires_in': 3600,
+    }
+
+
+@api_router.api_route("/files/r2-stream", methods=["GET", "HEAD"])
+async def stream_r2_resource(request: Request, t: Optional[str] = None):
+    """Stream a course-scoped R2 file (PDF/DOCX/MP3/MP4) using a signed token.
+    The token must have scope=course_resource (issued by /resource-access-url
+    or by /audios/{id}/audio-access-url for episode audio)."""
+    token = t or request.query_params.get('t')
+    if not token:
+        raise HTTPException(401, "Jeton requis")
+    payload = verify_jwt(token)
+    if not payload or payload.get('scope') not in ('course_resource', 'episode_audio'):
+        raise HTTPException(403, "Jeton invalide ou expiré")
+    r2_key = payload.get('r2_key')
+    if not r2_key:
+        raise HTTPException(403, "Jeton invalide")
+    mime = payload.get('mime') or 'application/octet-stream'
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+
+    range_header = request.headers.get('Range')
+    try:
+        kwargs: dict = {'Bucket': R2_BUCKET, 'Key': r2_key}
+        if range_header:
+            kwargs['Range'] = range_header
+        resp = r2_client.get_object(**kwargs)
+        body_bytes = resp['Body'].read()
+        headers = {
+            'Content-Type': mime,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'private, max-age=3600',
+            'Access-Control-Allow-Origin': '*',
+        }
+        if mime == 'application/pdf':
+            headers['Content-Disposition'] = 'inline'
+        if 'ContentLength' in resp:
+            headers['Content-Length'] = str(resp['ContentLength'])
+        if 'ContentRange' in resp:
+            headers['Content-Range'] = resp['ContentRange']
+        from fastapi.responses import Response
+        status_code = 206 if range_header else 200
+        return Response(content=body_bytes, status_code=status_code, headers=headers, media_type=mime)
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code', '')
+        if code in ('NoSuchKey', '404'):
+            raise HTTPException(404, "Fichier non disponible")
+        logging.getLogger(__name__).error(f"R2 stream error for {r2_key}: {e}")
+        raise HTTPException(500, "Erreur de lecture du fichier")
+    except Exception as e:
+        logging.getLogger(__name__).error(f"R2 stream error for {r2_key}: {e}")
+        raise HTTPException(500, "Erreur de lecture du fichier")
+
+
+@api_router.get("/files/r2-html")
+async def r2_resource_as_html(request: Request, t: Optional[str] = None):
+    """Convert a Word (.docx) resource to clean HTML using mammoth.
+    Requires the same signed token (scope=course_resource)."""
+    token = t or request.query_params.get('t')
+    if not token:
+        raise HTTPException(401, "Jeton requis")
+    payload = verify_jwt(token)
+    if not payload or payload.get('scope') != 'course_resource':
+        raise HTTPException(403, "Jeton invalide ou expiré")
+    r2_key = payload.get('r2_key')
+    mime = payload.get('mime') or ''
+    if 'wordprocessingml' not in mime and mime != 'application/msword':
+        raise HTTPException(400, "Conversion HTML disponible uniquement pour les documents Word")
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    try:
+        import mammoth
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+        body_bytes = resp['Body'].read()
+        result = mammoth.convert_to_html(io.BytesIO(body_bytes))
+        return {
+            'html': result.value,
+            'messages': [str(m) for m in (result.messages or [])][:10],
+        }
+    except ClientError as e:
+        code = e.response.get('Error', {}).get('Code', '')
+        if code in ('NoSuchKey', '404'):
+            raise HTTPException(404, "Fichier non disponible")
+        raise HTTPException(500, "Erreur R2")
+    except Exception as e:
+        logging.getLogger(__name__).error(f"DOCX→HTML error: {e}")
+        raise HTTPException(500, "Erreur de conversion du document Word")
+
+
+@api_router.get("/audios/{audio_id}/audio-access-url")
+async def get_episode_audio_access_url(audio_id: str, request: Request):
+    """Issue a short-lived signed URL to stream the episode-level R2 audio (.mp3/.m4a).
+    Distinct from /audios/{id}/stream-url (which uses file_key); this one uses r2_audio_key
+    set on Maïmonide pilot. Requires authentication + active subscription."""
+    user = await require_subscriber(request)
+    a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
+    if not a:
+        raise HTTPException(404, "Audio non trouvé")
+    if not a.get('has_r2_audio') or not a.get('r2_audio_key'):
+        raise HTTPException(404, "Audio podcast non disponible")
+    # Per-audio access check
+    access = await check_user_access(user['user_id'], content_type='audio', content_id=audio_id)
+    if not access.get('has_access'):
+        raise HTTPException(403, {"error": "subscription_required", "reason": access.get('reason', 'no_access')})
+    r2_key = a['r2_audio_key']
+    ext = (r2_key.rsplit('.', 1)[-1] or '').lower()
+    mime_map = {
+        'mp3': 'audio/mpeg', 'm4a': 'audio/mp4', 'wav': 'audio/wav',
+        'ogg': 'audio/ogg', 'aac': 'audio/aac',
+    }
+    mime = mime_map.get(ext, 'audio/mpeg')
+    token = create_jwt({
+        'sub': user['user_id'],
+        'r2_key': r2_key,
+        'mime': mime,
+        'audio_id': audio_id,
+        'scope': 'episode_audio',
+        'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+    })
+    scheme = request.headers.get('x-forwarded-proto', 'https')
+    host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
+    return {
+        'audio_id': audio_id,
+        'stream_url': f"{scheme}://{host}/api/files/r2-stream?t={token}",
+        'mime': mime,
+        'expires_in': 3600,
+    }
+
 
 @api_router.get("/admin/resources/timeline")
 async def admin_list_timeline_resources(request: Request):

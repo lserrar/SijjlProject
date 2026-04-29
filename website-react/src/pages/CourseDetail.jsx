@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getCourseDetail, getModules, getAudios, getAudioStreamUrl, getAudioTranscript, getContextResources, getBibliographies } from '../api'
+import { getCourseDetail, getModules, getAudios, getAudioStreamUrl, getAudioTranscript, getContextResources, getCourseResources, getResourceAccessUrl, getEpisodeAudioAccessUrl } from '../api'
 import { getCursusColor, getCursusLetter, buildYouTubeEmbedUrl } from '../constants'
 import { useAuth } from '../AuthContext'
 
@@ -10,6 +10,172 @@ const CURSUS_LETTER_MAP = {
 }
 const API_BASE = window.location.origin + '/api'
 
+const RES_TYPE_LABELS = {
+  script: "Script",
+  glossaire: "Glossaire",
+  biblio: "Bibliographie",
+  bibliographie: "Bibliographie",
+}
+
+function ResourceList({ resources, courseId, color }) {
+  const [openingKey, setOpeningKey] = useState(null)
+  const [docxModal, setDocxModal] = useState(null) // { html, label }
+
+  async function openResource(res) {
+    setOpeningKey(res.r2_key)
+    try {
+      const data = await getResourceAccessUrl(courseId, res.r2_key)
+      const isDocx = (data?.mime || '').includes('wordprocessingml') || data?.mime === 'application/msword'
+      if (isDocx && data.html_url) {
+        const token = localStorage.getItem('sijill_token')
+        const r = await fetch(data.html_url, { headers: { Authorization: `Bearer ${token || ''}` } })
+        const json = await r.json()
+        setDocxModal({ html: json.html || '', label: data.label || res.label })
+      } else if (data?.url) {
+        window.open(data.url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (e) {
+      console.error("Failed to open resource:", e)
+    } finally {
+      setOpeningKey(null)
+    }
+  }
+
+  // Group resources: course-level first, then by episode number
+  const courseRes = resources.filter(r => r.scope === 'course')
+  const epRes = resources.filter(r => r.scope === 'episode')
+  const epGrouped = {}
+  epRes.forEach(r => {
+    const k = r.episode_number || 0
+    if (!epGrouped[k]) epGrouped[k] = []
+    epGrouped[k].push(r)
+  })
+  const epKeys = Object.keys(epGrouped).map(Number).sort((a, b) => a - b)
+
+  return (
+    <div data-testid="resource-list">
+      {docxModal && (
+        <div
+          data-testid="docx-modal"
+          onClick={() => setDocxModal(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: 32, overflow: 'auto',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 820, width: '100%', background: 'var(--bg)',
+              border: `1px solid ${color}55`, borderRadius: 4,
+              padding: '32px 40px', position: 'relative',
+            }}
+          >
+            <button
+              onClick={() => setDocxModal(null)}
+              data-testid="docx-modal-close"
+              style={{
+                position: 'absolute', top: 12, right: 16,
+                background: 'transparent', border: 'none',
+                color: 'var(--text-muted)', fontSize: 24, cursor: 'pointer',
+              }}
+              aria-label="Fermer"
+            >×</button>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 11,
+              letterSpacing: 3, textTransform: 'uppercase', color, marginBottom: 12,
+            }}>{docxModal.label}</div>
+            <div
+              className="docx-content"
+              style={{ fontFamily: 'var(--font-body)', fontSize: 16, lineHeight: 1.7, color: 'var(--text)' }}
+              dangerouslySetInnerHTML={{ __html: docxModal.html }}
+            />
+          </div>
+        </div>
+      )}
+
+      {courseRes.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 11,
+            letterSpacing: 2, textTransform: 'uppercase',
+            color: `${color}AA`, marginBottom: 12,
+          }}>
+            Ressources du cours
+          </div>
+          {courseRes.map(r => (
+            <ResourceCard
+              key={r.r2_key}
+              resource={r}
+              color={color}
+              loading={openingKey === r.r2_key}
+              onOpen={() => openResource(r)}
+            />
+          ))}
+        </div>
+      )}
+
+      {epKeys.map(num => (
+        <div key={num} style={{ marginBottom: 24 }}>
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 11,
+            letterSpacing: 2, textTransform: 'uppercase',
+            color: `${color}AA`, marginBottom: 12,
+          }}>
+            Épisode {num}
+          </div>
+          {epGrouped[num].map(r => (
+            <ResourceCard
+              key={r.r2_key}
+              resource={r}
+              color={color}
+              loading={openingKey === r.r2_key}
+              onOpen={() => openResource(r)}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ResourceCard({ resource, color, loading, onOpen }) {
+  const typeLabel = RES_TYPE_LABELS[resource.type] || (resource.mime?.includes('pdf') ? 'PDF' : 'Document')
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      disabled={loading}
+      data-testid={`resource-card-${resource.r2_key.split('/').pop()}`}
+      className="res-card"
+      style={{
+        width: '100%', textAlign: 'left', cursor: loading ? 'wait' : 'pointer',
+        background: 'transparent', border: '1px solid var(--border)',
+        font: 'inherit', color: 'inherit', opacity: loading ? 0.6 : 1,
+      }}
+    >
+      <div className="res-card-icon" style={{ background: `${color}1A` }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="13" y2="17"/>
+        </svg>
+      </div>
+      <div className="res-card-body">
+        <div className="res-card-title">{resource.label}</div>
+        <div className="res-card-subtitle">
+          {typeLabel}
+          {resource.mime?.includes('pdf') ? ' · PDF' : resource.mime?.includes('wordprocessingml') ? ' · Word' : ''}
+        </div>
+      </div>
+      <span className="res-card-chevron">{loading ? '…' : '\u203A'}</span>
+    </button>
+  )
+}
+
 export default function CourseDetail() {
   const { courseId } = useParams()
   const { user } = useAuth()
@@ -17,7 +183,7 @@ export default function CourseDetail() {
   const [modules, setModules] = useState([])
   const [audios, setAudios] = useState([])
   const [contextResources, setContextResources] = useState([])
-  const [biblios, setBiblios] = useState([])
+  const [resources, setResources] = useState([])
   const [audioConferences, setAudioConferences] = useState([])
   const [timelines, setTimelines] = useState([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +198,11 @@ export default function CourseDetail() {
   const [showTranscript, setShowTranscript] = useState(false)
   const [hasAccess, setHasAccess] = useState(false)
   const [scholarsMap, setScholarsMap] = useState({})
+  // Episode podcast (R2 audio alongside YouTube video) — pilot Maïmonide
+  const [podcastUrl, setPodcastUrl] = useState(null)
+  const [podcastLoading, setPodcastLoading] = useState(false)
   const audioRef = useRef(null)
+  const podcastRef = useRef(null)
 
   useEffect(() => {
     // Load all scholars once for the Professeur tab (primary + co-intervenants)
@@ -72,7 +242,7 @@ export default function CourseDetail() {
       setAudios(audiosData || [])
       if (courseData?.cursus_id) {
         getContextResources(courseData.cursus_id).then(r => setContextResources(r?.resources || [])).catch(() => {})
-        getBibliographies(courseId).then(bibs => setBiblios(bibs || [])).catch(() => {})
+        getCourseResources(courseId).then(r => setResources(r?.resources || [])).catch(() => setResources([]))
         // Fetch timelines for THIS cursus only
         fetch(`${API_BASE}/timelines/cursus/${courseData.cursus_id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` }
@@ -124,11 +294,20 @@ export default function CourseDetail() {
     setCurrentAudio(audioItem)
     setShowTranscript(false)
     setTranscript(null)
+    setPodcastUrl(null)
     // If episode has YouTube video, just update the embed (no audio file needed)
     if (audioItem.youtube_url) {
       setIsPlaying(false)
       setProgress(0); setCurrentTime(0); setDuration(0)
       if (audioRef.current) { try { audioRef.current.pause() } catch {} }
+    }
+    // Load R2 podcast audio (alongside the YouTube video) if available
+    if (audioItem.has_r2_audio) {
+      setPodcastLoading(true)
+      getEpisodeAudioAccessUrl(audioItem.id)
+        .then(d => { if (d?.stream_url) setPodcastUrl(d.stream_url) })
+        .catch(() => setPodcastUrl(null))
+        .finally(() => setPodcastLoading(false))
     }
     try {
       const streamData = await getAudioStreamUrl(audioItem.id)
@@ -168,14 +347,12 @@ export default function CourseDetail() {
   const modNums = modules.map((m, i) => m.order || parseInt(m.id?.split('mod-')[1]) || (i + 1))
   // Context: show all resources for this cursus (like the mobile app)
   const courseCtxResources = contextResources
-  // Biblios: already filtered by course_id from the API
-  const courseBiblios = biblios
 
   const TABS = [
     { key: 'episodes', label: `Épisodes` },
     { key: 'frise', label: `Frise` },
     { key: 'contexte', label: `Contexte` },
-    { key: 'biblio', label: `Bibliographie` },
+    { key: 'ressources', label: `Ressources` },
     { key: 'professeur', label: `Professeur` },
   ]
 
@@ -403,6 +580,47 @@ export default function CourseDetail() {
           )
         })()}
 
+        {/* PODCAST AUDIO PLAYER (alongside YouTube) — only when episode has R2 audio */}
+        {hasAccess && currentAudio?.has_r2_audio && (
+          <div
+            data-testid="episode-podcast-player"
+            style={{
+              width: '100%', maxWidth: 880, marginBottom: 32,
+              padding: 16, background: 'var(--bg-card)',
+              border: `1px solid ${color}33`, borderRadius: 4,
+              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+            }}
+          >
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 10,
+              letterSpacing: 2, textTransform: 'uppercase', color,
+            }}>
+              <span aria-hidden style={{ marginRight: 8 }}>♪</span>
+              Podcast
+            </div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              {podcastLoading && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Chargement…</div>}
+              {podcastUrl && (
+                <audio
+                  ref={podcastRef}
+                  data-testid="episode-podcast-audio"
+                  controls
+                  preload="metadata"
+                  controlsList="nodownload"
+                  onContextMenu={(e) => e.preventDefault()}
+                  src={podcastUrl}
+                  style={{ width: '100%' }}
+                />
+              )}
+              {!podcastLoading && !podcastUrl && (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  Audio bientôt disponible.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 5 Tabs */}
         <div className="course-tabs" data-testid="course-tabs">
           {TABS.map(tab => (
@@ -552,25 +770,16 @@ export default function CourseDetail() {
           </div>
         )}
 
-        {/* BIBLIOGRAPHIE TAB */}
-        {activeTab === 'biblio' && (
-          <div style={{ maxWidth: 800 }} data-testid="biblio-tab">
+        {/* RESSOURCES TAB (script + glossaire + bibliographie) */}
+        {activeTab === 'ressources' && (
+          <div style={{ maxWidth: 800 }} data-testid="ressources-tab">
             {!hasAccess ? (
-              <PaywallBlock testid="biblio-paywall" label="Les bibliographies sélectives sont" />
-            ) : courseBiblios.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune bibliographie disponible.</p>
-            ) : courseBiblios.map(bib => (
-              <Link key={bib.id} to={`/ressource/biblio/${bib.id}`} className="res-card" data-testid={`biblio-${bib.id}`}>
-                <div className="res-card-icon" style={{ background: `${color}1A` }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                </div>
-                <div className="res-card-body">
-                  <div className="res-card-title">{bib.title || `Bibliographie — Module ${bib.module_number}`}</div>
-                  <div className="res-card-subtitle">Bibliographie</div>
-                </div>
-                <span className="res-card-chevron">&#8250;</span>
-              </Link>
-            ))}
+              <PaywallBlock testid="ressources-paywall" label="Les ressources pédagogiques (scripts, glossaires, bibliographies) sont" />
+            ) : resources.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune ressource disponible pour ce cours.</p>
+            ) : (
+              <ResourceList resources={resources} courseId={courseId} color={color} />
+            )}
           </div>
         )}
 
@@ -660,7 +869,7 @@ export default function CourseDetail() {
         {!user && (
           <div className="course-cta" data-testid="course-cta-login" style={{ marginTop: 32 }}>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--text-muted)', marginBottom: 16 }}>
-              L'ensemble des contenus (épisodes, frise, contexte, bibliographie, conférences) est réservé aux abonnés Sijill.
+              L'ensemble des contenus (épisodes, frise, contexte, ressources, conférences) est réservé aux abonnés Sijill.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <Link to="/connexion" className="btn-outline">Se connecter</Link>
