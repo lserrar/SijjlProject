@@ -3436,6 +3436,23 @@ async def seed_data():
         upsert=True
     )
     logger.info("Migration v9: cours-philo-juive ep2 upserted")
+
+    # 6bis) Pin Maïmonide module (mod-9) as launch + relink existing Maïmonide episodes to it
+    await db.modules.update_one(
+        {'id': 'cours-philo-juive-mod-9'},
+        {'$set': {'is_launch_catalog': True, 'scholar_name': 'Géraldine Roux'}}
+    )
+    # Mark all OTHER cours-philo-juive modules explicitly NOT in launch (clean catalogue)
+    await db.modules.update_many(
+        {'course_id': 'cours-philo-juive', 'id': {'$ne': 'cours-philo-juive-mod-9'}},
+        {'$set': {'is_launch_catalog': False}}
+    )
+    # Relink the 2 Maïmonide audios to the proper module
+    await db.audios.update_many(
+        {'id': {'$in': ['aud_cours-philo-juive-maimonide-ep01', 'aud_cours-philo-juive-maimonide-ep02']}},
+        {'$set': {'module_id': 'cours-philo-juive-mod-9'}}
+    )
+    logger.info("Migration v9: Maïmonide module pinned as launch + 2 episodes re-linked to mod-9")
     # ─── End Migration v9 ──────────────────────────────────────────────────
 
     # ─── Migration v10: Seed all scholars from Excel + link courses ────────
