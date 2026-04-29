@@ -77,6 +77,7 @@ export default function Header() {
         <nav className="mobile-menu-nav" data-testid="mobile-nav">
           <Link to="/cursus" data-testid="mobile-nav-cursus">Cursus</Link>
           <Link to="/catalogue" data-testid="mobile-nav-catalogue">Catalogue</Link>
+          <Link to="/intervenants" data-testid="mobile-nav-intervenants">Intervenants</Link>
           <Link to="/blog" data-testid="mobile-nav-blog">Blog</Link>
           <Link to="/a-propos" data-testid="mobile-nav-about">A propos</Link>
           <div className="mobile-menu-divider" />
