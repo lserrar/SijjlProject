@@ -3478,8 +3478,17 @@ async def seed_data():
 
     for _ep_num in (1, 2):
         _audio_id = f"aud_cours-philo-juive-maimonide-ep0{_ep_num}"
-        _audio_key = f"{MAIMONIDE_R2_PREFIX}/episode{_ep_num}_maimounide.mp3"
-        _has_audio = _probe_r2_key(_audio_key)
+        # Probe several known naming conventions, .m4a first (current upload), .mp3 fallback
+        _candidates = [
+            f"{MAIMONIDE_R2_PREFIX}/Penseenonarabe-maimounide-{_ep_num}.m4a",
+            f"{MAIMONIDE_R2_PREFIX}/episode{_ep_num}_maimounide.m4a",
+            f"{MAIMONIDE_R2_PREFIX}/episode{_ep_num}_maimounide.mp3",
+        ]
+        _audio_key = next((k for k in _candidates if _probe_r2_key(k)), None)
+        _has_audio = bool(_audio_key)
+        # If neither exists yet, store the expected default so admins can see the path
+        if not _audio_key:
+            _audio_key = _candidates[0]
         await db.audios.update_one(
             {'id': _audio_id},
             {'$set': {
