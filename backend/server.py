@@ -3427,13 +3427,28 @@ async def seed_data():
         )
     logger.info("Migration v9: cours-art — 4 episodes upserted (ep1+ep2 URL, ep3+ep4 placeholders)")
 
-    # 6) Maïmonide ep2 (cours-philo-juive)
+    # 6) Maïmonide ep1 + ep2 (cours-philo-juive) — upsert both (some older DBs miss ep1)
+    await db.audios.update_one(
+        {'id': 'aud_cours-philo-juive-maimonide-ep01'},
+        {'$set': {
+            'id': 'aud_cours-philo-juive-maimonide-ep01',
+            'course_id': 'cours-philo-juive',
+            'module_id': 'cours-philo-juive-mod-9',
+            'title': 'Moïse Maïmonide — Épisode 1',
+            'episode_number': 1,
+            'youtube_url': 'https://youtu.be/kYWqboZxQP0',
+            'scholar_name': 'Géraldine Roux',
+            'is_active': True,
+            'created_at': datetime.now(timezone.utc),
+        }},
+        upsert=True
+    )
     await db.audios.update_one(
         {'id': 'aud_cours-philo-juive-maimonide-ep02'},
         {'$set': {
             'id': 'aud_cours-philo-juive-maimonide-ep02',
             'course_id': 'cours-philo-juive',
-            'module_id': None,
+            'module_id': 'cours-philo-juive-mod-9',
             'title': 'Moïse Maïmonide — Épisode 2',
             'episode_number': 2,
             'youtube_url': 'https://youtu.be/nkXImE6euX4',
@@ -3443,7 +3458,7 @@ async def seed_data():
         }},
         upsert=True
     )
-    logger.info("Migration v9: cours-philo-juive ep2 upserted")
+    logger.info("Migration v9: cours-philo-juive ep1 + ep2 upserted")
 
     # 6bis) Pin Maïmonide module (mod-9) as launch + relink existing Maïmonide episodes to it
     await db.modules.update_one(
