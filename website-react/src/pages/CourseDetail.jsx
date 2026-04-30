@@ -908,7 +908,7 @@ export default function CourseDetail() {
         )}
       </div>
 
-      {/* Audio Player Bar */}
+      {/* Audio Player Bar — Sijill custom design (replicates mobile MiniPlayer) */}
       {currentAudio && (
         <div className="player-bar" data-testid="audio-player-bar">
           {showTranscript && transcript && (
@@ -922,27 +922,88 @@ export default function CourseDetail() {
               }} />
             </div>
           )}
-          <div className="player-progress" onClick={seekTo} data-testid="player-progress">
-            <div className="player-progress-fill" style={{ width: `${progress}%`, background: color }} />
-          </div>
           <div className="player-bar-inner">
+            {/* Badge cursus (lettre) */}
+            <div className="player-badge" style={{ background: `${color}1A` }}>
+              <span className="player-badge-letter" style={{ color }}>
+                {(course?.cursus_letter || getCursusLetter(course?.cursus_id) || 'A').toUpperCase()}
+              </span>
+            </div>
+
+            {/* Titre + Professeur */}
             <div className="player-info">
-              <div className="player-dot" style={{ background: color }} />
-              <div>
-                <div className="player-track-title">{currentAudio.title}</div>
-                <div className="player-track-meta">{fmtTime(currentTime)} / {fmtTime(duration)}</div>
-              </div>
+              <div className="player-track-title">{currentAudio.title}</div>
+              {(currentAudio.scholar_name || course?.scholar_name) && (
+                <div className="player-track-scholar">{currentAudio.scholar_name || course?.scholar_name}</div>
+              )}
             </div>
+
+            {/* Mini waveform — 15 barres rectangulaires animées par la progression */}
+            <div className="player-waveform" aria-hidden>
+              {[35, 55, 40, 70, 50, 85, 60, 95, 55, 75, 45, 80, 60, 50, 40].map((h, i) => {
+                const lit = i < Math.floor((progress / 100) * 15)
+                return (
+                  <span
+                    key={i}
+                    className="player-waveform-bar"
+                    style={{
+                      height: Math.max(4, Math.round((h / 100) * 20)),
+                      background: lit ? color : '#333',
+                    }}
+                  />
+                )
+              })}
+            </div>
+
+            {/* Timer numérique */}
+            <div className="player-timer">
+              <span className="player-timer-current" style={{ color }}>{fmtTime(currentTime)}</span>
+              <span className="player-timer-sep">/</span>
+              <span className="player-timer-total">{fmtTime(duration)}</span>
+            </div>
+
+            {/* Contrôles : skip back / play / skip forward */}
             <div className="player-controls">
-              <button className="player-skip-btn" onClick={() => { if (audioRef.current) audioRef.current.currentTime -= 15 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.5 8V4L6 8l6.5 4V8z"/><path d="M12 20a8 8 0 0 0 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="sans-serif">15</text></svg></button>
-              <button className="player-play-main" style={{ background: color }} onClick={() => playAudio(currentAudio)}>
-                {isPlaying ? <svg width="20" height="20" viewBox="0 0 24 24" fill="#0A0A0A"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="#0A0A0A"><polygon points="6,4 20,12 6,20"/></svg>}
+              <button className="player-skip-btn" data-testid="player-skip-back" onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 15) }} aria-label="Reculer 15 s">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12.5 8V4L6 8l6.5 4V8z"/><path d="M12 20a8 8 0 0 0 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="sans-serif">15</text></svg>
               </button>
-              <button className="player-skip-btn" onClick={() => { if (audioRef.current) audioRef.current.currentTime += 15 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11.5 8V4L18 8l-6.5 4V8z"/><path d="M12 20a8 8 0 0 1 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="sans-serif">15</text></svg></button>
+              <button className="player-play-main" data-testid="player-play-toggle" style={{ background: color }} onClick={() => playAudio(currentAudio)} aria-label={isPlaying ? 'Pause' : 'Lecture'}>
+                {isPlaying ? <svg width="14" height="14" viewBox="0 0 24 24" fill="#0A0A0A"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="#0A0A0A" style={{ marginLeft: 1 }}><polygon points="6,4 20,12 6,20"/></svg>}
+              </button>
+              <button className="player-skip-btn" data-testid="player-skip-forward" onClick={() => { if (audioRef.current) audioRef.current.currentTime += 15 }} aria-label="Avancer 15 s">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11.5 8V4L18 8l-6.5 4V8z"/><path d="M12 20a8 8 0 0 1 0-16"/><text x="7" y="16" fill="currentColor" fontSize="7" fontFamily="sans-serif">15</text></svg>
+              </button>
             </div>
+
+            {/* Actions : transcript + close */}
             <div className="player-actions">
-              {transcript && <button className={`player-text-btn ${showTranscript ? 'active' : ''}`} onClick={() => setShowTranscript(!showTranscript)} style={{ color: showTranscript ? color : 'var(--text-muted)' }}>Lire</button>}
+              {transcript && (
+                <button
+                  className={`player-text-btn ${showTranscript ? 'active' : ''}`}
+                  data-testid="player-transcript-btn"
+                  onClick={() => setShowTranscript(!showTranscript)}
+                  style={{ color: showTranscript ? color : 'var(--text-muted)' }}
+                >
+                  Lire
+                </button>
+              )}
+              <button
+                className="player-close-btn"
+                data-testid="player-close"
+                onClick={() => {
+                  try { audioRef.current?.pause(); audioRef.current.src = '' } catch {}
+                  setCurrentAudio(null); setIsPlaying(false); setProgress(0); setCurrentTime(0); setDuration(0); setTranscript(null); setShowTranscript(false)
+                }}
+                aria-label="Fermer le lecteur"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
             </div>
+          </div>
+
+          {/* Barre de progression fine en bas */}
+          <div className="player-progress" data-testid="player-progress" onClick={seekTo}>
+            <div className="player-progress-fill" style={{ width: `${progress}%`, background: color }} />
           </div>
         </div>
       )}

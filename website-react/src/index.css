@@ -906,94 +906,113 @@ button { cursor: pointer; font-family: var(--font-body); }
 .episode-row:hover { background: var(--bg-card); padding-left: 48px; }
 .episode-row.episode-active { background: var(--bg-card); }
 
-/* ─── AUDIO PLAYER BAR ─── */
+/* ─── AUDIO PLAYER BAR (Sijill custom — replicates mobile MiniPlayer) ─── */
 .player-bar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 200;
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border);
+  background: rgba(17, 17, 17, 0.98);
+  border-top: 1px solid #222;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .player-bar-inner {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 12px 40px;
-  position: relative;
+  gap: 14px;
+  padding: 12px 24px;
+  height: 64px;
 }
 
+/* Badge cursus (lettre) */
+.player-badge {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+.player-badge-letter {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* Info (titre + nom prof) */
 .player-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 200px;
+  flex: 1;
+  min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
 }
-
-.player-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 .player-track-title {
   font-family: var(--font-display);
   font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
+  color: #F5F0E8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 240px;
 }
 
-.player-track-meta {
+.player-track-scholar {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 12px;
+  color: #C9A84C;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mini waveform — 15 barres rectangulaires */
+.player-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.player-waveform-bar {
+  display: inline-block;
+  width: 3px;
+  border-radius: 1px;
+  transition: background 0.18s ease;
+}
+
+/* Timer */
+.player-timer {
+  display: flex; align-items: center; gap: 3px;
+  min-width: 78px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.player-timer-current {
   font-family: var(--font-display);
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.player-timer-sep {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: #555;
+}
+.player-timer-total {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: #777;
+  letter-spacing: 0.5px;
 }
 
+/* Contrôles */
 .player-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
 }
-
-.player-btn {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: 9px;
-  letter-spacing: 1px;
-  padding: 4px 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.player-btn:hover { border-color: var(--text-muted); color: var(--text); }
-
-.player-play-btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  border: none;
-  color: #0A0A0A;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-.player-play-btn:hover { opacity: 0.85; }
-
-.player-play-main {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: opacity 0.3s;
-}
-.player-play-main:hover { opacity: 0.85; }
 
 .player-skip-btn {
   background: none;
@@ -1001,38 +1020,77 @@ button { cursor: pointer; font-family: var(--font-body); }
   color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
-  transition: color 0.3s;
   display: flex;
   align-items: center;
+  transition: color 0.2s;
 }
 .player-skip-btn:hover { color: var(--text); }
 
-.player-actions { display: flex; align-items: center; gap: 12px; }
+.player-play-main {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.player-play-main:hover { opacity: 0.88; transform: scale(1.05); }
+
+/* Actions */
+.player-actions {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
 
 .player-text-btn {
   background: none;
   border: 1px solid var(--border);
   font-family: var(--font-display);
   font-size: 9px;
-  letter-spacing: 3px;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
-  padding: 6px 14px;
+  padding: 5px 12px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  border-radius: 2px;
 }
 .player-text-btn.active { border-color: currentColor; }
+.player-text-btn:hover { border-color: currentColor; }
 
-.player-progress {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--border);
+.player-close-btn {
+  width: 26px; height: 26px;
+  background: none;
+  border: none;
+  color: #666;
   cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s;
 }
+.player-close-btn:hover { color: var(--text); }
 
+/* Barre de progression fine en bas */
+.player-progress {
+  position: relative;
+  height: 2px;
+  background: #1A1A1A;
+  cursor: pointer;
+  width: 100%;
+}
 .player-progress-fill {
   height: 100%;
   transition: width 0.2s linear;
+}
+
+@media (max-width: 900px) {
+  .player-bar-inner { padding: 10px 16px; gap: 10px; }
+  .player-waveform { display: none; }
+  .player-track-scholar { font-size: 11px; }
+}
+@media (max-width: 600px) {
+  .player-actions .player-text-btn { display: none; }
+  .player-timer { min-width: 64px; }
 }
 
 /* ─── TRANSCRIPT PANEL ─── */
