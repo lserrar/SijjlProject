@@ -5090,6 +5090,129 @@ async def stream_r2_resource(request: Request, t: Optional[str] = None):
         raise HTTPException(500, "Erreur de lecture du fichier")
 
 
+# In-memory cache for PDF → article rendering (course-scoped, lasts a process lifetime)
+_pdf_article_cache: dict = {}
+
+def _pdf_to_article(pdf_bytes: bytes, label: str) -> dict:
+    """Convert PDF to a blog-style article structure {title, lead, sections}.
+    Each paragraph >= 30 chars becomes a paragraph. Short uppercased lines become section headings.
+    """
+    try:
+        from pdfminer.high_level import extract_text
+    except Exception as e:
+        raise HTTPException(500, f"PDF parser indisponible: {e}")
+    text = extract_text(io.BytesIO(pdf_bytes)) or ""
+    # Normalise whitespace/ligatures
+    text = (text
+            .replace('\ufb01', 'fi').replace('\ufb02', 'fl')
+            .replace('\u00a0', ' ')
+            .replace('\r', '\n'))
+    # Split blocks by double newline first; if too few, fall back to single
+    blocks = [b.strip() for b in re.split(r'\n\s*\n', text) if b.strip()]
+    sections: list = []
+    current = {'title': None, 'paragraphs': []}
+    def flush():
+        if current['title'] or current['paragraphs']:
+            sections.append({'title': current['title'], 'paragraphs': list(current['paragraphs'])})
+    for block in blocks:
+        # Compress internal newlines to single spaces (keep paragraph as one line)
+        para = re.sub(r'\s*\n\s*', ' ', block).strip()
+        if not para:
+            continue
+        # Heading heuristic: short line (<90 chars), no terminal period, mostly uppercase OR starts with section roman
+        is_short = len(para) < 90
+        no_dot = not para.endswith('.') and not para.endswith('…')
+        upper_ratio = sum(1 for c in para if c.isupper()) / max(1, sum(1 for c in para if c.isalpha()))
+        looks_heading = is_short and no_dot and (upper_ratio > 0.55 or re.match(r'^(I{1,3}V?|IV|VI{0,3}|IX|X)\.?\s', para))
+        if looks_heading and len(para) > 3:
+            flush()
+            current = {'title': para, 'paragraphs': []}
+        else:
+            current['paragraphs'].append(para)
+    flush()
+    # Lead = first paragraph if present
+    lead = None
+    if sections and sections[0]['paragraphs']:
+        first = sections[0]['paragraphs'][0]
+        if len(first) > 60 and len(first) < 600:
+            lead = first
+            sections[0]['paragraphs'] = sections[0]['paragraphs'][1:]
+    # Drop empty sections at start (no title + no paragraphs)
+    while sections and not sections[0]['title'] and not sections[0]['paragraphs']:
+        sections.pop(0)
+    return {
+        'title': label,
+        'lead': lead,
+        'sections': sections,
+        'word_count': sum(len(p.split()) for s in sections for p in s['paragraphs']) + (len((lead or '').split())),
+    }
+
+
+@api_router.get("/courses/{course_id}/resource-article")
+async def get_course_resource_article(course_id: str, r2_key: str, request: Request):
+    """Return the PDF resource rendered as a blog-style article (no direct PDF access).
+    Whitelisted to course/episode resources only. Requires active subscription."""
+    user = await require_subscriber(request)
+    # Validate r2_key membership
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'course_resources': 1})
+    found = None
+    scope = None
+    audio_title = None
+    episode_number = None
+    for r in (course.get('course_resources') or []) if course else []:
+        if r.get('r2_key') == r2_key:
+            found = r; scope = 'course'; break
+    if not found:
+        audio = await db.audios.find_one(
+            {'course_id': course_id, 'episode_resources.r2_key': r2_key},
+            {'_id': 0, 'episode_resources': 1, 'title': 1, 'episode_number': 1},
+        )
+        for r in (audio.get('episode_resources') or []) if audio else []:
+            if r.get('r2_key') == r2_key:
+                found = r; scope = 'episode'
+                audio_title = audio.get('title')
+                episode_number = audio.get('episode_number')
+                break
+    if not found:
+        raise HTTPException(404, "Ressource non rattachée à ce cours")
+    mime = found.get('mime') or ''
+    if 'pdf' not in mime:
+        raise HTTPException(400, "Conversion article disponible uniquement pour les PDF")
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    cache_key = f"{course_id}::{r2_key}"
+    if cache_key not in _pdf_article_cache:
+        try:
+            obj = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+            data = obj['Body'].read()
+            _pdf_article_cache[cache_key] = _pdf_to_article(data, found.get('label') or r2_key.split('/')[-1])
+        except ClientError as e:
+            code = e.response.get('Error', {}).get('Code', '')
+            if code in ('NoSuchKey', '404'):
+                raise HTTPException(404, "Document non disponible")
+            logging.getLogger(__name__).error(f"R2 fetch error for article {r2_key}: {e}")
+            raise HTTPException(500, "Erreur de lecture du document")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logging.getLogger(__name__).error(f"PDF→article error for {r2_key}: {e}")
+            raise HTTPException(500, "Erreur de conversion du document")
+    article = dict(_pdf_article_cache[cache_key])
+    article.update({
+        'r2_key': r2_key,
+        'course_id': course_id,
+        'scope': scope,
+        'type': found.get('type'),
+        'audio_title': audio_title,
+        'episode_number': episode_number,
+        'course_title': course.get('title') if course else None,
+    })
+    return article
+
+
+
+
+
 @api_router.get("/files/r2-html")
 async def r2_resource_as_html(request: Request, t: Optional[str] = None):
     """Convert a Word (.docx) resource to clean HTML using mammoth.

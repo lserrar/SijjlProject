@@ -105,6 +105,10 @@ export async function getEpisodeAudioAccessUrl(audioId) {
   return apiFetch(`/audios/${audioId}/audio-access-url`);
 }
 
+export async function getCourseResourceArticle(courseId, r2_key) {
+  return apiFetch(`/courses/${courseId}/resource-article?r2_key=${encodeURIComponent(r2_key)}`);
+}
+
 export async function getTimelineHtml(cursusLetter) {
   const res = await fetch(`${API_BASE}/timeline/${cursusLetter}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getCourseDetail, getModules, getAudios, getAudioStreamUrl, getAudioTranscript, getContextResources, getCourseResources, getResourceAccessUrl, getEpisodeAudioAccessUrl } from '../api'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { getCourseDetail, getModules, getAudios, getAudioStreamUrl, getAudioTranscript, getContextResources, getCourseResources, getEpisodeAudioAccessUrl } from '../api'
 import { getCursusColor, getCursusLetter, buildYouTubeEmbedUrl } from '../constants'
 import { useAuth } from '../AuthContext'
 
@@ -18,27 +18,11 @@ const RES_TYPE_LABELS = {
 }
 
 function ResourceList({ resources, courseId, color }) {
-  const [openingKey, setOpeningKey] = useState(null)
-  const [docxModal, setDocxModal] = useState(null) // { html, label }
+  const navigate = useNavigate()
 
-  async function openResource(res) {
-    setOpeningKey(res.r2_key)
-    try {
-      const data = await getResourceAccessUrl(courseId, res.r2_key)
-      const isDocx = (data?.mime || '').includes('wordprocessingml') || data?.mime === 'application/msword'
-      if (isDocx && data.html_url) {
-        const token = localStorage.getItem('sijill_token')
-        const r = await fetch(data.html_url, { headers: { Authorization: `Bearer ${token || ''}` } })
-        const json = await r.json()
-        setDocxModal({ html: json.html || '', label: data.label || res.label })
-      } else if (data?.url) {
-        window.open(data.url, '_blank', 'noopener,noreferrer')
-      }
-    } catch (e) {
-      console.error("Failed to open resource:", e)
-    } finally {
-      setOpeningKey(null)
-    }
+  function openResource(res) {
+    // Navigate to in-app blog-style article view (no direct PDF access).
+    navigate(`/cours/${courseId}/ressource?key=${encodeURIComponent(res.r2_key)}`)
   }
 
   // Group resources: course-level first, then by episode number
@@ -54,48 +38,6 @@ function ResourceList({ resources, courseId, color }) {
 
   return (
     <div data-testid="resource-list">
-      {docxModal && (
-        <div
-          data-testid="docx-modal"
-          onClick={() => setDocxModal(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-            padding: 32, overflow: 'auto',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: 820, width: '100%', background: 'var(--bg)',
-              border: `1px solid ${color}55`, borderRadius: 4,
-              padding: '32px 40px', position: 'relative',
-            }}
-          >
-            <button
-              onClick={() => setDocxModal(null)}
-              data-testid="docx-modal-close"
-              style={{
-                position: 'absolute', top: 12, right: 16,
-                background: 'transparent', border: 'none',
-                color: 'var(--text-muted)', fontSize: 24, cursor: 'pointer',
-              }}
-              aria-label="Fermer"
-            >×</button>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 11,
-              letterSpacing: 3, textTransform: 'uppercase', color, marginBottom: 12,
-            }}>{docxModal.label}</div>
-            <div
-              className="docx-content"
-              style={{ fontFamily: 'var(--font-body)', fontSize: 16, lineHeight: 1.7, color: 'var(--text)' }}
-              dangerouslySetInnerHTML={{ __html: docxModal.html }}
-            />
-          </div>
-        </div>
-      )}
-
       {courseRes.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{
@@ -110,7 +52,6 @@ function ResourceList({ resources, courseId, color }) {
               key={r.r2_key}
               resource={r}
               color={color}
-              loading={openingKey === r.r2_key}
               onOpen={() => openResource(r)}
             />
           ))}
@@ -131,7 +72,6 @@ function ResourceList({ resources, courseId, color }) {
               key={r.r2_key}
               resource={r}
               color={color}
-              loading={openingKey === r.r2_key}
               onOpen={() => openResource(r)}
             />
           ))}
@@ -141,19 +81,18 @@ function ResourceList({ resources, courseId, color }) {
   )
 }
 
-function ResourceCard({ resource, color, loading, onOpen }) {
+function ResourceCard({ resource, color, onOpen }) {
   const typeLabel = RES_TYPE_LABELS[resource.type] || (resource.mime?.includes('pdf') ? 'PDF' : 'Document')
   return (
     <button
       type="button"
       onClick={onOpen}
-      disabled={loading}
       data-testid={`resource-card-${resource.r2_key.split('/').pop()}`}
       className="res-card"
       style={{
-        width: '100%', textAlign: 'left', cursor: loading ? 'wait' : 'pointer',
+        width: '100%', textAlign: 'left', cursor: 'pointer',
         background: 'transparent', border: '1px solid var(--border)',
-        font: 'inherit', color: 'inherit', opacity: loading ? 0.6 : 1,
+        font: 'inherit', color: 'inherit',
       }}
     >
       <div className="res-card-icon" style={{ background: `${color}1A` }}>
@@ -171,7 +110,7 @@ function ResourceCard({ resource, color, loading, onOpen }) {
           {resource.mime?.includes('pdf') ? ' · PDF' : resource.mime?.includes('wordprocessingml') ? ' · Word' : ''}
         </div>
       </div>
-      <span className="res-card-chevron">{loading ? '…' : '\u203A'}</span>
+      <span className="res-card-chevron">{'\u203A'}</span>
     </button>
   )
 }

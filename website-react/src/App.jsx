@@ -17,6 +17,7 @@ import CGU from './pages/CGU'
 import AdminPanel from './pages/AdminPanel'
 
 import ResourceViewer from './pages/ResourceViewer'
+import CourseResourceArticle from './pages/CourseResourceArticle'
 import Intervenants from './pages/Intervenants'
 import ScholarDetail from './pages/ScholarDetail'
 
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/intervenants" element={<Intervenants />} />
           <Route path="/intervenant/:scholarId" element={<ScholarDetail />} />
           <Route path="/cours/:courseId" element={<CourseDetail />} />
+          <Route path="/cours/:courseId/ressource" element={<CourseResourceArticle />} />
           <Route path="/ressource/:type/:resourceId" element={<ResourceViewer />} />
           <Route path="/connexion" element={<Login />} />
           <Route path="/inscription" element={<Register />} />
