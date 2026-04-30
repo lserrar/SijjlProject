@@ -176,6 +176,79 @@ function ResourceCard({ resource, color, loading, onOpen }) {
   )
 }
 
+function EpisodeRow({ ep, idx, color, testid, isAudioActive, isVideoActive, onPlayAudio, onPlayVideo }) {
+  const hasAudio = !!ep.has_r2_audio
+  const hasVideo = !!ep.youtube_url
+  return (
+    <div
+      className="episode-row"
+      data-testid={testid}
+      style={{
+        cursor: 'default',
+        background: (isAudioActive || isVideoActive) ? `${color}0E` : 'transparent',
+        borderLeft: `2px solid ${(isAudioActive || isVideoActive) ? color : 'transparent'}`,
+        paddingLeft: 16,
+        flexWrap: 'wrap', gap: 8,
+      }}
+    >
+      <span className="episode-num" style={{ color: (isAudioActive || isVideoActive) ? color : `${color}55` }}>
+        {String(idx + 1).padStart(2, '0')}
+      </span>
+      <span className="episode-title" style={{ color: (isAudioActive || isVideoActive) ? color : 'var(--text)', flex: 1, minWidth: 200 }}>
+        {ep.title}
+      </span>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPlayVideo() }}
+          disabled={!hasVideo}
+          data-testid={`${testid}-video-btn`}
+          title={hasVideo ? "Regarder la vidéo" : "Vidéo bientôt disponible"}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', fontSize: 12,
+            fontFamily: 'var(--font-display)', letterSpacing: 1.5, textTransform: 'uppercase',
+            border: `1px solid ${isVideoActive ? color : (hasVideo ? `${color}66` : 'var(--border)')}`,
+            background: isVideoActive ? color : 'transparent',
+            color: isVideoActive ? '#fff' : (hasVideo ? color : 'var(--text-dim)'),
+            cursor: hasVideo ? 'pointer' : 'not-allowed',
+            opacity: hasVideo ? 1 : 0.45,
+            borderRadius: 2, transition: 'all 0.2s',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Vidéo
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPlayAudio() }}
+          disabled={!hasAudio}
+          data-testid={`${testid}-audio-btn`}
+          title={hasAudio ? "Écouter le podcast" : "Audio bientôt disponible"}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', fontSize: 12,
+            fontFamily: 'var(--font-display)', letterSpacing: 1.5, textTransform: 'uppercase',
+            border: `1px solid ${isAudioActive ? color : (hasAudio ? `${color}66` : 'var(--border)')}`,
+            background: isAudioActive ? color : 'transparent',
+            color: isAudioActive ? '#fff' : (hasAudio ? color : 'var(--text-dim)'),
+            cursor: hasAudio ? 'pointer' : 'not-allowed',
+            opacity: hasAudio ? 1 : 0.45,
+            borderRadius: 2, transition: 'all 0.2s',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+            <path d="M21 19a2 2 0 0 1-2 2h-1v-7h3z"/>
+            <path d="M3 19a2 2 0 0 0 2 2h1v-7H3z"/>
+          </svg>
+          Audio
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function CourseDetail() {
   const { courseId } = useParams()
   const { user } = useAuth()
@@ -198,11 +271,9 @@ export default function CourseDetail() {
   const [showTranscript, setShowTranscript] = useState(false)
   const [hasAccess, setHasAccess] = useState(false)
   const [scholarsMap, setScholarsMap] = useState({})
-  // Episode podcast (R2 audio alongside YouTube video) — pilot Maïmonide
-  const [podcastUrl, setPodcastUrl] = useState(null)
-  const [podcastLoading, setPodcastLoading] = useState(false)
+  // Currently selected episode for YouTube iframe (separate from bottom audio player)
+  const [currentVideo, setCurrentVideo] = useState(null)
   const audioRef = useRef(null)
-  const podcastRef = useRef(null)
 
   useEffect(() => {
     // Load all scholars once for the Professeur tab (primary + co-intervenants)
@@ -270,22 +341,85 @@ export default function CourseDetail() {
       setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0)
     }
     const onEnd = () => { setIsPlaying(false); setProgress(0); setCurrentTime(0) }
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
     audio.addEventListener('timeupdate', onTime)
     audio.addEventListener('ended', onEnd)
-    return () => { audio.removeEventListener('timeupdate', onTime); audio.removeEventListener('ended', onEnd) }
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    return () => {
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('ended', onEnd)
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+    }
   }, [currentAudio])
 
-  async function playAudio(audioItem) {
+  // Media Session API — enables lock-screen / notification controls when phone screen is off
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+    if (!currentAudio) return
+    try {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: currentAudio.title || 'Sijill Project',
+        artist: currentAudio.scholar_name || course?.scholar_name || 'Sijill Project',
+        album: course?.title || course?.name || 'Sijill Project',
+        artwork: [
+          { src: `${window.location.origin}/api/site/favicon.svg`, sizes: '512x512', type: 'image/svg+xml' },
+        ],
+      })
+      const safe = (fn) => { try { fn() } catch {} }
+      navigator.mediaSession.setActionHandler('play', () => safe(() => audioRef.current?.play()))
+      navigator.mediaSession.setActionHandler('pause', () => safe(() => audioRef.current?.pause()))
+      navigator.mediaSession.setActionHandler('seekbackward', (d) => safe(() => {
+        if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - (d.seekOffset || 15))
+      }))
+      navigator.mediaSession.setActionHandler('seekforward', (d) => safe(() => {
+        if (audioRef.current) audioRef.current.currentTime = audioRef.current.currentTime + (d.seekOffset || 15)
+      }))
+      navigator.mediaSession.setActionHandler('seekto', (d) => safe(() => {
+        if (audioRef.current && d.seekTime != null) audioRef.current.currentTime = d.seekTime
+      }))
+    } catch {}
+  }, [currentAudio, course])
+
+  // Update Media Session position state for accurate lock-screen progress bar
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return
+    if (!duration) return
+    try {
+      navigator.mediaSession.setPositionState({ duration, position: currentTime, playbackRate: 1.0 })
+    } catch {}
+  }, [duration, currentTime])
+
+  function ensureAccess() {
     if (!user) {
-      // Unauthenticated: redirect to login
       window.location.href = '/connexion?next=' + encodeURIComponent(window.location.pathname)
-      return
+      return false
     }
     if (!hasAccess) {
-      // Authenticated but no subscription
       window.location.href = '/pre-inscription'
-      return
+      return false
     }
+    return true
+  }
+
+  function playVideo(audioItem) {
+    if (!ensureAccess()) return
+    setCurrentVideo(audioItem)
+    setShowTranscript(false)
+    // Pause audio when switching to a different episode's video
+    if (currentAudio && currentAudio.id !== audioItem.id) {
+      try { audioRef.current?.pause() } catch {}
+      setIsPlaying(false)
+    }
+    // Smooth scroll to top so the user sees the iframe
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function playAudio(audioItem) {
+    if (!ensureAccess()) return
+    // Toggle play/pause if same episode already loaded
     if (currentAudio?.id === audioItem.id) {
       if (isPlaying) { audioRef.current?.pause(); setIsPlaying(false) }
       else { audioRef.current?.play(); setIsPlaying(true) }
@@ -294,34 +428,32 @@ export default function CourseDetail() {
     setCurrentAudio(audioItem)
     setShowTranscript(false)
     setTranscript(null)
-    setPodcastUrl(null)
-    // If episode has YouTube video, just update the embed (no audio file needed)
-    if (audioItem.youtube_url) {
-      setIsPlaying(false)
-      setProgress(0); setCurrentTime(0); setDuration(0)
-      if (audioRef.current) { try { audioRef.current.pause() } catch {} }
-    }
-    // Load R2 podcast audio (alongside the YouTube video) if available
-    if (audioItem.has_r2_audio) {
-      setPodcastLoading(true)
-      getEpisodeAudioAccessUrl(audioItem.id)
-        .then(d => { if (d?.stream_url) setPodcastUrl(d.stream_url) })
-        .catch(() => setPodcastUrl(null))
-        .finally(() => setPodcastLoading(false))
-    }
+    setProgress(0); setCurrentTime(0); setDuration(0)
     try {
-      const streamData = await getAudioStreamUrl(audioItem.id)
+      // Prefer R2 podcast (.m4a) when available; fallback to legacy stream-url
+      let streamUrl = null
+      if (audioItem.has_r2_audio) {
+        try {
+          const d = await getEpisodeAudioAccessUrl(audioItem.id)
+          streamUrl = d?.stream_url || null
+        } catch {}
+      }
+      if (!streamUrl) {
+        const d = await getAudioStreamUrl(audioItem.id)
+        streamUrl = d?.stream_url || d?.url || null
+      }
+      if (!streamUrl) throw new Error('no_stream')
       setTimeout(() => {
         if (audioRef.current) {
-          audioRef.current.src = streamData.stream_url || streamData.url
-          audioRef.current.play()
+          audioRef.current.src = streamUrl
+          audioRef.current.play().catch(() => {})
           setIsPlaying(true)
         }
-      }, 100)
+      }, 80)
       getAudioTranscript(audioItem.id).then(t => { if (t?.has_transcript) setTranscript(t) }).catch(() => {})
     } catch (e) {
-      // No audio available — that's OK if this is a video-only episode
-      if (!audioItem.youtube_url) console.error(e)
+      console.error('Audio playback failed:', e)
+      setIsPlaying(false)
     }
   }
 
@@ -431,13 +563,12 @@ export default function CourseDetail() {
           )}
         </div>
 
-        {/* Video embed (ACCESS-GATED): episode-level priority, fallback to course-level. Paywall for non-subscribers. */}
+        {/* Video embed (ACCESS-GATED): only when user has explicitly chosen Vidéo on an episode. */}
         {(() => {
-          const videoUrl = currentAudio?.youtube_url || course.youtube_url
+          const videoUrl = currentVideo?.youtube_url
           const hasVideo = !!videoUrl
           const embedUrl = buildYouTubeEmbedUrl(videoUrl)
-          const isEpisodeVideo = !!currentAudio?.youtube_url
-          if (!hasVideo && !currentAudio) return null
+          if (!hasVideo) return null
 
           // PAYWALL: not authenticated or no active subscription
           if (!hasAccess) {
@@ -557,7 +688,7 @@ export default function CourseDetail() {
             >
               <iframe
                 src={embedUrl}
-                title={isEpisodeVideo ? currentAudio?.title || 'Épisode vidéo' : 'Cours vidéo'}
+                title={currentVideo?.title || 'Épisode vidéo'}
                 allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
@@ -565,61 +696,18 @@ export default function CourseDetail() {
                 sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
               />
-              {isEpisodeVideo && (
-                <div style={{
-                  position: 'absolute', top: 12, left: 12,
-                  fontFamily: 'var(--font-display)', fontSize: 10,
-                  letterSpacing: 2, textTransform: 'uppercase',
-                  color: '#fff', background: 'rgba(0,0,0,0.6)',
-                  padding: '4px 10px', borderRadius: 2, pointerEvents: 'none',
-                }}>
-                  {currentAudio.title}
-                </div>
-              )}
+              <div style={{
+                position: 'absolute', top: 12, left: 12,
+                fontFamily: 'var(--font-display)', fontSize: 10,
+                letterSpacing: 2, textTransform: 'uppercase',
+                color: '#fff', background: 'rgba(0,0,0,0.6)',
+                padding: '4px 10px', borderRadius: 2, pointerEvents: 'none',
+              }}>
+                {currentVideo?.title}
+              </div>
             </div>
           )
         })()}
-
-        {/* PODCAST AUDIO PLAYER (alongside YouTube) — only when episode has R2 audio */}
-        {hasAccess && currentAudio?.has_r2_audio && (
-          <div
-            data-testid="episode-podcast-player"
-            style={{
-              width: '100%', maxWidth: 880, marginBottom: 32,
-              padding: 16, background: 'var(--bg-card)',
-              border: `1px solid ${color}33`, borderRadius: 4,
-              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            }}
-          >
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 10,
-              letterSpacing: 2, textTransform: 'uppercase', color,
-            }}>
-              <span aria-hidden style={{ marginRight: 8 }}>♪</span>
-              Podcast
-            </div>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              {podcastLoading && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Chargement…</div>}
-              {podcastUrl && (
-                <audio
-                  ref={podcastRef}
-                  data-testid="episode-podcast-audio"
-                  controls
-                  preload="metadata"
-                  controlsList="nodownload"
-                  onContextMenu={(e) => e.preventDefault()}
-                  src={podcastUrl}
-                  style={{ width: '100%' }}
-                />
-              )}
-              {!podcastLoading && !podcastUrl && (
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  Audio bientôt disponible.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* 5 Tabs */}
         <div className="course-tabs" data-testid="course-tabs">
@@ -680,18 +768,19 @@ export default function CourseDetail() {
                         </div>
                         {isOpen && (
                           <div className="episode-list-container" style={{ borderLeftColor: `${color}33` }}>
-                            {modAudios.map((ep, ei) => {
-                              const isCurrent = currentAudio?.id === ep.id
-                              return (
-                                <div key={ep.id} className={`episode-row ${isCurrent ? 'episode-active' : ''}`} onClick={() => playAudio(ep)} data-testid={`episode-${mi}-${ei}`} style={{ cursor: 'pointer' }}>
-                                  <span className="episode-num" style={{ color: isCurrent ? color : `${color}55` }}>{String(ei + 1).padStart(2, '0')}</span>
-                                  <span className="episode-title" style={{ color: isCurrent ? color : 'var(--text)' }}>{ep.title}</span>
-                                  {ep.has_transcript && <span className="tag-texte">Texte</span>}
-                                  {ep.youtube_url && <span className="tag-texte" style={{ background: 'rgba(220,53,69,0.12)', color: '#dc3545', borderColor: 'rgba(220,53,69,0.3)' }}>Vidéo</span>}
-                                  {isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> : <span style={{ color, fontSize: 14 }}>&#9654;</span>}
-                                </div>
-                              )
-                            })}
+                            {modAudios.map((ep, ei) => (
+                              <EpisodeRow
+                                key={ep.id}
+                                ep={ep}
+                                idx={ei}
+                                color={color}
+                                testid={`episode-${mi}-${ei}`}
+                                isAudioActive={currentAudio?.id === ep.id && isPlaying}
+                                isVideoActive={currentVideo?.id === ep.id}
+                                onPlayAudio={() => playAudio(ep)}
+                                onPlayVideo={() => playVideo(ep)}
+                              />
+                            ))}
                           </div>
                         )}
                       </div>
@@ -699,18 +788,19 @@ export default function CourseDetail() {
                   })}
                   {orphanAudios.length > 0 && (
                     <div style={{ marginTop: 16 }}>
-                      {orphanAudios.map((ep, ei) => {
-                        const isCurrent = currentAudio?.id === ep.id
-                        return (
-                          <div key={ep.id} className={`episode-row ${isCurrent ? 'episode-active' : ''}`} onClick={() => playAudio(ep)} data-testid={`orphan-episode-${ei}`} style={{ cursor: 'pointer' }}>
-                            <span className="episode-num" style={{ color: isCurrent ? color : `${color}55` }}>{String(ei + 1).padStart(2, '0')}</span>
-                            <span className="episode-title" style={{ color: isCurrent ? color : 'var(--text)' }}>{ep.title}</span>
-                            {ep.has_transcript && <span className="tag-texte">Texte</span>}
-                            {ep.youtube_url && <span className="tag-texte" style={{ background: 'rgba(220,53,69,0.12)', color: '#dc3545', borderColor: 'rgba(220,53,69,0.3)' }}>Vidéo</span>}
-                            {isCurrent && isPlaying ? <span style={{ color, fontSize: 14 }}>&#9646;&#9646;</span> : <span style={{ color, fontSize: 14 }}>&#9654;</span>}
-                          </div>
-                        )
-                      })}
+                      {orphanAudios.map((ep, ei) => (
+                        <EpisodeRow
+                          key={ep.id}
+                          ep={ep}
+                          idx={ei}
+                          color={color}
+                          testid={`orphan-episode-${ei}`}
+                          isAudioActive={currentAudio?.id === ep.id && isPlaying}
+                          isVideoActive={currentVideo?.id === ep.id}
+                          onPlayAudio={() => playAudio(ep)}
+                          onPlayVideo={() => playVideo(ep)}
+                        />
+                      ))}
                     </div>
                   )}
                 </>
