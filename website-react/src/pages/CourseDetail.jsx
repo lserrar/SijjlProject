@@ -613,7 +613,7 @@ export default function CourseDetail() {
           if (!embedUrl) return null
           return (
             <div
-              data-testid={isEpisodeVideo ? 'episode-youtube-embed' : 'course-youtube-embed'}
+              data-testid="episode-youtube-embed"
               onContextMenu={(e) => e.preventDefault()}
               style={{
                 position: 'relative',
