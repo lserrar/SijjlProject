@@ -5095,51 +5095,112 @@ _pdf_article_cache: dict = {}
 
 def _pdf_to_article(pdf_bytes: bytes, label: str) -> dict:
     """Convert PDF to a blog-style article structure {title, lead, sections}.
-    Each paragraph >= 30 chars becomes a paragraph. Short uppercased lines become section headings.
+    Robust to glossary-style content (Term : definition spanning multiple lines)
+    and to running prose. Output is a list of sections each with {title, paragraphs}.
     """
     try:
         from pdfminer.high_level import extract_text
     except Exception as e:
         raise HTTPException(500, f"PDF parser indisponible: {e}")
     text = extract_text(io.BytesIO(pdf_bytes)) or ""
-    # Normalise whitespace/ligatures
     text = (text
             .replace('\ufb01', 'fi').replace('\ufb02', 'fl')
             .replace('\u00a0', ' ')
             .replace('\r', '\n'))
-    # Split blocks by double newline first; if too few, fall back to single
-    blocks = [b.strip() for b in re.split(r'\n\s*\n', text) if b.strip()]
+
+    # Split into raw lines, normalise inner whitespace
+    raw_lines = [re.sub(r'\s+', ' ', ln).strip() for ln in text.split('\n')]
+
+    # Build "blocks" by merging consecutive non-empty lines, BUT start a new block
+    # whenever a line looks like a glossary term entry ("Terme : …") or like a heading
+    # or whenever the previous line ended with a sentence terminator AND the new line
+    # starts with a capitalised word (likely a new paragraph).
+    GLOSS_RE = re.compile(r'^[A-ZÀ-ÝŒÇ][^.:;\n]{1,60}\s*:\s+\S')
+    HEADING_RE = re.compile(r'^(I{1,3}V?|IV|VI{0,3}|IX|XI{0,3}|XV?I{0,3})\s*[\.\)]\s+\S|^\d+\s*[\.\)]\s+\S')
+    TERMINAL = ('.', '!', '?', '»', '…', ';')
+
+    def is_heading_block(s: str) -> bool:
+        if len(s) < 4 or len(s) >= 90 or s.endswith('.') or s.endswith('…'):
+            return False
+        letters = [c for c in s if c.isalpha()]
+        if not letters:
+            return False
+        upper_ratio = sum(1 for c in letters if c.isupper()) / len(letters)
+        return upper_ratio > 0.55 or bool(HEADING_RE.match(s))
+
+    blocks: list = []
+    current_lines: list = []
+
+    def flush_block():
+        nonlocal current_lines
+        if current_lines:
+            blocks.append(' '.join(current_lines).strip())
+            current_lines = []
+
+    # Count consecutive blank lines so we can distinguish a soft visual line break
+    # (single \n\n from pdfminer) from an actual paragraph break (3+ newlines or
+    # 2 blank lines).
+    text_lines = text.split('\n')
+    i = 0
+    blank_run = 0
+    while i < len(text_lines):
+        ln_raw = text_lines[i]
+        ln = re.sub(r'\s+', ' ', ln_raw).strip()
+        if not ln:
+            blank_run += 1
+            i += 1
+            continue
+        # Decide based on what we just saw
+        if not current_lines:
+            current_lines.append(ln)
+        else:
+            prev = current_lines[-1]
+            hard_break = blank_run >= 2  # 2+ blank lines = real paragraph break
+            starts_new = False
+            if hard_break:
+                starts_new = True
+            elif GLOSS_RE.match(ln):
+                starts_new = True
+            elif is_heading_block(ln):
+                starts_new = True
+            elif prev.endswith(TERMINAL) and ln[:1].isalpha() and ln[:1].isupper():
+                # Previous sentence finished AND new line starts a new sentence
+                starts_new = True
+            if starts_new:
+                flush_block()
+                current_lines.append(ln)
+            else:
+                current_lines.append(ln)
+        blank_run = 0
+        i += 1
+    flush_block()
+
+    blocks = [b for b in blocks if b]
+
+    # Group blocks into sections by detecting headings between them
     sections: list = []
     current = {'title': None, 'paragraphs': []}
-    def flush():
+    def flush_sec():
         if current['title'] or current['paragraphs']:
             sections.append({'title': current['title'], 'paragraphs': list(current['paragraphs'])})
     for block in blocks:
-        # Compress internal newlines to single spaces (keep paragraph as one line)
-        para = re.sub(r'\s*\n\s*', ' ', block).strip()
-        if not para:
-            continue
-        # Heading heuristic: short line (<90 chars), no terminal period, mostly uppercase OR starts with section roman
-        is_short = len(para) < 90
-        no_dot = not para.endswith('.') and not para.endswith('…')
-        upper_ratio = sum(1 for c in para if c.isupper()) / max(1, sum(1 for c in para if c.isalpha()))
-        looks_heading = is_short and no_dot and (upper_ratio > 0.55 or re.match(r'^(I{1,3}V?|IV|VI{0,3}|IX|X)\.?\s', para))
-        if looks_heading and len(para) > 3:
-            flush()
-            current = {'title': para, 'paragraphs': []}
+        if is_heading_block(block):
+            flush_sec()
+            current = {'title': block, 'paragraphs': []}
         else:
-            current['paragraphs'].append(para)
-    flush()
-    # Lead = first paragraph if present
+            current['paragraphs'].append(block)
+    flush_sec()
+
+    # Lead = first paragraph if it looks like an introduction (60–600 chars, sentence-shaped)
     lead = None
     if sections and sections[0]['paragraphs']:
         first = sections[0]['paragraphs'][0]
-        if len(first) > 60 and len(first) < 600:
+        if 60 < len(first) < 600 and ('. ' in first or first.endswith('.')):
             lead = first
             sections[0]['paragraphs'] = sections[0]['paragraphs'][1:]
-    # Drop empty sections at start (no title + no paragraphs)
     while sections and not sections[0]['title'] and not sections[0]['paragraphs']:
         sections.pop(0)
+
     return {
         'title': label,
         'lead': lead,
