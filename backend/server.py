@@ -157,6 +157,216 @@ def resolve_audio_url(audio_doc: dict) -> str:
             return presigned
     return audio_doc.get('audio_url', '')
 
+
+# ─── R2 Auto-Detection (Phase 3 generic media sync) ─────────────────────────
+
+_AUDIO_EXTS = {'mp3', 'm4a', 'wav', 'aac', 'ogg', 'flac'}
+_VIDEO_EXTS = {'mp4', 'mov', 'webm', 'mkv'}
+_DOC_EXTS = {'pdf', 'doc', 'docx'}
+
+_BIBLIO_KEYWORDS = ('biblio',)
+_GLOSSAIRE_KEYWORDS = ('glossaire', 'glossary', 'lexique')
+
+# Episode number patterns: episode1, ep1, _1., -1., (1), -01., partie1, etc.
+_EPISODE_PATTERNS = [
+    # After keyword: "episode1", "ep01", "partie 2", "chapitre-3"
+    re.compile(r'(?:episode|épisode|ep|partie|part|chapitre|chap)[\s_\-]*0*(\d{1,2})(?=[\s_\-\.\)]|$)', re.IGNORECASE),
+    # Trailing number after separator: "...maimounide-1", "..._02"
+    re.compile(r'[\-_](\d{1,2})(?=[\s_\-\.\)]|$)'),
+    # Leading number at start: "1_intro", "01-foo"
+    re.compile(r'^0*(\d{1,2})[\s_\-\.]'),
+]
+
+
+def _extract_episode_number(filename: str) -> Optional[int]:
+    """Best-effort extraction of an episode number from a filename (1..50)."""
+    name = filename.lower().rsplit('.', 1)[0]
+    for pat in _EPISODE_PATTERNS:
+        m = pat.search(name)
+        if m:
+            try:
+                n = int(m.group(1))
+                if 1 <= n <= 50:
+                    return n
+            except (ValueError, IndexError):
+                continue
+    return None
+
+
+def _classify_r2_file(key: str) -> Optional[dict]:
+    """Classify an R2 object key into a media role.
+    Returns a dict {role, episode_number, type, label, mime, r2_key, filename}
+    or None if not classifiable.
+    Roles: 'episode_video', 'episode_audio', 'episode_doc', 'course_doc'.
+    """
+    filename = key.rsplit('/', 1)[-1]
+    if not filename or filename.startswith('.'):
+        return None
+    parts = filename.rsplit('.', 1)
+    if len(parts) != 2:
+        return None
+    ext = parts[1].lower()
+    name_l = filename.lower()
+    ep = _extract_episode_number(filename)
+
+    if ext in _VIDEO_EXTS:
+        if ep is not None:
+            return {'role': 'episode_video', 'episode_number': ep, 'type': 'video',
+                    'label': f'Vidéo épisode {ep}', 'mime': f'video/{ext if ext != "mov" else "quicktime"}',
+                    'r2_key': key, 'filename': filename, 'ext': ext}
+        return None  # course-level video not yet supported
+
+    if ext in _AUDIO_EXTS:
+        if ep is not None:
+            mime_map = {'mp3': 'audio/mpeg', 'm4a': 'audio/mp4', 'wav': 'audio/wav',
+                        'ogg': 'audio/ogg', 'aac': 'audio/aac', 'flac': 'audio/flac'}
+            return {'role': 'episode_audio', 'episode_number': ep, 'type': 'audio',
+                    'label': f'Podcast épisode {ep}', 'mime': mime_map.get(ext, 'audio/mpeg'),
+                    'r2_key': key, 'filename': filename, 'ext': ext}
+        return None
+
+    if ext in _DOC_EXTS:
+        mime_map = {'pdf': 'application/pdf',
+                    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'doc': 'application/msword'}
+        mime = mime_map[ext]
+        is_biblio = any(k in name_l for k in _BIBLIO_KEYWORDS)
+        is_gloss = any(k in name_l for k in _GLOSSAIRE_KEYWORDS)
+        if is_biblio:
+            return {'role': 'course_doc', 'episode_number': None, 'type': 'biblio',
+                    'label': 'Bibliographie sélective', 'mime': mime,
+                    'r2_key': key, 'filename': filename, 'ext': ext}
+        if is_gloss:
+            return {'role': 'course_doc', 'episode_number': None, 'type': 'glossaire',
+                    'label': 'Glossaire des termes', 'mime': mime,
+                    'r2_key': key, 'filename': filename, 'ext': ext}
+        if ep is not None:
+            return {'role': 'episode_doc', 'episode_number': ep, 'type': 'script',
+                    'label': "Script de l'épisode", 'mime': mime,
+                    'r2_key': key, 'filename': filename, 'ext': ext}
+        return {'role': 'course_doc', 'episode_number': None, 'type': 'document',
+                'label': filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').strip().capitalize(),
+                'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext}
+
+    return None
+
+
+def _list_r2_keys(prefix: str) -> list:
+    """List R2 object keys under the given prefix (recursively)."""
+    if not r2_client or not prefix:
+        return []
+    keys = []
+    paginator = r2_client.get_paginator('list_objects_v2')
+    try:
+        for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                k = obj.get('Key')
+                if k:
+                    keys.append(k)
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"R2 list error for prefix {prefix}: {e}")
+    return keys
+
+
+def _build_r2_detections(prefix: str) -> dict:
+    """Scan an R2 prefix and group classified detections by role."""
+    out: dict = {
+        'prefix': prefix,
+        'videos': {},
+        'audios': {},
+        'episode_docs': {},
+        'course_docs': [],
+        'unclassified': [],
+    }
+    for key in _list_r2_keys(prefix):
+        cls = _classify_r2_file(key)
+        if not cls:
+            out['unclassified'].append(key)
+            continue
+        role = cls['role']
+        ep = cls.get('episode_number')
+        if role == 'episode_video' and ep:
+            out['videos'].setdefault(ep, cls)
+        elif role == 'episode_audio' and ep:
+            existing = out['audios'].get(ep)
+            if not existing or (cls['ext'] == 'mp3' and existing['ext'] != 'mp3'):
+                out['audios'][ep] = cls
+        elif role == 'episode_doc' and ep:
+            out['episode_docs'].setdefault(ep, []).append(cls)
+        elif role == 'course_doc':
+            if cls['type'] in ('biblio', 'glossaire'):
+                if not any(d['type'] == cls['type'] for d in out['course_docs']):
+                    out['course_docs'].append(cls)
+            else:
+                out['course_docs'].append(cls)
+    return out
+
+
+async def _apply_r2_detections(course_id: str, detections: dict) -> dict:
+    """Apply auto-detection results to the database for this course."""
+    summary = {
+        'course_resources_count': 0,
+        'episodes_updated': 0,
+        'audios_with_video': 0,
+        'audios_with_audio': 0,
+        'audios_with_script': 0,
+        'unclassified_count': len(detections.get('unclassified') or []),
+    }
+    course_res = []
+    for d in detections.get('course_docs', []):
+        course_res.append({
+            'type': d['type'],
+            'label': d['label'],
+            'r2_key': d['r2_key'],
+            'mime': d['mime'],
+        })
+    if course_res:
+        await db.courses.update_one(
+            {'id': course_id},
+            {'$set': {'course_resources': course_res, 'r2_prefix': detections.get('prefix')}}
+        )
+        summary['course_resources_count'] = len(course_res)
+    else:
+        await db.courses.update_one(
+            {'id': course_id},
+            {'$set': {'r2_prefix': detections.get('prefix')}}
+        )
+
+    audios = await db.audios.find({'course_id': course_id}, {'_id': 0, 'id': 1, 'episode_number': 1}).to_list(200)
+    audio_by_ep = {a.get('episode_number'): a['id'] for a in audios if a.get('episode_number')}
+
+    for ep, vid in detections.get('videos', {}).items():
+        aid = audio_by_ep.get(ep)
+        if not aid: continue
+        await db.audios.update_one({'id': aid}, {'$set': {'r2_video_key': vid['r2_key']}})
+        summary['audios_with_video'] += 1
+
+    for ep, aud in detections.get('audios', {}).items():
+        aid = audio_by_ep.get(ep)
+        if not aid: continue
+        await db.audios.update_one(
+            {'id': aid},
+            {'$set': {'r2_audio_key': aud['r2_key'], 'has_r2_audio': True}},
+        )
+        summary['audios_with_audio'] += 1
+
+    for ep, docs in detections.get('episode_docs', {}).items():
+        aid = audio_by_ep.get(ep)
+        if not aid: continue
+        ep_resources = [
+            {'type': d['type'], 'label': d['label'], 'r2_key': d['r2_key'], 'mime': d['mime']}
+            for d in docs
+        ]
+        await db.audios.update_one(
+            {'id': aid},
+            {'$set': {'episode_resources': ep_resources}},
+        )
+        summary['audios_with_script'] += 1
+    summary['episodes_updated'] = len({**detections.get('videos', {}), **detections.get('audios', {}), **detections.get('episode_docs', {})})
+    return summary
+
+
+
 app = FastAPI(title="HikmabyLM API")
 api_router = APIRouter(prefix="/api")
 
@@ -3526,7 +3736,42 @@ async def seed_data():
         }}
     )
     logger.info("Migration v9 PILOT: Maïmonide R2 video + scripts + biblio + glossaire wired")
+    # Persist r2_prefix so Migration v11 will pick it up
+    await db.courses.update_one(
+        {'id': 'cours-philo-juive'},
+        {'$set': {'r2_prefix': MAIMONIDE_R2_PREFIX + '/'}}
+    )
     # ─── End Migration v9 ──────────────────────────────────────────────────
+
+    # ─── Migration v11: Auto-sync R2 media for ALL courses with r2_prefix ──
+    try:
+        v11_courses = await db.courses.find(
+            {'r2_prefix': {'$exists': True, '$ne': ''}},
+            {'_id': 0, 'id': 1, 'title': 1, 'r2_prefix': 1},
+        ).to_list(500)
+        v11_synced = 0
+        for c in v11_courses:
+            prefix = (c.get('r2_prefix') or '').strip().strip('/')
+            if not prefix:
+                continue
+            if not prefix.endswith('/'):
+                prefix = prefix + '/'
+            try:
+                detections = _build_r2_detections(prefix)
+                summary = await _apply_r2_detections(c['id'], detections)
+                v11_synced += 1
+                logger.info(
+                    f"Migration v11: synced {c['id']} ({c.get('title') or '?'}) — "
+                    f"course_docs={summary['course_resources_count']}, "
+                    f"videos={summary['audios_with_video']}, audios={summary['audios_with_audio']}, "
+                    f"scripts={summary['audios_with_script']}, unclassified={summary['unclassified_count']}"
+                )
+            except Exception as e:
+                logger.warning(f"Migration v11: failed to sync {c['id']}: {e}")
+        logger.info(f"Migration v11: R2 auto-sync complete ({v11_synced}/{len(v11_courses)} courses)")
+    except Exception as e:
+        logger.warning(f"Migration v11 skipped: {e}")
+    # ─── End Migration v11 ─────────────────────────────────────────────────
 
     # ─── Migration v10: Seed all scholars from Excel + link courses ────────
     SCHOLARS_SEED = [
@@ -4131,6 +4376,142 @@ async def admin_delete_scholar(scholar_id: str, request: Request):
     if result.deleted_count == 0:
         raise HTTPException(404, "Érudit non trouvé")
     return {'message': 'Érudit supprimé'}
+
+
+# ─── R2 Auto-Detection Admin endpoints (Phase 3) ────────────────────────────
+
+@api_router.post("/admin/courses/{course_id}/r2-prefix")
+async def admin_set_course_r2_prefix(course_id: str, body: dict, request: Request):
+    """Set the R2 prefix for a course (e.g. 'cursus-X/NN-foo/' or 'cursus-X/NN-foo/bar/').
+    The prefix is the path under which to scan for media files.
+    """
+    await require_admin(request)
+    prefix = (body or {}).get('r2_prefix', '').strip().strip('/')
+    if not prefix:
+        # Allow clearing the prefix
+        await db.courses.update_one({'id': course_id}, {'$unset': {'r2_prefix': ''}})
+        return {'course_id': course_id, 'r2_prefix': None}
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'id': 1})
+    if not course:
+        raise HTTPException(404, "Cours non trouvé")
+    # Append trailing slash for prefix scans
+    if not prefix.endswith('/'):
+        prefix = prefix + '/'
+    await db.courses.update_one({'id': course_id}, {'$set': {'r2_prefix': prefix}})
+    return {'course_id': course_id, 'r2_prefix': prefix}
+
+
+@api_router.get("/admin/courses/{course_id}/r2-detection")
+async def admin_get_r2_detection(course_id: str, request: Request, prefix: Optional[str] = None):
+    """Preview R2 auto-detection for a course (read-only). Pass ?prefix=… to override
+    the stored r2_prefix without persisting it."""
+    await require_admin(request)
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0})
+    if not course:
+        raise HTTPException(404, "Cours non trouvé")
+    effective_prefix = (prefix or course.get('r2_prefix') or '').strip().strip('/')
+    if not effective_prefix:
+        raise HTTPException(400, "Aucun r2_prefix défini pour ce cours")
+    if not effective_prefix.endswith('/'):
+        effective_prefix = effective_prefix + '/'
+    detections = _build_r2_detections(effective_prefix)
+    audios = await db.audios.find(
+        {'course_id': course_id},
+        {'_id': 0, 'id': 1, 'episode_number': 1, 'title': 1}
+    ).to_list(200)
+    audios.sort(key=lambda a: a.get('episode_number') or 0)
+    return {
+        'course_id': course_id,
+        'course_title': course.get('title') or course.get('name'),
+        'prefix': effective_prefix,
+        'episodes_in_db': audios,
+        'detected': {
+            'videos': {str(k): v for k, v in detections['videos'].items()},
+            'audios': {str(k): v for k, v in detections['audios'].items()},
+            'episode_docs': {str(k): v for k, v in detections['episode_docs'].items()},
+            'course_docs': detections['course_docs'],
+            'unclassified': detections['unclassified'],
+        },
+        'totals': {
+            'videos': len(detections['videos']),
+            'audios': len(detections['audios']),
+            'episode_doc_groups': len(detections['episode_docs']),
+            'course_docs': len(detections['course_docs']),
+            'unclassified': len(detections['unclassified']),
+        },
+    }
+
+
+@api_router.post("/admin/courses/{course_id}/sync-r2")
+async def admin_sync_r2_for_course(course_id: str, request: Request, body: Optional[dict] = None):
+    """Apply R2 auto-detection for a single course. Body may set { r2_prefix } to
+    persist a new prefix BEFORE running the detection. Returns a summary."""
+    await require_admin(request)
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0})
+    if not course:
+        raise HTTPException(404, "Cours non trouvé")
+    new_prefix = (body or {}).get('r2_prefix') if body else None
+    effective_prefix = (new_prefix or course.get('r2_prefix') or '').strip().strip('/')
+    if not effective_prefix:
+        raise HTTPException(400, "Aucun r2_prefix défini pour ce cours")
+    if not effective_prefix.endswith('/'):
+        effective_prefix = effective_prefix + '/'
+    detections = _build_r2_detections(effective_prefix)
+    summary = await _apply_r2_detections(course_id, detections)
+    return {
+        'course_id': course_id,
+        'prefix': effective_prefix,
+        'summary': summary,
+        'unclassified': detections['unclassified'],
+    }
+
+
+@api_router.post("/admin/sync-r2-all")
+async def admin_sync_r2_all(request: Request):
+    """Apply R2 auto-detection to all courses that have a stored r2_prefix. Returns per-course summaries."""
+    await require_admin(request)
+    courses = await db.courses.find({'r2_prefix': {'$exists': True, '$ne': ''}}, {'_id': 0}).to_list(500)
+    results = []
+    for c in courses:
+        prefix = (c.get('r2_prefix') or '').strip().strip('/')
+        if not prefix:
+            continue
+        if not prefix.endswith('/'):
+            prefix = prefix + '/'
+        detections = _build_r2_detections(prefix)
+        summary = await _apply_r2_detections(c['id'], detections)
+        results.append({
+            'course_id': c['id'],
+            'title': c.get('title') or c.get('name'),
+            'prefix': prefix,
+            'summary': summary,
+        })
+    return {'count': len(results), 'results': results}
+
+
+@api_router.delete("/admin/courses/{course_id}/episode-resources/{audio_id}/{file_basename}")
+async def admin_unlink_episode_resource(course_id: str, audio_id: str, file_basename: str, request: Request):
+    """Manual override: remove a single episode_resources entry by its filename."""
+    await require_admin(request)
+    a = await db.audios.find_one({'id': audio_id, 'course_id': course_id}, {'_id': 0, 'episode_resources': 1})
+    if not a:
+        raise HTTPException(404, "Épisode non trouvé")
+    new_list = [r for r in (a.get('episode_resources') or []) if not r.get('r2_key', '').endswith('/' + file_basename) and not r.get('r2_key', '').endswith(file_basename)]
+    await db.audios.update_one({'id': audio_id}, {'$set': {'episode_resources': new_list}})
+    return {'audio_id': audio_id, 'episode_resources': new_list}
+
+
+@api_router.delete("/admin/courses/{course_id}/course-resources/{file_basename}")
+async def admin_unlink_course_resource(course_id: str, file_basename: str, request: Request):
+    """Manual override: remove a single course_resources entry by its filename."""
+    await require_admin(request)
+    c = await db.courses.find_one({'id': course_id}, {'_id': 0, 'course_resources': 1})
+    if not c:
+        raise HTTPException(404, "Cours non trouvé")
+    new_list = [r for r in (c.get('course_resources') or []) if not r.get('r2_key', '').endswith('/' + file_basename) and not r.get('r2_key', '').endswith(file_basename)]
+    await db.courses.update_one({'id': course_id}, {'$set': {'course_resources': new_list}})
+    return {'course_id': course_id, 'course_resources': new_list}
+
 
 # Admin: Course CRUD
 @api_router.get("/admin/courses")
@@ -8264,6 +8645,15 @@ async def admin_panel_r2():
     if template_path.exists():
         return HTMLResponse(content=template_path.read_text(encoding='utf-8'))
     return HTMLResponse(content=(ADMIN_TEMPLATES_DIR / 'dashboard.html').read_text(encoding='utf-8'))
+
+@api_router.get("/admin-panel/r2-medias", response_class=HTMLResponse)
+async def admin_panel_r2_medias(request: Request):
+    """Admin panel R2 media auto-detection page (Phase 3)."""
+    return templates.TemplateResponse(
+        "r2-medias.html",
+        {"request": request, "active_page": "r2-medias"}
+    )
+
 
 @api_router.get("/admin-panel/legal", response_class=HTMLResponse)
 async def admin_panel_legal():

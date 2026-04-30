@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}R2 Médias — Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">R2 Médias</h1>
+        <p class="page-description">Auto-détection des vidéos, podcasts et documents Cloudflare R2 par cours</p>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="syncAll()" data-testid="btn-sync-all">
+        <i class="fas fa-sync"></i> Synchroniser tous les cours
+    </button>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <div class="card-title">Conventions de nommage tolérées</div>
+    </div>
+    <div class="card-body" style="font-size: 13px; color: var(--text-muted); line-height: 1.7;">
+        <strong>Vidéos</strong> (.mp4 / .mov) : nom contenant <code>episode1</code>, <code>ep1</code>, <code>partie1</code> ou se terminant par <code>-1</code>, <code>_1</code><br>
+        <strong>Podcasts</strong> (.mp3 / .m4a / .wav / .aac) : même règle, le numéro d'épisode est extrait automatiquement<br>
+        <strong>Scripts d'épisode</strong> (.pdf / .docx) : même règle si le numéro d'épisode est présent dans le nom<br>
+        <strong>Bibliographie</strong> (.pdf) : nom contenant <code>biblio</code><br>
+        <strong>Glossaire</strong> (.pdf) : nom contenant <code>glossaire</code>, <code>glossary</code> ou <code>lexique</code>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Cours</div>
+    </div>
+    <div class="card-body">
+        <div id="coursesList" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="text-align: center; padding: 32px; color: var(--text-muted);">Chargement…</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.r2-course-row {
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 4px;
+    padding: 16px 20px;
+    background: var(--bg-card, #131313);
+}
+.r2-course-row .row-head {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.r2-course-row h3 {
+    margin: 0; font-size: 16px; font-family: var(--font-display, serif); flex: 1;
+}
+.r2-course-row .prefix-input {
+    flex: 2; min-width: 320px;
+    padding: 6px 10px; font-size: 12px; font-family: monospace;
+    background: var(--bg, #0a0a0a); color: var(--text);
+    border: 1px solid var(--border, #2a2a2a); border-radius: 2px;
+}
+.r2-course-row .row-actions { display: flex; gap: 8px; }
+.r2-course-row .btn { font-size: 12px; padding: 6px 12px; }
+.r2-summary { margin-top: 12px; font-size: 12px; color: var(--text-muted); display: flex; gap: 16px; flex-wrap: wrap; }
+.r2-summary span strong { color: var(--text); }
+.r2-status { font-size: 11px; padding: 2px 8px; border-radius: 2px; text-transform: uppercase; letter-spacing: 1.5px; }
+.r2-status.ok { background: rgba(40,180,99,.15); color: #28b463; }
+.r2-status.warn { background: rgba(220,53,69,.15); color: #dc3545; }
+.r2-status.idle { background: rgba(150,150,150,.15); color: #999; }
+.r2-detection { margin-top: 12px; font-size: 12px; }
+.r2-detection .det-row { padding: 4px 0; font-family: monospace; color: var(--text-muted); }
+.r2-detection .det-row .badge { display: inline-block; min-width: 60px; padding: 1px 8px; border-radius: 2px; font-size: 10px; letter-spacing: 1px; margin-right: 8px; text-transform: uppercase; }
+.r2-detection .badge.video { background: rgba(220,53,69,.15); color: #dc3545; }
+.r2-detection .badge.audio { background: rgba(40,180,99,.15); color: #28b463; }
+.r2-detection .badge.script { background: rgba(80,140,210,.15); color: #5191d2; }
+.r2-detection .badge.biblio { background: rgba(201,168,76,.15); color: #c9a84c; }
+.r2-detection .badge.glossaire { background: rgba(180,120,200,.15); color: #b478c8; }
+.r2-detection .badge.unclassified { background: rgba(220,53,69,.15); color: #dc3545; }
+</style>
+
+<script>
+async function loadCourses() {
+    try {
+        const courses = await apiRequest('/admin/courses');
+        courses.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        const root = document.getElementById('coursesList');
+        root.innerHTML = '';
+        if (!courses.length) { root.innerHTML = '<p style="color: var(--text-muted)">Aucun cours.</p>'; return; }
+        courses.forEach(c => root.appendChild(buildRow(c)));
+    } catch (e) {
+        showError('Échec du chargement des cours : ' + (e.message || e));
+    }
+}
+
+function buildRow(course) {
+    const row = document.createElement('div');
+    row.className = 'r2-course-row';
+    row.dataset.courseId = course.id;
+
+    const prefix = course.r2_prefix || '';
+    const status = prefix ? 'idle' : 'idle';
+
+    row.innerHTML = `
+        <div class="row-head">
+            <h3>${escapeHtml(course.title || course.id)}</h3>
+            <input type="text" class="prefix-input" value="${escapeHtml(prefix)}" placeholder="ex: cursus-X/24-mon-cours/" data-testid="r2-prefix-${course.id}">
+            <div class="row-actions">
+                <button class="btn btn-secondary btn-sm" onclick="savePrefix('${course.id}', this)" data-testid="btn-save-prefix-${course.id}">Sauver le préfixe</button>
+                <button class="btn btn-outline btn-sm" onclick="previewCourse('${course.id}', this)" data-testid="btn-preview-${course.id}">Prévisualiser</button>
+                <button class="btn btn-primary btn-sm" onclick="syncCourse('${course.id}', this)" data-testid="btn-sync-${course.id}">Synchroniser</button>
+            </div>
+        </div>
+        <div class="r2-summary"></div>
+        <div class="r2-detection"></div>
+    `;
+    return row;
+}
+
+function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+async function savePrefix(courseId, btn) {
+    const input = btn.closest('.r2-course-row').querySelector('.prefix-input');
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const data = await apiRequest(`/admin/courses/${courseId}/r2-prefix`, 'POST', { r2_prefix: input.value.trim() });
+        input.value = data.r2_prefix || '';
+        flash(btn.closest('.r2-course-row'), 'Préfixe sauvegardé', 'ok');
+    } catch (e) { flash(btn.closest('.r2-course-row'), e.message || String(e), 'warn'); }
+    finally { btn.disabled = false; btn.textContent = 'Sauver le préfixe'; }
+}
+
+async function previewCourse(courseId, btn) {
+    const row = btn.closest('.r2-course-row');
+    const prefix = row.querySelector('.prefix-input').value.trim();
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const url = prefix ? `/admin/courses/${courseId}/r2-detection?prefix=${encodeURIComponent(prefix)}`
+                           : `/admin/courses/${courseId}/r2-detection`;
+        const data = await apiRequest(url);
+        renderDetection(row, data);
+    } catch (e) { flash(row, e.message || String(e), 'warn'); }
+    finally { btn.disabled = false; btn.textContent = 'Prévisualiser'; }
+}
+
+async function syncCourse(courseId, btn) {
+    const row = btn.closest('.r2-course-row');
+    const prefix = row.querySelector('.prefix-input').value.trim();
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const data = await apiRequest(`/admin/courses/${courseId}/sync-r2`, 'POST', { r2_prefix: prefix });
+        renderSummary(row, data.summary);
+        flash(row, 'Synchronisation réussie', 'ok');
+    } catch (e) { flash(row, e.message || String(e), 'warn'); }
+    finally { btn.disabled = false; btn.textContent = 'Synchroniser'; }
+}
+
+async function syncAll() {
+    if (!confirm('Lancer la synchronisation R2 pour tous les cours ayant un préfixe ?')) return;
+    const btn = document.querySelector('[data-testid="btn-sync-all"]');
+    btn.disabled = true; const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> En cours…';
+    try {
+        const data = await apiRequest('/admin/sync-r2-all', 'POST');
+        alert(`${data.count} cours synchronisé${data.count > 1 ? 's' : ''}.`);
+        await loadCourses();
+    } catch (e) { alert('Erreur : ' + (e.message || e)); }
+    finally { btn.disabled = false; btn.innerHTML = original; }
+}
+
+function renderSummary(row, s) {
+    const node = row.querySelector('.r2-summary');
+    node.innerHTML = `
+        <span><strong>${s.course_resources_count}</strong> doc${s.course_resources_count > 1 ? 's' : ''} cours</span>
+        <span><strong>${s.audios_with_video}</strong> vidéo${s.audios_with_video > 1 ? 's' : ''}</span>
+        <span><strong>${s.audios_with_audio}</strong> podcast${s.audios_with_audio > 1 ? 's' : ''}</span>
+        <span><strong>${s.audios_with_script}</strong> script${s.audios_with_script > 1 ? 's' : ''}</span>
+        <span class="r2-status ${s.unclassified_count > 0 ? 'warn' : 'ok'}">${s.unclassified_count} non classé${s.unclassified_count > 1 ? 's' : ''}</span>
+    `;
+}
+
+function renderDetection(row, data) {
+    const det = row.querySelector('.r2-detection');
+    const totals = data.totals || {};
+    const d = data.detected || {};
+    let html = '';
+    Object.entries(d.videos || {}).forEach(([ep, v]) => {
+        html += `<div class="det-row"><span class="badge video">vidéo ep${ep}</span> ${escapeHtml(v.r2_key)}</div>`;
+    });
+    Object.entries(d.audios || {}).forEach(([ep, v]) => {
+        html += `<div class="det-row"><span class="badge audio">audio ep${ep}</span> ${escapeHtml(v.r2_key)} <em style="color:#666">(${v.ext})</em></div>`;
+    });
+    Object.entries(d.episode_docs || {}).forEach(([ep, docs]) => {
+        docs.forEach(doc => {
+            html += `<div class="det-row"><span class="badge script">${doc.type} ep${ep}</span> ${escapeHtml(doc.r2_key)}</div>`;
+        });
+    });
+    (d.course_docs || []).forEach(doc => {
+        html += `<div class="det-row"><span class="badge ${doc.type}">${doc.type}</span> ${escapeHtml(doc.r2_key)}</div>`;
+    });
+    (d.unclassified || []).forEach(k => {
+        html += `<div class="det-row"><span class="badge unclassified">non classé</span> ${escapeHtml(k)}</div>`;
+    });
+    if (!html) html = '<p style="color: var(--text-muted); font-style: italic">Aucun fichier détecté à ce préfixe.</p>';
+    det.innerHTML = html;
+
+    row.querySelector('.r2-summary').innerHTML = `
+        <span><strong>${totals.course_docs || 0}</strong> doc${(totals.course_docs || 0) > 1 ? 's' : ''} cours</span>
+        <span><strong>${totals.videos || 0}</strong> vidéo${(totals.videos || 0) > 1 ? 's' : ''}</span>
+        <span><strong>${totals.audios || 0}</strong> podcast${(totals.audios || 0) > 1 ? 's' : ''}</span>
+        <span><strong>${totals.episode_doc_groups || 0}</strong> groupe${(totals.episode_doc_groups || 0) > 1 ? 's' : ''} script</span>
+        <span class="r2-status ${(totals.unclassified || 0) > 0 ? 'warn' : 'ok'}">${totals.unclassified || 0} non classé${(totals.unclassified || 0) > 1 ? 's' : ''}</span>
+    `;
+}
+
+function flash(row, message, type) {
+    const node = row.querySelector('.r2-summary');
+    const tag = document.createElement('span');
+    tag.className = `r2-status ${type}`;
+    tag.textContent = message;
+    node.appendChild(tag);
+    setTimeout(() => tag.remove(), 3000);
+}
+
+function showError(msg) {
+    document.getElementById('coursesList').innerHTML = `<p style="color: #dc3545; padding: 24px; text-align: center;">${escapeHtml(msg)}</p>`;
+}
+
+// Wait for base.html's apiRequest to be defined
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => loadCourses());
+} else {
+    setTimeout(() => loadCourses(), 50);
+}
+</script>
+{% endblock %}

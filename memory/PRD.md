@@ -76,6 +76,17 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ **Migration v4 défensive** (Fév 2026) : nettoie automatiquement les éventuels doublons de cursus « Histoire du monde islamique » avec ID différent de `cursus-histoire`
 - ✅ **Home.jsx dynamisé** (Fév 2026) : compteur cursus = `cursus.length` au lieu de hardcodé 6
 - ✅ **Al-Kindī épisodes 1-3** ajoutés en BDD via migration avec leurs URLs YouTube (incluant la nouvelle URL ép. 3 fournie par l'utilisateur)
+- ✅ **PHASE 3 — Auto-sync R2 médias générique pour TOUS les cours** (Avr 2026) :
+  - Module de classification automatique : `_extract_episode_number()`, `_classify_r2_file()`, `_build_r2_detections()`, `_apply_r2_detections()`
+  - Heuristiques tolérantes (validées sur multiples formats: `episode1`, `ep1`, `partie1`, `chap-2`, `-1.`, `_01_`, `Yacoubi-3.m4a`, `Cours_Maimonide_partie02.docx`)
+  - Vidéos `.mp4/.mov/.webm`, Audios `.mp3/.m4a/.wav/.aac/.ogg/.flac`, Documents `.pdf/.docx/.doc`
+  - Reconnaissance auto biblio (`biblio`), glossaire (`glossaire/glossary/lexique`), script d'épisode (avec numéro), document générique
+  - Champ `r2_prefix` ajouté au schéma `courses` (chemin R2 personnalisable par cours)
+  - Endpoints admin (4) : `r2-prefix`, `r2-detection`, `sync-r2` (par cours), `sync-r2-all` (global), + DELETE pour override manuel
+  - **Migration v11** : auto-sync au démarrage du backend pour tous les cours ayant un `r2_prefix`
+  - **Page admin Jinja2** `/api/admin-panel/r2-medias` : liste tous les cours (28), bouton « Synchroniser tous les cours » + boutons individuels (Sauver préfixe / Prévisualiser / Synchroniser) avec rendu détaillé des fichiers détectés et badges colorés (VIDÉO / AUDIO / SCRIPT / BIBLIO / GLOSSAIRE / non classé)
+  - Validation pilote Maïmonide : 100 % détection (2 vidéos + 2 audios `.m4a` + 2 scripts + 2 docs cours, 0 non classé)
+
 - ✅ **PILOT Maïmonide — Onglet Ressources + Lecteur audio R2** (Avr 2026) :
   - Migration v9 PILOT enrichie : probe HEAD sur `episode{N}_maimounide.mp3` → set `r2_audio_key` + `has_r2_audio` (False tant que .mp3 pas uploadé)
   - Nouveaux endpoints backend (tous gated `require_subscriber`) :
