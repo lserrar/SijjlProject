@@ -232,6 +232,28 @@ def _classify_r2_file(key: str) -> Optional[dict]:
         mime = mime_map[ext]
         is_biblio = any(k in name_l for k in _BIBLIO_KEYWORDS)
         is_gloss = any(k in name_l for k in _GLOSSAIRE_KEYWORDS)
+        # Recognize explicit prefixes commonly used in Sijill R2:
+        # "script-…" → script (rendered as blog article)
+        # "slide-…" or "slides-…" → slides (rendered as protected inline PDF)
+        is_script = name_l.startswith('script-') or name_l.startswith('script_')
+        is_slides = name_l.startswith('slide-') or name_l.startswith('slides-') or name_l.startswith('slide_') or name_l.startswith('slides_')
+        if is_slides:
+            if ep is not None:
+                return {'role': 'episode_doc', 'episode_number': ep, 'type': 'slides',
+                        'label': f"Slides — Épisode {ep}", 'mime': mime,
+                        'r2_key': key, 'filename': filename, 'ext': ext}
+            return {'role': 'course_doc', 'episode_number': None, 'type': 'slides',
+                    'label': filename.rsplit('.', 1)[0].replace('slide-', '').replace('slides-', '').replace('_', ' ').replace('-', ' ').strip().capitalize() or 'Slides',
+                    'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext}
+        if is_script:
+            if ep is not None:
+                return {'role': 'episode_doc', 'episode_number': ep, 'type': 'script',
+                        'label': "Script de l'épisode", 'mime': mime,
+                        'r2_key': key, 'filename': filename, 'ext': ext}
+            # Script without episode number → course-level
+            return {'role': 'course_doc', 'episode_number': None, 'type': 'script',
+                    'label': "Script", 'mime': mime,
+                    'r2_key': key, 'filename': filename, 'ext': ext}
         if is_biblio:
             return {'role': 'course_doc', 'episode_number': None, 'type': 'biblio',
                     'label': 'Bibliographie sélective', 'mime': mime,
@@ -248,6 +270,7 @@ def _classify_r2_file(key: str) -> Optional[dict]:
                 'label': filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').strip().capitalize(),
                 'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext}
 
+    # Unknown ext (jpg/png covers, manuscripts, etc.) — ignore for now
     return None
 
 
@@ -3743,6 +3766,30 @@ async def seed_data():
     )
     # ─── End Migration v9 ──────────────────────────────────────────────────
 
+    # ─── Migration v12: Persist r2_prefix on launch-catalog courses (May 2026) ──
+    # Mapping derived from /app/Sijill_Catalogue_Lancement_Mai2026 + R2 listing.
+    # Note: Al-Kindī, Al-Fārābī, Avicenne are MODULES under cours-falsafa-grands.
+    #       Droit musulman is a MODULE under cours-fiqh.
+    #       Ibn Khaldūn historiographie is a MODULE under cours-historiographie.
+    # The R2 prefix on a course covers all sub-modules under it.
+    V12_PREFIXES = {
+        'cours-traduction': 'cursus-a-falsafa/01-mouvement-traduction/',
+        'cours-falsafa-grands': 'cursus-a-falsafa/02-falsafa/',         # covers al-kindi/, al-farabi/, avicenne/
+        'cours-fiqh': 'cursus-b-theologie-droit/10-usul-al-fiqh/',       # covers droit-musulman/
+        'cours-historiographie': 'cursus-c-sciences-islamiques/14-historiographie/',  # covers ibn-khaldun-histoire/
+        'cours-art': 'cursus-d-arts-litterature/16-histoire-art/',
+        'cours-andalus': 'cursus-histoire/andalous/',
+        'cours-debuts-islam': 'cursus-histoire/debuts-islam/',
+        'cours-philo-juive': 'cursus-f-nonarabe/24-philosophie-juive/',  # covers maimonide/
+    }
+    v12_set = 0
+    for cid, prefix in V12_PREFIXES.items():
+        r = await db.courses.update_one({'id': cid}, {'$set': {'r2_prefix': prefix}})
+        if r.matched_count:
+            v12_set += 1
+    logger.info(f"Migration v12: r2_prefix set on {v12_set}/{len(V12_PREFIXES)} launch courses")
+    # ─── End Migration v12 ─────────────────────────────────────────────────
+
     # ─── Migration v11: Auto-sync R2 media for ALL courses with r2_prefix ──
     try:
         v11_courses = await db.courses.find(
@@ -5474,16 +5521,32 @@ async def stream_r2_resource(request: Request, t: Optional[str] = None):
 # In-memory cache for PDF → article rendering (course-scoped, lasts a process lifetime)
 _pdf_article_cache: dict = {}
 
-def _pdf_to_article(pdf_bytes: bytes, label: str) -> dict:
-    """Convert PDF to a blog-style article structure {title, lead, sections}.
-    Robust to glossary-style content (Term : definition spanning multiple lines)
-    and to running prose. Output is a list of sections each with {title, paragraphs}.
-    """
+def _docx_to_text(docx_bytes: bytes) -> str:
+    """Convert DOCX → plain text using mammoth (fall back gracefully)."""
     try:
-        from pdfminer.high_level import extract_text
+        import mammoth
+        result = mammoth.extract_raw_text(io.BytesIO(docx_bytes))
+        return result.value or ""
     except Exception as e:
-        raise HTTPException(500, f"PDF parser indisponible: {e}")
-    text = extract_text(io.BytesIO(pdf_bytes)) or ""
+        logging.getLogger(__name__).warning(f"DOCX extract error: {e}")
+        return ""
+
+
+def _pdf_to_article(pdf_bytes: bytes, label: str, *, mime: str = 'application/pdf') -> dict:
+    """Convert PDF or DOCX to a blog-style article structure {title, lead, sections}.
+    Robust to glossary-style content (Term : definition spanning multiple lines)
+    and to running prose. Adds bold on glossary term entries automatically.
+    Each paragraph has shape "TERM\u00a0: definition" or plain prose.
+    """
+    is_docx = ('wordprocessingml' in mime) or (mime == 'application/msword')
+    if is_docx:
+        text = _docx_to_text(pdf_bytes)
+    else:
+        try:
+            from pdfminer.high_level import extract_text
+        except Exception as e:
+            raise HTTPException(500, f"PDF parser indisponible: {e}")
+        text = extract_text(io.BytesIO(pdf_bytes)) or ""
     text = (text
             .replace('\ufb01', 'fi').replace('\ufb02', 'fl')
             .replace('\u00a0', ' ')
@@ -5618,16 +5681,22 @@ async def get_course_resource_article(course_id: str, r2_key: str, request: Requ
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
     mime = found.get('mime') or ''
-    if 'pdf' not in mime:
-        raise HTTPException(400, "Conversion article disponible uniquement pour les PDF")
+    res_type = found.get('type') or ''
+    # Slides → not converted; client must call /resource-access-url for inline PDF viewer.
+    if res_type == 'slides':
+        raise HTTPException(400, "Les slides sont rendus en PDF inline (utilisez /resource-access-url)")
+    is_pdf = 'pdf' in mime
+    is_docx = ('wordprocessingml' in mime) or (mime == 'application/msword')
+    if not (is_pdf or is_docx):
+        raise HTTPException(400, "Conversion article disponible pour PDF et DOCX uniquement")
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    cache_key = f"{course_id}::{r2_key}"
+    cache_key = f"{course_id}::{r2_key}::{mime}"
     if cache_key not in _pdf_article_cache:
         try:
             obj = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
             data = obj['Body'].read()
-            _pdf_article_cache[cache_key] = _pdf_to_article(data, found.get('label') or r2_key.split('/')[-1])
+            _pdf_article_cache[cache_key] = _pdf_to_article(data, found.get('label') or r2_key.split('/')[-1], mime=mime)
         except ClientError as e:
             code = e.response.get('Error', {}).get('Code', '')
             if code in ('NoSuchKey', '404'):

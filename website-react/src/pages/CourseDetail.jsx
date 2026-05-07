@@ -15,14 +15,20 @@ const RES_TYPE_LABELS = {
   glossaire: "Glossaire",
   biblio: "Bibliographie",
   bibliographie: "Bibliographie",
+  slides: "Slides",
+  document: "Document",
 }
 
 function ResourceList({ resources, courseId, color }) {
   const navigate = useNavigate()
 
   function openResource(res) {
-    // Navigate to in-app blog-style article view (no direct PDF access).
-    navigate(`/cours/${courseId}/ressource?key=${encodeURIComponent(res.r2_key)}`)
+    // Slides → protected PDF inline viewer ; other docs → blog-style article rendering.
+    if (res.type === 'slides') {
+      navigate(`/cours/${courseId}/slides?key=${encodeURIComponent(res.r2_key)}`)
+    } else {
+      navigate(`/cours/${courseId}/ressource?key=${encodeURIComponent(res.r2_key)}`)
+    }
   }
 
   // Group resources: course-level first, then by episode number

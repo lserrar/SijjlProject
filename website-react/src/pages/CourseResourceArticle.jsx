@@ -9,6 +9,22 @@ const TYPE_LABELS = {
   glossaire: "Glossaire",
   biblio: "Bibliographie",
   bibliographie: "Bibliographie",
+  document: "Document",
+}
+
+// Glossary entry: "Term : definition" (Term up to 60 chars, no period inside).
+const GLOSS_RE = /^([A-ZÀ-ÝŒÇ][^.:;\n]{1,60}?)\s*:\s+(.*)$/
+
+function GlossaryParagraph({ text }) {
+  const m = GLOSS_RE.exec(text)
+  if (!m) return <p className="cra-p">{text}</p>
+  return (
+    <p className="cra-p cra-gloss-entry">
+      <strong className="cra-gloss-term">{m[1].trim()}</strong>
+      <span className="cra-gloss-sep"> — </span>
+      {m[2]}
+    </p>
+  )
 }
 
 export default function CourseResourceArticle() {
@@ -69,167 +85,78 @@ export default function CourseResourceArticle() {
 
   if (!article) return null
 
-  const color = getCursusColor(article.course_id || courseId) || '#C9A84C'
+  const color = getCursusColor(article.course_id || courseId) || '#5A4632'
   const typeLabel = TYPE_LABELS[article.type] || 'Document pédagogique'
   const userTag = user?.email ? user.email.split('@')[0] : 'membre Sijill'
+  const isGlossary = article.type === 'glossaire'
 
   return (
-    <div
-      className="cra"
-      data-testid="course-resource-article"
-      style={{
-        // Watermark: soft repeating pattern with the user's identifier (anti-screenshot deterrent)
-        backgroundImage: `repeating-linear-gradient(-30deg, transparent 0 240px, rgba(255,255,255,0.025) 240px 480px)`,
-        userSelect: 'text',
-        WebkitUserSelect: 'text',
-        paddingTop: 120,
-        paddingBottom: 80,
-      }}
-    >
-      <article
-        className="ba"
-        style={{ position: 'relative', maxWidth: 760, margin: '0 auto', padding: '0 24px' }}
-      >
-        {/* Watermark overlay */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute', inset: 0,
-            pointerEvents: 'none',
-            backgroundImage: `repeating-linear-gradient(-30deg, transparent 0 200px, rgba(255,255,255,0.04) 200px 400px)`,
-            zIndex: 0,
-          }}
-        />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Back link */}
+    <div className="cra cra-prestige" data-testid="course-resource-article">
+      <article className="cra-article">
+        {/* Watermark grain overlay */}
+        <div aria-hidden className="cra-grain" />
+
+        <div className="cra-inner">
           <Link
             to={`/cours/${courseId}`}
-            className="ba-back"
+            className="cra-back"
             data-testid="resource-article-back"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              fontFamily: 'var(--font-display)', fontSize: 11,
-              letterSpacing: 2, textTransform: 'uppercase',
-              color: 'var(--text-muted)', textDecoration: 'none', marginBottom: 32,
-            }}
+            style={{ color }}
           >
             <span aria-hidden>&larr;</span> Retour au cours
           </Link>
 
-          {/* Pills row */}
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-            <span
-              data-testid="resource-article-type"
-              style={{
-                fontFamily: 'var(--font-display)', fontSize: 10,
-                letterSpacing: 3, textTransform: 'uppercase',
-                color, padding: '4px 12px',
-                border: `1px solid ${color}55`, borderRadius: 2,
-              }}
-            >
+          <div className="cra-pills">
+            <span data-testid="resource-article-type" className="cra-pill" style={{ borderColor: `${color}55`, color }}>
               {typeLabel}
             </span>
             {article.scope === 'episode' && article.audio_title && (
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)' }}>
-                {article.audio_title}
-              </span>
+              <span className="cra-pill-text">{article.audio_title}</span>
             )}
             {article.word_count > 0 && (
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-dim)' }}>
+              <span className="cra-pill-meta">
                 {article.word_count} mots · {Math.max(1, Math.round(article.word_count / 220))} min
               </span>
             )}
           </div>
 
-          {/* Title */}
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(28px, 5vw, 44px)',
-              lineHeight: 1.15,
-              margin: '0 0 12px',
-              color: 'var(--text)',
-            }}
-          >
-            {article.title}
-          </h1>
-
+          <h1 className="cra-title">{article.title}</h1>
           {article.course_title && (
-            <div style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--text-muted)', marginBottom: 32 }}>
-              {article.course_title}
-            </div>
+            <div className="cra-course-title">{article.course_title}</div>
           )}
 
-          <div style={{ width: 60, height: 1, background: color, marginBottom: 32 }} />
+          <div className="cra-rule" style={{ background: color }} />
 
-          {/* Lead */}
           {article.lead && (
-            <p
-              data-testid="resource-article-lead"
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 19, lineHeight: 1.6,
-                color: 'var(--text)', marginBottom: 32,
-                fontStyle: 'italic', opacity: 0.92,
-                borderLeft: `2px solid ${color}`,
-                padding: '4px 0 4px 20px',
-              }}
-            >
+            <p data-testid="resource-article-lead" className="cra-lead" style={{ borderLeftColor: color }}>
               {article.lead}
             </p>
           )}
 
-          {/* Sections */}
-          <div data-testid="resource-article-body">
+          <div data-testid="resource-article-body" className="cra-body">
             {(article.sections || []).map((sec, si) => (
-              <section key={si} style={{ marginBottom: 32 }}>
+              <section key={si} className="cra-section">
                 {sec.title && (
-                  <h2
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 22, lineHeight: 1.25,
-                      color, margin: '0 0 16px',
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    {sec.title}
-                  </h2>
+                  <h2 className="cra-h2" style={{ color }}>{sec.title}</h2>
                 )}
                 {(sec.paragraphs || []).map((p, pi) => (
-                  <p
-                    key={pi}
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 17, lineHeight: 1.75,
-                      color: 'var(--text)', marginBottom: 16,
-                    }}
-                  >
-                    {p}
-                  </p>
+                  isGlossary
+                    ? <GlossaryParagraph key={pi} text={p} />
+                    : <p key={pi} className="cra-p">{p}</p>
                 ))}
               </section>
             ))}
           </div>
 
-          {/* Footer */}
-          <footer style={{ marginTop: 64, paddingTop: 32, borderTop: `1px solid ${color}33` }}>
-            <div
-              style={{
-                fontFamily: 'var(--font-display)', fontSize: 10,
-                letterSpacing: 2, textTransform: 'uppercase',
-                color: 'var(--text-dim)', marginBottom: 12,
-              }}
-            >
-              Document réservé aux abonnés Sijill
-            </div>
-            <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text-muted)' }}>
+          <footer className="cra-footer" style={{ borderColor: `${color}33` }}>
+            <div className="cra-foot-tag" style={{ color }}>Document réservé aux abonnés Sijill</div>
+            <div className="cra-foot-meta">
               Lecture par <strong>{userTag}</strong> · Reproduction interdite
             </div>
             <Link
               to={`/cours/${courseId}`}
-              className="btn-outline"
+              className="btn-outline cra-foot-back"
               data-testid="resource-article-back-bottom"
-              style={{ marginTop: 24, display: 'inline-block' }}
             >
               &larr; Retour au cours
             </Link>
