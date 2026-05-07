@@ -136,13 +136,6 @@ export async function getResourceAccessUrl(courseId, r2_key) {
   });
 }
 
-export async function getResourceAccessUrl(courseId, r2_key) {
-  return apiFetch(`/courses/${courseId}/resource-access-url`, {
-    method: 'POST',
-    body: JSON.stringify({ r2_key }),
-  });
-}
-
 export async function getEpisodeAudioAccessUrl(audioId) {
   return apiFetch(`/audios/${audioId}/audio-access-url`);
 }

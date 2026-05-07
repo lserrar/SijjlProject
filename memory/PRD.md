@@ -106,6 +106,12 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - Tests : 19/19 backend pytest PASS + 6/6 UI flows verified (testing agent iteration_32)
   - Bug bonus corrigé : legacy `/api/audios/{id}/stream` retourne désormais 404 (au lieu de 500) si la clé R2 n'existe pas
 - ✅ Apple Sign-In (backend prêt)
+- ✅ **Visionneuses de documents protégés (Sijill Prestige + Slides)** (Fév 2026 — handoff fork) :
+  - `CourseResourceArticle.jsx` : rendu blog "Sijill Prestige" (fond crème `#F4EDE0`, EBGaramond, espacements généreux) pour scripts / glossaires / bibliographies. Auto-bolding des termes de glossaire via regex `^([A-ZÀ-ÝŒÇ][^.:;\n]{1,60}?)\s*:\s+(.*)$`. Anti-copie soft : `contextmenu` désactivé + raccourcis Ctrl+S/P/A bloqués + tag utilisateur en bas.
+  - `CourseSlides.jsx` : visionneuse PDF protégée (iframe avec `#toolbar=0&navpanes=0&scrollbar=0&view=FitH`, fond noir, watermark diagonal + tag utilisateur "Lecture · {email}"). Bug corrigé : retiré l'attribut `sandbox` qui faisait avorter le viewer PDF de Chromium (`net::ERR_ABORTED`).
+  - Bug corrigé : doublon de la fonction `getResourceAccessUrl` dans `website-react/src/api.js` (ligne 132 et 139, identiques).
+  - Routes : `/cours/:courseId/ressource?key=…` (CRA) et `/cours/:courseId/slides?key=…` (Slides) ; le `ResourceList` route automatiquement les "slides" vers le viewer PDF et les autres types vers l'article.
+  - Vérification : screenshots OK (Glossaire Maïmonide, Script Al-Kindi). Backend : `/api/courses/cours-philo-juive/resources` → 5 ressources (3 course + 2 episode), `/api/files/r2-stream` → 200 OK 3.7 MB.
 
 ## Tâches à venir
 

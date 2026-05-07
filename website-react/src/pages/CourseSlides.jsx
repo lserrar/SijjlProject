@@ -104,7 +104,6 @@ export default function CourseSlides() {
                 background: '#1a1a1a',
                 pointerEvents: 'auto',
               }}
-              sandbox="allow-scripts allow-same-origin"
               referrerPolicy="strict-origin-when-cross-origin"
             />
           ) : (
