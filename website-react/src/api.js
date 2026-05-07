@@ -86,6 +86,41 @@ export async function register(name, email, password) {
   return res.json();
 }
 
+export async function forgotPassword(email) {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Erreur lors de l'envoi de l'email");
+  }
+  return res.json();
+}
+
+export async function validateResetToken(token) {
+  const res = await fetch(`${API_BASE}/auth/reset-password/validate?token=${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Lien invalide ou expiré');
+  }
+  return res.json();
+}
+
+export async function resetPassword(token, new_password) {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, new_password }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Erreur lors de la réinitialisation');
+  }
+  return res.json();
+}
+
 export async function getBibliographies(courseId) {
   return apiFetch(`/bibliographies${courseId ? `?course_id=${courseId}` : ''}`);
 }

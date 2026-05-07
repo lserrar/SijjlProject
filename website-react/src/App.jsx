@@ -8,6 +8,8 @@ import Catalogue from './pages/Catalogue'
 import CourseDetail from './pages/CourseDetail'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import About from './pages/About'
 import BlogList from './pages/BlogList'
 import BlogArticle from './pages/BlogArticle'
@@ -37,6 +39,9 @@ export default function App() {
           <Route path="/ressource/:type/:resourceId" element={<ResourceViewer />} />
           <Route path="/connexion" element={<Login />} />
           <Route path="/inscription" element={<Register />} />
+          <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reinitialiser-mot-de-passe" element={<ResetPassword />} />
           <Route path="/a-propos" element={<About />} />
           <Route path="/blog" element={<BlogList />} />
           <Route path="/blog/:articleId" element={<BlogArticle />} />

@@ -39,8 +39,9 @@ export default function Login() {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
-        <div className="auth-switch">
-          Pas encore de compte ? <Link to="/inscription" data-testid="login-to-register">S'inscrire</Link>
+        <div className="auth-switch" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <Link to="/mot-de-passe-oublie" data-testid="login-to-forgot" style={{ fontSize: 13 }}>Mot de passe oublié ?</Link>
+          <span style={{ fontSize: 13 }}>Pas encore de compte ? <Link to="/inscription" data-testid="login-to-register">S'inscrire</Link></span>
         </div>
       </div>
     </div>
