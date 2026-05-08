@@ -144,6 +144,20 @@ export async function getCourseResourceArticle(courseId, r2_key) {
   return apiFetch(`/courses/${courseId}/resource-article?r2_key=${encodeURIComponent(r2_key)}`);
 }
 
+export async function downloadCourseResourcePdf(courseId, r2_key) {
+  const token = localStorage.getItem('sijill_token');
+  const res = await fetch(
+    `${API_BASE}/courses/${courseId}/resource-pdf?r2_key=${encodeURIComponent(r2_key)}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  );
+  if (!res.ok) throw new Error(`pdf_${res.status}`);
+  const cd = res.headers.get('content-disposition') || '';
+  const m = cd.match(/filename="?([^"]+)"?/i);
+  const filename = (m && m[1]) || 'document.pdf';
+  const blob = await res.blob();
+  return { blob, filename };
+}
+
 export async function getTimelineHtml(cursusLetter) {
   const res = await fetch(`${API_BASE}/timeline/${cursusLetter}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` },

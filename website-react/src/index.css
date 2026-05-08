@@ -1137,11 +1137,49 @@ button { cursor: pointer; font-family: var(--font-body); }
   letter-spacing: 2.5px;
   text-transform: uppercase;
   text-decoration: none;
-  margin-bottom: 32px;
   opacity: 0.78;
   transition: opacity 0.2s;
 }
 .cra-back:hover { opacity: 1; }
+
+.cra-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.cra-download {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  background: rgba(255, 250, 240, 0.55);
+  border: 1px solid;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  white-space: nowrap;
+}
+.cra-download::before {
+  content: '↓';
+  font-size: 13px;
+  opacity: 0.85;
+}
+.cra-download:hover {
+  background: rgba(255, 250, 240, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(90, 70, 50, 0.10);
+}
+.cra-download:disabled {
+  opacity: 0.5;
+  cursor: progress;
+  transform: none;
+  box-shadow: none;
+}
 
 .cra-pills {
   display: flex; gap: 14px; align-items: center; flex-wrap: wrap;

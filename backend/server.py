@@ -5721,6 +5721,258 @@ async def get_course_resource_article(course_id: str, r2_key: str, request: Requ
     return article
 
 
+# --- PROTECTED PDF DOWNLOAD (with user watermark) -----------------------------
+def _build_protected_pdf(article: dict, user_name: str, user_email: str) -> bytes:
+    """Render the article (script/glossaire/biblio) as a Sijill Prestige-styled PDF
+    with diagonal watermark + footer carrying the subscriber's name/email on every page."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.lib.colors import HexColor, Color
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.platypus import (
+        BaseDocTemplate, Frame, PageTemplate, Paragraph,
+    )
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.fonts import addMapping
+
+    # Register Unicode-aware fonts once (EB Garamond for body, DejaVu Sans for UI/UI text).
+    fonts_dir = Path(__file__).parent / 'fonts'
+    if 'EBGaramond' not in pdfmetrics.getRegisteredFontNames():
+        try:
+            pdfmetrics.registerFont(TTFont('EBGaramond', str(fonts_dir / 'EBGaramond-Regular.ttf')))
+            pdfmetrics.registerFont(TTFont('EBGaramond-Bold', str(fonts_dir / 'EBGaramond-Bold.ttf')))
+            pdfmetrics.registerFont(TTFont('EBGaramond-Italic', str(fonts_dir / 'EBGaramond-Italic.ttf')))
+            addMapping('EBGaramond', 0, 0, 'EBGaramond')
+            addMapping('EBGaramond', 1, 0, 'EBGaramond-Bold')
+            addMapping('EBGaramond', 0, 1, 'EBGaramond-Italic')
+            addMapping('EBGaramond', 1, 1, 'EBGaramond-Bold')
+            pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+            pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+            addMapping('DejaVuSans', 0, 0, 'DejaVuSans')
+            addMapping('DejaVuSans', 1, 0, 'DejaVuSans-Bold')
+            addMapping('DejaVuSans', 0, 1, 'DejaVuSans')
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Font registration failed, falling back: {e}")
+
+    CREAM = HexColor('#F4EDE0')
+    INK = HexColor('#1A1611')
+    GREEN = HexColor('#1FAE6B')
+    MUTED = HexColor('#6B5E4A')
+
+    type_labels = {
+        'script': "Script de l'épisode",
+        'glossaire': "Glossaire",
+        'biblio': "Bibliographie",
+        'bibliographie': "Bibliographie",
+        'document': "Document",
+    }
+    type_label = type_labels.get(article.get('type') or '', 'Document pédagogique')
+    title = article.get('title') or 'Document'
+    course_title = article.get('course_title') or ''
+    audio_title = article.get('audio_title') or ''
+    sections = article.get('sections') or []
+    is_glossary = (article.get('type') == 'glossaire')
+
+    buffer = BytesIO()
+
+    def _draw_page_chrome(canv, doc):
+        page_w, page_h = A4
+        # Cream background
+        canv.setFillColor(CREAM)
+        canv.rect(0, 0, page_w, page_h, stroke=0, fill=1)
+        # Diagonal watermark with subscriber name
+        canv.saveState()
+        canv.setFillColor(Color(0.35, 0.30, 0.20, alpha=0.10))
+        canv.setFont('DejaVuSans-Bold', 36)
+        canv.translate(page_w / 2, page_h / 2)
+        canv.rotate(-30)
+        wm = (user_name or user_email or 'Sijill').upper()
+        for dy in (-200, -60, 80, 220):
+            canv.drawCentredString(0, dy, wm)
+        canv.restoreState()
+        # Header rule + meta
+        canv.setStrokeColor(MUTED)
+        canv.setLineWidth(0.4)
+        canv.line(20 * mm, page_h - 18 * mm, page_w - 20 * mm, page_h - 18 * mm)
+        canv.setFillColor(MUTED)
+        canv.setFont('DejaVuSans', 8)
+        canv.drawString(20 * mm, page_h - 14 * mm, 'SIJILL PROJECT')
+        canv.drawRightString(page_w - 20 * mm, page_h - 14 * mm, type_label.upper())
+        # Footer
+        canv.line(20 * mm, 18 * mm, page_w - 20 * mm, 18 * mm)
+        canv.setFont('DejaVuSans', 7.5)
+        canv.drawString(20 * mm, 12 * mm, f"Document réservé · Lecture par {user_name} <{user_email}>")
+        canv.drawRightString(page_w - 20 * mm, 12 * mm, f"Page {doc.page}")
+        canv.setFont('EBGaramond-Italic', 7.5)
+        canv.drawCentredString(page_w / 2, 7 * mm, "Reproduction interdite — usage strictement personnel")
+
+    frame = Frame(
+        22 * mm, 22 * mm,
+        A4[0] - 44 * mm, A4[1] - 44 * mm,
+        leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+        showBoundary=0,
+    )
+    doc = BaseDocTemplate(
+        buffer, pagesize=A4,
+        leftMargin=22 * mm, rightMargin=22 * mm,
+        topMargin=22 * mm, bottomMargin=22 * mm,
+        title=title, author='Sijill Project',
+    )
+    doc.addPageTemplates([PageTemplate(id='prestige', frames=[frame], onPage=_draw_page_chrome)])
+
+    base = getSampleStyleSheet()
+    s_pill = ParagraphStyle('pill', parent=base['BodyText'],
+        textColor=GREEN, fontName='DejaVuSans-Bold', fontSize=8.5, leading=10,
+        spaceAfter=10, alignment=TA_LEFT)
+    s_title = ParagraphStyle('title', parent=base['Title'],
+        textColor=INK, fontName='EBGaramond-Bold', fontSize=26, leading=30,
+        spaceAfter=4, alignment=TA_LEFT)
+    s_meta = ParagraphStyle('meta', parent=base['BodyText'],
+        textColor=MUTED, fontName='EBGaramond-Italic', fontSize=11, leading=14,
+        spaceAfter=14, alignment=TA_LEFT)
+    s_lead = ParagraphStyle('lead', parent=base['BodyText'],
+        textColor=INK, fontName='EBGaramond-Italic', fontSize=12, leading=18,
+        spaceAfter=14, leftIndent=8, alignment=TA_LEFT)
+    s_h2 = ParagraphStyle('h2', parent=base['Heading2'],
+        textColor=GREEN, fontName='EBGaramond-Bold', fontSize=14, leading=18,
+        spaceBefore=16, spaceAfter=8, alignment=TA_LEFT)
+    s_p = ParagraphStyle('p', parent=base['BodyText'],
+        textColor=INK, fontName='EBGaramond', fontSize=11, leading=17,
+        spaceAfter=8, alignment=TA_LEFT, firstLineIndent=14)
+    s_gloss = ParagraphStyle('gloss', parent=s_p,
+        firstLineIndent=0, spaceAfter=6)
+
+    GLOSS_RE = re.compile(r'^([A-ZÀ-ÝŒÇ][^.:;\n]{1,60}?)\s*:\s+(.*)$')
+
+    def _esc(s: str) -> str:
+        return (s or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    story = []
+    pill_text = type_label.upper()
+    if audio_title:
+        pill_text += f"  ·  {_esc(audio_title)}"
+    if article.get('word_count'):
+        wc = article['word_count']
+        rt = max(1, round(wc / 220))
+        pill_text += f"  ·  {wc} mots · {rt} min"
+    story.append(Paragraph(pill_text, s_pill))
+    story.append(Paragraph(_esc(title), s_title))
+    if course_title:
+        story.append(Paragraph(_esc(course_title), s_meta))
+    if article.get('lead'):
+        story.append(Paragraph(_esc(article['lead']), s_lead))
+
+    for sec in sections:
+        sec_title = sec.get('title')
+        paras = sec.get('paragraphs') or []
+        if sec_title:
+            story.append(Paragraph(_esc(sec_title), s_h2))
+        for p in paras:
+            text = (p or '').strip()
+            if not text:
+                continue
+            if is_glossary:
+                m = GLOSS_RE.match(text)
+                if m:
+                    term = _esc(m.group(1).strip())
+                    rest = _esc(m.group(2))
+                    story.append(Paragraph(f"<b>{term}</b> &mdash; {rest}", s_gloss))
+                    continue
+            story.append(Paragraph(_esc(text), s_p))
+
+    if not story:
+        story.append(Paragraph("Document vide.", s_p))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+@api_router.get("/courses/{course_id}/resource-pdf")
+async def get_course_resource_pdf(course_id: str, r2_key: str, request: Request):
+    """Return a watermarked PDF rendition of a script/glossaire/biblio.
+    The PDF embeds the subscriber's name + email as watermark/footer."""
+    user = await require_subscriber(request)
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'course_resources': 1, 'title': 1})
+    found = None
+    scope = None
+    audio_title = None
+    episode_number = None
+    for r in (course.get('course_resources') or []) if course else []:
+        if r.get('r2_key') == r2_key:
+            found = r; scope = 'course'; break
+    if not found:
+        audio = await db.audios.find_one(
+            {'course_id': course_id, 'episode_resources.r2_key': r2_key},
+            {'_id': 0, 'episode_resources': 1, 'title': 1, 'episode_number': 1},
+        )
+        for r in (audio.get('episode_resources') or []) if audio else []:
+            if r.get('r2_key') == r2_key:
+                found = r; scope = 'episode'
+                audio_title = audio.get('title')
+                episode_number = audio.get('episode_number')
+                break
+    if not found:
+        raise HTTPException(404, "Ressource non rattachée à ce cours")
+
+    mime = found.get('mime') or ''
+    res_type = found.get('type') or ''
+    if res_type == 'slides':
+        raise HTTPException(400, "Les slides ne sont pas téléchargeables")
+    is_pdf = 'pdf' in mime
+    is_docx = ('wordprocessingml' in mime) or (mime == 'application/msword')
+    if not (is_pdf or is_docx):
+        raise HTTPException(400, "Téléchargement disponible pour PDF et DOCX uniquement")
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+
+    cache_key = f"{course_id}::{r2_key}::{mime}"
+    if cache_key not in _pdf_article_cache:
+        try:
+            obj = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+            data = obj['Body'].read()
+            _pdf_article_cache[cache_key] = _pdf_to_article(data, found.get('label') or r2_key.split('/')[-1], mime=mime)
+        except ClientError as e:
+            code = e.response.get('Error', {}).get('Code', '')
+            if code in ('NoSuchKey', '404'):
+                raise HTTPException(404, "Document non disponible")
+            raise HTTPException(500, "Erreur de lecture du document")
+        except Exception as e:
+            logging.getLogger(__name__).error(f"PDF→article error for {r2_key}: {e}")
+            raise HTTPException(500, "Erreur de conversion du document")
+
+    article = dict(_pdf_article_cache[cache_key])
+    article.update({
+        'type': found.get('type'),
+        'audio_title': audio_title,
+        'episode_number': episode_number,
+        'course_title': course.get('title') if course else None,
+    })
+
+    user_name = user.get('name') or (user.get('email') or '').split('@')[0]
+    user_email = user.get('email') or ''
+    try:
+        pdf_bytes = _build_protected_pdf(article, user_name, user_email)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"PDF render error for {r2_key}: {e}")
+        raise HTTPException(500, "Erreur de génération du PDF")
+
+    safe_label = re.sub(r'[^A-Za-z0-9_.-]+', '_', (found.get('label') or article.get('title') or 'document'))
+    filename = f"sijill-{safe_label}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'X-Robots-Tag': 'noindex, nofollow',
+        },
+    )
+
+
+
 
 
 

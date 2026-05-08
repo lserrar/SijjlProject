@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
-import { getCourseResourceArticle } from '../api'
+import { getCourseResourceArticle, downloadCourseResourcePdf } from '../api'
 import { getCursusColor } from '../constants'
 import { useAuth } from '../AuthContext'
 
@@ -35,6 +35,27 @@ export default function CourseResourceArticle() {
   const [article, setArticle] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [pdfState, setPdfState] = useState('idle') // idle | loading | error
+
+  async function handleDownloadPdf() {
+    if (pdfState === 'loading') return
+    setPdfState('loading')
+    try {
+      const { blob, filename } = await downloadCourseResourcePdf(courseId, r2Key)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      setPdfState('idle')
+    } catch (e) {
+      setPdfState('error')
+      setTimeout(() => setPdfState('idle'), 3000)
+    }
+  }
 
   useEffect(() => {
     if (!r2Key) { setError('no_key'); setLoading(false); return }
@@ -97,14 +118,29 @@ export default function CourseResourceArticle() {
         <div aria-hidden className="cra-grain" />
 
         <div className="cra-inner">
-          <Link
-            to={`/cours/${courseId}`}
-            className="cra-back"
-            data-testid="resource-article-back"
-            style={{ color }}
-          >
-            <span aria-hidden>&larr;</span> Retour au cours
-          </Link>
+          <div className="cra-toolbar">
+            <Link
+              to={`/cours/${courseId}`}
+              className="cra-back"
+              data-testid="resource-article-back"
+              style={{ color }}
+            >
+              <span aria-hidden>&larr;</span> Retour au cours
+            </Link>
+
+            <button
+              type="button"
+              data-testid="resource-article-download-pdf"
+              onClick={handleDownloadPdf}
+              disabled={pdfState === 'loading'}
+              className="cra-download"
+              style={{ color, borderColor: `${color}55` }}
+              aria-label="Télécharger en PDF protégé"
+              title="Télécharger une version PDF avec votre nom en filigrane"
+            >
+              {pdfState === 'loading' ? 'Préparation…' : pdfState === 'error' ? 'Erreur, réessayer' : 'Télécharger en PDF'}
+            </button>
+          </div>
 
           <div className="cra-pills">
             <span data-testid="resource-article-type" className="cra-pill" style={{ borderColor: `${color}55`, color }}>

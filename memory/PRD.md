@@ -113,6 +113,17 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - Routes : `/cours/:courseId/ressource?key=…` (CRA) et `/cours/:courseId/slides?key=…` (Slides) ; le `ResourceList` route automatiquement les "slides" vers le viewer PDF et les autres types vers l'article.
   - Vérification : screenshots OK (Glossaire Maïmonide, Script Al-Kindi). Backend : `/api/courses/cours-philo-juive/resources` → 5 ressources (3 course + 2 episode), `/api/files/r2-stream` → 200 OK 3.7 MB.
 
+- ✅ **Téléchargement PDF protégé "Sijill Prestige" avec watermark utilisateur** (Fév 2026 — handoff fork) :
+  - **Backend** : nouvelle dépendance `reportlab==4.5.0` ; endpoint `GET /api/courses/{course_id}/resource-pdf?r2_key=…` (gated `require_subscriber`) qui :
+    1. Réutilise `_pdf_to_article` + `_pdf_article_cache` pour extraire la structure de l'article
+    2. Génère un PDF A4 stylé "Sijill Prestige" (fond crème, EBGaramond pour le corps, DejaVuSans pour les chrome de page) via `BaseDocTemplate` + `PageTemplate.onPage`
+    3. Ajoute sur chaque page : watermark diagonal (nom utilisateur en majuscules, alpha 10%) + header (`SIJILL PROJECT` / type) + footer (`Document réservé · Lecture par {name} <{email}>` + n° de page + mention `Reproduction interdite — usage strictement personnel`)
+    4. Renvoie en `application/pdf` avec `Content-Disposition: attachment; filename="sijill-{label}.pdf"` et `Cache-Control: no-store`
+    5. Refus 400 pour les slides, 404 pour clé non whitelistée, 401 pour non-abonné
+  - **Polices Unicode** : `EBGaramond-Regular/Bold/Italic` copiées depuis `@expo-google-fonts/eb-garamond` vers `/app/backend/fonts/`, plus `fonts-dejavu-core` apt installé. Caractères de translittération arabe (ī, ū, ā, ḥ…) rendus correctement.
+  - **Frontend** : nouveau helper `downloadCourseResourcePdf` (api.js) qui fetch en blob + `Authorization: Bearer` + extrait le filename de `Content-Disposition` + déclenche le download via `URL.createObjectURL`. Bouton `[data-testid=resource-article-download-pdf]` ajouté dans la `cra-toolbar` (alignée à droite, opposé du bouton "Retour au cours") avec états `idle / loading / error`.
+  - Tests : 401 (no auth), 400 (slides), 404 (clé invalide), 200 (download). Vérification visuelle : caractères spéciaux OK, watermark visible, footer avec email utilisateur correctement intégré.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire
