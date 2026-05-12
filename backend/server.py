@@ -3988,6 +3988,307 @@ async def seed_data():
         logger.warning(f"Migration v13 skipped: {e}")
     # ─── End Migration v13 ────────────────────────────────────────────────
 
+    # ─── Migration v14: Split falsafa-grands + apply Excel catalog YT links ───
+    try:
+        # 1) NEW courses to create (or upsert) in cursus-falsafa
+        v14_new_courses = [
+            ('cours-al-kindi',           'Al-Kindī',                              'Le « philosophe des Arabes » : vie, pensée et héritage.',                'cursus-a-falsafa/02-falsafa/al-kindi/',   2),
+            ('cours-al-farabi',          'Al-Fārābī',                             'Le « Second Maître » : logique, métaphysique et cité vertueuse.',        'cursus-a-falsafa/02-falsafa/al-farabi/',  3),
+            ('cours-avicenne',           'Avicenne (Ibn Sīnā)',                    "Le penseur encyclopédique qui marqua l'Orient et l'Occident.",           'cursus-a-falsafa/02-falsafa/avicenne/',   4),
+            ('cours-al-ghazali',         'Al-Ghazālī',                            "L'imam-philosophe : critique de la falsafa et renouveau spirituel.",      'cursus-a-falsafa/02-falsafa/al-ghazali/', 5),
+            ('cours-falsafa-occident',   "La falsafa en Occident musulman",       "Ibn Bajja, Ibn Ṭufayl et Averroès — la philosophie en al-Andalus.",      'cursus-a-falsafa/03-occident-musulman/',  6),
+            ('cours-falsafa-inclassables', 'Les inclassables (Ibn Khaldūn)',      "La pensée d'Ibn Khaldūn entre histoire, philosophie et sociologie.",     'cursus-a-falsafa/07-inclassables/',       7),
+            ('cours-falsafa-persane',    "Renouveau de la philosophie persane",   "Mullā Ṣadrā et la philosophie islamique tardive.",                       'cursus-a-falsafa/06-renouveau-persan/',   8),
+        ]
+        for cid, title, summary, r2_prefix, order in v14_new_courses:
+            await db.courses.update_one(
+                {'id': cid},
+                {'$set': {
+                    'id': cid, 'title': title, 'summary': summary, 'description': summary,
+                    'cursus_id': 'cursus-falsafa', 'r2_prefix': r2_prefix,
+                    'is_launch_catalog': True, 'is_active': True, 'order': order,
+                    'modules': [{'id': f'{cid}-mod-1', 'order': 1, 'title': title}],
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
+
+        # 2) Deactivate the old umbrella course
+        await db.courses.update_one(
+            {'id': 'cours-falsafa-grands'},
+            {'$set': {'is_launch_catalog': False, 'is_active': False}},
+        )
+
+        # 3) Move existing audios from cours-falsafa-grands → their dedicated course
+        FALSAFA_ROUTING = [
+            ('al-kindi',                'cours-al-kindi'),
+            ('al-farabi',               'cours-al-farabi'),
+            ('avicenne',                'cours-avicenne'),
+            ('avicenne-monde-latin',    'cours-avicenne'),
+            ('disciples-avicenne',      'cours-avicenne'),
+            ('al-ghazali',              'cours-al-ghazali'),
+        ]
+        for sf_pat, new_course_id in FALSAFA_ROUTING:
+            res_move = await db.audios.update_many(
+                {
+                    'course_id': 'cours-falsafa-grands',
+                    '$or': [
+                        {'r2_subprefix': {'$regex': f'^{sf_pat}/?$'}},
+                        {'r2_audio_key': {'$regex': f'/{sf_pat}/'}},
+                    ],
+                },
+                {'$set': {
+                    'course_id': new_course_id,
+                    'module_id': f'{new_course_id}-mod-1',
+                    'r2_subprefix': f'{sf_pat}/',
+                }},
+            )
+            if res_move.modified_count:
+                logger.info(f"Migration v14: moved {res_move.modified_count} audio(s) -> {new_course_id} (sf={sf_pat})")
+        # Deactivate remaining orphan audios still tagged on the old umbrella course
+        await db.audios.update_many(
+            {'course_id': 'cours-falsafa-grands'},
+            {'$set': {'is_active': False}},
+        )
+
+        # 4) Apply YouTube URLs from the Excel catalog
+        EXCEL_YT_MAP = {
+            ('cours-al-kindi', 1):  'https://youtu.be/LDeseoNGAPQ',
+            ('cours-al-kindi', 2):  'https://youtu.be/YK7LJRJheDg',
+            ('cours-al-kindi', 3):  'https://youtu.be/hBzgQV2XgrE',
+            ('cours-al-kindi', 4):  'https://youtu.be/GeAHez38fzw',
+            ('cours-al-kindi', 5):  'https://youtu.be/dQ14KnQonMU',
+            ('cours-al-farabi', 1): 'https://youtu.be/c5CKp355l0U',
+            ('cours-al-farabi', 2): 'https://youtu.be/L7uD6n-D4-g',
+            ('cours-al-farabi', 3): 'https://youtu.be/ehwtqMRApY0',
+            ('cours-avicenne', 1):  'https://youtu.be/PaqA6eCZSRY',
+            ('cours-traduction', 1):'https://youtu.be/5EsSIUfeP-o',
+            ('cours-fiqh', 1):      'https://youtu.be/42OhGxr4THU',
+            ('cours-fiqh', 2):      'https://youtu.be/H7Q2kepCGQY',
+            ('cours-fiqh', 3):      'https://youtu.be/PSuT_A7IMMA',
+            ('cours-fiqh', 4):      'https://youtu.be/j7dWjZQXo08',
+            ('cours-fiqh', 5):      'https://youtu.be/vITKWxnhIi8',
+            ('cours-fiqh', 6):      'https://youtu.be/rvjZ4RkDDnw',
+            ('cours-art', 1):       'https://youtu.be/5zqtVXI9S1Y',
+            ('cours-art', 2):       'https://youtu.be/QDK4iVJ7b2k',
+            ('cours-art', 3):       'https://youtu.be/fFDsyYhCnFo',
+            ('cours-art', 4):       'https://youtu.be/A9J_CkjT_hU',
+            ('cours-historiographie', 1): 'https://youtu.be/RUc8p0K6Qg4',
+            ('cours-philo-juive', 1): 'https://youtu.be/kYWqboZxQP0',
+            ('cours-philo-juive', 2): 'https://youtu.be/nkXImE6euX4',
+            ('cours-debuts-islam', 1): 'https://youtu.be/kB-fr8wwcAA',
+            ('cours-andalus', 1):   'https://youtu.be/cow2JfYaSC0',
+        }
+        yt_applied = 0
+        for (cid, ep_num), yt in EXCEL_YT_MAP.items():
+            res_yt = await db.audios.update_one(
+                {'course_id': cid, 'episode_number': ep_num},
+                {'$set': {'youtube_url': yt, 'is_active': True}},
+            )
+            if res_yt.modified_count:
+                yt_applied += 1
+                continue
+            # No audio doc yet — create a YT-only placeholder
+            new_id = f'aud_{cid}-yt-ep{ep_num:02d}'
+            cdoc = await db.courses.find_one({'id': cid}, {'_id': 0, 'modules': 1, 'title': 1})
+            mid = ((cdoc or {}).get('modules') or [{}])[0].get('id') if cdoc else None
+            ctitle = (cdoc or {}).get('title', 'Épisode')
+            await db.audios.update_one(
+                {'id': new_id},
+                {'$set': {
+                    'id': new_id, 'course_id': cid, 'module_id': mid,
+                    'episode_number': ep_num, 'title': f"{ctitle} — Épisode {ep_num}",
+                    'youtube_url': yt, 'is_active': True, 'published_at': '2026-05',
+                    'audio_url': '',
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
+            yt_applied += 1
+        logger.info(f"Migration v14: applied {yt_applied} YouTube URLs from Excel")
+
+        # 5) Clean cours-debuts-islam per Excel (ep1 Ghouirgate intro, ep3-6 Bouali)
+        await db.audios.delete_many({'course_id': 'cours-debuts-islam', 'id': 'aud_cours-debuts-islam-ep05'})
+        DEBUT_EPS = [
+            (1, "Les débuts de l'islam — Introduction", 'Mehdi Ghouirgate', 'https://youtu.be/kB-fr8wwcAA'),
+            (3, "Muhammad et les débuts de l'islam",     'Hassan Bouali',    None),
+            (4, "Le califat au début de l'islam : de Médine à la sortie d'Arabie", 'Hassan Bouali', None),
+            (5, "Les futūḥāt / conquêtes",              'Hassan Bouali',    None),
+            (6, "Le ḥajj et son intégration progressive à la piété musulmane", 'Hassan Bouali', None),
+        ]
+        debuts_course = await db.courses.find_one({'id': 'cours-debuts-islam'}, {'_id': 0, 'modules': 1})
+        debuts_mid = ((debuts_course or {}).get('modules') or [{}])[0].get('id') if debuts_course else None
+        for ep_num, ep_title, intervenant, yt in DEBUT_EPS:
+            new_id = f'aud_cours-debuts-islam-ep{ep_num:02d}'
+            set_payload = {
+                'id': new_id, 'course_id': 'cours-debuts-islam', 'module_id': debuts_mid,
+                'episode_number': ep_num, 'title': ep_title, 'intervenant': intervenant,
+                'is_active': True, 'published_at': '2026-05',
+            }
+            if yt:
+                set_payload['youtube_url'] = yt
+            await db.audios.update_one({'id': new_id}, {'$set': set_payload}, upsert=True)
+
+        # 6) cours-andalus — Ghouirgate intro
+        await db.audios.update_one(
+            {'course_id': 'cours-andalus', 'episode_number': 1},
+            {'$set': {
+                'title': 'Al-Andalus — Introduction', 'intervenant': 'Mehdi Ghouirgate',
+                'youtube_url': 'https://youtu.be/cow2JfYaSC0', 'is_active': True,
+                'published_at': '2026-05',
+            }},
+        )
+        logger.info("Migration v14: falsafa split + YT applied + debuts-islam cleaned")
+
+        # 7) v14b CLEANUP — deduplicate per (course_id, episode_number)
+        # Keep the best audio per (course, ep): prefer one with both YT + R2_audio,
+        # then R2 audio only, then YT only. Delete the rest.
+        v14_target_courses = [c[0] for c in v14_new_courses] + [
+            'cours-traduction', 'cours-fiqh', 'cours-debuts-islam',
+            'cours-andalus', 'cours-historiographie', 'cours-art', 'cours-philo-juive',
+        ]
+        for cid in v14_target_courses:
+            ep_groups: dict = {}
+            async for a in db.audios.find({'course_id': cid}, {'_id': 0}):
+                ep = a.get('episode_number') or 0
+                ep_groups.setdefault(ep, []).append(a)
+            for ep, group in ep_groups.items():
+                if len(group) <= 1:
+                    continue
+                # Score each audio: 4=R2+YT, 3=R2 only, 2=YT only, 1=neither
+                def _score(a):
+                    has_r2 = bool(a.get('r2_audio_key'))
+                    has_yt = bool(a.get('youtube_url'))
+                    return (2 if has_r2 else 0) + (1 if has_yt else 0)
+                group.sort(key=lambda a: (-_score(a), -(len(a.get('title') or '')), a.get('id') or ''))
+                # Merge: keep top, copy missing YT/R2 from others, delete the rest
+                keep = group[0]
+                merged_set = {}
+                for other in group[1:]:
+                    if not keep.get('youtube_url') and other.get('youtube_url'):
+                        merged_set['youtube_url'] = other['youtube_url']
+                        keep['youtube_url'] = other['youtube_url']
+                    if not keep.get('r2_audio_key') and other.get('r2_audio_key'):
+                        merged_set['r2_audio_key'] = other['r2_audio_key']
+                        merged_set['has_r2_audio'] = True
+                        keep['r2_audio_key'] = other['r2_audio_key']
+                if merged_set:
+                    await db.audios.update_one({'id': keep['id']}, {'$set': merged_set})
+                victim_ids = [o['id'] for o in group[1:] if o.get('id')]
+                if victim_ids:
+                    res_del = await db.audios.delete_many({'id': {'$in': victim_ids}})
+                    logger.info(f"Migration v14b: cleaned {res_del.deleted_count} dup audio(s) on {cid} ep{ep} (kept {keep.get('id')})")
+        # Special: drop ghost audios on cours-avicenne that aren't real avicenne content
+        await db.audios.delete_many({
+            'course_id': 'cours-avicenne',
+            'title': {'$regex': '^(Avicenne Monde Latin|Disciples Avicenne|Épisode \\d+$)'},
+        })
+        # Special: cours-traduction Excel has only ep1, drop fake ep2 placeholders
+        await db.audios.delete_many({
+            'course_id': 'cours-traduction', 'episode_number': {'$gt': 1},
+        })
+        logger.info("Migration v14b: dedup + ghost cleanup complete")
+
+        # v14c — Final fixes:
+        # - cours-debuts-islam: ep2 should not exist (Al-Andalus is its own course).
+        #   Drop any ep<3 except the canonical ep1.
+        await db.audios.delete_many({
+            'course_id': 'cours-debuts-islam',
+            'episode_number': 2,
+        })
+        await db.audios.delete_many({
+            'course_id': 'cours-debuts-islam',
+            'id': {'$nin': [f'aud_cours-debuts-islam-ep{n:02d}' for n in (1, 3, 4, 5, 6)]},
+        })
+        # Remove unwanted YT URL on Bouali "Commandé" episodes (no YT in Excel)
+        await db.audios.update_many(
+            {'course_id': 'cours-debuts-islam', 'episode_number': {'$in': [3, 4, 5, 6]}},
+            {'$unset': {'youtube_url': ''}},
+        )
+        # - cours-historiographie: rename ep1 to match Excel (Ibn Khaldūn)
+        await db.audios.update_one(
+            {'course_id': 'cours-historiographie', 'episode_number': 1},
+            {'$set': {
+                'title': 'Ibn Khaldūn — Historiographie',
+                'intervenant': 'Mehdi Ghouirgate',
+            }},
+        )
+        # - cours-al-ghazali: create an "À venir" placeholder ep1 (Commandé per Excel)
+        ag_audio = await db.audios.find_one({'course_id': 'cours-al-ghazali', 'episode_number': 1})
+        if not ag_audio:
+            ag_course = await db.courses.find_one({'id': 'cours-al-ghazali'}, {'_id': 0, 'modules': 1})
+            ag_mid = ((ag_course or {}).get('modules') or [{}])[0].get('id')
+            await db.audios.update_one(
+                {'id': 'aud_cours-al-ghazali-ep01'},
+                {'$set': {
+                    'id': 'aud_cours-al-ghazali-ep01', 'course_id': 'cours-al-ghazali',
+                    'module_id': ag_mid, 'episode_number': 1,
+                    'title': 'Al-Ghazālī — Épisode 1', 'intervenant': 'Meryem Sebti',
+                    'is_active': True, 'published_at': '2026-05',
+                    'audio_url': '',
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                }},
+                upsert=True,
+            )
+        logger.info("Migration v14c: final polish applied")
+
+        # v14d — ensure each new course has an entry in the `modules` collection
+        # (the catalogue endpoint joins audios → modules → courses to count episodes)
+        for cid, title, _summary, _r2, _order in v14_new_courses:
+            mid = f'{cid}-mod-1'
+            await db.modules.update_one(
+                {'id': mid},
+                {'$set': {
+                    'id': mid, 'course_id': cid, 'order': 1,
+                    'name': title, 'title': title,
+                    'is_active': True, 'is_launch_catalog': True,
+                }},
+                upsert=True,
+            )
+        logger.info("Migration v14d: ensured modules collection for new falsafa courses")
+
+        # v14e — attach orphan audios (module_id=None) to the matching module by title slug.
+        # For cours-fiqh: Droit Musulman audios → module 'Droit musulman' (cours-fiqh-mod-2).
+        # For cours-historiographie ep1 'Ibn Khaldūn' → module 'Ibn Khaldūn (...)' (mod-2).
+        # Otherwise fallback to the first active module of the course.
+        async def _attach_audio_to_best_module(course_id: str):
+            mods = await db.modules.find(
+                {'course_id': course_id, 'is_active': {'$ne': False}},
+                {'_id': 0, 'id': 1, 'name': 1, 'title': 1, 'order': 1}
+            ).sort('order', 1).to_list(50)
+            if not mods:
+                return
+            audios = await db.audios.find(
+                {'course_id': course_id, '$or': [{'module_id': None}, {'module_id': {'$exists': False}}]},
+                {'_id': 0, 'id': 1, 'title': 1, 'episode_number': 1}
+            ).to_list(200)
+            def _norm(s): return (s or '').lower().replace('-', ' ').replace('_', ' ')
+            for a in audios:
+                atit = _norm(a.get('title'))
+                target = None
+                for m in mods:
+                    mtit = _norm(m.get('name') or m.get('title'))
+                    if not mtit:
+                        continue
+                    key = mtit.split('(')[0].strip()
+                    if key and key in atit:
+                        target = m; break
+                if not target:
+                    target = mods[0]
+                await db.audios.update_one(
+                    {'id': a['id']},
+                    {'$set': {'module_id': target['id']}},
+                )
+        for cid in ['cours-fiqh', 'cours-historiographie', 'cours-philo-juive',
+                    'cours-art', 'cours-debuts-islam', 'cours-andalus', 'cours-traduction']:
+            await _attach_audio_to_best_module(cid)
+        logger.info("Migration v14e: attached orphan audios to best matching module")
+    except Exception as e:
+        logger.warning(f"Migration v14 failed: {e}", exc_info=True)
+    # ─── End Migration v14 ─────────────────────────────────────────────────
+
+
+
 
     # ─── Migration v10: Seed all scholars from Excel + link courses ────────
     SCHOLARS_SEED = [

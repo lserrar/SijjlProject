@@ -149,6 +149,19 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
     3. `EpisodeRow` affiche un badge `⏱ À VENIR · MAI 2026` à côté du titre pour les épisodes upcoming, et baisse l'opacité de la card à 0.62 (gris foncé). Les boutons Audio/Vidéo restent désactivés via `disabled={!hasAudio || !hasVideo}`. data-testid `{rowId}-upcoming-badge`.
   - **Vérification** : sur `cours-debuts-islam`, ep01 (Bouali) et ep05 (Ghouirgate avec YouTube) affichent leurs boutons Audio/Vidéo actifs ; ep02/03/04 affichent le badge `⏱ À VENIR · MAI 2026` et sont grisés. Filtrage `is_launch_catalog=True` du catalogue déjà en place (Catalogue.jsx, Intervenants.jsx, ScholarDetail.jsx).
 
+- ✅ **Migration v14 — Restructuration cours-falsafa-grands + alignement Excel** (Fév 2026 — handoff fork) :
+  - **Split** du cours unique `cours-falsafa-grands` en **7 cours distincts** dans `cursus-falsafa` :
+    `cours-al-kindi`, `cours-al-farabi`, `cours-avicenne`, `cours-al-ghazali`,
+    `cours-falsafa-occident`, `cours-falsafa-inclassables`, `cours-falsafa-persane`.
+  - **Routage** des audios existants par `r2_subprefix` (al-kindi/, al-farabi/, avicenne/, al-ghazali/) vers le nouveau cours dédié + module rattaché.
+  - **YouTube URLs Excel** : 25 liens appliqués (Al-Kindī ep1-5, Al-Fārābī ep1-3, Avicenne ep1, Uṣūl al-fiqh ep1-6, Histoire art ep1-4, Ibn Khaldūn historiographie ep1, Maïmonide ep1-2, Mouvement traduction ep1, Débuts islam ep1, Al-Andalus ep1).
+  - **Cleanup débuts-islam** : ep1 = Ghouirgate "Les débuts de l'islam – Introduction" (avec YT), ep3-6 = Bouali (Muhammad / Califat / Futūḥāt / Ḥajj — Commandés). Suppression de l'ep2 doublon.
+  - **v14b dedup** : déduplication agressive par `(course_id, episode_number)` avec merge des champs YT + R2_audio sur le meilleur candidat. Suppression de 35+ doublons fantômes.
+  - **v14c polish** : titre Ibn Khaldūn historiographie corrigé, placeholder Al-Ghazālī ep1 (Commandé) créé, YT supprimés des Bouali commandés.
+  - **v14d** : entrées dans la collection `modules` créées pour chaque nouveau cours (bug catalogue affichant "BIENTÔT" alors que les épisodes existaient).
+  - **v14e** : attachement des audios orphelins (`module_id=None`) au module le mieux correspondant par similarité de titre (`Droit Musulman` → module "Droit musulman", `Ibn Khaldūn` → module "Ibn Khaldūn", etc.).
+  - **Résultat final** : `/api/catalogue` retourne **21 cours · 72 épisodes au lancement**, tous correctement classés avec YT + R2 audio cohérents avec l'Excel.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire
