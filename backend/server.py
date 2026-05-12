@@ -3962,6 +3962,33 @@ async def seed_data():
         logger.warning(f"Migration v11 skipped: {e}")
     # ─── End Migration v11 ─────────────────────────────────────────────────
 
+    # ─── Migration v13: published_at default for launch-catalog episodes ────
+    # For all audios attached to a launch-catalog course that don't have an explicit
+    # `published_at`, default it to "2026-05" so the frontend can show a date badge
+    # ("À venir · Mai 2026") on episodes that aren't yet available. Episodes with
+    # actual media (r2_audio_key, youtube_url, audio_url) keep status='available'.
+    try:
+        launch_course_ids_v13 = [c['id'] async for c in db.courses.find(
+            {'is_launch_catalog': True}, {'_id': 0, 'id': 1}
+        )]
+        if launch_course_ids_v13:
+            res_v13 = await db.audios.update_many(
+                {
+                    'course_id': {'$in': launch_course_ids_v13},
+                    '$or': [
+                        {'published_at': {'$exists': False}},
+                        {'published_at': None},
+                        {'published_at': ''},
+                    ],
+                },
+                {'$set': {'published_at': '2026-05'}},
+            )
+            logger.info(f"Migration v13: published_at='2026-05' set on {res_v13.modified_count} launch-catalog episodes")
+    except Exception as e:
+        logger.warning(f"Migration v13 skipped: {e}")
+    # ─── End Migration v13 ────────────────────────────────────────────────
+
+
     # ─── Migration v10: Seed all scholars from Excel + link courses ────────
     SCHOLARS_SEED = [
         ('sch-bouali', 'Hassan Bouali', 'Docteur en histoire médiévale',

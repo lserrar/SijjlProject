@@ -141,6 +141,14 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
     | cours-andalus | 0 / 0 | 1 / 1 (créé) | +1 |
   - **Workflow utilisateur documenté** : 1) Upload fichiers en R2 (en respectant le sous-dossier intervenant si multi). 2) Ouvrir `/api/admin-panel/r2-medias`. 3) Bouton "Prévisualiser" pour voir ce qui sera mappé. 4) Bouton "Synchroniser" pour appliquer. Le `r2_subprefix` est auto-rempli sur les épisodes créés.
 
+- ✅ **Statut & date des épisodes — Release 2 P1** (Fév 2026 — handoff fork) :
+  - **Backend** : Migration v13 pose `published_at='2026-05'` sur tous les audios des cours `is_launch_catalog=True` qui n'ont pas encore de date.
+  - **Frontend** `CourseDetail.jsx` :
+    1. Helper `getEpisodeStatus(ep)` qui dérive le statut (`available` si `has_r2_audio || r2_audio_key || audio_url || youtube_url`, sinon `upcoming`) et formate `published_at` en `"Mai 2026"` (fr).
+    2. Tri secondaire `sortedAudios` : episodes available d'abord, puis upcoming (par episode_number).
+    3. `EpisodeRow` affiche un badge `⏱ À VENIR · MAI 2026` à côté du titre pour les épisodes upcoming, et baisse l'opacité de la card à 0.62 (gris foncé). Les boutons Audio/Vidéo restent désactivés via `disabled={!hasAudio || !hasVideo}`. data-testid `{rowId}-upcoming-badge`.
+  - **Vérification** : sur `cours-debuts-islam`, ep01 (Bouali) et ep05 (Ghouirgate avec YouTube) affichent leurs boutons Audio/Vidéo actifs ; ep02/03/04 affichent le badge `⏱ À VENIR · MAI 2026` et sont grisés. Filtrage `is_launch_catalog=True` du catalogue déjà en place (Catalogue.jsx, Intervenants.jsx, ScholarDetail.jsx).
+
 ## Tâches à venir
 
 ### P1 - Prioritaire

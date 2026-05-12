@@ -121,19 +121,45 @@ function ResourceCard({ resource, color, onOpen }) {
   )
 }
 
+// Derive an episode's availability status & visible date label.
+// Priority: explicit `status` field > derived from has_r2_audio/youtube_url/audio_url
+function getEpisodeStatus(ep) {
+  if (!ep) return { status: 'upcoming', label: 'À venir', dateLabel: '' }
+  // Available if any playable media is attached
+  const hasMedia = !!(ep.has_r2_audio || ep.r2_audio_key || ep.audio_url || ep.youtube_url)
+  if (hasMedia) return { status: 'available', label: 'Disponible', dateLabel: '' }
+  // Format published_at if present ('2026-05' -> 'Mai 2026')
+  const pub = ep.published_at || ''
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+  let dateLabel = ''
+  const m = /^(\d{4})-(\d{2})/.exec(pub)
+  if (m) dateLabel = `${months[parseInt(m[2], 10) - 1]} ${m[1]}`
+  else if (pub) dateLabel = pub
+  // Default for launch catalog without explicit date
+  return {
+    status: 'upcoming',
+    label: dateLabel ? `À venir · ${dateLabel}` : 'Bientôt disponible',
+    dateLabel,
+  }
+}
+
 function EpisodeRow({ ep, idx, color, testid, isAudioActive, isVideoActive, onPlayAudio, onPlayVideo }) {
   const hasAudio = !!ep.has_r2_audio
   const hasVideo = !!ep.youtube_url
+  const status = getEpisodeStatus(ep)
+  const isUpcoming = status.status === 'upcoming'
   return (
     <div
       className="episode-row"
       data-testid={testid}
+      data-status={status.status}
       style={{
         cursor: 'default',
         background: (isAudioActive || isVideoActive) ? `${color}0E` : 'transparent',
         borderLeft: `2px solid ${(isAudioActive || isVideoActive) ? color : 'transparent'}`,
         paddingLeft: 16,
         flexWrap: 'wrap', gap: 8,
+        opacity: isUpcoming ? 0.62 : 1,
       }}
     >
       <span className="episode-num" style={{ color: (isAudioActive || isVideoActive) ? color : `${color}55` }}>
@@ -141,6 +167,23 @@ function EpisodeRow({ ep, idx, color, testid, isAudioActive, isVideoActive, onPl
       </span>
       <span className="episode-title" style={{ color: (isAudioActive || isVideoActive) ? color : 'var(--text)', flex: 1, minWidth: 200 }}>
         {ep.title}
+        {isUpcoming && (
+          <span
+            data-testid={`${testid}-upcoming-badge`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              marginLeft: 12, padding: '2px 8px', fontSize: 9.5,
+              fontFamily: 'var(--font-display)', letterSpacing: 2, textTransform: 'uppercase',
+              border: `1px solid ${color}77`, color, borderRadius: 2,
+              background: `${color}11`, verticalAlign: 'middle',
+            }}
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            {status.label}
+          </span>
+        )}
       </span>
       <div style={{ display: 'flex', gap: 8 }}>
         <button
@@ -418,8 +461,19 @@ export default function CourseDetail() {
 
   const color = getCursusColor(course.cursus_id)
   const letter = getCursusLetter(course.cursus_id)
+  // Sort audios so that "available" episodes come first inside each module,
+  // followed by "upcoming" ones (still sorted by episode_number then title).
+  const _statusRank = (a) => (getEpisodeStatus(a).status === 'available' ? 0 : 1)
+  const sortedAudios = [...audios].sort((a, b) => {
+    const r = _statusRank(a) - _statusRank(b)
+    if (r !== 0) return r
+    const ea = a.episode_number ?? 9999
+    const eb = b.episode_number ?? 9999
+    if (ea !== eb) return ea - eb
+    return (a.title || '').localeCompare(b.title || '')
+  })
   const audiosByModule = {}
-  audios.forEach(a => { const mid = a.module_id || 'unknown'; if (!audiosByModule[mid]) audiosByModule[mid] = []; audiosByModule[mid].push(a) })
+  sortedAudios.forEach(a => { const mid = a.module_id || 'unknown'; if (!audiosByModule[mid]) audiosByModule[mid] = []; audiosByModule[mid].push(a) })
 
   const modNums = modules.map((m, i) => m.order || parseInt(m.id?.split('mod-')[1]) || (i + 1))
   // Context: show all resources for this cursus (like the mobile app)
