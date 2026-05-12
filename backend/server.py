@@ -193,15 +193,22 @@ def _extract_episode_number(filename: str) -> Optional[int]:
     return None
 
 
-def _classify_r2_file(key: str) -> Optional[dict]:
+def _classify_r2_file(key: str, prefix: str = '') -> Optional[dict]:
     """Classify an R2 object key into a media role.
-    Returns a dict {role, episode_number, type, label, mime, r2_key, filename}
+    Returns a dict {role, episode_number, type, label, mime, r2_key, filename, subfolder}
     or None if not classifiable.
     Roles: 'episode_video', 'episode_audio', 'episode_doc', 'course_doc'.
+    `subfolder` is the path between the course prefix and the filename (e.g. 'al-kindi/').
     """
     filename = key.rsplit('/', 1)[-1]
     if not filename or filename.startswith('.'):
         return None
+    # Extract subfolder (path inside course prefix, before filename)
+    subfolder = ''
+    if prefix and key.startswith(prefix):
+        rel = key[len(prefix):]
+        if '/' in rel:
+            subfolder = rel.rsplit('/', 1)[0] + '/'
     parts = filename.rsplit('.', 1)
     if len(parts) != 2:
         return None
@@ -213,7 +220,7 @@ def _classify_r2_file(key: str) -> Optional[dict]:
         if ep is not None:
             return {'role': 'episode_video', 'episode_number': ep, 'type': 'video',
                     'label': f'Vidéo épisode {ep}', 'mime': f'video/{ext if ext != "mov" else "quicktime"}',
-                    'r2_key': key, 'filename': filename, 'ext': ext}
+                    'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         return None  # course-level video not yet supported
 
     if ext in _AUDIO_EXTS:
@@ -222,7 +229,7 @@ def _classify_r2_file(key: str) -> Optional[dict]:
                         'ogg': 'audio/ogg', 'aac': 'audio/aac', 'flac': 'audio/flac'}
             return {'role': 'episode_audio', 'episode_number': ep, 'type': 'audio',
                     'label': f'Podcast épisode {ep}', 'mime': mime_map.get(ext, 'audio/mpeg'),
-                    'r2_key': key, 'filename': filename, 'ext': ext}
+                    'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         return None
 
     if ext in _DOC_EXTS:
@@ -232,43 +239,39 @@ def _classify_r2_file(key: str) -> Optional[dict]:
         mime = mime_map[ext]
         is_biblio = any(k in name_l for k in _BIBLIO_KEYWORDS)
         is_gloss = any(k in name_l for k in _GLOSSAIRE_KEYWORDS)
-        # Recognize explicit prefixes commonly used in Sijill R2:
-        # "script-…" → script (rendered as blog article)
-        # "slide-…" or "slides-…" → slides (rendered as protected inline PDF)
         is_script = name_l.startswith('script-') or name_l.startswith('script_')
         is_slides = name_l.startswith('slide-') or name_l.startswith('slides-') or name_l.startswith('slide_') or name_l.startswith('slides_')
         if is_slides:
             if ep is not None:
                 return {'role': 'episode_doc', 'episode_number': ep, 'type': 'slides',
                         'label': f"Slides — Épisode {ep}", 'mime': mime,
-                        'r2_key': key, 'filename': filename, 'ext': ext}
+                        'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
             return {'role': 'course_doc', 'episode_number': None, 'type': 'slides',
                     'label': filename.rsplit('.', 1)[0].replace('slide-', '').replace('slides-', '').replace('_', ' ').replace('-', ' ').strip().capitalize() or 'Slides',
-                    'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext}
+                    'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         if is_script:
             if ep is not None:
                 return {'role': 'episode_doc', 'episode_number': ep, 'type': 'script',
                         'label': "Script de l'épisode", 'mime': mime,
-                        'r2_key': key, 'filename': filename, 'ext': ext}
-            # Script without episode number → course-level
+                        'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
             return {'role': 'course_doc', 'episode_number': None, 'type': 'script',
                     'label': "Script", 'mime': mime,
-                    'r2_key': key, 'filename': filename, 'ext': ext}
+                    'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         if is_biblio:
             return {'role': 'course_doc', 'episode_number': None, 'type': 'biblio',
                     'label': 'Bibliographie sélective', 'mime': mime,
-                    'r2_key': key, 'filename': filename, 'ext': ext}
+                    'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         if is_gloss:
             return {'role': 'course_doc', 'episode_number': None, 'type': 'glossaire',
                     'label': 'Glossaire des termes', 'mime': mime,
-                    'r2_key': key, 'filename': filename, 'ext': ext}
+                    'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         if ep is not None:
             return {'role': 'episode_doc', 'episode_number': ep, 'type': 'script',
                     'label': "Script de l'épisode", 'mime': mime,
-                    'r2_key': key, 'filename': filename, 'ext': ext}
+                    'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
         return {'role': 'course_doc', 'episode_number': None, 'type': 'document',
                 'label': filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').strip().capitalize(),
-                'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext}
+                'mime': mime, 'r2_key': key, 'filename': filename, 'ext': ext, 'subfolder': subfolder}
 
     # Unknown ext (jpg/png covers, manuscripts, etc.) — ignore for now
     return None
@@ -292,7 +295,16 @@ def _list_r2_keys(prefix: str) -> list:
 
 
 def _build_r2_detections(prefix: str) -> dict:
-    """Scan an R2 prefix and group classified detections by role."""
+    """Scan an R2 prefix and group classified detections by role.
+    Multi-intervenant safe: keeps a LIST of detections per episode_number so the
+    caller can disambiguate using r2_subprefix on the target audio.
+    Returned shape:
+      videos[ep] = [detection, ...]   (list, in case multiple subfolders share an episode)
+      audios[ep] = [detection, ...]
+      episode_docs[ep] = [detection, ...]
+      course_docs = [...]
+      unclassified = [...]
+    """
     out: dict = {
         'prefix': prefix,
         'videos': {},
@@ -302,18 +314,16 @@ def _build_r2_detections(prefix: str) -> dict:
         'unclassified': [],
     }
     for key in _list_r2_keys(prefix):
-        cls = _classify_r2_file(key)
+        cls = _classify_r2_file(key, prefix=prefix)
         if not cls:
             out['unclassified'].append(key)
             continue
         role = cls['role']
         ep = cls.get('episode_number')
         if role == 'episode_video' and ep:
-            out['videos'].setdefault(ep, cls)
+            out['videos'].setdefault(ep, []).append(cls)
         elif role == 'episode_audio' and ep:
-            existing = out['audios'].get(ep)
-            if not existing or (cls['ext'] == 'mp3' and existing['ext'] != 'mp3'):
-                out['audios'][ep] = cls
+            out['audios'].setdefault(ep, []).append(cls)
         elif role == 'episode_doc' and ep:
             out['episode_docs'].setdefault(ep, []).append(cls)
         elif role == 'course_doc':
@@ -325,23 +335,52 @@ def _build_r2_detections(prefix: str) -> dict:
     return out
 
 
-async def _apply_r2_detections(course_id: str, detections: dict) -> dict:
-    """Apply auto-detection results to the database for this course."""
+def _match_detection_for_audio(detections_list: list, audio_subprefix: str) -> Optional[dict]:
+    """Pick the right detection for an audio based on its r2_subprefix.
+    - If audio has r2_subprefix, return the first detection whose subfolder matches.
+    - If audio has NO subprefix and only one detection exists, return it (back-compat).
+    - Otherwise return None (ambiguous — admin needs to set r2_subprefix).
+    """
+    if not detections_list:
+        return None
+    sp = (audio_subprefix or '').strip().strip('/').lower()
+    if sp:
+        for d in detections_list:
+            df = (d.get('subfolder') or '').strip().strip('/').lower()
+            if df == sp:
+                return d
+        return None
+    # No subprefix on audio
+    if len(detections_list) == 1:
+        return detections_list[0]
+    # Multiple candidates but no subprefix — prefer one with EMPTY subfolder (flat course)
+    flat = [d for d in detections_list if not (d.get('subfolder') or '').strip('/')]
+    if len(flat) == 1:
+        return flat[0]
+    return None  # ambiguous
+
+
+async def _apply_r2_detections(course_id: str, detections: dict, auto_create_missing: bool = True) -> dict:
+    """Apply auto-detection results to the database for this course.
+    Multi-intervenant safe: respects each audio's r2_subprefix to pick the right file.
+    When auto_create_missing=True, creates new audio docs for episodes/subfolders
+    found in R2 that don't yet exist in DB.
+    """
     summary = {
         'course_resources_count': 0,
         'episodes_updated': 0,
+        'episodes_created': 0,
         'audios_with_video': 0,
         'audios_with_audio': 0,
         'audios_with_script': 0,
+        'ambiguous': [],  # list of {ep, candidates} where no audio's subprefix matched
         'unclassified_count': len(detections.get('unclassified') or []),
     }
     course_res = []
     for d in detections.get('course_docs', []):
         course_res.append({
-            'type': d['type'],
-            'label': d['label'],
-            'r2_key': d['r2_key'],
-            'mime': d['mime'],
+            'type': d['type'], 'label': d['label'],
+            'r2_key': d['r2_key'], 'mime': d['mime'],
         })
     if course_res:
         await db.courses.update_one(
@@ -355,37 +394,140 @@ async def _apply_r2_detections(course_id: str, detections: dict) -> dict:
             {'$set': {'r2_prefix': detections.get('prefix')}}
         )
 
-    audios = await db.audios.find({'course_id': course_id}, {'_id': 0, 'id': 1, 'episode_number': 1}).to_list(200)
-    audio_by_ep = {a.get('episode_number'): a['id'] for a in audios if a.get('episode_number')}
+    audios = await db.audios.find(
+        {'course_id': course_id},
+        {'_id': 0, 'id': 1, 'episode_number': 1, 'r2_subprefix': 1, 'title': 1}
+    ).to_list(500)
+    # Group existing audios by (ep, subprefix) for precise matching.
+    # An audio without r2_subprefix is matched only when no subprefix-bearing audio claims it.
 
-    for ep, vid in detections.get('videos', {}).items():
-        aid = audio_by_ep.get(ep)
-        if not aid: continue
-        await db.audios.update_one({'id': aid}, {'$set': {'r2_video_key': vid['r2_key']}})
-        summary['audios_with_video'] += 1
+    def _find_audio_for(ep: int, detection: dict):
+        """Return id of the audio matching this detection, or None."""
+        det_sf = (detection.get('subfolder') or '').strip().strip('/').lower()
+        # 1) exact subprefix match
+        for a in audios:
+            if a.get('episode_number') != ep:
+                continue
+            asp = (a.get('r2_subprefix') or '').strip().strip('/').lower()
+            if asp and asp == det_sf:
+                return a['id']
+        # 2) no subprefix candidate but exactly one ep without subprefix
+        plain = [a for a in audios if a.get('episode_number') == ep and not (a.get('r2_subprefix') or '').strip('/')]
+        if det_sf == '' and len(plain) == 1:
+            return plain[0]['id']
+        # 3) detection flat (no subfolder) + only one audio at this ep total → assume it's the right one
+        ep_audios = [a for a in audios if a.get('episode_number') == ep]
+        if det_sf == '' and len(ep_audios) == 1:
+            return ep_audios[0]['id']
+        return None
 
-    for ep, aud in detections.get('audios', {}).items():
-        aid = audio_by_ep.get(ep)
-        if not aid: continue
+    async def _create_audio_from_detection(ep: int, audio_det: dict, doc_dets: list) -> str:
+        """Create a new audio row for a (subfolder, ep) pair when no match exists."""
+        sf = (audio_det.get('subfolder') or '').strip('/')
+        sf_slug = sf.replace('/', '-') or 'main'
+        new_id = f"aud_{course_id}-{sf_slug or 'main'}-ep{ep:02d}"
+        # Derive a human title from subfolder; fall back to a clean default
+        if sf_slug and sf_slug != 'main':
+            readable = sf_slug.replace('-', ' ').strip().title()
+            audio_title = f"{readable} — Épisode {ep}"
+        else:
+            audio_title = f"Épisode {ep}"
+        # Try to find module in course to attach module_id
+        course_doc = await db.courses.find_one({'id': course_id}, {'_id': 0, 'modules': 1})
+        module_id = None
+        if course_doc and (course_doc.get('modules') or []):
+            module_id = course_doc['modules'][0].get('id')  # default first module
+        ep_res = [
+            {'type': d['type'], 'label': d['label'], 'r2_key': d['r2_key'], 'mime': d['mime']}
+            for d in (doc_dets or [])
+        ]
+        new_audio = {
+            'id': new_id,
+            'course_id': course_id,
+            'module_id': module_id,
+            'episode_number': ep,
+            'title': audio_title,
+            'audio_url': '',
+            'r2_audio_key': audio_det['r2_key'],
+            'has_r2_audio': True,
+            'r2_subprefix': sf + ('/' if sf else ''),
+            'is_active': True,
+            'episode_resources': ep_res,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+        }
         await db.audios.update_one(
-            {'id': aid},
-            {'$set': {'r2_audio_key': aud['r2_key'], 'has_r2_audio': True}},
+            {'id': new_id},
+            {'$set': new_audio},
+            upsert=True,
         )
-        summary['audios_with_audio'] += 1
+        audios.append({'id': new_id, 'episode_number': ep, 'r2_subprefix': new_audio['r2_subprefix'], 'title': new_audio['title']})
+        return new_id
 
-    for ep, docs in detections.get('episode_docs', {}).items():
-        aid = audio_by_ep.get(ep)
-        if not aid: continue
+    # 1) Videos
+    for ep, vids in (detections.get('videos') or {}).items():
+        for v in vids:
+            aid = _find_audio_for(ep, v)
+            if aid:
+                await db.audios.update_one({'id': aid}, {'$set': {'r2_video_key': v['r2_key']}})
+                summary['audios_with_video'] += 1
+            else:
+                summary['ambiguous'].append({'ep': ep, 'type': 'video', 'r2_key': v['r2_key'], 'subfolder': v.get('subfolder')})
+
+    # 2) Audios — for each (ep, audio) try to attach; auto-create if none and allowed
+    for ep, auds in (detections.get('audios') or {}).items():
+        # Prefer .mp3 over .m4a only when same subfolder
+        by_sf: dict = {}
+        for a in auds:
+            sf = (a.get('subfolder') or '').strip('/')
+            existing = by_sf.get(sf)
+            if not existing or (a['ext'] == 'mp3' and existing['ext'] != 'mp3'):
+                by_sf[sf] = a
+        for sf, a in by_sf.items():
+            aid = _find_audio_for(ep, a)
+            if aid:
+                await db.audios.update_one(
+                    {'id': aid},
+                    {'$set': {'r2_audio_key': a['r2_key'], 'has_r2_audio': True}}
+                )
+                summary['audios_with_audio'] += 1
+            elif auto_create_missing:
+                # Pick docs matching this subfolder + ep
+                docs_for_this = []
+                for d in (detections.get('episode_docs') or {}).get(ep, []):
+                    dsf = (d.get('subfolder') or '').strip('/')
+                    if dsf == sf:
+                        docs_for_this.append(d)
+                await _create_audio_from_detection(ep, a, docs_for_this)
+                summary['episodes_created'] += 1
+                summary['audios_with_audio'] += 1
+            else:
+                summary['ambiguous'].append({'ep': ep, 'type': 'audio', 'r2_key': a['r2_key'], 'subfolder': a.get('subfolder')})
+
+    # 3) Episode docs (scripts/slides per episode/intervenant)
+    # Group by (ep, subfolder) then attach to matching audio
+    docs_by_pair: dict = {}
+    for ep, docs in (detections.get('episode_docs') or {}).items():
+        for d in docs:
+            sf = (d.get('subfolder') or '').strip('/')
+            docs_by_pair.setdefault((ep, sf), []).append(d)
+    for (ep, sf), docs in docs_by_pair.items():
+        # Use first doc as proxy for subfolder matching
+        proxy = {'subfolder': sf + ('/' if sf else '')}
+        aid = _find_audio_for(ep, proxy)
+        if not aid:
+            summary['ambiguous'].append({'ep': ep, 'type': 'docs', 'subfolder': sf, 'count': len(docs)})
+            continue
         ep_resources = [
             {'type': d['type'], 'label': d['label'], 'r2_key': d['r2_key'], 'mime': d['mime']}
             for d in docs
         ]
         await db.audios.update_one(
             {'id': aid},
-            {'$set': {'episode_resources': ep_resources}},
+            {'$set': {'episode_resources': ep_resources}}
         )
         summary['audios_with_script'] += 1
-    summary['episodes_updated'] = len({**detections.get('videos', {}), **detections.get('audios', {}), **detections.get('episode_docs', {})})
+
+    summary['episodes_updated'] = summary['audios_with_audio'] + summary['audios_with_video']
     return summary
 
 

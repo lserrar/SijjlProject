@@ -124,6 +124,23 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - **Frontend** : nouveau helper `downloadCourseResourcePdf` (api.js) qui fetch en blob + `Authorization: Bearer` + extrait le filename de `Content-Disposition` + déclenche le download via `URL.createObjectURL`. Bouton `[data-testid=resource-article-download-pdf]` ajouté dans la `cra-toolbar` (alignée à droite, opposé du bouton "Retour au cours") avec états `idle / loading / error`.
   - Tests : 401 (no auth), 400 (slides), 404 (clé invalide), 200 (download). Vérification visuelle : caractères spéciaux OK, watermark visible, footer avec email utilisateur correctement intégré.
 
+- ✅ **Fix sync R2 multi-intervenants + auto-création** (Fév 2026 — handoff fork) :
+  - **Problème** : pour les cours à plusieurs intervenants (ex. falsafa-grands : Al-Kindī, Al-Fārābī, Avicenne…), le mapping naïf par numéro d'épisode mélangeait tout. De plus, plusieurs cours n'avaient AUCUN audio en base alors que R2 contenait déjà les fichiers (`cours-fiqh` : 6 mp3, `cours-historiographie` : 5 mp3, `cours-andalus` : 1 mp3).
+  - **Fix** :
+    1. `_classify_r2_file` retourne désormais le champ `subfolder` (chemin entre le préfixe cours et le filename, ex. `al-kindi/`)
+    2. `_build_r2_detections` regroupe les détections par `dict[ep] = list` (multi-candidats par épisode quand plusieurs sous-dossiers existent)
+    3. Champ DB `r2_subprefix` ajouté aux audios. `_find_audio_for(ep, detection)` filtre par exact match du subprefix avant de tomber sur l'unique audio plat / l'unique audio à cet ep
+    4. `_apply_r2_detections(auto_create_missing=True)` **crée automatiquement** un audio par `(subfolder, ep)` détecté en R2 mais absent de la base. ID dérivé : `aud_{course_id}-{subfolder_slug}-ep{NN}`. Titre dérivé du sous-dossier (`Al Farabi — Épisode 1`)
+    5. Admin Panel `/api/admin-panel/r2-medias` : section conventions enrichie (multi-intervenants), affichage `[subfolder]` dans la prévisualisation, compteur `épisodes créés` + warning `ambigus` dans la summary
+  - **Résultat sur le preview** (au startup) :
+    | Cours | Avant | Après | Δ |
+    |---|---|---|---|
+    | cours-falsafa-grands | 6 mappés / 16 | 11 mappés / 18 | +5 |
+    | cours-fiqh | 0 / 0 | 7 / 7 (créés) | +7 |
+    | cours-historiographie | 0 / 0 | 5 / 5 (créés) | +5 |
+    | cours-andalus | 0 / 0 | 1 / 1 (créé) | +1 |
+  - **Workflow utilisateur documenté** : 1) Upload fichiers en R2 (en respectant le sous-dossier intervenant si multi). 2) Ouvrir `/api/admin-panel/r2-medias`. 3) Bouton "Prévisualiser" pour voir ce qui sera mappé. 4) Bouton "Synchroniser" pour appliquer. Le `r2_subprefix` est auto-rempli sur les épisodes créés.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire

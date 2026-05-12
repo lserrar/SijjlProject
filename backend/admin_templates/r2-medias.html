@@ -20,9 +20,15 @@
     <div class="card-body" style="font-size: 13px; color: var(--text-muted); line-height: 1.7;">
         <strong>Vidéos</strong> (.mp4 / .mov) : nom contenant <code>episode1</code>, <code>ep1</code>, <code>partie1</code> ou se terminant par <code>-1</code>, <code>_1</code><br>
         <strong>Podcasts</strong> (.mp3 / .m4a / .wav / .aac) : même règle, le numéro d'épisode est extrait automatiquement<br>
-        <strong>Scripts d'épisode</strong> (.pdf / .docx) : même règle si le numéro d'épisode est présent dans le nom<br>
+        <strong>Scripts d'épisode</strong> (.pdf / .docx) : nom commençant par <code>script-</code> ou contenant un numéro d'épisode<br>
+        <strong>Slides</strong> (.pdf) : nom commençant par <code>slide-</code> ou <code>slides-</code> (visualisable inline protégé)<br>
         <strong>Bibliographie</strong> (.pdf) : nom contenant <code>biblio</code><br>
-        <strong>Glossaire</strong> (.pdf) : nom contenant <code>glossaire</code>, <code>glossary</code> ou <code>lexique</code>
+        <strong>Glossaire</strong> (.pdf / .docx) : nom contenant <code>glossaire</code>, <code>glossary</code> ou <code>lexique</code><br>
+        <hr style="border-color: var(--border); margin: 12px 0;">
+        <strong style="color: var(--text);">📂 Multi-intervenants (sous-dossiers)</strong><br>
+        Pour un cours avec plusieurs philosophes/intervenants, rangez les fichiers par sous-dossier (ex. <code>cursus-X/02-falsafa/al-kindi/</code>, <code>.../al-farabi/</code>).<br>
+        Le sync crée <strong>automatiquement</strong> un audio par sous-dossier+épisode et lui attache son champ <code>r2_subprefix</code> (visible dans le panel Audios).<br>
+        Si vous renommez ou ajoutez un dossier, relancez "Synchroniser" — les anciens audios sans sous-dossier ne seront pas écrasés.
     </div>
 </div>
 
@@ -166,11 +172,14 @@ async function syncAll() {
 
 function renderSummary(row, s) {
     const node = row.querySelector('.r2-summary');
+    const ambiguous = (s.ambiguous || []).length;
     node.innerHTML = `
         <span><strong>${s.course_resources_count}</strong> doc${s.course_resources_count > 1 ? 's' : ''} cours</span>
         <span><strong>${s.audios_with_video}</strong> vidéo${s.audios_with_video > 1 ? 's' : ''}</span>
         <span><strong>${s.audios_with_audio}</strong> podcast${s.audios_with_audio > 1 ? 's' : ''}</span>
         <span><strong>${s.audios_with_script}</strong> script${s.audios_with_script > 1 ? 's' : ''}</span>
+        ${s.episodes_created > 0 ? `<span class="r2-status ok">+${s.episodes_created} épisode${s.episodes_created > 1 ? 's' : ''} créé${s.episodes_created > 1 ? 's' : ''}</span>` : ''}
+        ${ambiguous > 0 ? `<span class="r2-status warn">${ambiguous} ambigu${ambiguous > 1 ? 's' : ''}</span>` : ''}
         <span class="r2-status ${s.unclassified_count > 0 ? 'warn' : 'ok'}">${s.unclassified_count} non classé${s.unclassified_count > 1 ? 's' : ''}</span>
     `;
 }
@@ -180,15 +189,23 @@ function renderDetection(row, data) {
     const totals = data.totals || {};
     const d = data.detected || {};
     let html = '';
-    Object.entries(d.videos || {}).forEach(([ep, v]) => {
-        html += `<div class="det-row"><span class="badge video">vidéo ep${ep}</span> ${escapeHtml(v.r2_key)}</div>`;
+    // videos / audios / episode_docs are now lists per episode
+    Object.entries(d.videos || {}).forEach(([ep, list]) => {
+        (Array.isArray(list) ? list : [list]).forEach(v => {
+            const sf = v.subfolder ? `<em style="color:#888">[${escapeHtml(v.subfolder)}]</em> ` : '';
+            html += `<div class="det-row"><span class="badge video">vidéo ep${ep}</span> ${sf}${escapeHtml(v.r2_key)}</div>`;
+        });
     });
-    Object.entries(d.audios || {}).forEach(([ep, v]) => {
-        html += `<div class="det-row"><span class="badge audio">audio ep${ep}</span> ${escapeHtml(v.r2_key)} <em style="color:#666">(${v.ext})</em></div>`;
+    Object.entries(d.audios || {}).forEach(([ep, list]) => {
+        (Array.isArray(list) ? list : [list]).forEach(v => {
+            const sf = v.subfolder ? `<em style="color:#888">[${escapeHtml(v.subfolder)}]</em> ` : '';
+            html += `<div class="det-row"><span class="badge audio">audio ep${ep}</span> ${sf}${escapeHtml(v.r2_key)} <em style="color:#666">(${v.ext})</em></div>`;
+        });
     });
     Object.entries(d.episode_docs || {}).forEach(([ep, docs]) => {
-        docs.forEach(doc => {
-            html += `<div class="det-row"><span class="badge script">${doc.type} ep${ep}</span> ${escapeHtml(doc.r2_key)}</div>`;
+        (docs || []).forEach(doc => {
+            const sf = doc.subfolder ? `<em style="color:#888">[${escapeHtml(doc.subfolder)}]</em> ` : '';
+            html += `<div class="det-row"><span class="badge script">${doc.type} ep${ep}</span> ${sf}${escapeHtml(doc.r2_key)}</div>`;
         });
     });
     (d.course_docs || []).forEach(doc => {
