@@ -4362,6 +4362,45 @@ async def seed_data():
         logger.warning(f"Migration v15 failed: {e}", exc_info=True)
     # ─── End Migration v15 ─────────────────────────────────────────────────
 
+    # ─── Migration v15b — Historiographie: 1 cours = 1 personnage ──────────
+    # Keep only the Ibn Khaldūn module (mod-2). Remove the 4 placeholder
+    # modules (Ibn Baṭṭūṭa, Al-Maqrīzī, Al-Ṭabarī, Ibn Kathīr) since we don't
+    # have delivery dates for those personalities yet. The course now exposes
+    # "1 module · 1 épisode" — Ibn Khaldūn only.
+    try:
+        kept_module_id = 'cours-historiographie-mod-2'
+        modules_to_drop = [
+            'cours-historiographie-mod-1',
+            'cours-historiographie-mod-3',
+            'cours-historiographie-mod-4',
+            'cours-historiographie-mod-5',
+        ]
+        # Detach any audio still attached to a dropped module (defensive).
+        await db.audios.update_many(
+            {'course_id': 'cours-historiographie', 'module_id': {'$in': modules_to_drop}},
+            {'$set': {'module_id': kept_module_id}},
+        )
+        drop_res = await db.modules.delete_many({'id': {'$in': modules_to_drop}})
+        # Ensure the surviving Ibn Khaldūn module is order=1 and properly named.
+        await db.modules.update_one(
+            {'id': kept_module_id},
+            {'$set': {
+                'name': 'Ibn Khaldūn (1332–1406)',
+                'scholar_name': 'Mehdi Ghouirgate',
+                'order': 1,
+                'episode_count': 1,
+            }},
+        )
+        # Sync the parent course's modules_count.
+        await db.courses.update_one(
+            {'id': 'cours-historiographie'},
+            {'$set': {'modules_count': 1}},
+        )
+        logger.info(f"Migration v15b: dropped {drop_res.deleted_count} placeholder module(s) from cours-historiographie")
+    except Exception as e:
+        logger.warning(f"Migration v15b failed: {e}", exc_info=True)
+    # ─── End Migration v15b ────────────────────────────────────────────────
+
 
 
 

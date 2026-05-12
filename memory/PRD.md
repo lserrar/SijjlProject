@@ -189,6 +189,12 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 
 - ✅ **Nettoyage profs supprimés** (Fév 2026) : photos R2 fantômes (Henry Corbin `Prof_1973_HenriCorbin.jpeg`, Christian Jambet `Prof_ChristianJambet.png`) effacées de la base (`photo=''`). L'avatar fallback `ui-avatars.com` prend le relais.
 
+- ✅ **Migration v15b — Historiographie : 1 cours = 1 personnage** (Fév 2026 — handoff fork) :
+  - Suppression des 4 modules placeholder (Ibn Baṭṭūṭa, Al-Maqrīzī, Al-Ṭabarī, Ibn Kathīr) qui n'avaient pas de date de livraison.
+  - Module Ibn Khaldūn promu order=1, course `modules_count=1`.
+  - Page cours affiche désormais « 1 module · 1 épisode · par Mehdi Ghouirgate » (vs 5 modules avant, dont 4 vides).
+  - Audios orphelins préalablement détachés repointés vers `cours-historiographie-mod-2` (Ibn Khaldūn) en sécurité.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire
