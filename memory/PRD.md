@@ -195,6 +195,32 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - Page cours affiche désormais « 1 module · 1 épisode · par Mehdi Ghouirgate » (vs 5 modules avant, dont 4 vides).
   - Audios orphelins préalablement détachés repointés vers `cours-historiographie-mod-2` (Ibn Khaldūn) en sécurité.
 
+- ✅ **CourseDetail mobile responsive** (Fév 2026 — handoff fork) :
+  - `website-react/src/index.css` : nouveau bloc `@media (max-width: 768px)` étendu avec hyphenation auto sur `.course-detail-title`, `font-size` clamp(26px,8vw,36px), `letter-spacing` réduit sur `.course-back` et `.course-cursus-badge`, `text-overflow: ellipsis` sur le breadcrumb.
+  - Build Vite re-généré (`dist/assets/index-DiwsPlMH.css`). Plus de débordement horizontal sur iPhone 390px.
+
+- ✅ **SEO JSON-LD `Article` + `BreadcrumbList` server-side pour les pages cours** (Fév 2026 — handoff fork) :
+  - Nouvelle fonction `inject_og_meta_course()` dans `backend/server.py` (sœur de `inject_og_meta` pour le blog).
+  - Hook ajouté dans `serve_website_spa()` : tout chemin `cours/{course_id}` injecte les meta côté serveur (titre, canonical, OG, twitter, JSON-LD Article + BreadcrumbList) avant de servir l'index.html.
+  - JSON-LD Article : `headline`, `description`, `author` (intervenant), `publisher` Sijill Project, `about` (topic), `inLanguage` fr.
+  - JSON-LD BreadcrumbList : `Accueil → Catalogue → Cursus {lettre} → {titre cours}` (4 items si cursus_letter présent, 3 sinon).
+  - Remplace les `<title>`, `<link rel=canonical>` et `<meta name=description>` génériques de `index.html` par les valeurs du cours (évite les doublons).
+  - Slug inexistant → 200 default index sans injection (graceful fallback).
+  - Test backend : `iteration_33.json` 15/15 PASS (validation prod-style sur preview URL).
+
+- ✅ **Admin Panel Phase 2 — Page Commercial + KPI Dashboard** (Fév 2026 — handoff fork) :
+  - **Backend** : nouveau endpoint `GET /api/admin/kpis` (admin gated) qui agrège en live depuis MongoDB :
+    - `mrr_eur` / `arr_eur` (somme `plan.price` × nb abonnés mensuels + `(plan.price / 12)` × nb annuels)
+    - `subscribers_active_total / monthly / yearly / gift` (filtres `subscription_status=active` + `subscription_end_date > now` ou nul, normalisation timezone)
+    - `free_access_users` (champ `free_access || has_free_access`)
+    - `trial_active` (champs `trial.end_date` / `trial_end_date` parsés en datetime)
+    - `preregistrations_total`, `gift_cards_purchased / redeemed / revenue_eur`
+    - `generated_at` (ISO timestamp UTC)
+  - **Admin route** : `GET /api/admin-panel/commercial` qui sert un template Jinja2 `commercial.html` à 3 onglets (Tarifs / Parrainage / Codes promo) chargés via `<iframe>` (préserve les pages existantes sans dupliquer leur logique). Navigation par hash (`#promos`).
+  - **Sidebar** (`base.html`) : les 3 entrées Tarifs / Parrainage / Codes promo restent en `display:none` (compat deep-links) et sont remplacées par un seul « Commercial » (icône `fa-coins`, data-testid `nav-commercial`).
+  - **Dashboard** (`dashboard_new.html`) : nouvelle ligne `kpiGrid` au-dessus des stats contenu, affiche 5 cartes (MRR · Abonnés actifs avec ventilation M/A/🎁 · Essais en cours + accès gratuits · Pré-inscriptions · Cartes cadeaux + CA).
+  - Tests backend : 15/15 pytest PASS (KPIs auth + payload, JSON-LD course, modules count, dedup historiographie).
+
 ## Tâches à venir
 
 ### P1 - Prioritaire
