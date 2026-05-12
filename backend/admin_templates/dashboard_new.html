@@ -10,7 +10,17 @@
     </div>
 </div>
 
-<div class="stats-grid" id="statsGrid">
+<!-- Commercial KPIs -->
+<div class="stats-grid" id="kpiGrid" data-testid="dashboard-kpi-grid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-spinner fa-spin"></i></div>
+        <div class="stat-value">…</div>
+        <div class="stat-label">Chargement</div>
+    </div>
+</div>
+
+<!-- Content stats -->
+<div class="stats-grid" id="statsGrid" style="margin-top: 24px;">
     <div class="stat-card">
         <div class="stat-icon green"><i class="fas fa-spinner fa-spin"></i></div>
         <div class="stat-value">...</div>
@@ -59,12 +69,47 @@ loadDashboard();
 <script>
 async function loadDashboard() {
     try {
-        const [scholars, courses, audios, users] = await Promise.all([
+        const [scholars, courses, audios, users, kpis] = await Promise.all([
             apiRequest('/admin/scholars'),
             apiRequest('/admin/courses'),
             apiRequest('/admin/audios'),
-            apiRequest('/admin/users')
+            apiRequest('/admin/users'),
+            apiRequest('/admin/kpis').catch(() => null)
         ]);
+
+        // Commercial KPIs (top row)
+        const fmtEur = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n || 0);
+        if (kpis) {
+            document.getElementById('kpiGrid').innerHTML = `
+                <div class="stat-card" data-testid="kpi-mrr">
+                    <div class="stat-icon green"><i class="fas fa-euro-sign"></i></div>
+                    <div class="stat-value">${fmtEur(kpis.mrr_eur)}</div>
+                    <div class="stat-label">MRR estimé · ARR ${fmtEur(kpis.arr_eur)}</div>
+                </div>
+                <div class="stat-card" data-testid="kpi-subscribers">
+                    <div class="stat-icon blue"><i class="fas fa-user-check"></i></div>
+                    <div class="stat-value">${kpis.subscribers_active_total}</div>
+                    <div class="stat-label">Abonnés actifs (${kpis.subscribers_monthly}M · ${kpis.subscribers_yearly}A · ${kpis.subscribers_gift}🎁)</div>
+                </div>
+                <div class="stat-card" data-testid="kpi-trial">
+                    <div class="stat-icon purple"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="stat-value">${kpis.trial_active}</div>
+                    <div class="stat-label">Essais en cours · ${kpis.free_access_users} accès gratuits</div>
+                </div>
+                <div class="stat-card" data-testid="kpi-prereg">
+                    <div class="stat-icon orange"><i class="fas fa-clipboard-list"></i></div>
+                    <div class="stat-value">${kpis.preregistrations_total}</div>
+                    <div class="stat-label">Pré-inscriptions</div>
+                </div>
+                <div class="stat-card" data-testid="kpi-gifts">
+                    <div class="stat-icon green"><i class="fas fa-gift"></i></div>
+                    <div class="stat-value">${kpis.gift_cards_purchased}</div>
+                    <div class="stat-label">Cartes cadeaux · ${kpis.gift_cards_redeemed} utilisées · ${fmtEur(kpis.gift_cards_revenue_eur)} CA</div>
+                </div>
+            `;
+        } else {
+            document.getElementById('kpiGrid').innerHTML = '<p style="color: var(--text-secondary); padding: 12px;">KPI indisponibles</p>';
+        }
 
         document.getElementById('statsGrid').innerHTML = `
             <div class="stat-card">

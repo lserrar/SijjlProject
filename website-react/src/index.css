@@ -642,6 +642,34 @@ button { cursor: pointer; font-family: var(--font-body); }
   .cursus-grid { grid-template-columns: 1fr; }
   .courses-grid { grid-template-columns: 1fr; }
   .course-hero { padding: 120px 20px 60px; }
+  /* Mobile overflow fixes for Course Detail (iPhone 390px and below) */
+  .course-back {
+    letter-spacing: 2px;
+    font-size: 9px;
+    margin-bottom: 28px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .course-cursus-badge {
+    letter-spacing: 2px;
+    font-size: 8px;
+    padding: 4px 10px;
+  }
+  .course-detail-title {
+    font-size: clamp(26px, 8vw, 36px);
+    line-height: 1.18;
+    word-break: break-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    margin-bottom: 20px;
+  }
+  .course-detail-desc {
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
   .footer-top { flex-direction: column; }
 }
 

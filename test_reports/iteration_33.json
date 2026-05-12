@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 33 — Backend-only validation of (1) /api/admin/kpis, (2) server-side JSON-LD injection on /api/site/cours/{course_id}, (3) Migration v15b cleanup of cours-historiographie. 15/15 pytest tests PASS against external preview URL (https://phased-launch-1.preview.emergentagent.com).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sijill_iter33_kpis_jsonld_v15b.py",
+    "/app/test_reports/pytest/iter33_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Migration v15b log line on startup shows 'dropped 0 placeholder module(s) from cours-historiographie' — meaning the cleanup is now a no-op because it already ran once. This is correct/idempotent, but consider gating the log behind 'if dropped > 0' to reduce noise.",
+    "The /api/modules endpoint returns module title in field `name` (not `title`). Verify consistency across the rest of the codebase — frontend should read `name`. Mentioning for clarity since the review request used the word 'module' loosely.",
+    "JSON-LD injection works correctly for both cours-historiographie and cours-philo-juive (regression check passed). For unknown slug `inexistant-xyz` the SPA fallback serves a 200 default index without injecting Article JSON-LD — good defensive behavior, no crash."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sijill_iter33_kpis_jsonld_v15b.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 pytest)",
+    "frontend": "not tested (backend-only per review request)"
+  },
+  "test_credentials": {
+    "admin_email": "loubna.serrar@gmail.com",
+    "admin_password": "Admin123!"
+  },
+  "seed_data_creation": "None. Read-only assertions against existing seed/migration state.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Tests covered: (a) /api/admin/kpis — 401/403 unauth, 401/403 bad token, 200 admin, all 13 required keys present (mrr_eur, arr_eur, subscribers_active_total/monthly/yearly/gift, free_access_users, trial_active, preregistrations_total, gift_cards_purchased/redeemed/revenue_eur, generated_at), numeric type+>=0, arr>=mrr sanity. (b) /api/site/cours/cours-historiographie returns HTML with 2+ <script type=application/ld+json> blocks: one Article with 'Khaldūn' in headline, one BreadcrumbList with >=3 ListItems including Accueil + Catalogue/Cours. <title> and <link rel=canonical> reflect course (not homepage). /api/site/cours/inexistant-xyz returns 200 default index, no leaked slug in Article. /api/site/cours/cours-philo-juive also injects both Article + BreadcrumbList (regression OK). (c) /api/modules?course_id=cours-historiographie returns exactly 1 module (field `name`='Ibn Khaldūn (1332–1406)', order=1, episode_count=1). /api/courses/cours-historiographie returns modules_count=1 and title containing 'Ibn Khaldūn — Historiographie'. /api/audios?course_id=cours-historiographie returns exactly 1 audio with 'Ibn Khaldūn philosophe et historien'. All assertions pass via external preview URL.",
+  "rca of the issue": "No issues to RCA — all features behave as specified by the review request."
+}

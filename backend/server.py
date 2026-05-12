@@ -8387,6 +8387,102 @@ async def admin_list_users(request: Request):
     users = await db.users.find({}, {'_id': 0, 'password_hash': 0}).to_list(500)
     return users
 
+@api_router.get("/admin/kpis")
+async def admin_kpis(request: Request):
+    """Aggregate commercial KPIs for the admin dashboard.
+
+    Returns estimated MRR (EUR), active subscriber count (by plan interval),
+    free-trial users, total preregistrations, gift cards purchased and
+    redeemed. All numbers are derived live from MongoDB collections.
+    """
+    await require_admin(request)
+    now = datetime.now(timezone.utc)
+
+    # Load active plans price/interval map.
+    plans = await db.plans.find({}, {'_id': 0, 'plan_id': 1, 'price': 1, 'interval': 1}).to_list(100)
+    plan_map = {p['plan_id']: p for p in plans}
+
+    monthly_active = 0
+    yearly_active = 0
+    gift_active = 0
+    free_access = 0
+    trial_active = 0
+    mrr = 0.0
+
+    async for u in db.users.find(
+        {},
+        {'_id': 0, 'subscription_status': 1, 'subscription_plan': 1, 'subscription_source': 1,
+         'subscription_end_date': 1, 'free_access': 1, 'has_free_access': 1,
+         'trial': 1, 'trial_end_date': 1}
+    ):
+        if u.get('free_access') or u.get('has_free_access'):
+            free_access += 1
+
+        status = u.get('subscription_status')
+        end = u.get('subscription_end_date')
+        # Normalise end date.
+        end_dt = None
+        if isinstance(end, datetime):
+            end_dt = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
+        elif isinstance(end, str):
+            try:
+                end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
+            except Exception:
+                end_dt = None
+        is_active = status == 'active' and (end_dt is None or end_dt > now)
+
+        if is_active:
+            plan_id = u.get('subscription_plan')
+            plan = plan_map.get(plan_id) if plan_id else None
+            source = u.get('subscription_source')
+            price = float((plan or {}).get('price') or 0)
+            interval = (plan or {}).get('interval') or 'month'
+            if source == 'gift_card':
+                gift_active += 1
+            elif interval == 'year':
+                yearly_active += 1
+                mrr += price / 12.0
+            else:
+                monthly_active += 1
+                mrr += price
+
+        # Trial detection (legacy & new schemas)
+        trial = u.get('trial') or {}
+        t_end = u.get('trial_end_date') or trial.get('end_date')
+        if isinstance(t_end, str):
+            try:
+                t_end = datetime.fromisoformat(t_end.replace('Z', '+00:00'))
+            except Exception:
+                t_end = None
+        if isinstance(t_end, datetime):
+            if (t_end if t_end.tzinfo else t_end.replace(tzinfo=timezone.utc)) > now:
+                trial_active += 1
+
+    preregistrations = await db.preregistrations.count_documents({})
+    gift_purchased = await db.gift_cards.count_documents({'status': {'$in': ['paid', 'redeemed']}})
+    gift_redeemed = await db.gift_cards.count_documents({'status': 'redeemed'})
+    gift_revenue_doc = await db.gift_cards.aggregate([
+        {'$match': {'status': {'$in': ['paid', 'redeemed']}}},
+        {'$group': {'_id': None, 'total': {'$sum': '$amount_paid'}}},
+    ]).to_list(1)
+    gift_revenue = float((gift_revenue_doc[0]['total'] if gift_revenue_doc else 0) or 0)
+
+    return {
+        'mrr_eur': round(mrr, 2),
+        'arr_eur': round(mrr * 12, 2),
+        'subscribers_active_total': monthly_active + yearly_active + gift_active,
+        'subscribers_monthly': monthly_active,
+        'subscribers_yearly': yearly_active,
+        'subscribers_gift': gift_active,
+        'free_access_users': free_access,
+        'trial_active': trial_active,
+        'preregistrations_total': preregistrations,
+        'gift_cards_purchased': gift_purchased,
+        'gift_cards_redeemed': gift_redeemed,
+        'gift_cards_revenue_eur': round(gift_revenue, 2),
+        'generated_at': now.isoformat(),
+    }
+
 @api_router.get("/admin/users/{user_id}")
 async def admin_get_user(user_id: str, request: Request):
     await require_admin(request)
@@ -10439,6 +10535,14 @@ async def admin_panel_pricing(request: Request):
         {"request": request, "active_page": "pricing"}
     )
 
+@api_router.get("/admin-panel/commercial", response_class=HTMLResponse)
+async def admin_panel_commercial(request: Request):
+    """Unified Commercial page (Tarifs / Parrainage / Codes promo tabs)."""
+    return templates.TemplateResponse(
+        "commercial.html",
+        {"request": request, "active_page": "commercial"}
+    )
+
 @api_router.get("/admin-panel/referrals", response_class=HTMLResponse)
 async def admin_panel_referrals(request: Request):
     """Admin panel referrals management page."""
@@ -10907,6 +11011,92 @@ async def inject_og_meta(index_html: str, article_id: str) -> str:
 
     return index_html.replace("</head>", f"{og_tags}\n  </head>", 1)
 
+
+async def inject_og_meta_course(index_html: str, course_id: str) -> str:
+    """Inject OG meta + JSON-LD (Article + BreadcrumbList) for course pages.
+
+    Crawlers (Google, social) read HTML synchronously and don't execute the
+    React SPA. We inject the schema server-side from the course doc.
+    """
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        return index_html
+
+    base = "https://sijillproject.com"
+    raw_title = (course.get('title') or course.get('name') or '').strip()
+    # Strip leading "Cours N : " prefix if present (matches frontend behavior).
+    import re as _re
+    clean_title = _re.sub(r'^Cours\s+\d+\s*:\s*', '', raw_title)
+    title = f"{clean_title} — Sijill Project"
+    desc = (course.get('summary') or course.get('description') or '').strip()
+    desc = (desc[:197] + '…') if len(desc) > 200 else desc
+    desc = desc.replace('"', '\\"').replace('\n', ' ')
+    url = f"{base}/cours/{course_id}"
+    image = course.get('thumbnail') or f"{base}/api/site/favicon.svg"
+    scholar = course.get('scholar_name') or 'Sijill Project'
+
+    # Escape for HTML attributes / JSON
+    def _esc(s: str) -> str:
+        return (s or '').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+
+    def _jesc(s: str) -> str:
+        return (s or '').replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
+
+    cursus_letter = (course.get('cursus_id') or '').replace('cursus-', '').upper()[:1] or ''
+    breadcrumb_items = [
+        ('Accueil', base + '/'),
+        ('Catalogue', base + '/catalogue'),
+    ]
+    if cursus_letter:
+        breadcrumb_items.append((f'Cursus {cursus_letter}', f'{base}/cursus'))
+    breadcrumb_items.append((clean_title, url))
+    breadcrumb_list = ",".join(
+        f'{{"@type":"ListItem","position":{i+1},"name":"{_jesc(n)}","item":"{u}"}}'
+        for i, (n, u) in enumerate(breadcrumb_items)
+    )
+
+    og_tags = f"""
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="{_esc(title)}" />
+    <meta property="og:description" content="{_esc(desc)}" />
+    <meta property="og:url" content="{url}" />
+    <meta property="og:image" content="{_esc(image)}" />
+    <meta property="og:site_name" content="Sijill Project" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{_esc(title)}" />
+    <meta name="twitter:description" content="{_esc(desc)}" />
+    <meta name="twitter:image" content="{_esc(image)}" />
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "{_jesc(clean_title)}",
+      "description": "{_jesc(desc)}",
+      "url": "{url}",
+      "image": "{_jesc(image)}",
+      "author": {{"@type": "Person", "name": "{_jesc(scholar)}"}},
+      "publisher": {{"@type": "Organization", "name": "Sijill Project", "url": "{base}", "logo": {{"@type": "ImageObject", "url": "{base}/api/site/favicon.svg"}}}},
+      "about": "{_jesc(course.get('topic') or 'Sciences islamiques')}",
+      "inLanguage": "fr",
+      "isAccessibleForFree": false
+    }}
+    </script>
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [{breadcrumb_list}]
+    }}
+    </script>"""
+
+    # Replace existing title/canonical/description rather than appending duplicates.
+    out = index_html
+    out = _re.sub(r'<title>.*?</title>', f'<title>{_esc(title)}</title>', out, count=1, flags=_re.DOTALL)
+    out = _re.sub(r'<link\s+rel="canonical"[^>]*?/>', f'<link rel="canonical" href="{url}" />', out, count=1)
+    out = _re.sub(r'<meta\s+name="description"[^>]*?/>', f'<meta name="description" content="{_esc(desc)}" />', out, count=1)
+    return out.replace("</head>", f"{og_tags}\n  </head>", 1)
+
 # ─── WebApp (Expo Web) served at /webapp/* ─────────────────────────────────
 WEBAPP_DIR = Path(__file__).parent.parent / "webapp" / "dist"
 if WEBAPP_DIR.exists():
@@ -10927,6 +11117,11 @@ async def serve_website_spa(full_path: str):
                 article_id = full_path.replace("blog/", "", 1)
                 html_content = index_path.read_text()
                 injected = await inject_og_meta(html_content, article_id)
+                return Response(content=injected, media_type="text/html")
+            if full_path.startswith("cours/") and full_path != "cours":
+                course_id = full_path.replace("cours/", "", 1).split("/", 1)[0]
+                html_content = index_path.read_text()
+                injected = await inject_og_meta_course(html_content, course_id)
                 return Response(content=injected, media_type="text/html")
             return FileResponse(str(index_path))
     raise HTTPException(404, "Website not found")

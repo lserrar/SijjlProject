@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Commercial - Sijill Admin{% endblock %}
+
+{% block content %}
+<style>
+    .commercial-tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 0;
+    }
+    .commercial-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .commercial-tab:hover {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+    .commercial-tab.active {
+        background: var(--bg-primary);
+        border-color: var(--border-subtle);
+        color: var(--brand-primary);
+        position: relative;
+    }
+    .commercial-tab.active::after {
+        content: '';
+        position: absolute;
+        left: 0; right: 0; bottom: -1px; height: 1px;
+        background: var(--bg-primary);
+    }
+    .commercial-tab i { width: 16px; text-align: center; }
+    .commercial-tab .badge {
+        background: var(--brand-primary);
+        color: var(--bg-primary);
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    .commercial-frame {
+        width: 100%;
+        height: calc(100vh - 220px);
+        min-height: 600px;
+        border: 1px solid var(--border-subtle);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        background: var(--bg-primary);
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Commercial</h1>
+        <p class="page-description">Tarifs · Parrainage · Codes promo — tout au même endroit</p>
+    </div>
+    <a href="/api/admin-panel/preregistrations" class="btn btn-secondary btn-sm">
+        <i class="fas fa-clipboard-list"></i> Pré-inscriptions
+    </a>
+</div>
+
+<div class="commercial-tabs" data-testid="commercial-tabs">
+    <button class="commercial-tab active" data-target="pricing" data-testid="commercial-tab-pricing">
+        <i class="fas fa-tags"></i> Tarifs
+    </button>
+    <button class="commercial-tab" data-target="referrals" data-testid="commercial-tab-referrals">
+        <i class="fas fa-user-friends"></i> Parrainage
+    </button>
+    <button class="commercial-tab" data-target="promos" data-testid="commercial-tab-promos">
+        <i class="fas fa-percent"></i> Codes promo
+    </button>
+</div>
+
+<iframe id="commercialFrame"
+        class="commercial-frame"
+        src="/api/admin-panel/pricing?embed=1"
+        data-testid="commercial-iframe"
+        title="Commercial section"></iframe>
+{% endblock %}
+
+{% block page_init %}
+(function () {
+    const tabs = document.querySelectorAll('.commercial-tab');
+    const frame = document.getElementById('commercialFrame');
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            tabs.forEach((t) => t.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.getAttribute('data-target');
+            frame.setAttribute('src', `/api/admin-panel/${target}?embed=1`);
+            // Reflect tab in URL hash for deep linking.
+            history.replaceState(null, '', `#${target}`);
+        });
+    });
+    // Honor initial hash (e.g. /commercial#promos).
+    const initial = (location.hash || '').replace('#', '');
+    if (initial) {
+        const t = document.querySelector(`.commercial-tab[data-target="${initial}"]`);
+        if (t) t.click();
+    }
+})();
+{% endblock %}
