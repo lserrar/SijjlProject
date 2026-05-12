@@ -4292,7 +4292,75 @@ async def seed_data():
         logger.info("Migration v14e: attached orphan audios to best matching module")
     except Exception as e:
         logger.warning(f"Migration v14 failed: {e}", exc_info=True)
-    # ─── End Migration v14 ─────────────────────────────────────────────────
+
+    # ─── Migration v15 — orphan audio purge + historiographie split ────────
+    # Purge audios whose r2_audio_key no longer exists in R2 (user deleted in Cloudflare).
+    # Also rename cours-historiographie to focus on Ibn Khaldūn (1 character = 1 course).
+    try:
+        if r2_client:
+            # Build a set of existing R2 keys (cache per prefix to keep it fast)
+            from botocore.exceptions import ClientError as _CE
+            existing_cache: dict = {}
+            def _r2_key_exists(key: str) -> bool:
+                if not key:
+                    return False
+                if key in existing_cache:
+                    return existing_cache[key]
+                try:
+                    r2_client.head_object(Bucket=R2_BUCKET, Key=key)
+                    existing_cache[key] = True
+                    return True
+                except _CE:
+                    existing_cache[key] = False
+                    return False
+                except Exception:
+                    existing_cache[key] = True  # be conservative on transient errors
+                    return True
+            # Scan all audios that claim an r2_audio_key
+            purged_total = 0
+            async for a in db.audios.find(
+                {'r2_audio_key': {'$exists': True, '$ne': None}},
+                {'_id': 0, 'id': 1, 'course_id': 1, 'r2_audio_key': 1, 'youtube_url': 1, 'title': 1}
+            ):
+                key = a.get('r2_audio_key')
+                if not _r2_key_exists(key):
+                    # If the audio also has no YT URL → DELETE it (truly orphan)
+                    if not a.get('youtube_url'):
+                        await db.audios.delete_one({'id': a['id']})
+                        purged_total += 1
+                        logger.info(f"Migration v15: purged orphan audio {a['id']} ({a.get('title','')[:40]}) — R2 key missing: {key}")
+                    else:
+                        # Has YT → just clear the broken r2_audio_key, keep the audio
+                        await db.audios.update_one(
+                            {'id': a['id']},
+                            {'$unset': {'r2_audio_key': '', 'has_r2_audio': ''}},
+                        )
+                        logger.info(f"Migration v15: cleared dangling r2_audio_key on {a['id']} (kept for YT)")
+            logger.info(f"Migration v15: purged {purged_total} orphan audio(s)")
+
+        # Rename cours-historiographie to focus on Ibn Khaldūn (only character with R2 content)
+        await db.courses.update_one(
+            {'id': 'cours-historiographie'},
+            {'$set': {
+                'title': 'Ibn Khaldūn — Historiographie',
+                'summary': "La pensée historiographique d'Ibn Khaldūn et la Muqaddima.",
+                'description': "La pensée historiographique d'Ibn Khaldūn et la Muqaddima : philosophie de l'histoire, théorie de la 'aṣabiyya, cycles dynastiques.",
+                'r2_prefix': 'cursus-c-sciences-islamiques/14-historiographie/ibn-khaldun-histoire/',
+            }},
+        )
+        # Update the audio title to match
+        await db.audios.update_one(
+            {'course_id': 'cours-historiographie', 'episode_number': 1},
+            {'$set': {
+                'title': "Ibn Khaldūn philosophe et historien",
+                'intervenant': 'Mehdi Ghouirgate',
+                'r2_subprefix': 'ibn-khaldun-histoire/',
+            }},
+        )
+        logger.info("Migration v15: historiographie restructured around Ibn Khaldūn")
+    except Exception as e:
+        logger.warning(f"Migration v15 failed: {e}", exc_info=True)
+    # ─── End Migration v15 ─────────────────────────────────────────────────
 
 
 
