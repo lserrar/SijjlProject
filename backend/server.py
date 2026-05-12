@@ -19,10 +19,12 @@ from fastapi.staticfiles import StaticFiles
 # Email service for notifications
 from utils.email_service import (
     is_email_configured,
+    send_email as smtp_send_email,
     send_referral_signup_notification,
     send_referral_conversion_notification,
     send_referee_welcome_notification,
     send_subscription_confirmation,
+    get_base_template,
     send_password_reset_email,
     send_welcome_email,
     send_trial_expiration_email
@@ -9758,6 +9760,291 @@ async def create_checkout_session(body: CheckoutRequest, request: Request):
         logger.error(f"Stripe checkout error: {e}")
         raise HTTPException(500, f"Erreur de paiement: {str(e)}")
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# GIFT CARDS — purchase, redeem, scheduled delivery
+# ════════════════════════════════════════════════════════════════════════════
+from utils.gift_cards import (
+    generate_code as _gift_generate_code,
+    GiftCardPurchaseRequest, GiftCardRedeemRequest,
+    GIFT_PLAN_PRICES, gift_email_html, purchaser_confirmation_html,
+)
+
+
+@api_router.post("/gift-cards/purchase")
+async def gift_card_purchase(body: GiftCardPurchaseRequest, request: Request):
+    """Create a pending gift card + Stripe Checkout session."""
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe non configuré")
+    if body.plan_id not in GIFT_PLAN_PRICES:
+        raise HTTPException(400, "Plan inconnu")
+    plan = GIFT_PLAN_PRICES[body.plan_id]
+    # Validate deliver_at
+    deliver_at = None
+    if body.deliver_at:
+        try:
+            d = datetime.fromisoformat(body.deliver_at)
+            if d.date() < datetime.now(timezone.utc).date():
+                raise ValueError("date passée")
+            deliver_at = d.date().isoformat()
+        except Exception:
+            raise HTTPException(400, "Date de livraison invalide (YYYY-MM-DD)")
+
+    gift_id = f"gift_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc)
+    gift_doc = {
+        'gift_id': gift_id,
+        'plan_id': body.plan_id,
+        'plan_label': plan['label'],
+        'amount_paid': plan['amount'],
+        'duration_days': plan['duration_days'],
+        'currency': 'eur',
+        'purchaser_name': body.purchaser_name,
+        'purchaser_email': body.purchaser_email,
+        'recipient_name': body.recipient_name,
+        'recipient_email': body.recipient_email,
+        'personal_message': body.personal_message or '',
+        'status': 'pending',
+        'code': None,
+        'redeemed_by_user_id': None,
+        'redeemed_at': None,
+        'deliver_at': deliver_at,
+        'delivered_at': None,
+        'created_at': now,
+        'expires_at': now + timedelta(days=365),
+        'stripe_session_id': None,
+    }
+    await db.gift_cards.insert_one(gift_doc)
+
+    # Stripe Checkout (one-shot payment)
+    success_url = f"{body.origin_url}/cadeau/confirmation?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{body.origin_url}/cadeau"
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    checkout_request = CheckoutSessionRequest(
+        amount=plan['amount'],
+        currency='eur',
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            'type': 'gift_card',
+            'gift_id': gift_id,
+            'plan_id': body.plan_id,
+            'purchaser_email': body.purchaser_email,
+            'recipient_email': body.recipient_email,
+        },
+    )
+    try:
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        await db.gift_cards.update_one(
+            {'gift_id': gift_id},
+            {'$set': {'stripe_session_id': session.session_id}},
+        )
+        return {'gift_id': gift_id, 'url': session.url, 'session_id': session.session_id}
+    except Exception as e:
+        logger.error(f"Gift-card Stripe error: {e}")
+        await db.gift_cards.delete_one({'gift_id': gift_id})
+        raise HTTPException(500, f"Erreur de paiement: {e}")
+
+
+async def _gift_card_finalize_after_payment(session_id: str) -> Optional[dict]:
+    """Called from Stripe webhook AND from the success page polling.
+    Idempotent: only generates the code+emails once.
+    """
+    gift = await db.gift_cards.find_one({'stripe_session_id': session_id}, {'_id': 0})
+    if not gift:
+        return None
+    if gift.get('status') == 'paid' and gift.get('code'):
+        return gift  # already finalized
+    # Verify Stripe status
+    try:
+        host_url = os.environ.get('PUBLIC_BASE_URL', 'http://localhost:8001')
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{host_url}/api/webhook/stripe")
+        status = await stripe_checkout.get_checkout_status(session_id)
+        if status.payment_status != 'paid':
+            return None
+    except Exception as e:
+        logger.error(f"Gift finalize: status check failed: {e}")
+        return None
+    # Generate unique code (max 5 retries)
+    for _ in range(5):
+        code = _gift_generate_code()
+        if not await db.gift_cards.find_one({'code': code}):
+            break
+    await db.gift_cards.update_one(
+        {'gift_id': gift['gift_id']},
+        {'$set': {'status': 'paid', 'code': code, 'paid_at': datetime.now(timezone.utc)}},
+    )
+    gift['code'] = code; gift['status'] = 'paid'
+    # Send emails (or schedule)
+    if not gift.get('deliver_at'):
+        await _gift_card_send_to_recipient(gift)
+    # Always send purchaser confirmation
+    if is_email_configured():
+        smtp_send_email(
+            to_email=gift['purchaser_email'],
+            to_name=gift['purchaser_name'],
+            subject=f"Votre cadeau Sijill pour {gift['recipient_name']} est confirmé",
+            html_content=purchaser_confirmation_html(
+                purchaser_name=gift['purchaser_name'],
+                recipient_name=gift['recipient_name'],
+                plan_label=gift['plan_label'],
+                deliver_at=gift.get('deliver_at'),
+                code=code,
+            ),
+        )
+    return gift
+
+
+async def _gift_card_send_to_recipient(gift: dict):
+    """Send the gift email to the recipient and mark delivered."""
+    if not is_email_configured():
+        logger.warning("Gift card recipient email skipped (SMTP not configured)")
+        return
+    site_url = os.environ.get('PUBLIC_SITE_URL', 'https://sijillproject.com')
+    redeem_url = f"{site_url}/cadeau/recu?code={gift['code']}"
+    html = gift_email_html(
+        purchaser_name=gift['purchaser_name'],
+        recipient_name=gift['recipient_name'],
+        plan_label=gift['plan_label'],
+        code=gift['code'],
+        redeem_url=redeem_url,
+        personal_message=gift.get('personal_message', ''),
+    )
+    smtp_send_email(
+        to_email=gift['recipient_email'],
+        to_name=gift['recipient_name'],
+        subject=f"{gift['purchaser_name']} vous offre un abonnement Sijill",
+        html_content=html,
+    )
+    await db.gift_cards.update_one(
+        {'gift_id': gift['gift_id']},
+        {'$set': {'delivered_at': datetime.now(timezone.utc)}},
+    )
+
+
+@api_router.get("/gift-cards/lookup/{code}")
+async def gift_card_lookup(code: str):
+    """Public preview of a gift card before redemption."""
+    g = await db.gift_cards.find_one(
+        {'code': code.upper()},
+        {'_id': 0, 'plan_label': 1, 'purchaser_name': 1, 'recipient_name': 1,
+         'personal_message': 1, 'status': 1, 'expires_at': 1, 'duration_days': 1},
+    )
+    if not g:
+        raise HTTPException(404, "Code introuvable")
+    if g['status'] == 'redeemed':
+        raise HTTPException(410, "Ce code a déjà été utilisé")
+    if g['status'] != 'paid':
+        raise HTTPException(409, "Ce code n'est pas encore actif")
+    exp = g.get('expires_at')
+    if exp and exp < datetime.now(timezone.utc):
+        raise HTTPException(410, "Ce code a expiré")
+    return {
+        'plan_label': g['plan_label'],
+        'purchaser_name': g['purchaser_name'],
+        'recipient_name': g['recipient_name'],
+        'personal_message': g.get('personal_message', ''),
+        'duration_days': g['duration_days'],
+    }
+
+
+@api_router.post("/gift-cards/redeem")
+async def gift_card_redeem(body: GiftCardRedeemRequest, request: Request):
+    """Apply a paid gift card to the authenticated user's subscription."""
+    user = await get_current_user(request)
+    g = await db.gift_cards.find_one({'code': body.code.strip().upper()})
+    if not g:
+        raise HTTPException(404, "Code introuvable")
+    if g['status'] == 'redeemed':
+        raise HTTPException(410, "Ce code a déjà été utilisé")
+    if g['status'] != 'paid':
+        raise HTTPException(409, "Ce code n'est pas encore activé (paiement non confirmé)")
+    exp = g.get('expires_at')
+    if exp and exp < datetime.now(timezone.utc):
+        raise HTTPException(410, "Ce code a expiré")
+    # Extend subscription
+    user_doc = await db.users.find_one({'user_id': user['user_id']})
+    now = datetime.now(timezone.utc)
+    current_end = user_doc.get('subscription_end_date')
+    if isinstance(current_end, str):
+        try: current_end = datetime.fromisoformat(current_end.replace('Z', '+00:00'))
+        except: current_end = None
+    base = max(now, current_end) if current_end else now
+    new_end = base + timedelta(days=g['duration_days'])
+    await db.users.update_one(
+        {'user_id': user['user_id']},
+        {'$set': {
+            'subscription_status': 'active',
+            'subscription_plan': g['plan_id'],
+            'subscription_end_date': new_end,
+            'subscription_source': 'gift_card',
+        }},
+    )
+    await db.gift_cards.update_one(
+        {'gift_id': g['gift_id']},
+        {'$set': {
+            'status': 'redeemed',
+            'redeemed_by_user_id': user['user_id'],
+            'redeemed_by_email': user.get('email'),
+            'redeemed_at': now,
+        }},
+    )
+    return {
+        'success': True,
+        'subscription_end_date': new_end.isoformat(),
+        'plan_label': g['plan_label'],
+        'days_added': g['duration_days'],
+    }
+
+
+@api_router.get("/gift-cards/by-session/{session_id}")
+async def gift_card_finalize_endpoint(session_id: str):
+    """Used by the success page (post-Stripe redirect) to finalize the gift card.
+    Idempotent: safe to call multiple times."""
+    gift = await _gift_card_finalize_after_payment(session_id)
+    if not gift:
+        return {'status': 'pending'}
+    return {
+        'status': gift.get('status'),
+        'plan_label': gift.get('plan_label'),
+        'recipient_name': gift.get('recipient_name'),
+        'recipient_email': gift.get('recipient_email'),
+        'deliver_at': gift.get('deliver_at'),
+        'code': gift.get('code'),
+    }
+
+
+@api_router.get("/admin/gift-cards")
+async def admin_list_gift_cards(request: Request):
+    await require_admin(request)
+    docs = await db.gift_cards.find({}, {'_id': 0}).sort('created_at', -1).to_list(500)
+    # Convert datetime to ISO for JSON
+    for d in docs:
+        for k in ('created_at', 'expires_at', 'paid_at', 'delivered_at', 'redeemed_at'):
+            v = d.get(k)
+            if hasattr(v, 'isoformat'):
+                d[k] = v.isoformat()
+    return docs
+
+
+async def _process_scheduled_gift_deliveries():
+    """Background task: deliver gift cards whose `deliver_at` is today."""
+    try:
+        today = datetime.now(timezone.utc).date().isoformat()
+        async for gift in db.gift_cards.find({
+            'status': 'paid',
+            'deliver_at': {'$lte': today},
+            'delivered_at': None,
+        }, {'_id': 0}):
+            await _gift_card_send_to_recipient(gift)
+            logger.info(f"Gift card {gift['gift_id']} delivered to {gift['recipient_email']}")
+    except Exception as e:
+        logger.error(f"Scheduled gift delivery error: {e}")
+
+
+
 @api_router.get("/checkout/status/{session_id}")
 async def get_checkout_status(session_id: str, request: Request):
     """Get checkout session status and update user access if paid."""
@@ -9958,6 +10245,11 @@ async def stripe_webhook(request: Request):
                     {'$set': {'status': 'complete', 'payment_status': 'paid', 'updated_at': datetime.now(timezone.utc)}}
                 )
                 await grant_user_access(transaction)
+            # Gift card finalization (idempotent)
+            try:
+                await _gift_card_finalize_after_payment(webhook_response.session_id)
+            except Exception as e:
+                logger.error(f"Gift card webhook finalize error: {e}")
         
         return {'received': True}
     
@@ -10555,6 +10847,13 @@ async def startup():
     # Check for trial expirations on startup (non-blocking)
     import asyncio
     asyncio.create_task(check_and_send_trial_expiration_emails())
+
+    # Gift cards scheduled delivery — check every hour
+    async def _gift_delivery_loop():
+        while True:
+            await _process_scheduled_gift_deliveries()
+            await asyncio.sleep(3600)
+    asyncio.create_task(_gift_delivery_loop())
 
 @app.on_event("shutdown")
 async def shutdown():

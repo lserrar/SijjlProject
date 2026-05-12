@@ -31,6 +31,7 @@ export default function Header() {
           <Link to="/catalogue" data-testid="nav-catalogue">Catalogue</Link>
           <Link to="/intervenants" data-testid="nav-intervenants">Intervenants</Link>
           <Link to="/blog" data-testid="nav-blog">Blog</Link>
+          <Link to="/cadeau" data-testid="nav-gift" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>🎁 Offrir</Link>
           <Link to="/a-propos" data-testid="nav-about">A propos</Link>
         </nav>
         <div className="nav-auth" data-testid="nav-auth">

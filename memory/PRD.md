@@ -169,6 +169,26 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - **Modèles élargis** : `AudioUpdate` accepte `intervenant`, `r2_subprefix`, `published_at` ; `CourseUpdate` accepte `summary`, `r2_prefix`.
   - **Sidebar** : ajout de "🌳 Arborescence" en tête de Contenu.
 
+- ✅ **Cartes cadeaux Sijill — abonnements à offrir** (Fév 2026 — handoff fork) :
+  - **Concept** : un membre achète un abonnement Founder mensuel (7€) ou annuel (84€) pour un destinataire. Code unique généré, envoyé par email (immédiatement ou à date programmée). Le destinataire saisit le code sur son compte → abonnement étendu de 31 jours (mensuel) ou 366 jours (annuel).
+  - **Backend** (`utils/gift_cards.py` + 5 endpoints dans `server.py`) :
+    - `POST /api/gift-cards/purchase` → crée le doc + session Stripe Checkout (mode `payment`)
+    - Webhook Stripe → `_gift_card_finalize_after_payment` : génère le code `SIJILL-XXXX-XXXX-XXXX`, envoie l'email destinataire (si pas de `deliver_at`) + confirmation acheteur
+    - `GET /api/gift-cards/by-session/{id}` → polling depuis la page de confirmation
+    - `GET /api/gift-cards/lookup/{code}` → preview public (plan, expéditeur, message)
+    - `POST /api/gift-cards/redeem` → étend l'abonnement de l'utilisateur connecté
+    - `GET /api/admin/gift-cards` → liste admin
+    - Boucle de fond `_gift_delivery_loop` (toutes les heures) qui envoie les cadeaux dont la `deliver_at` est arrivée.
+  - **Email** : réutilise le module SMTP `utils.email_service` (SendPulse SMTP déjà configuré). Templates HTML "Sijill Prestige" avec watermark cream/green + bouton CTA.
+  - **Frontend** (3 pages React) :
+    - `/cadeau` (`GiftPurchase.jsx`) — formulaire d'achat avec sélecteur de plan, infos acheteur/destinataire, message personnel (500 c. max), date de livraison différée optionnelle
+    - `/cadeau/confirmation?session_id=...` (`GiftConfirmation.jsx`) — poll backend post-Stripe, affiche le code généré
+    - `/cadeau/recu?code=...` (`GiftRedeem.jsx`) — preview + activation (redirige vers /connexion si non logué)
+  - **Header** : lien "🎁 Offrir" entre Blog et A propos (`data-testid="nav-gift"`).
+  - **Tests** : POST `/api/gift-cards/purchase` testé → 200 OK avec URL Stripe valide.
+
+- ✅ **Nettoyage profs supprimés** (Fév 2026) : photos R2 fantômes (Henry Corbin `Prof_1973_HenriCorbin.jpeg`, Christian Jambet `Prof_ChristianJambet.png`) effacées de la base (`photo=''`). L'avatar fallback `ui-avatars.com` prend le relais.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire

@@ -197,3 +197,27 @@ export async function getAdminPreregistrations() {
 export async function getAdminStats() {
   return apiFetch('/admin/stats');
 }
+
+// ────────── GIFT CARDS ──────────
+export async function purchaseGiftCard(payload) {
+  return apiFetch('/gift-cards/purchase', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function finalizeGiftCardBySession(session_id) {
+  return apiFetch(`/gift-cards/by-session/${encodeURIComponent(session_id)}`);
+}
+
+export async function lookupGiftCard(code) {
+  return apiFetch(`/gift-cards/lookup/${encodeURIComponent(code)}`);
+}
+
+export async function redeemGiftCard(code) {
+  return apiFetch('/gift-cards/redeem', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+

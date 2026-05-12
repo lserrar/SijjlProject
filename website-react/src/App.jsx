@@ -23,6 +23,9 @@ import CourseResourceArticle from './pages/CourseResourceArticle'
 import CourseSlides from './pages/CourseSlides'
 import Intervenants from './pages/Intervenants'
 import ScholarDetail from './pages/ScholarDetail'
+import GiftPurchase from './pages/GiftPurchase'
+import GiftConfirmation from './pages/GiftConfirmation'
+import GiftRedeem from './pages/GiftRedeem'
 
 export default function App() {
   return (
@@ -51,6 +54,9 @@ export default function App() {
           <Route path="/politique-de-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/conditions-utilisation" element={<CGU />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/cadeau" element={<GiftPurchase />} />
+          <Route path="/cadeau/confirmation" element={<GiftConfirmation />} />
+          <Route path="/cadeau/recu" element={<GiftRedeem />} />
         </Routes>
       </main>
       <Footer />
