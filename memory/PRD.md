@@ -162,6 +162,13 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - **v14e** : attachement des audios orphelins (`module_id=None`) au module le mieux correspondant par similarité de titre (`Droit Musulman` → module "Droit musulman", `Ibn Khaldūn` → module "Ibn Khaldūn", etc.).
   - **Résultat final** : `/api/catalogue` retourne **21 cours · 72 épisodes au lancement**, tous correctement classés avec YT + R2 audio cohérents avec l'Excel.
 
+- ✅ **Admin Panel Phase 1 — Arborescence + Fix photo prof** (Fév 2026 — handoff fork) :
+  - **Bug photo prof corrigé** : champ vide → conservation de la valeur existante (backend filtre `photo` et `name` empty strings dans `admin_update_scholar`). Formulaire frontend laisse le champ vide par défaut en édition + affiche un aperçu miniature de la photo actuelle.
+  - **Upload photo direct** : nouvel endpoint `POST /api/admin/scholars/{id}/upload-photo` (multipart, JPG/PNG/WebP, max 5 Mo) qui upload vers R2 `Prof/{slug}.{ext}` et fixe le champ `photo` avec l'URL CDN publique. Bouton "📤 Téléverser" dans le formulaire prof.
+  - **Page arborescente** `/api/admin-panel/tree` (template `tree.html`) : vue hiérarchique cursus → cours → épisodes en accordéon. Chaque ligne affiche : badge LAUNCH, description courte, X/Y épisodes dispo (audio R2 ou YT), badges YT/R2/SOON par épisode, bouton ✏️ Éditer avec modale (titre, summary, description, r2_prefix pour les cours ; titre, intervenant, youtube_url, published_at, r2_subprefix pour les épisodes).
+  - **Modèles élargis** : `AudioUpdate` accepte `intervenant`, `r2_subprefix`, `published_at` ; `CourseUpdate` accepte `summary`, `r2_prefix`.
+  - **Sidebar** : ajout de "🌳 Arborescence" en tête de Contenu.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire

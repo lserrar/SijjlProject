@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Catalogue arborescent · Sijill Admin{% endblock %}
+{% block content %}
+<style>
+    .tree-toolbar { display:flex; gap:12px; align-items:center; margin-bottom:24px; flex-wrap:wrap; }
+    .tree-toolbar .legend { color:var(--text-muted); font-size:12px; }
+    .tree-toolbar .legend .badge { padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; letter-spacing:1px; }
+    .badge-yt { background:#7c1d1d; color:#fff; }
+    .badge-r2 { background:#1f3d7a; color:#fff; }
+    .badge-soon { background:#3a3a3a; color:#888; }
+    .badge-live { background:var(--brand-secondary); color:#000; }
+
+    .cursus-block { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; margin-bottom:18px; overflow:hidden; }
+    .cursus-head { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; gap:16px; }
+    .cursus-head:hover { background:var(--bg-tertiary); }
+    .cursus-letter { width:34px; height:34px; border-radius:8px; background:var(--brand-primary); color:#000; font-weight:700; display:flex; align-items:center; justify-content:center; font-family:'EB Garamond',serif; font-size:18px; }
+    .cursus-title { font-size:15px; font-weight:600; flex:1; }
+    .cursus-meta { font-size:12px; color:var(--text-muted); }
+    .cursus-body { display:none; border-top:1px solid var(--border-subtle); }
+    .cursus-body.open { display:block; }
+
+    .course-row { padding:14px 20px 14px 64px; border-bottom:1px solid var(--border-subtle); cursor:pointer; transition:background 0.15s; display:grid; grid-template-columns: 1fr auto auto; gap:14px; align-items:center; }
+    .course-row:last-child { border-bottom:none; }
+    .course-row:hover { background:var(--bg-tertiary); }
+    .course-row.disabled { opacity:0.55; }
+    .course-title { font-size:14px; font-weight:500; }
+    .course-desc { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .course-counters { font-size:11px; color:var(--text-secondary); display:flex; gap:10px; }
+    .course-edit { background:transparent; border:1px solid var(--border-subtle); border-radius:6px; padding:5px 10px; color:var(--text-secondary); cursor:pointer; font-size:11px; }
+    .course-edit:hover { color:var(--text-primary); border-color:var(--brand-primary); }
+
+    .episode-list { padding:0 20px 14px 96px; display:none; }
+    .episode-list.open { display:block; }
+    .episode-row { padding:10px 14px; background:var(--bg-tertiary); border-radius:6px; margin-bottom:6px; display:grid; grid-template-columns:36px 1fr auto auto; gap:10px; align-items:center; font-size:13px; }
+    .episode-num { color:var(--brand-primary); font-family:'EB Garamond',serif; font-weight:700; font-size:13px; }
+    .ep-badges { display:flex; gap:5px; }
+    .ep-badges .badge { padding:2px 6px; border-radius:3px; font-size:9px; letter-spacing:1px; font-weight:600; }
+
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modal-overlay.active { display:flex; }
+    .modal { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; padding:24px; max-width:640px; width:90%; max-height:90vh; overflow-y:auto; }
+    .modal h3 { margin-bottom:18px; font-size:17px; }
+    .modal label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); margin:14px 0 6px; }
+    .modal input, .modal textarea, .modal select { width:100%; background:var(--bg-tertiary); border:1px solid var(--border-subtle); color:var(--text-primary); padding:9px 12px; border-radius:6px; font-family:inherit; font-size:13.5px; }
+    .modal textarea { min-height:90px; resize:vertical; font-family:inherit; }
+    .modal .btn-row { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+    .btn { padding:9px 16px; border-radius:6px; border:none; cursor:pointer; font-size:13px; font-weight:500; }
+    .btn-primary { background:var(--brand-primary); color:#000; }
+    .btn-secondary { background:transparent; border:1px solid var(--border-subtle); color:var(--text-secondary); }
+</style>
+
+<div class="page-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+    <h1 style="font-size:24px; font-weight:600;">Catalogue arborescent</h1>
+    <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" onclick="toggleAll(true)"><i class="fas fa-expand"></i> Tout déplier</button>
+        <button class="btn btn-secondary" onclick="toggleAll(false)"><i class="fas fa-compress"></i> Tout replier</button>
+    </div>
+</div>
+
+<div class="tree-toolbar">
+    <div class="legend">
+        <span class="badge badge-live">LIVE</span> disponible &nbsp;·&nbsp;
+        <span class="badge badge-yt">YT</span> YouTube &nbsp;·&nbsp;
+        <span class="badge badge-r2">R2</span> Audio Cloudflare &nbsp;·&nbsp;
+        <span class="badge badge-soon">SOON</span> à venir
+    </div>
+</div>
+
+<div id="treeRoot" data-testid="tree-root"></div>
+
+<!-- COURSE EDIT MODAL -->
+<div class="modal-overlay" id="courseModal">
+    <div class="modal">
+        <h3 id="courseModalTitle">Modifier le cours</h3>
+        <input type="hidden" id="m_course_id">
+        <label>Titre</label>
+        <input type="text" id="m_course_title" data-testid="modal-course-title">
+        <label>Description courte</label>
+        <textarea id="m_course_summary" data-testid="modal-course-summary"></textarea>
+        <label>Description longue (description)</label>
+        <textarea id="m_course_description" data-testid="modal-course-description"></textarea>
+        <label>Préfixe R2 (laisser vide pour conserver)</label>
+        <input type="text" id="m_course_r2_prefix" placeholder="cursus-X/.../intervenant/" data-testid="modal-course-r2prefix">
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="closeModal('courseModal')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveCourse()" data-testid="save-course-btn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- EPISODE EDIT MODAL -->
+<div class="modal-overlay" id="episodeModal">
+    <div class="modal">
+        <h3>Modifier l'épisode</h3>
+        <input type="hidden" id="m_ep_id">
+        <label>Titre</label>
+        <input type="text" id="m_ep_title" data-testid="modal-ep-title">
+        <label>Intervenant</label>
+        <input type="text" id="m_ep_intervenant" placeholder="Nom de l'intervenant" data-testid="modal-ep-intervenant">
+        <label>Lien YouTube (https://youtu.be/...)</label>
+        <input type="url" id="m_ep_youtube" placeholder="https://youtu.be/XXX" data-testid="modal-ep-youtube">
+        <label>Date de publication (YYYY-MM)</label>
+        <input type="text" id="m_ep_published_at" placeholder="2026-05" data-testid="modal-ep-published_at">
+        <label>Sous-dossier R2 (r2_subprefix) — laisser vide si pas multi-intervenant</label>
+        <input type="text" id="m_ep_r2_subprefix" placeholder="al-kindi/" data-testid="modal-ep-r2subprefix">
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="closeModal('episodeModal')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveEpisode()" data-testid="save-episode-btn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = '/api';
+const T = localStorage.getItem('adminToken');
+const H = { 'Authorization': `Bearer ${T}`, 'Content-Type':'application/json' };
+let treeData = null;
+
+async function api(path, opts={}) {
+    const r = await fetch(`${API}${path}`, { headers: H, ...opts });
+    if (r.status === 401 || r.status === 403) { localStorage.removeItem('adminToken'); location.href = '/api/admin-panel/login'; return; }
+    if (!r.ok) throw new Error((await r.json()).detail || 'Erreur');
+    return r.json();
+}
+
+function escapeHtml(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function loadTree() {
+    const cursusList = await api('/cursus');
+    const allCourses = await api('/admin/courses');
+    const allAudios = await api('/admin/audios');
+    treeData = { cursus: cursusList, courses: allCourses, audios: allAudios };
+    renderTree();
+}
+
+function renderTree() {
+    const root = document.getElementById('treeRoot');
+    const audiosByCourse = {};
+    treeData.audios.forEach(a => {
+        (audiosByCourse[a.course_id] = audiosByCourse[a.course_id] || []).push(a);
+    });
+    const coursesByCursus = {};
+    treeData.courses.forEach(c => {
+        const ck = c.cursus_id || c.thematique_id || '_other';
+        (coursesByCursus[ck] = coursesByCursus[ck] || []).push(c);
+    });
+    root.innerHTML = treeData.cursus.map(cu => {
+        const courses = (coursesByCursus[cu.id] || []).sort((a,b)=>((a.order||0)-(b.order||0)));
+        if (!courses.length) return '';
+        const courseHtml = courses.map(c => {
+            const audios = (audiosByCourse[c.id] || []).sort((a,b)=>((a.episode_number||999)-(b.episode_number||999)));
+            const dispo = audios.filter(a => a.r2_audio_key || a.youtube_url).length;
+            const total = audios.length;
+            const isLaunch = c.is_launch_catalog ? '<span class="badge badge-live" style="padding:2px 7px;border-radius:3px;font-size:9px;letter-spacing:1px;">LAUNCH</span>' : '';
+            const epHtml = audios.map(a => {
+                const hasYt = !!a.youtube_url, hasR2 = !!a.r2_audio_key;
+                const badges = `${hasYt ? '<span class="badge badge-yt">YT</span>' : ''}${hasR2 ? '<span class="badge badge-r2">R2</span>' : ''}${(!hasYt && !hasR2) ? '<span class="badge badge-soon">SOON</span>' : ''}`;
+                return `<div class="episode-row">
+                    <div class="episode-num">${String(a.episode_number || '?').padStart(2,'0')}</div>
+                    <div>${escapeHtml(a.title || '(sans titre)')}<div style="font-size:11px;color:var(--text-muted);">${escapeHtml(a.intervenant || '')} ${a.r2_subprefix ? '· <code>'+escapeHtml(a.r2_subprefix)+'</code>' : ''}</div></div>
+                    <div class="ep-badges">${badges}</div>
+                    <button class="course-edit" onclick='editEpisode(${JSON.stringify(a).replace(/'/g, "&apos;")})' data-testid="edit-episode-${a.id}"><i class="fas fa-pen"></i></button>
+                </div>`;
+            }).join('') || `<p style="color:var(--text-muted);font-style:italic;font-size:12px;padding:10px;">Aucun épisode pour le moment.</p>`;
+            return `<div>
+                <div class="course-row ${c.is_active === false ? 'disabled' : ''}" onclick="toggleCourse('${c.id}')">
+                    <div>
+                        <div class="course-title">${escapeHtml(c.title || c.id)} ${isLaunch}</div>
+                        <div class="course-desc">${escapeHtml((c.summary || c.description || '').slice(0,140))}</div>
+                    </div>
+                    <div class="course-counters">${dispo}/${total} ép. dispo</div>
+                    <button class="course-edit" onclick='event.stopPropagation();editCourse(${JSON.stringify(c).replace(/'/g, "&apos;")})' data-testid="edit-course-${c.id}"><i class="fas fa-pen"></i> Éditer</button>
+                </div>
+                <div class="episode-list" id="ep-list-${c.id}">${epHtml}</div>
+            </div>`;
+        }).join('');
+        return `<div class="cursus-block">
+            <div class="cursus-head" onclick="toggleCursus('${cu.id}')">
+                <div style="display:flex;align-items:center;gap:14px;flex:1;">
+                    <div class="cursus-letter">${cu.letter || '·'}</div>
+                    <div>
+                        <div class="cursus-title">${escapeHtml(cu.title || cu.name || cu.id)}</div>
+                        <div class="cursus-meta">${courses.length} cours</div>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-down" style="color:var(--text-muted);"></i>
+            </div>
+            <div class="cursus-body" id="cu-body-${cu.id}">${courseHtml}</div>
+        </div>`;
+    }).join('');
+}
+
+function toggleCursus(id) { document.getElementById(`cu-body-${id}`).classList.toggle('open'); }
+function toggleCourse(id) { document.getElementById(`ep-list-${id}`).classList.toggle('open'); }
+function toggleAll(state) {
+    document.querySelectorAll('.cursus-body').forEach(e => e.classList.toggle('open', state));
+    document.querySelectorAll('.episode-list').forEach(e => e.classList.toggle('open', state));
+}
+
+function editCourse(c) {
+    document.getElementById('m_course_id').value = c.id;
+    document.getElementById('m_course_title').value = c.title || '';
+    document.getElementById('m_course_summary').value = c.summary || '';
+    document.getElementById('m_course_description').value = c.description || '';
+    document.getElementById('m_course_r2_prefix').value = '';
+    document.getElementById('m_course_r2_prefix').placeholder = c.r2_prefix || 'cursus-X/.../intervenant/';
+    document.getElementById('courseModal').classList.add('active');
+}
+function editEpisode(a) {
+    document.getElementById('m_ep_id').value = a.id;
+    document.getElementById('m_ep_title').value = a.title || '';
+    document.getElementById('m_ep_intervenant').value = a.intervenant || '';
+    document.getElementById('m_ep_youtube').value = a.youtube_url || '';
+    document.getElementById('m_ep_published_at').value = a.published_at || '';
+    document.getElementById('m_ep_r2_subprefix').value = a.r2_subprefix || '';
+    document.getElementById('episodeModal').classList.add('active');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+async function saveCourse() {
+    const id = document.getElementById('m_course_id').value;
+    const body = {};
+    const t = document.getElementById('m_course_title').value.trim(); if (t) body.title = t;
+    const s = document.getElementById('m_course_summary').value.trim(); if (s) body.summary = s;
+    const d = document.getElementById('m_course_description').value.trim(); if (d) body.description = d;
+    const r2 = document.getElementById('m_course_r2_prefix').value.trim(); if (r2) body.r2_prefix = r2;
+    try {
+        await api(`/admin/courses/${id}`, { method:'PUT', body: JSON.stringify(body) });
+        closeModal('courseModal'); await loadTree();
+    } catch(e) { alert(e.message); }
+}
+async function saveEpisode() {
+    const id = document.getElementById('m_ep_id').value;
+    const body = {};
+    const t = document.getElementById('m_ep_title').value.trim(); if (t) body.title = t;
+    const i = document.getElementById('m_ep_intervenant').value.trim(); if (i) body.intervenant = i;
+    const y = document.getElementById('m_ep_youtube').value.trim(); body.youtube_url = y; // allow clearing
+    const p = document.getElementById('m_ep_published_at').value.trim(); if (p) body.published_at = p;
+    const sp = document.getElementById('m_ep_r2_subprefix').value.trim(); body.r2_subprefix = sp;
+    try {
+        await api(`/admin/audios/${id}`, { method:'PUT', body: JSON.stringify(body) });
+        closeModal('episodeModal'); await loadTree();
+    } catch(e) { alert(e.message); }
+}
+
+loadTree().catch(e => { document.getElementById('treeRoot').innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; });
+</script>
+{% endblock %}

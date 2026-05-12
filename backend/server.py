@@ -762,6 +762,9 @@ class AudioUpdate(BaseModel):
     youtube_url: Optional[str] = None
     coming_soon: Optional[bool] = None
     available_date: Optional[str] = None
+    intervenant: Optional[str] = None
+    r2_subprefix: Optional[str] = None
+    published_at: Optional[str] = None
 
 class ScholarCreate(BaseModel):
     name: str
@@ -821,6 +824,8 @@ class CourseUpdate(BaseModel):
     is_launch_catalog: Optional[bool] = None
     coming_soon: Optional[bool] = None
     available_date: Optional[str] = None
+    summary: Optional[str] = None
+    r2_prefix: Optional[str] = None
 
 # ─── Conference Models ─────────────────────────────────────────────────────────
 
@@ -4878,6 +4883,11 @@ async def admin_create_scholar(body: ScholarCreate, request: Request):
 async def admin_update_scholar(scholar_id: str, body: ScholarUpdate, request: Request):
     await require_admin(request)
     update = {k: v for k, v in body.model_dump().items() if v is not None}
+    # Defensive: an empty string for `photo` means "no change" (the form left it empty),
+    # NOT "clear the photo". Same for `name` to avoid accidental wipes.
+    for protected_field in ('photo', 'name'):
+        if update.get(protected_field) == '':
+            update.pop(protected_field, None)
     if not update:
         raise HTTPException(400, "Aucune mise à jour fournie")
     result = await db.scholars.update_one({'id': scholar_id}, {'$set': update})
@@ -7039,6 +7049,44 @@ R2_CURSUS_MAPPING = {
 }
 
 # ========== PROFESSOR PHOTO SYNC ==========
+@api_router.post("/admin/scholars/{scholar_id}/upload-photo")
+async def admin_upload_scholar_photo(scholar_id: str, request: Request, file: UploadFile = File(...)):
+    """Upload a photo file directly to R2 (Prof/{slug}.{ext}) and set it on the scholar.
+    The uploaded URL is stored in the scholar's `photo` field using the public R2 CDN URL.
+    """
+    await require_admin(request)
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    scholar = await db.scholars.find_one({'id': scholar_id}, {'_id': 0})
+    if not scholar:
+        raise HTTPException(404, "Érudit non trouvé")
+    ctype = (file.content_type or '').lower()
+    allowed = {'image/jpeg', 'image/jpg', 'image/png', 'image/webp'}
+    if ctype not in allowed:
+        raise HTTPException(400, "Format accepté : JPG, PNG ou WebP")
+    ext_map = {'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'}
+    ext = ext_map[ctype]
+    import re, unicodedata
+    def slugify(s: str) -> str:
+        s = unicodedata.normalize('NFD', s or '')
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        return re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+    slug = slugify(scholar.get('name') or scholar_id)
+    key = f"Prof/{slug}.{ext}"
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(413, "Photo trop volumineuse (max 5 Mo)")
+    try:
+        r2_client.put_object(Bucket=R2_BUCKET, Key=key, Body=data, ContentType=ctype,
+                             CacheControl='public, max-age=31536000')
+    except Exception as e:
+        raise HTTPException(500, f"Échec upload R2: {e}")
+    public_base = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
+    photo_url = f"{public_base}/{key}" if public_base else key
+    await db.scholars.update_one({'id': scholar_id}, {'$set': {'photo': photo_url}})
+    return {'photo': photo_url, 'r2_key': key, 'size': len(data)}
+
+
 @api_router.post("/admin/sync-professor-photos")
 async def sync_professor_photos(request: Request):
     """Sync professor photos from R2 Prof/ folder.
@@ -9313,6 +9361,15 @@ async def admin_panel_courses(request: Request):
         "courses_new.html",
         {"request": request, "active_page": "courses"}
     )
+
+@api_router.get("/admin-panel/tree", response_class=HTMLResponse)
+async def admin_panel_tree(request: Request):
+    """Hierarchical view: cursus → courses → episodes with inline editing."""
+    return templates.TemplateResponse(
+        "tree.html",
+        {"request": request, "active_page": "tree"}
+    )
+
 
 @api_router.get("/admin-panel/episodes", response_class=HTMLResponse)
 async def admin_panel_episodes(request: Request):

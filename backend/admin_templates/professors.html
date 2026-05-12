@@ -240,8 +240,28 @@
                         <textarea class="form-textarea" id="bio" placeholder="Biographie du professeur..." data-testid="professor-bio-input"></textarea>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">URL de la photo</label>
-                        <input type="url" class="form-input" id="photo" placeholder="https://exemple.com/photo.jpg" data-testid="professor-photo-input">
+                        <label class="form-label">Photo du professeur</label>
+                        <div style="display:flex; gap:14px; align-items:flex-start;">
+                            <img id="photoPreview" alt="Aperçu"
+                                 src="https://ui-avatars.com/api/?name=?&background=04D182&color=000"
+                                 style="width:78px; height:78px; border-radius:12px; object-fit:cover; border:1px solid var(--border-subtle); background:#222;">
+                            <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                                <input type="url" class="form-input" id="photo"
+                                       placeholder="URL Cloudflare R2 (ou laisse vide pour conserver)"
+                                       data-testid="professor-photo-input"
+                                       oninput="document.getElementById('photoPreview').src = this.value || 'https://ui-avatars.com/api/?name=?&background=04D182&color=000'">
+                                <input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" style="display:none" data-testid="professor-photo-file">
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('photoFile').click()" data-testid="upload-photo-btn">
+                                        <i class="fas fa-upload"></i> Téléverser (JPG/PNG/WebP, max 5 Mo)
+                                    </button>
+                                    <span id="photoUploadStatus" style="font-size:12px; color:var(--text-muted); align-self:center;"></span>
+                                </div>
+                                <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                    Astuce : laissez le champ vide pour conserver la photo actuelle. Le téléversement remplit l'URL automatiquement.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Specialisations (separees par des virgules)</label>
@@ -296,19 +316,71 @@
         function openModal(professor = null) {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalTitle').textContent = professor ? 'Modifier le professeur' : 'Nouveau professeur';
-            
+            const photoEl = document.getElementById('photo');
+            const previewEl = document.getElementById('photoPreview');
+            const statusEl = document.getElementById('photoUploadStatus');
+            statusEl.textContent = '';
             if (professor) {
                 document.getElementById('professorId').value = professor.id;
                 document.getElementById('name').value = professor.name || '';
                 document.getElementById('university').value = professor.university || '';
                 document.getElementById('bio').value = professor.bio || '';
-                document.getElementById('photo').value = professor.photo || '';
+                // Photo: leave the input EMPTY (keeps the existing value unless user changes it)
+                photoEl.value = '';
+                photoEl.dataset.currentPhoto = professor.photo || '';
+                previewEl.src = professor.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(professor.name || '?')}&background=04D182&color=000`;
                 document.getElementById('specializations').value = (professor.specializations || []).join(', ');
             } else {
                 document.getElementById('professorForm').reset();
                 document.getElementById('professorId').value = '';
+                photoEl.dataset.currentPhoto = '';
+                previewEl.src = 'https://ui-avatars.com/api/?name=?&background=04D182&color=000';
             }
         }
+
+        // Upload handler — triggered when the user picks a local image.
+        document.addEventListener('DOMContentLoaded', () => {
+            const photoFile = document.getElementById('photoFile');
+            if (photoFile) {
+                photoFile.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const id = document.getElementById('professorId').value;
+                    if (!id) {
+                        showToast("Enregistrez d'abord le professeur, puis téléversez la photo.", 'error');
+                        e.target.value = ''; return;
+                    }
+                    const status = document.getElementById('photoUploadStatus');
+                    status.textContent = 'Téléversement en cours…';
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    try {
+                        const res = await fetch(`${API_BASE}/admin/scholars/${id}/upload-photo`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${authToken}` },
+                            body: fd,
+                        });
+                        if (!res.ok) {
+                            const err = await res.json().catch(() => ({detail: 'Erreur upload'}));
+                            throw new Error(err.detail || 'Erreur upload');
+                        }
+                        const data = await res.json();
+                        document.getElementById('photo').value = data.photo;
+                        document.getElementById('photo').dataset.currentPhoto = data.photo;
+                        document.getElementById('photoPreview').src = data.photo + '?t=' + Date.now();
+                        status.textContent = '✓ Photo téléversée';
+                        status.style.color = 'var(--success)';
+                        showToast('Photo téléversée vers Cloudflare R2', 'success');
+                    } catch (err) {
+                        status.textContent = '✗ ' + err.message;
+                        status.style.color = 'var(--danger)';
+                        showToast(err.message, 'error');
+                    } finally {
+                        e.target.value = '';
+                    }
+                });
+            }
+        });
 
         function closeModal(event) {
             if (event && event.target !== event.currentTarget) return;
