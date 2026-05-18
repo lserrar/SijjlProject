@@ -1487,8 +1487,10 @@ async def get_catalogue():
         else:
             ep_count = sum(audios_per_module.get(m['id'], 0) for m in course_modules)
             ep_count += audios_per_course_unassigned.get(c['id'], 0)
-            # Count course-level YouTube URL as +1 episode (mono-video courses like cours-andalus)
-            if c.get('youtube_url'):
+            # Count course-level YouTube URL as +1 episode ONLY when no audio
+            # already carries a YT URL (avoids double-counting mono-video courses
+            # where the same YT URL is denormalised on both course AND audio).
+            if c.get('youtube_url') and ep_count == 0:
                 ep_count += 1
             items.append({
                 'type': 'course',
@@ -1584,6 +1586,36 @@ async def get_course(course_id: str, request: Request):
         raise HTTPException(404, "Cours non trouvé")
     if c.get('title'):
         c['title'] = clean_title(c['title'])
+    # Live-sync scholar_name from scholars collection (single source of truth).
+    # The denormalised field on courses can drift when an admin renames a prof.
+    # Includes primary + co-intervenants joined by " · ".
+    primary_id = c.get('scholar_id')
+    co_ids = c.get('co_scholar_ids') or []
+    relevant_ids = [sid for sid in [primary_id] + list(co_ids) if sid]
+    if relevant_ids:
+        scholars_docs = await db.scholars.find(
+            {'id': {'$in': relevant_ids}}, {'_id': 0, 'id': 1, 'name': 1}
+        ).to_list(20)
+        scholar_by_id = {s['id']: s.get('name', '') for s in scholars_docs}
+        ordered_names = []
+        for sid in relevant_ids:
+            n = scholar_by_id.get(sid)
+            if not n:
+                continue
+            # Strip "Dr. " prefix for the display name.
+            if n.lower().startswith('dr. '):
+                n = n[4:]
+            if n and n not in ordered_names:
+                ordered_names.append(n)
+        if ordered_names:
+            c['scholar_name'] = ' · '.join(ordered_names)
+    # Live-sync modules_count from the modules collection (avoid stale seed values).
+    try:
+        c['modules_count'] = await db.modules.count_documents(
+            {'course_id': course_id, 'is_active': {'$ne': False}}
+        )
+    except Exception:
+        pass
     # Strip protected fields (youtube_url) if user has no access
     user = await get_current_user(request)
     has_access = False
@@ -3686,7 +3718,7 @@ async def seed_data():
         'cours-mamelouke': 'Sami Benkherfallah',
         'cours-ottoman': 'Aysu Saban',
         'cours-kalam': 'Ilyas Harifi',
-        'cours-fiqh': 'Yanis Mahil',
+        'cours-fiqh': 'Yannis Mahil',
         'cours-coran': 'Mehdi Azaiez',
         'cours-hadith': 'Hassan Chahdi',
         'cours-historiographie': 'Mehdi Ghouirgate',
@@ -3701,7 +3733,11 @@ async def seed_data():
         'cours-philo-juive': 'Géraldine Roux',
     }
     for cid, sname in SCHOLAR_BY_COURSE.items():
-        await db.courses.update_one({'id': cid}, {'$set': {'scholar_name': sname}})
+        # Skip if the course was edited via admin panel (seed_locked).
+        await db.courses.update_one(
+            {'id': cid, 'seed_locked': {'$ne': True}},
+            {'$set': {'scholar_name': sname}},
+        )
     logger.info(f"Migration v9: scholar_name set on {len(SCHOLAR_BY_COURSE)} courses")
 
     # 2bis) Set scholar_name on Falsafa modules per Excel (all by Meryem Sebti)
@@ -4401,6 +4437,40 @@ async def seed_data():
         logger.warning(f"Migration v15b failed: {e}", exc_info=True)
     # ─── End Migration v15b ────────────────────────────────────────────────
 
+    # ─── Migration v15c — Ensure debuts-islam has a module ─────────────────
+    # The course `cours-debuts-islam` historically had `modules_count: 2` on
+    # the course doc but ZERO entries in db.modules → public page reported
+    # "0 module · 5 épisodes". Seed a single canonical module and re-attach
+    # the orphan audios so the catalogue is consistent.
+    try:
+        debuts_module_id = 'cours-debuts-islam-mod-1'
+        await db.modules.update_one(
+            {'id': debuts_module_id},
+            {'$set': {
+                'id': debuts_module_id,
+                'course_id': 'cours-debuts-islam',
+                'name': "Les débuts de l'islam",
+                'scholar_name': 'Hassan Bouali · Mehdi Ghouirgate',
+                'order': 1,
+                'is_active': True,
+                'episode_count': 5,
+                'notes': '',
+                'created_at': datetime.now(timezone.utc),
+            }},
+            upsert=True,
+        )
+        # Attach orphan audios (module_id missing or null) to this module.
+        attach_res = await db.audios.update_many(
+            {'course_id': 'cours-debuts-islam', '$or': [
+                {'module_id': None}, {'module_id': {'$exists': False}}, {'module_id': ''},
+            ]},
+            {'$set': {'module_id': debuts_module_id}},
+        )
+        logger.info(f"Migration v15c: ensured cours-debuts-islam module + attached {attach_res.modified_count} audio(s)")
+    except Exception as e:
+        logger.warning(f"Migration v15c failed: {e}", exc_info=True)
+    # ─── End Migration v15c ────────────────────────────────────────────────
+
 
 
 
@@ -4416,7 +4486,7 @@ async def seed_data():
          "Aysu Saban est doctorante contractuelle à l'EPHE/PSL sous la direction d'Alexandre Papas (CETOBaC) et de Nicolas Michel (IREMAM). Sa thèse, intitulée provisoirement « L'ascension de la maison d'ʿOsmān de c. 1300 à 1453 », propose une étude prosopographique et cartographique de la dynastie ottomane à ses débuts. Formée en histoire byzantine et ottomane à l'Université Paris I Panthéon-Sorbonne et en paléographie ottomane à l'EPHE, elle est également chargée de l'inventorisation du fonds Beldiceanu au Centre d'études ottomanes du Collège de France."),
         ('sch-harifi', 'Ilyas Harifi', None,
          "Spécialiste de l'histoire du Kalām. Biographie complète en cours de confirmation."),
-        ('sch-mahil', 'Dr. Yanis Mahil', 'Maître de conférences en études islamiques',
+        ('sch-mahil', 'Dr. Yannis Mahil', 'Maître de conférences en études islamiques',
          "Maître de conférences en études islamiques à la GIBTU University (Faculty of Theology, Department of Islamic Legal Studies), il est spécialiste du droit islamique et de la théorie des sources (Uṣūl al-fiqh)."),
         ('sch-azaiez', 'Mehdi Azaiez', "Professeur d'islamologie",
          "Mehdi Azaiez est professeur d'islamologie à l'Université catholique de Louvain (UCLouvain), spécialiste des études coraniques et de l'histoire de l'islam ancien. Il est l'auteur de plusieurs ouvrages de référence, dont « Le contre-discours coranique » (De Gruyter, 2015) et a dirigé le projet international Qur'ān Seminar. Il est chercheur associé à l'IREMAM et membre du comité des publications de l'International Quranic Studies Association (IQSA)."),
@@ -4455,9 +4525,11 @@ async def seed_data():
             }},
             upsert=True
         )
-        # Always update name+title+bio so corrections to the seed propagate
+        # Always update name+title+bio so corrections to the seed propagate,
+        # EXCEPT when the scholar has been edited via the admin panel
+        # (seed_locked=True). This preserves manual fixes across redeploys.
         await db.scholars.update_one(
-            {'id': sid},
+            {'id': sid, 'seed_locked': {'$ne': True}},
             {'$set': {'name': sname, 'title': stitle, 'bio': sbio, 'is_active': True}}
         )
     # Link scholar_id on each course (the catalogue card now shows scholar_name from this)
@@ -4999,6 +5071,9 @@ async def admin_update_scholar(scholar_id: str, body: ScholarUpdate, request: Re
             update.pop(protected_field, None)
     if not update:
         raise HTTPException(400, "Aucune mise à jour fournie")
+    # Lock this scholar against the on-startup seed so admin edits persist
+    # across redeploys (see Migration v10 / SCHOLARS_SEED).
+    update['seed_locked'] = True
     result = await db.scholars.update_one({'id': scholar_id}, {'$set': update})
     if result.matched_count == 0:
         raise HTTPException(404, "Érudit non trouvé")
@@ -5175,6 +5250,8 @@ async def admin_update_course(course_id: str, body: CourseUpdate, request: Reque
     update = {k: v for k, v in body.model_dump().items() if v is not None}
     if not update:
         raise HTTPException(400, "Aucune mise à jour fournie")
+    # Lock against on-startup seed overwrites (description / summary / scholar_name etc).
+    update['seed_locked'] = True
     result = await db.courses.update_one({'id': course_id}, {'$set': update})
     if result.matched_count == 0:
         raise HTTPException(404, "Cours non trouvé")

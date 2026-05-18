@@ -221,6 +221,14 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - **Dashboard** (`dashboard_new.html`) : nouvelle ligne `kpiGrid` au-dessus des stats contenu, affiche 5 cartes (MRR · Abonnés actifs avec ventilation M/A/🎁 · Essais en cours + accès gratuits · Pré-inscriptions · Cartes cadeaux + CA).
   - Tests backend : 15/15 pytest PASS (KPIs auth + payload, JSON-LD course, modules count, dedup historiographie).
 
+- ✅ **Cohérence catalogue ↔ base de données + admin edits persistants** (Fév 2026 — handoff fork) :
+  - **Bug Andalus** : page publique affichait « 2 épisodes » alors qu'il n'y en a qu'1. Cause : le catalogue ajoutait `+1` pour le YouTube niveau cours **en plus** des audios qui portent déjà le même `youtube_url`. Fix : `if c.get('youtube_url') and ep_count == 0` → ne compte le YT cours que pour les cours mono-vidéo sans audio.
+  - **Bug Yannis Mahil** : le seed `Migration v10` overwritait à chaque redémarrage les corrections faites dans l'admin (`Always update name+title+bio`). Fix : ajout du flag `seed_locked` mis à `True` lors de tout PUT admin sur `/admin/scholars/{id}` et `/admin/courses/{id}` ; la seed filtre désormais `{'seed_locked': {'$ne': True}}`. Seed lui-même corrigé (`Dr. Yannis Mahil` + `cours-fiqh: 'Yannis Mahil'`).
+  - **Live-sync GET `/api/courses/{id}`** : `scholar_name` recalculé depuis `db.scholars` (primary + co-intervenants → `Bouali · Ghouirgate`), `modules_count` recalculé depuis `db.modules` (évite les valeurs hardcodées obsolètes au seed).
+  - **Migration v15c** : crée un module canonique `cours-debuts-islam-mod-1` ("Les débuts de l'islam", scholar `Hassan Bouali · Mehdi Ghouirgate`) et réattache les 5 audios orphelins (corrige le « 0 module » affiché en public).
+  - **Frontend** : `.course-detail-desc` passe de `max-width: 640px` à `920px` + `white-space: pre-line` (retours à la ligne préservés, texte centré sur toute la largeur de lecture).
+  - **Typographie scripts** (`.cra-p`, `.cra-h2`, ajout `.cra-h3`) : conforme recommandation utilisateur (corps 20px / line-height 1.8 ; H2 26px / 1.35 ; H3 21px). `white-space: pre-line` sur `.cra-p` pour respecter les sauts de ligne du script.
+
 ## Tâches à venir
 
 ### P1 - Prioritaire
