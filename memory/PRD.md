@@ -1,5 +1,7 @@
 # Sijill Project — PRD
 
+> Dernière mise à jour : **18 mai 2026** — Migration v15e (alignement Excel Catalogue de lancement Mai 2026)
+
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :
 - **Site principal** : `sijillproject.com` (React/Vite)
@@ -39,6 +41,20 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - Docker/Docker Hub
 
 ## Ce qui fonctionne
+- ✅ **Migration v15e — Alignement Excel Catalogue Mai 2026** (Mai 2026) :
+  - Source : `Sijill_Catalogue_Lancement_Mai2026_Emergent.xlsx` (sheet 1 lancement + sheet 2 vision cible)
+  - Réutilise `coming_soon` + `available_date` existants, ajoute nouveau champ `recruiting` (bool)
+  - Migration **non-gated** (rejoue à chaque démarrage) → contrecarre Migration v4 qui réécrasait `is_launch_catalog`
+  - 32 cours actifs au total : 22 cours `is_launch_catalog=True` (page `/catalogue`) + 10 vision-cible (page `/cursus` uniquement)
+  - 4 cours `recruiting=True` (cours-urjuza, cours-geographie, cours-doxographie, cours-autobiographies) → grisés + badge `PROCHAINEMENT`
+  - 18 cours `coming_soon=True` avec badge date dynamique (`MAI 2026`, `SEPT. 2026`, `DATE À FIXER`)
+  - `seed_locked` respecté : titres / description / summary / scholar_name jamais écrasés (seuls les champs structurels sont rafraîchis)
+  - Splits : `cours-maths-arabes` (Marouane Ben Miled) + `cours-sciences-naturelles` (Meyssa Ben Saad) créés séparément depuis l'ancien `cours-sciences`
+  - Cleanup : `cours-andalus.available_date='TEST_date'` supprimé ; obsolètes désactivés (`cours-sciences`, `cours-inclassables`, `cours-falsafa-persan`, `cours-falsafa-grands`)
+  - `/api/cursus` retourne maintenant un `course_count` **dynamique** (recalculé live, plus de drift)
+  - Admin tree (`/api/admin-panel/tree`) : nouveaux badges `DATE` (vert) + `À RECRUTER` (gris) + lignes recruiting grisées
+  - Tests : 25/25 backend pytest PASS (iteration_34) + visuels frontend validés
+
 - ✅ Site principal `sijillproject.com` (homepage, catalogue, blog)
 - ✅ Blog avec recherche, tri par chronique/année Hijri, SEO (meta keywords, JSON-LD)
 - ✅ Blog sync : 50 articles synchronisés correctement depuis R2 — CORRIGÉ collision IDs (Fév 2026)
@@ -48,8 +64,8 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - ✅ Système de parrainage
 - ✅ Système d'abonnement Stripe
 - ✅ **7 cursus** (A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques) — RESTRUCTURÉ Fév 2026
-- ✅ **Catalogue de lancement Mai 2026** : page Catalogue filtrée sur `is_launch_catalog=true` (19 cours) — AJOUTÉ Fév 2026
-- ✅ **Page Cursus** : bandeau "Première vague — Mai 2026", catalogue complet visible, badges « bientôt disponible » — AJOUTÉ Fév 2026
+- ✅ **Catalogue de lancement Mai 2026** : page Catalogue filtrée sur `is_launch_catalog=true` (**22 cours après v15e**)
+- ✅ **Page Cursus** : bandeau "Première vague — Mai 2026", catalogue complet visible (32 cours), badges « bientôt » / « date à fixer » / « prochainement » + grisage `recruiting`
 - ✅ **YouTube unlisted** : embed `youtube-nocookie.com` (cours et épisodes), priorité épisode → cours, lien masqué via `sandbox` + `onContextMenu` — AJOUTÉ Fév 2026
 - ✅ **Sécurité du contenu premium** (Fév 2026) — Contenu vidéo/podcast restreint aux abonnés :
   - Backend : `youtube_url` retiré des réponses publiques (`/api/courses`, `/api/courses/{id}`, `/api/audios`, `/api/audios/{id}`) si l'utilisateur n'a pas un abonnement actif, un essai gratuit ou le flag admin
