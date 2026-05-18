@@ -3260,24 +3260,38 @@ async def seed_data():
         })
         logger.info("Migration v3: Cursus F 'Pensées arabes non islamiques' created")
 
-    # Update descriptions for A, B, C, D
-    await db.cursus.update_one({'id': 'cursus-falsafa'}, {'$set': {
-        'description': "D'Al-Kindī à Mollā Sādrā, la falsafa, le post-avicennisme, la logique arabe, l'ismaélisme et les inclassables comme Ibn Khaldūn.",
-        'subtitle': "Philosophie en terre d'islam",
-    }})
-    await db.cursus.update_one({'id': 'cursus-theologie'}, {'$set': {
-        'description': "Le Kalām dans ses trois périodes et l'histoire de la réflexion juridique (Uṣūl al-fiqh) : les quatre écoles et le droit musulman.",
-        'subtitle': 'Kalām, Fiqh et fondements juridiques',
-    }})
-    await db.cursus.update_one({'id': 'cursus-sciences-islamiques'}, {'$set': {
-        'description': "Doxographie, transmission du Coran et du Hadith, historiographie (d'al-Ṭabarī à Ibn Khaldūn) et autobiographies dans le monde islamique.",
-        'subtitle': 'Hadith, Coran, exégèse et historiographie',
-    }})
-    await db.cursus.update_one({'id': 'cursus-arts'}, {'$set': {
-        'description': 'Art islamique, poésie (arabe, persane, préislamique), pédagogie, sciences (biologie, astronomie, mathématiques), géographie et Adab.',
-        'subtitle': 'Poésie, arts, pédagogie et sciences',
-    }})
-    logger.info("Migration v3: Cursus descriptions updated")
+    # Update descriptions for A, B, C, D — ONLY when no admin edit has been
+    # applied yet (cursus.seed_locked != True). Once an admin tweaks a cursus
+    # subtitle/description in the panel, this seed must never overwrite it.
+    await db.cursus.update_one(
+        {'id': 'cursus-falsafa', 'seed_locked': {'$ne': True}},
+        {'$set': {
+            'description': "D'Al-Kindī à Mollā Sādrā, la falsafa, le post-avicennisme, la logique arabe, l'ismaélisme et les inclassables comme Ibn Khaldūn.",
+            'subtitle': "Philosophie en terre d'islam",
+        }}
+    )
+    await db.cursus.update_one(
+        {'id': 'cursus-theologie', 'seed_locked': {'$ne': True}},
+        {'$set': {
+            'description': "Le Kalām dans ses trois périodes et l'histoire de la réflexion juridique (Uṣūl al-fiqh) : les quatre écoles et le droit musulman.",
+            'subtitle': 'Kalām, Fiqh et fondements juridiques',
+        }}
+    )
+    await db.cursus.update_one(
+        {'id': 'cursus-sciences-islamiques', 'seed_locked': {'$ne': True}},
+        {'$set': {
+            'description': "Doxographie, transmission du Coran et du Hadith, historiographie (d'al-Ṭabarī à Ibn Khaldūn) et autobiographies dans le monde islamique.",
+            'subtitle': 'Hadith, Coran, exégèse et historiographie',
+        }}
+    )
+    await db.cursus.update_one(
+        {'id': 'cursus-arts', 'seed_locked': {'$ne': True}},
+        {'$set': {
+            'description': 'Art islamique, poésie (arabe, persane, préislamique), pédagogie, sciences (biologie, astronomie, mathématiques), géographie et Adab.',
+            'subtitle': 'Poésie, arts, pédagogie et sciences',
+        }}
+    )
+    logger.info("Migration v3: Cursus descriptions updated (skipping admin-edited)")
 
     # ─── Migration v3b: Reassign courses to match new cursus structure ────
     # Move L'ismaélisme (cours-ismaelisme) from Cursus E → Cursus A
@@ -3463,9 +3477,28 @@ async def seed_data():
             'order': 4,
         },
     ]
+    # Fields that the seed is allowed to keep refreshing on existing courses
+    # (purely structural / catalogue placement — never content edited by admin).
+    STRUCTURAL_FIELDS = {
+        'cursus_id', 'thematique_id', 'order', 'is_launch_catalog',
+        'coming_soon', 'available_date', 'is_active', 'is_featured',
+    }
     for c in histoire_courses:
-        await db.courses.update_one({'id': c['id']}, {'$set': c}, upsert=True)
-    logger.info(f"Migration v4: {len(histoire_courses)} Histoire courses upserted")
+        existing = await db.courses.find_one(
+            {'id': c['id']},
+            {'_id': 0, 'seed_locked': 1, 'title': 1, 'description': 1, 'summary': 1, 'scholar_name': 1}
+        )
+        if not existing:
+            # New course → insert with full seed values.
+            await db.courses.insert_one(c)
+            continue
+        # Existing course → ONLY refresh structural fields. Never overwrite
+        # title / description / summary / scholar_name (admins edit those in
+        # the panel and the seed must not stomp their work on redeploys).
+        structural = {k: v for k, v in c.items() if k in STRUCTURAL_FIELDS}
+        if structural:
+            await db.courses.update_one({'id': c['id']}, {'$set': structural})
+    logger.info(f"Migration v4: {len(histoire_courses)} Histoire courses synced (content preserved)")
     
     # 4. Mark courses with is_launch_catalog flag based on Excel data
     launch_course_ids = {
@@ -4044,17 +4077,28 @@ async def seed_data():
             ('cours-falsafa-persane',    "Renouveau de la philosophie persane",   "Mullā Ṣadrā et la philosophie islamique tardive.",                       'cursus-a-falsafa/06-renouveau-persan/',   8),
         ]
         for cid, title, summary, r2_prefix, order in v14_new_courses:
-            await db.courses.update_one(
-                {'id': cid},
-                {'$set': {
+            existing_v14 = await db.courses.find_one(
+                {'id': cid}, {'_id': 0, 'title': 1, 'summary': 1, 'description': 1}
+            )
+            structural_fields = {
+                'cursus_id': 'cursus-falsafa',
+                'r2_prefix': r2_prefix,
+                'is_launch_catalog': True,
+                'is_active': True,
+                'order': order,
+            }
+            if not existing_v14:
+                # New course → insert with full seed content.
+                await db.courses.insert_one({
                     'id': cid, 'title': title, 'summary': summary, 'description': summary,
-                    'cursus_id': 'cursus-falsafa', 'r2_prefix': r2_prefix,
-                    'is_launch_catalog': True, 'is_active': True, 'order': order,
                     'modules': [{'id': f'{cid}-mod-1', 'order': 1, 'title': title}],
                     'created_at': datetime.now(timezone.utc).isoformat(),
-                }},
-                upsert=True,
-            )
+                    **structural_fields,
+                })
+            else:
+                # Existing → ONLY refresh structural fields. Never overwrite
+                # admin-edited title / summary / description.
+                await db.courses.update_one({'id': cid}, {'$set': structural_fields})
 
         # 2) Deactivate the old umbrella course
         await db.courses.update_one(
@@ -4525,12 +4569,12 @@ async def seed_data():
             }},
             upsert=True
         )
-        # Always update name+title+bio so corrections to the seed propagate,
-        # EXCEPT when the scholar has been edited via the admin panel
-        # (seed_locked=True). This preserves manual fixes across redeploys.
+        # Only keep is_active in sync. Content fields (name/title/bio) are
+        # admin-owned: once a scholar doc exists, the seed must NEVER overwrite
+        # them — admin edits in the panel are the source of truth.
         await db.scholars.update_one(
-            {'id': sid, 'seed_locked': {'$ne': True}},
-            {'$set': {'name': sname, 'title': stitle, 'bio': sbio, 'is_active': True}}
+            {'id': sid},
+            {'$set': {'is_active': True}}
         )
     # Link scholar_id on each course (the catalogue card now shows scholar_name from this)
     SCHOLAR_LINK = {
@@ -9151,6 +9195,9 @@ async def admin_update_cursus(cursus_id: str, body: CursusUpdate, request: Reque
             update[k] = None
     if update:
         update['updated_at'] = datetime.now(timezone.utc).isoformat()
+        # Lock against the on-startup cursus seed (see Migration v3) so the
+        # admin's edits to description/subtitle/title survive redeploys.
+        update['seed_locked'] = True
         result = await db.cursus.update_one({'id': cursus_id}, {'$set': update})
         if result.matched_count == 0:
             raise HTTPException(404, "Cursus non trouvé")

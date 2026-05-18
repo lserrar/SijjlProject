@@ -221,7 +221,19 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - **Dashboard** (`dashboard_new.html`) : nouvelle ligne `kpiGrid` au-dessus des stats contenu, affiche 5 cartes (MRR · Abonnés actifs avec ventilation M/A/🎁 · Essais en cours + accès gratuits · Pré-inscriptions · Cartes cadeaux + CA).
   - Tests backend : 15/15 pytest PASS (KPIs auth + payload, JSON-LD course, modules count, dedup historiographie).
 
-- ✅ **Cohérence catalogue ↔ base de données + admin edits persistants** (Fév 2026 — handoff fork) :
+- ✅ **🚨 FIX CRITIQUE — Anti-écrasement des éditions admin par les seeds au démarrage** (Fév 2026 — handoff fork) :
+  - **Root cause** identifiée après que la prod a écrasé toutes les éditions de la prof au redéploiement Docker :
+    - `Migration v4 histoire_courses` faisait `db.courses.update_one({'$set': c}, upsert=True)` : à chaque restart, title + description + scholar_name étaient remis aux valeurs codées en dur (cours-andalus, cours-mamelouke, cours-ottoman, cours-debuts-islam).
+    - `Migration v14 v14_new_courses` faisait pareil pour les 7 cours falsafa (cours-al-kindi, cours-al-farabi, cours-avicenne, cours-al-ghazali, cours-falsafa-occident, cours-falsafa-inclassables, cours-falsafa-persane).
+    - `Migration v10 SCHOLARS_SEED` faisait `Always update name+title+bio` → les corrections de noms d'intervenants étaient perdues.
+    - `Migration v3 cursus descriptions` réécrivait subtitle + description des 4 cursus principaux.
+  - **Fix appliqué** :
+    1. Les 3 boucles ci-dessus ont été réécrites : sur **course existante**, seuls les champs *structurels* (`cursus_id`, `order`, `is_launch_catalog`, `coming_soon`, `available_date`, `is_active`, `is_featured`, `r2_prefix`) sont rafraîchis. Les champs de **contenu** (`title`, `description`, `summary`, `scholar_name`) ne sont posés QUE sur insertion d'une nouvelle ligne.
+    2. La seed scholars `v10` ne pose plus que `is_active=True` sur l'existant — name/title/bio sont admin-owned une fois insérés.
+    3. La seed cursus `v3` filtre `{'seed_locked': {'$ne': True}}` → toute édition admin via `PUT /admin/cursus/{id}` pose `seed_locked=True` et fige la valeur.
+    4. Les endpoints `PUT /admin/scholars/{id}`, `PUT /admin/courses/{id}`, `PUT /admin/cursus/{id}` posent systématiquement `seed_locked=True` (ceinture + bretelles pour les futurs seeds qu'on rajouterait sans réfléchir).
+  - **Validation** : test direct → édition admin de `cours-andalus` avec `description=TEST` → restart backend → relecture renvoie bien `TEST` (avant le fix : revert à la seed).
+  - **Récupération** : les éditions perdues en prod doivent être ressaisies une fois (cette fois elles tiennent). Hostinger MongoDB peut avoir un backup automatique exploitable (voir backup VPS).
   - **Bug Andalus** : page publique affichait « 2 épisodes » alors qu'il n'y en a qu'1. Cause : le catalogue ajoutait `+1` pour le YouTube niveau cours **en plus** des audios qui portent déjà le même `youtube_url`. Fix : `if c.get('youtube_url') and ep_count == 0` → ne compte le YT cours que pour les cours mono-vidéo sans audio.
   - **Bug Yannis Mahil** : le seed `Migration v10` overwritait à chaque redémarrage les corrections faites dans l'admin (`Always update name+title+bio`). Fix : ajout du flag `seed_locked` mis à `True` lors de tout PUT admin sur `/admin/scholars/{id}` et `/admin/courses/{id}` ; la seed filtre désormais `{'seed_locked': {'$ne': True}}`. Seed lui-même corrigé (`Dr. Yannis Mahil` + `cours-fiqh: 'Yannis Mahil'`).
   - **Live-sync GET `/api/courses/{id}`** : `scholar_name` recalculé depuis `db.scholars` (primary + co-intervenants → `Bouali · Ghouirgate`), `modules_count` recalculé depuis `db.modules` (évite les valeurs hardcodées obsolètes au seed).
