@@ -68,10 +68,10 @@ export default function Tarification() {
           highlight={false}
           features={[
             'Accès illimité aux 22 cours du catalogue Mai 2026',
-            'Vidéos YouTube en accès complet (cours + épisodes)',
-            'Podcasts MP3 téléchargeables (selon disponibilité)',
-            'Bibliographies, glossaires & frises chronologiques',
-            'Mises à jour incluses pendant 12 mois',
+            'Enregistrements audio de chaque épisode (40 min) en streaming',
+            'Scripts des cours en téléchargement',
+            'Bibliographies, glossaires et frises chronologiques',
+            'Accès à tous les nouveaux cours déployés pendant 12 mois',
           ]}
           ctaLabel="S'abonner Standard"
           ctaLoading={loadingPlan === 'standard_annuel'}
@@ -90,10 +90,11 @@ export default function Tarification() {
           badge="Le plus choisi"
           features={[
             'Tout l\'abonnement Standard inclus',
+            'Accès immédiat à tous les cours dès leur mise en ligne — pour toujours',
             'Tarif Fondateur garanti à vie (jamais d\'augmentation)',
-            'Votre nom dans le générique des cours (optionnel)',
             'Accès anticipé aux nouveaux cours avant tout le monde',
-            'Newsletter trimestrielle des intervenants',
+            'Votre nom dans le générique des cours (optionnel)',
+            'Newsletter trimestrielle de Sijill Project',
           ]}
           ctaLabel="Devenir Fondateur"
           ctaLoading={loadingPlan === 'fondateur_annuel'}
@@ -111,7 +112,8 @@ export default function Tarification() {
           highlight={false}
           icon="🎁"
           features={[
-            'Offrez 12 mois d\'accès au tarif Fondateur',
+            'Offrez 12 mois d\'accès complet au tarif Fondateur',
+            'Accès à tous les cours déployés pendant la durée de l\'abonnement',
             'Carte cadeau personnalisable (nom + message)',
             'Livraison immédiate ou programmée par email',
             'Le destinataire active son code sur son compte',
