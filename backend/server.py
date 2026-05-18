@@ -4247,35 +4247,10 @@ async def seed_data():
             yt_applied += 1
         logger.info(f"Migration v14: applied {yt_applied} YouTube URLs from Excel")
 
-        # 5) Clean cours-debuts-islam per Excel (ep1 Ghouirgate intro, ep3-6 Bouali)
-        await db.audios.delete_many({'course_id': 'cours-debuts-islam', 'id': 'aud_cours-debuts-islam-ep05'})
-        DEBUT_EPS = [
-            (1, "Les débuts de l'islam — Introduction", 'Mehdi Ghouirgate', 'https://youtu.be/kB-fr8wwcAA'),
-            (3, "Muhammad et les débuts de l'islam",     'Hassan Bouali',    None),
-            (4, "Le califat au début de l'islam : de Médine à la sortie d'Arabie", 'Hassan Bouali', None),
-            (5, "Les futūḥāt / conquêtes",              'Hassan Bouali',    None),
-            (6, "Le ḥajj et son intégration progressive à la piété musulmane", 'Hassan Bouali', None),
-        ]
-        debuts_course = await db.courses.find_one({'id': 'cours-debuts-islam'}, {'_id': 0, 'modules': 1})
-        debuts_mid = ((debuts_course or {}).get('modules') or [{}])[0].get('id') if debuts_course else None
-        for ep_num, ep_title, intervenant, yt in DEBUT_EPS:
-            new_id = f'aud_cours-debuts-islam-ep{ep_num:02d}'
-            set_payload = {
-                'id': new_id, 'course_id': 'cours-debuts-islam', 'module_id': debuts_mid,
-                'episode_number': ep_num,
-                'is_active': True, 'published_at': '2026-05',
-            }
-            if yt:
-                set_payload['youtube_url'] = yt
-            # title/intervenant are admin-editable: only seed at insert time.
-            await db.audios.update_one(
-                {'id': new_id},
-                {
-                    '$set': set_payload,
-                    '$setOnInsert': {'title': ep_title, 'intervenant': intervenant},
-                },
-                upsert=True,
-            )
+        # 5) cours-debuts-islam — Now fully managed by Migration v15g (which
+        # applies the canonical Excel titles ep1-5 and locks them). The legacy
+        # logic that used ep_num 3-6 with shifted numbering has been removed
+        # to prevent it from re-creating stale ep6 duplicates on every reboot.
 
         # 6) cours-andalus — Ghouirgate intro
         await db.audios.update_one(
@@ -4343,21 +4318,10 @@ async def seed_data():
         logger.info("Migration v14b: dedup + ghost cleanup complete")
 
         # v14c — Final fixes:
-        # - cours-debuts-islam: ep2 should not exist (Al-Andalus is its own course).
-        #   Drop any ep<3 except the canonical ep1.
-        await db.audios.delete_many({
-            'course_id': 'cours-debuts-islam',
-            'episode_number': 2,
-        })
-        await db.audios.delete_many({
-            'course_id': 'cours-debuts-islam',
-            'id': {'$nin': [f'aud_cours-debuts-islam-ep{n:02d}' for n in (1, 3, 4, 5, 6)]},
-        })
-        # Remove unwanted YT URL on Bouali "Commandé" episodes (no YT in Excel)
-        await db.audios.update_many(
-            {'course_id': 'cours-debuts-islam', 'episode_number': {'$in': [3, 4, 5, 6]}},
-            {'$unset': {'youtube_url': ''}},
-        )
+        # - cours-debuts-islam: episodes are now fully managed by Migration v15g
+        #   from the user's Excel (eps 1-5 with canonical titles + seed_locked).
+        #   The legacy v14c logic that deleted ep2 and constrained eps to
+        #   {1, 3, 4, 5, 6} has been disabled.
         # - cours-historiographie: ensure ep1 has intervenant + Excel title at INSERT only.
         # We leave title untouched after creation (admin-editable).
         await db.audios.update_one(
@@ -4927,6 +4891,171 @@ async def seed_data():
     except Exception as e:
         logger.warning(f"Migration v15f failed: {e}", exc_info=True)
     # ─── End Migration v15f ────────────────────────────────────────────────
+
+    # ─── Migration v15g — Titres d'épisodes depuis Excel + lock complet ────
+    # Apporte les VRAIS titres d'épisodes du fichier Excel utilisateur
+    # (Sijill_Catalogue_Lancement_Mai2026) sur la collection `audios`.
+    # Force aussi seed_locked=True au niveau audio pour bloquer définitivement
+    # toute future réécriture par un seed/migration.
+    # Non-gated, idempotent : ne fait rien si tout est déjà clean + locked.
+    # Force-override sur les titres génériques placeholder (regex), sinon
+    # respect total d'une édition admin.
+    try:
+        import re as _re_v15g
+        # Patterns considérés comme "génériques placeholder" → on peut écraser
+        # même si seed_locked=True (legacy lock posé avec un mauvais titre).
+        GENERIC_PATTERNS = [
+            _re_v15g.compile(r"^Histoire de l'art islamique\s*—\s*Épisode\s+\d+\s*$"),
+            _re_v15g.compile(r"^\s*Épisode\s+\d+\s*$"),
+            _re_v15g.compile(r"^Cours\s+\d+\s*:.*Épisode\s+\d+\s*$"),
+        ]
+        # (course_id, episode_number, clean_title, scholar_name)
+        # Tous les titres viennent du fichier Excel sheet 1 « Catalogue de
+        # lancement Mai 2026 » fourni par l'utilisateur.
+        EPISODE_TITLES = [
+            # ─── A. Histoire ───
+            ('cours-debuts-islam', 1, "Les débuts de l'islam",                                                     'Mehdi Ghouirgate'),
+            ('cours-debuts-islam', 2, "Muhammad et les débuts de l'islam",                                         'Hassan Bouali'),
+            ('cours-debuts-islam', 3, "Le califat au début de l'islam : de Médine à la sortie d'Arabie",            'Hassan Bouali'),
+            ('cours-debuts-islam', 4, "Les futūḥāt / conquêtes",                                                    'Hassan Bouali'),
+            ('cours-debuts-islam', 5, "Le ḥajj et son intégration progressive à la piété musulmane",                'Hassan Bouali'),
+            ('cours-mamelouke',    1, "L'époque mamelouke — Épisode 1",                                             'Sami Benkherfallah'),
+            ('cours-mamelouke',    2, "L'époque mamelouke — Épisode 2",                                             'Sami Benkherfallah'),
+            ('cours-mamelouke',    3, "L'époque mamelouke — Épisode 3",                                             'Sami Benkherfallah'),
+            ('cours-andalus',      1, "Al-Andalus : histoire d'une civilisation islamique sur continent européen",  'Mehdi Ghouirgate'),
+            ('cours-ottoman',      1, "Le monde ottoman — Épisode 1",                                               'Aysu Saban'),
+            ('cours-ottoman',      2, "Le monde ottoman — Épisode 2",                                               'Aysu Saban'),
+            ('cours-ottoman',      3, "Le monde ottoman — Épisode 3",                                               'Aysu Saban'),
+            # ─── B. Théologie et Droit ───
+            ('cours-kalam',        1, "Histoire du Kalām — Épisode 1",                                              'Ilyas Harifi'),
+            ('cours-kalam',        2, "Histoire du Kalām — Épisode 2",                                              'Ilyas Harifi'),
+            ('cours-kalam',        3, "Histoire du Kalām — Épisode 3",                                              'Ilyas Harifi'),
+            ('cours-kalam',        4, "Histoire du Kalām — Épisode 4",                                              'Ilyas Harifi'),
+            ('cours-kalam',        5, "Histoire du Kalām — Épisode 5",                                              'Ilyas Harifi'),
+            ('cours-fiqh',         1, "Introduction au droit musulman",                                             'Dr. Yannis Mahil'),
+            ('cours-fiqh',         2, "Introduction au droit musulman — L'Ijtihad",                                 'Dr. Yannis Mahil'),
+            ('cours-fiqh',         3, "Histoire du droit musulman : périodisation et historiographie",              'Dr. Yannis Mahil'),
+            ('cours-fiqh',         4, "Uṣūl al-fiqh I : définition, histoire et sources primaires",                 'Dr. Yannis Mahil'),
+            ('cours-fiqh',         5, "Uṣūl al-fiqh II : le qiyās et les sources méthodologiques secondaires",      'Dr. Yannis Mahil'),
+            ('cours-fiqh',         6, "Ijtihad contemporain et Maqāṣid al-sharīʿa",                                 'Dr. Yannis Mahil'),
+            # ─── C. Sciences islamiques ───
+            ('cours-coran',        1, "Histoire de la constitution du Coran",                                       'Mehdi Azaiez'),
+            ('cours-hadith',       1, "Le corpus du hadith — Épisode 1",                                            'Hassan Chahdi'),
+            ('cours-hadith',       2, "Le corpus du hadith — Épisode 2",                                            'Hassan Chahdi'),
+            ('cours-hadith',       3, "Le corpus du hadith — Épisode 3",                                            'Hassan Chahdi'),
+            ('cours-historiographie', 1, "Ibn Khaldūn : éléments biographiques",                                    'Mehdi Ghouirgate'),
+            # ─── D. Arts ───
+            ('cours-maths-arabes', 1, "Histoire des mathématiques arabes — Épisode 1",                              'Marouane Ben Miled'),
+            ('cours-maths-arabes', 2, "Histoire des mathématiques arabes — Épisode 2",                              'Marouane Ben Miled'),
+            ('cours-maths-arabes', 3, "Histoire des mathématiques arabes — Épisode 3",                              'Marouane Ben Miled'),
+            ('cours-sciences-naturelles', 1, "Introduction — Histoire des sciences naturelles",                     'Meyssa Ben Saad'),
+            ('cours-sciences-naturelles', 2, "Al-Jāḥiẓ et la classification des animaux",                           'Meyssa Ben Saad'),
+            ('cours-art',          1, "Introduction aux arts de l'Islam",                                           'Camille Grandpierre'),
+            ('cours-art',          2, "L'architecture",                                                              'Camille Grandpierre'),
+            ('cours-art',          3, "Les objets de forme",                                                         'Camille Grandpierre'),
+            ('cours-art',          4, "Les arts du livre et la calligraphie",                                        'Camille Grandpierre'),
+            # ─── E. Falsafa ───
+            ('cours-traduction',   1, "Le grand mouvement de traduction : quand le savoir grec devint arabe",        'Meryem Sebti'),
+            ('cours-al-kindi',     1, "Al-Kindī : vie, contexte et héritage",                                        'Meryem Sebti'),
+            ('cours-al-kindi',     2, "Pourquoi philosopher ? Al-Kindī et la défense de la falsafa",                 'Meryem Sebti'),
+            ('cours-al-kindi',     3, "Cosmologie et sciences chez al-Kindī",                                        'Meryem Sebti'),
+            ('cours-al-kindi',     4, "L'intellect et la connaissance",                                              'Meryem Sebti'),
+            ('cours-al-kindi',     5, "Éthique et thérapie de l'âme — Héritage et tradition kindienne",              'Meryem Sebti'),
+            ('cours-al-farabi',    1, "Al-Fārābī — Vie, contexte et héritage",                                       'Meryem Sebti'),
+            ('cours-al-farabi',    2, "La place de la logique dans la pensée d'al-Fārābī",                           'Meryem Sebti'),
+            ('cours-al-farabi',    3, "Métaphysique de Fārābī",                                                      'Meryem Sebti'),
+            ('cours-al-farabi',    4, "Al-Fārābī — Épisode 4",                                                       'Meryem Sebti'),
+            ('cours-al-farabi',    5, "Al-Fārābī — Épisode 5",                                                       'Meryem Sebti'),
+            ('cours-avicenne',     1, "Avicenne : une vie entre savoir, pouvoir et errance",                         'Meryem Sebti'),
+            ('cours-avicenne',     2, "Avicenne — Épisode 2",                                                        'Meryem Sebti'),
+            ('cours-avicenne',     3, "Avicenne — Épisode 3",                                                        'Meryem Sebti'),
+            ('cours-avicenne',     4, "Avicenne — Épisode 4",                                                        'Meryem Sebti'),
+            ('cours-avicenne',     5, "Avicenne — Épisode 5",                                                        'Meryem Sebti'),
+            ('cours-al-ghazali',   1, "Al-Ghazālī — Épisode 1",                                                      'Meryem Sebti'),
+            ('cours-falsafa-occident',    1, "La pensée d'Ibn Bajja — Épisode 1",                                    'Yassir Mechelloukh'),
+            ('cours-falsafa-occident',    2, "La pensée d'Ibn Bajja — Épisode 2",                                    'Yassir Mechelloukh'),
+            ('cours-falsafa-occident',    3, "La pensée d'Ibn Ṭufayl — Épisode 1",                                   'Yassir Mechelloukh'),
+            ('cours-falsafa-occident',    4, "La pensée d'Ibn Ṭufayl — Épisode 2",                                   'Yassir Mechelloukh'),
+            ('cours-falsafa-occident',    5, "La pensée d'Averroès — Épisode 1",                                     'Yassir Mechelloukh'),
+            ('cours-falsafa-occident',    6, "La pensée d'Averroès — Épisode 2",                                     'Yassir Mechelloukh'),
+            ('cours-falsafa-occident',    7, "La pensée d'Averroès — Épisode 3",                                     'Yassir Mechelloukh'),
+            ('cours-falsafa-inclassables', 1, "La pensée d'Ibn Khaldūn — Épisode 1",                                 'Cédric Molino Mochetto'),
+            ('cours-falsafa-inclassables', 2, "La pensée d'Ibn Khaldūn — Épisode 2",                                 'Cédric Molino Mochetto'),
+            ('cours-falsafa-persane',     1, "La pensée de Mullā Ṣadrā — Épisode 1",                                 'Sajjad Rizvi'),
+            ('cours-falsafa-persane',     2, "La pensée de Mullā Ṣadrā — Épisode 2",                                 'Sajjad Rizvi'),
+            ('cours-falsafa-persane',     3, "La pensée de Mullā Ṣadrā — Épisode 3",                                 'Sajjad Rizvi'),
+            # ─── F. Mystique ───
+            ('cours-soufisme',     1, "Les débuts du soufisme",                                                      'Gregory Vandamme'),
+            ('cours-soufisme',     2, "La pensée d'Ibn ʿArabī — Épisode 1",                                          'Gregory Vandamme'),
+            ('cours-soufisme',     3, "La pensée d'Ibn ʿArabī — Épisode 2",                                          'Gregory Vandamme'),
+            ('cours-soufisme',     4, "La pensée d'Ibn ʿArabī — Épisode 3",                                          'Gregory Vandamme'),
+            # ─── G. Pensées non islamiques ───
+            ('cours-philo-juive',  1, "Introduction à la philosophie de Maïmonide : le doute comme méthode",         'Géraldine Roux'),
+            ('cours-philo-juive',  2, "Allégorie, croyance et postérité de Maïmonide",                               'Géraldine Roux'),
+        ]
+        rewritten_v15g = 0
+        locked_only_v15g = 0
+        inserted_v15g = 0
+        for cid, ep_num, clean_title, scholar in EPISODE_TITLES:
+            doc = await db.audios.find_one(
+                {'course_id': cid, 'episode_number': ep_num},
+                {'_id': 0, 'id': 1, 'title': 1, 'seed_locked': 1},
+            )
+            if not doc:
+                # Episode missing in DB → create it from Excel (placeholder audio).
+                new_id = f"aud_{cid}-ep{ep_num:02d}"
+                await db.audios.insert_one({
+                    'id': new_id,
+                    'course_id': cid,
+                    'episode_number': ep_num,
+                    'title': clean_title,
+                    'scholar_name': scholar,
+                    'intervenant': scholar,
+                    'is_active': True,
+                    'is_placeholder': True,
+                    'published_at': '2026-05',
+                    'seed_locked': True,
+                    'created_at': datetime.now(timezone.utc),
+                })
+                inserted_v15g += 1
+                continue
+            current = (doc.get('title') or '').strip()
+            is_generic = any(p.match(current) for p in GENERIC_PATTERNS) or not current
+            already_locked = bool(doc.get('seed_locked'))
+
+            if current == clean_title and already_locked:
+                continue  # nothing to do
+            if is_generic or current != clean_title and not already_locked:
+                # Set the clean title + scholar + lock
+                await db.audios.update_one(
+                    {'id': doc['id']},
+                    {'$set': {'title': clean_title, 'scholar_name': scholar, 'seed_locked': True}},
+                )
+                rewritten_v15g += 1
+            elif not already_locked:
+                # Title is custom (admin edit) but not locked yet → just lock
+                await db.audios.update_one(
+                    {'id': doc['id']},
+                    {'$set': {'seed_locked': True}},
+                )
+                locked_only_v15g += 1
+
+        # Cleanup: remove stray cours-debuts-islam ep6 (legacy duplicate of ep5)
+        stray = await db.audios.find_one({
+            'course_id': 'cours-debuts-islam',
+            'episode_number': 6,
+            'seed_locked': {'$ne': True},
+        }, {'_id': 0, 'id': 1, 'title': 1})
+        if stray:
+            await db.audios.delete_one({'id': stray['id']})
+            inserted_v15g += 0  # cosmetic
+            logger.info(f"Migration v15g: removed stray duplicate {stray['id']}")
+
+        if rewritten_v15g or locked_only_v15g or inserted_v15g:
+            logger.info(f"Migration v15g: episode titles — {rewritten_v15g} rewritten, {locked_only_v15g} locked, {inserted_v15g} created (stray_removed: {1 if stray else 0})")
+    except Exception as e:
+        logger.warning(f"Migration v15g failed: {e}", exc_info=True)
+    # ─── End Migration v15g ────────────────────────────────────────────────
 
 
 
