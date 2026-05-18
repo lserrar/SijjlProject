@@ -6513,6 +6513,33 @@ def _pdf_to_article(pdf_bytes: bytes, label: str, *, mime: str = 'application/pd
     # Split into raw lines, normalise inner whitespace
     raw_lines = [re.sub(r'\s+', ' ', ln).strip() for ln in text.split('\n')]
 
+    # ── Strip repeated headers/footers (PDF page boilerplate) ──────────────
+    # PDF exports often carry an author byline like "By Yannis Mahil" or a
+    # running title at the top/bottom of every page. pdfminer extracts these
+    # verbatim, polluting the article body. Heuristic: any short line
+    # (≤80 chars, ≥4 chars) that appears 3+ times across the document AND
+    # is not glossary-shaped is treated as boilerplate and silently dropped.
+    from collections import Counter as _Counter
+    line_counts = _Counter(ln for ln in raw_lines if 4 <= len(ln) <= 80)
+    boilerplate = {
+        ln for ln, n in line_counts.items()
+        if n >= 3
+        and ':' not in ln[:60]  # spare glossary "Term : def" entries
+        and not re.match(r'^\d+\s*[\.\)]', ln)  # spare numbered headings
+    }
+    if boilerplate:
+        logging.getLogger(__name__).info(
+            f"PDF/DOCX parser: stripped {len(boilerplate)} repeated header/footer line(s)"
+        )
+        raw_lines = [ln for ln in raw_lines if ln not in boilerplate]
+    # Always strip standalone page numbers like "Page 1", "1 / 24", "- 12 -"
+    PAGE_NUM_RE = re.compile(r'^(?:Page\s+)?\d+(?:\s*[/–\-]\s*\d+)?$|^[-–—]\s*\d+\s*[-–—]$', re.IGNORECASE)
+    raw_lines = [ln for ln in raw_lines if not PAGE_NUM_RE.match(ln)]
+    # Re-derive the source `text` so the downstream block-merger stays
+    # consistent with the cleaned lines (preserves blank-line counts).
+    text = '\n'.join(raw_lines)
+    # ── End boilerplate strip ──────────────────────────────────────────────
+
     # Build "blocks" by merging consecutive non-empty lines, BUT start a new block
     # whenever a line looks like a glossary term entry ("Terme : …") or like a heading
     # or whenever the previous line ended with a sentence terminator AND the new line
@@ -6557,7 +6584,7 @@ def _pdf_to_article(pdf_bytes: bytes, label: str, *, mime: str = 'application/pd
             current_lines.append(ln)
         else:
             prev = current_lines[-1]
-            hard_break = blank_run >= 1  # any blank line = paragraph break
+            hard_break = blank_run >= 2  # 2+ blank lines = real paragraph break
             starts_new = False
             if hard_break:
                 starts_new = True
