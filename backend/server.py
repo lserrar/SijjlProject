@@ -1443,7 +1443,15 @@ async def get_catalogue():
     items = []
     for c in launch_courses:
         course_modules = mods_by_course.get(c['id'], [])
-        if len(course_modules) >= 2:
+        # Decide whether to split this course into per-module cards.
+        # Only do so when at least 2 modules carry actual content (audios)
+        # OR are explicitly flagged `is_launch_catalog`. Otherwise show a
+        # single course-level card so the editorial summary stays visible.
+        modules_with_content = [
+            m for m in course_modules
+            if audios_per_module.get(m['id'], 0) > 0 or m.get('is_launch_catalog')
+        ]
+        if len(modules_with_content) >= 2:
             visible_modules = []
             for m in course_modules:
                 ep_count = audios_per_module.get(m['id'], 0)
@@ -6386,7 +6394,43 @@ async def stream_r2_resource(request: Request, t: Optional[str] = None):
 _pdf_article_cache: dict = {}
 
 def _docx_to_text(docx_bytes: bytes) -> str:
-    """Convert DOCX → plain text using mammoth (fall back gracefully)."""
+    """Convert DOCX → structured plain text.
+
+    Uses python-docx to inspect each paragraph's style. Headings get explicit
+    markers (`[H1]`, `[H2]`, `[H3]`) so the downstream parser can render them
+    as proper titles instead of mangling them into prose. Line breaks inside
+    a paragraph (Shift+Enter in Word) are kept as `\u2028` so the front-end
+    can render them as `<br/>` while paragraph breaks remain as `\n\n`.
+
+    Falls back to mammoth (raw text only) if python-docx fails for any reason.
+    """
+    try:
+        from docx import Document  # python-docx
+        doc = Document(io.BytesIO(docx_bytes))
+        out_lines: list[str] = []
+        for para in doc.paragraphs:
+            text = (para.text or '').strip()
+            style_name = (para.style.name if para.style else '') or ''
+            if not text:
+                # Blank paragraph → keep one blank line (will become \n\n).
+                out_lines.append('')
+                continue
+            # Detect heading level from the style name.
+            lvl = None
+            sn = style_name.lower()
+            if sn.startswith('heading 1') or sn == 'title':
+                lvl = 1
+            elif sn.startswith('heading 2'):
+                lvl = 2
+            elif sn.startswith('heading 3') or sn.startswith('heading 4'):
+                lvl = 3
+            if lvl:
+                out_lines.append(f"[H{lvl}]{text}")
+            else:
+                out_lines.append(text)
+        return '\n\n'.join(out_lines)
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"python-docx extract failed, falling back to mammoth: {e}")
     try:
         import mammoth
         result = mammoth.extract_raw_text(io.BytesIO(docx_bytes))
@@ -6415,6 +6459,56 @@ def _pdf_to_article(pdf_bytes: bytes, label: str, *, mime: str = 'application/pd
             .replace('\ufb01', 'fi').replace('\ufb02', 'fl')
             .replace('\u00a0', ' ')
             .replace('\r', '\n'))
+
+    # ── New path (DOCX with explicit heading markers) ──────────────────────
+    # When the input was a DOCX processed by _docx_to_text, each Word
+    # paragraph is on its own line, separated by a blank line, and headings
+    # are prefixed with [H1]/[H2]/[H3]. Parse that structure directly — it
+    # is far more accurate than the heuristic block-merging used for PDF.
+    if is_docx and ('[H1]' in text or '[H2]' in text or '[H3]' in text or '\n\n' in text):
+        sections_docx: list = []
+        lead_docx: str | None = None
+        current_sec = {'title': None, 'paragraphs': [], 'level': 2}
+        # Split on the blank lines we inserted between paragraphs.
+        raw_paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+        for raw in raw_paragraphs:
+            m = re.match(r'^\[H([123])\](.+)$', raw, flags=re.DOTALL)
+            if m:
+                level = int(m.group(1))
+                heading_text = m.group(2).strip()
+                if level == 1:
+                    # H1 is treated as the article main title — only used to
+                    # close any open section and start a new one (the article
+                    # title is set by the caller from the resource metadata).
+                    if current_sec['title'] or current_sec['paragraphs']:
+                        sections_docx.append(current_sec)
+                    current_sec = {'title': heading_text, 'paragraphs': [], 'level': 1}
+                elif level == 2:
+                    if current_sec['title'] or current_sec['paragraphs']:
+                        sections_docx.append(current_sec)
+                    current_sec = {'title': heading_text, 'paragraphs': [], 'level': 2}
+                else:  # H3 → inline sub-heading kept as a paragraph with marker
+                    current_sec['paragraphs'].append(f'[H3]{heading_text}')
+            else:
+                current_sec['paragraphs'].append(raw)
+        if current_sec['title'] or current_sec['paragraphs']:
+            sections_docx.append(current_sec)
+        # Promote first paragraph to lead if it reads like an introduction.
+        if sections_docx and sections_docx[0]['paragraphs']:
+            first = sections_docx[0]['paragraphs'][0]
+            if not first.startswith('[H') and 60 <= len(first) <= 800 and first[:1].isupper():
+                lead_docx = first
+                sections_docx[0]['paragraphs'] = sections_docx[0]['paragraphs'][1:]
+        # Strip leading empty sections.
+        while sections_docx and not sections_docx[0]['title'] and not sections_docx[0]['paragraphs']:
+            sections_docx.pop(0)
+        return {
+            'title': label,
+            'lead': lead_docx,
+            'sections': sections_docx,
+            'word_count': sum(len(p.split()) for s in sections_docx for p in s['paragraphs']) + (len((lead_docx or '').split())),
+        }
+    # ── End new DOCX path ──────────────────────────────────────────────────
 
     # Split into raw lines, normalise inner whitespace
     raw_lines = [re.sub(r'\s+', ' ', ln).strip() for ln in text.split('\n')]
@@ -6463,7 +6557,7 @@ def _pdf_to_article(pdf_bytes: bytes, label: str, *, mime: str = 'application/pd
             current_lines.append(ln)
         else:
             prev = current_lines[-1]
-            hard_break = blank_run >= 2  # 2+ blank lines = real paragraph break
+            hard_break = blank_run >= 1  # any blank line = paragraph break
             starts_new = False
             if hard_break:
                 starts_new = True

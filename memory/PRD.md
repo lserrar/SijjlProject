@@ -236,6 +236,18 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
   - **Récupération** : les éditions perdues en prod doivent être ressaisies une fois (cette fois elles tiennent). Hostinger MongoDB peut avoir un backup automatique exploitable (voir backup VPS).
 
 - ✅ **Migration v15d — Import one-shot du Catalogue Éditorial** (Fév 2026 — handoff fork) :
+
+- ✅ **Cards catalogue : description courte au lieu de description longue tronquée** (Fév 2026) :
+  - `/api/catalogue` retourne désormais `description: summary || description` (priorité summary). Le champ `summary` est aussi exposé séparément.
+  - Page détail (`CourseDetail.jsx`) : ajout d'un `<p className="course-detail-lead">{course.summary}</p>` au-dessus du `course-detail-desc` — affichage en EB Garamond 21px italic avec barre verticale verte (`brand-primary`).
+  - Fix complémentaire : le catalogue n'éclate plus un cours en cartes de modules s'il n'a qu'**UN seul module avec contenu** (les modules vides ne déclenchent plus le mode split). Bug observé sur cours-fiqh : 2 modules en DB mais 1 seul avec audios → carte module « Droit musulman » vide → maintenant remplacée par la carte cours « Histoire du droit musulman » avec sa description Yannis Mahil complète.
+
+- ✅ **Scripts : parser DOCX/PDF respectant les sauts de ligne et les titres** (Fév 2026) :
+  - `_docx_to_text()` réécrit pour utiliser **python-docx** (au lieu de mammoth raw text). Chaque paragraphe Word conserve son style : `Heading 1/Title` → marqueur `[H1]`, `Heading 2` → `[H2]`, `Heading 3/4` → `[H3]`. Les paragraphes vides sont conservés pour assurer la séparation visuelle.
+  - `_pdf_to_article()` : ajout d'un chemin DOCX dédié — quand le texte contient des marqueurs `[Hn]`, on parse directement par paragraphe (split sur `\n\n`) au lieu d'utiliser le bloc-merger heuristique. Les `[H1]`/`[H2]` deviennent des sections, les `[H3]` restent inline dans les paragraphes (avec marqueur).
+  - PDF natif (pdfminer) : le seuil de séparation des paragraphes passe de **2 lignes vides à 1** — bien plus fidèle au layout original. Les retours à la ligne simples du document sont préservés.
+  - Frontend `CourseResourceArticle.jsx` : le composant `GlossaryParagraph` détecte le préfixe `[H3]` et le rend en `<h3 className="cra-h3">` au lieu d'un `<p>`. La classe `.cra-h3` (déjà ajoutée précédemment) styise à 21px / 1.4 / EB Garamond 600.
+  - Mammoth conservé comme fallback en cas d'échec python-docx.
   - **Input** : document `Sijill_Catalogue_Editorial.docx` fourni par la prof — extrait via `extract_file_tool` (19 cours/épisodes structurés en JSON : title, short_description→summary, long_description→description, scholar_name).
   - **Implémentation** : nouveau bloc `Migration v15d` qui itère sur `EDITORIAL_CATALOG` (17 cours matchés contre les IDs DB) et applique `$set: {title, summary, description, scholar_name, seed_locked: True}` à chaque cours.
   - **Idempotent** : protégé par le flag `runtime_flags._id="migration_v15d_applied"` — ne tourne qu'une seule fois (le redémarrage suivant skip la migration).

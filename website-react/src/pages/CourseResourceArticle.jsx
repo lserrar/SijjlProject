@@ -16,6 +16,10 @@ const TYPE_LABELS = {
 const GLOSS_RE = /^([A-ZÀ-ÝŒÇ][^.:;\n]{1,60}?)\s*:\s+(.*)$/
 
 function GlossaryParagraph({ text }) {
+  // Inline H3 marker emitted by the backend DOCX parser.
+  if (typeof text === 'string' && text.startsWith('[H3]')) {
+    return <h3 className="cra-h3" data-testid="article-h3">{text.slice(4).trim()}</h3>
+  }
   const m = GLOSS_RE.exec(text)
   if (!m) return <p className="cra-p">{text}</p>
   return (
