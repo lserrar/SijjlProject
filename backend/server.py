@@ -4515,6 +4515,156 @@ async def seed_data():
         logger.warning(f"Migration v15c failed: {e}", exc_info=True)
     # ─── End Migration v15c ────────────────────────────────────────────────
 
+    # ─── Migration v15d — Apply Sijill_Catalogue_Editorial.docx (Feb 2026) ─
+    # One-shot import of the editorial catalogue provided by the team. Sets
+    # the official title / summary / description / scholar_name on each
+    # course AND flips `seed_locked: True` so no future seed can overwrite.
+    # Idempotent: gated by the dedicated `migration_v15d_applied` flag in
+    # the `runtime_flags` collection so it runs exactly once per database.
+    try:
+        flag_doc = await db.runtime_flags.find_one({'_id': 'migration_v15d_applied'})
+        if not flag_doc:
+            EDITORIAL_CATALOG = [
+                {
+                    'id': 'cours-debuts-islam',
+                    'title': "Cours 1 : Les débuts de l'islam",
+                    'scholar_name': 'Hassan Bouali · Mehdi Ghouirgate',
+                    'summary': "En quatre épisodes thématiques, Hassan Bouali approfondit les grandes questions des débuts de l'islam : la vie du Prophète, la formation du califat, les conquêtes et l'intégration progressive du ḥajj à la piété musulmane.",
+                    'description': "Hassan Bouali, historien médiéviste et chercheur associé au CEFREPA (CNRS) et à l'Université Paris Nanterre, aborde les débuts de l'islam par quatre entrées thématiques complémentaires.\nIl commence par la figure de Muhammad et les conditions d'émergence de l'islam en Arabie au VIIe siècle, puis explore la formation du califat de Médine à la sortie d'Arabie.\nIl retrace ensuite les futūḥāt — les grandes conquêtes — avant de conclure par le ḥajj et son intégration progressive à la piété musulmane.\n\nCe cours couvre :\n• Muhammad et les débuts de l'islam (juillet 2026)\n• Le califat : de Médine à la sortie d'Arabie (sept. 2026)\n• Les futūḥāt (oct. 2026)\n• Le ḥajj (nov. 2026)",
+                },
+                {
+                    'id': 'cours-andalus',
+                    'title': "Cours 2 : Al-Andalus",
+                    'scholar_name': 'Mehdi Ghouirgate',
+                    'summary': "L'unique civilisation arabo-islamique durablement implantée sur le sol européen. Du VIIIe au XVe siècle, al-Andalus fut un espace d'échanges entre musulmans, chrétiens et juifs, un foyer de transmission du savoir et un carrefour intellectuel qui façonna l'histoire européenne.",
+                    'description': "Al-Andalus représente l'une des expériences historiques les plus singulières du Moyen Âge.\nNée d'une conquête rapide en 711, consolidée par la dynastie omeyyade exilée de Damas, rayonnante sous le califat de Cordoue, puis fragmentée en royaumes de taifas avant de s'éteindre avec la chute de Grenade en 1492.\nMehdi Ghouirgate propose une lecture panoramique et rigoureuse de cette civilisation : la genèse, l'apogée avec Averroès et Maïmonide, le rôle de médiateur entre Orient et Occident, les empires berbères, l'Alhambra nasride et les débats contemporains sur l'héritage andalou.\n\nCe cours couvre :\n• La genèse d'al-Andalus\n• L'apogée : le califat de Cordoue\n• Al-Andalus comme médiateur Orient-Occident\n• Les empires berbères et l'Alhambra\n• L'héritage contesté",
+                },
+                {
+                    'id': 'cours-historiographie',
+                    'title': "Ibn Khaldūn — Biographie",
+                    'scholar_name': 'Mehdi Ghouirgate',
+                    'summary': "Né en 1332 dans une famille de la noblesse andalouse exilée, Ibn Khaldūn occupe dans l'histoire de la pensée une place absolument unique. Ni théologien, ni philosophe classique, ni simple chroniqueur — il invente une méthode entièrement nouvelle pour comprendre pourquoi les civilisations naissent, prospèrent et s'effondrent.",
+                    'description': "Ibn Khaldūn est l'une des figures les plus originales de toute l'histoire intellectuelle mondiale.\nSa vie est d'abord celle d'un homme de pouvoir : secrétaire, diplomate, émissaire, prisonnier, puis conseiller de sultans au Maghreb, en al-Andalus et en Égypte.\nCes déplacements constants font de lui un observateur direct des mécanismes tribaux et des cycles de grandeur et de déclin des dynasties.\nC'est cette expérience de terrain qui nourrit sa notion fondamentale d'ʿasabiyya — la force de cohésion qui permet à un groupe de conquérir le pouvoir.\nMehdi Ghouirgate, lauréat du Prix de la biographie littéraire 2025 de l'Académie française pour son ouvrage Ibn Khaldūn (CNRS Éditions, 2024), retrace dans cet épisode son itinéraire exceptionnel.\n\nCe cours couvre :\n• Formation et noblesse andalouse\n• Carrière politique tumultueuse\n• L'ʿasabiyya\n• Grenade et l'Égypte\n• La Muqaddima",
+                },
+                {
+                    'id': 'cours-fiqh',
+                    'title': "Histoire du droit musulman",
+                    'scholar_name': 'Yannis Mahil',
+                    'summary': "Le droit musulman — fiqh et sharīʿa — est à la fois un système juridique, un fait social et un fait religieux vivant. En six épisodes, Yannis Mahil en retrace l'histoire, les fondements théoriques, les mécanismes d'élaboration et les dynamiques contemporaines.",
+                    'description': "Qu'est-ce que le droit musulman ? Loin d'être un code figé, le fiqh constitue l'un des édifices intellectuels les plus complexes et les plus vivants de la civilisation islamique — un système de normes élaboré sur quatorze siècles.\nYannis Mahil, maître de conférences en études islamiques à GISTU University, propose une introduction rigoureuse et accessible.\nIl commence par les fondements conceptuels — fiqh, sharīʿa, ijtihad — avant d'en retracer l'histoire et d'explorer les uṣūl al-fiqh, cette théorie générale du droit.\nLe cours s'achève sur l'ijtihad contemporain et les maqāṣid al-sharīʿa.\n\nCe cours couvre :\n• Introduction au droit musulman\n• L'ijtihad\n• Histoire du droit : périodisation\n• Uṣūl al-fiqh I : sources primaires\n• Uṣūl al-fiqh II : qiyās et sources secondaires\n• Ijtihad contemporain et maqāṣid",
+                },
+                {
+                    'id': 'cours-coran',
+                    'title': "Histoire de la constitution du Coran",
+                    'scholar_name': 'Mehdi Azaiez',
+                    'summary': "Comment le texte coranique s'est-il constitué ? Mehdi Azaiez, professeur d'islamologie à l'UCLouvain et spécialiste des études coraniques, retrace l'histoire de la formation du Coran.",
+                    'description': "Mehdi Azaiez, professeur d'islamologie à l'Université catholique de Louvain et auteur du Contre-discours coranique (De Gruyter, 2015), propose une introduction aux études coraniques et à l'histoire de la constitution du texte coranique.\nCe cours aborde la question de la formation du corpus coranique, les débats historiographiques et les méthodes critiques contemporaines.",
+                },
+                {
+                    'id': 'cours-hadith',
+                    'title': "Le corpus du hadith",
+                    'scholar_name': 'Hassan Chahdi',
+                    'summary': "Comment les paroles et actes du Prophète ont-ils été collectés, transmis et codifiés ? Hassan Chahdi retrace l'histoire du corpus du hadith en trois épisodes.",
+                    'description': "Hassan Chahdi est maître de conférences en islamologie à l'Université de Lorraine, docteur de l'EPHE et lauréat du prix de la meilleure thèse francophone (GIS-Moyen Orient).\nEn trois épisodes, il retrace l'histoire de la transmission du hadith — les paroles et actes du Prophète Muhammad — depuis les premières transmissions orales jusqu'à la codification des grands recueils canoniques.\nIl aborde les méthodes critiques d'authentification et leur rôle dans l'élaboration du droit islamique.",
+                },
+                {
+                    'id': 'cours-sciences',
+                    'title': "Histoire des sciences arabes",
+                    'scholar_name': 'Marouane Ben Miled · Meyssa Ben Saâd',
+                    'summary': "Comment les savants arabes médiévaux ont-ils pensé et transformé les sciences héritées de l'Antiquité ? Marouane Ben Miled retrace l'histoire des mathématiques arabes et Meyssa Ben Saâd celle des sciences naturelles à travers l'œuvre d'Al-Jāḥiẓ.",
+                    'description': "Marouane Ben Miled, enseignant-chercheur à l'École Nationale d'Ingénieurs de Tunis (ENIT), chercheur au LAMSIN et associé au CGGG (CNRS), retrace en trois épisodes l'histoire des mathématiques arabes — algèbre, géométrie, arithmétique, trigonométrie — en montrant comment les savants arabes ont non seulement transmis le savoir grec mais l'ont profondément transformé, créant de nouvelles disciplines dont hérita l'Europe moderne.\n\nMeyssa Ben Saâd, docteure en histoire des sciences spécialisée en histoire de la zoologie arabe médiévale, chercheuse associée à l'UMR SPHERE (CNRS, Université Paris Cité) et membre de la Faculté de l'Institut Supérieur d'Éducation Spécialisée de l'Université de la Manouba (Tunis), consacre deux épisodes à l'histoire des sciences naturelles dans le monde islamique médiéval et à l'œuvre d'Al-Jāḥiẓ — penseur du IXe siècle auteur du Livre des animaux, l'une des premières tentatives systématiques de classification du monde animal dans la tradition arabe.",
+                },
+                {
+                    'id': 'cours-art',
+                    'title': "Les arts de l'Islam",
+                    'scholar_name': 'Camille Grandpierre',
+                    'summary': "Des mosquées de Cordoue aux manuscrits enluminés de Hérat — les arts de l'Islam forment l'un des ensembles artistiques les plus vastes et les plus divers de l'histoire humaine. Camille Grandpierre en propose une introduction rigoureuse et illustrée.",
+                    'description': "Les arts de l'Islam ne forment pas un ensemble homogène.\nIls s'étendent sur quatorze siècles et un territoire immense, portés par des dynasties, des langues et des traditions artistiques radicalement différentes.\nCamille Grandpierre, doctorante à Sorbonne Université et lauréate d'un contrat doctoral de l'INHA, propose en quatre épisodes une introduction rigoureuse et illustrée.\nElle commence par clarifier les contours de la discipline — qu'est-ce que les arts de l'Islam ? Sont-ils vraiment aniconiques ? — avant d'aborder l'architecture, les arts des objets (céramique, verre, métal, bois, ivoire, textiles), et enfin les arts du livre et de la calligraphie.\n\nCe cours couvre :\n• Introduction aux arts de l'Islam\n• L'architecture : mosquées et espaces du sacré\n• Les objets de forme : céramique, verre, métal, textiles\n• Les arts du livre : calligraphie, enluminure, manuscrits",
+                },
+                {
+                    'id': 'cours-traduction',
+                    'title': "Le grand mouvement de traduction",
+                    'scholar_name': 'Meryem Sebti',
+                    'summary': "Bagdad, IXe siècle. Des textes grecs vieux de mille ans traversent les frontières, changent de langue, et renaissent dans un univers culturel radicalement différent. Meryem Sebti retrace le moment fondateur de la philosophie en terre d'islam.",
+                    'description': "Comment la philosophie grecque est-elle parvenue au monde islamique ? La réponse est bien plus complexe qu'un simple transfert.\nLa philosophie qui arrive en arabe n'est pas celle de Platon et d'Aristote tels qu'ils enseignaient au IVe siècle avant notre ère — c'est une pensée déjà transformée par six siècles de commentaires dans les grandes écoles d'Alexandrie et d'Athènes.\nMeryem Sebti retrace les étapes de ce transfert exceptionnel : le rôle fondateur d'Alexandrie, le maillon décisif du syriaque, le mécénat abbasside sous al-Maʾmūn et les grandes figures de traducteurs comme Ḥunayn ibn Isḥāq.\nCe mouvement n'est pas une réception passive — il est une transformation active qui donne naissance à la falsafa.\n\nCe cours couvre :\n• La philosophie de l'Antiquité tardive\n• Le maillon syriaque\n• Bagdad abbasside et la Maison de la Sagesse\n• Naissance de la falsafa",
+                },
+                {
+                    'id': 'cours-al-ghazali',
+                    'title': "Introduction à Al-Ghazālī",
+                    'scholar_name': 'Meryem Sebti',
+                    'summary': "Al-Ghazālī occupe une place singulière dans l'histoire de la pensée islamique : à la fois philosophe, théologien et mystique, il est celui qui formula la critique la plus radicale de la falsafa tout en en étant profondément nourri. Meryem Sebti présente cette figure essentielle.",
+                    'description': "Al-Ghazālī (1058-1111) est l'une des figures les plus complexes et les plus influentes de la pensée islamique.\nAuteur de L'Incohérence des philosophes, il se distingue par une critique radicale de la falsafa aristotélicienne, tout en ayant lui-même une formation philosophique poussée.\nMeryem Sebti, directrice de recherche au CNRS, propose dans cet épisode une introduction à sa pensée et à sa place dans l'histoire de la philosophie islamique.",
+                },
+                {
+                    'id': 'cours-al-kindi',
+                    'title': "Al-Kindī",
+                    'scholar_name': 'Meryem Sebti',
+                    'summary': "Premier philosophe de la tradition arabe, al-Kindī incarne le moment fondateur de la falsafa. Meryem Sebti lui consacre cinq épisodes explorant sa vie, sa défense de la philosophie, sa cosmologie, sa théorie de l'intellect et son éthique.",
+                    'description': "Al-Kindī occupe dans la tradition philosophique arabe une position rigoureusement unique : il en fut le premier penseur.\nNé vers 800 à Bagdad, il traverse l'un des siècles les plus fertiles de l'histoire intellectuelle.\nEn cinq épisodes, Meryem Sebti propose une lecture complète de sa pensée : vie et contexte, défense de la falsafa, cosmologie et sciences, intellect et connaissance, éthique et héritage kindien.",
+                },
+                {
+                    'id': 'cours-al-farabi',
+                    'title': "Al-Fārābī",
+                    'scholar_name': 'Meryem Sebti',
+                    'summary': "Al-Fārābī — le « Deuxième Maître » après Aristote — est l'architecte de la philosophie politique islamique et le grand systématisateur de la falsafa. Meryem Sebti lui consacre cinq épisodes.",
+                    'description': "Al-Fārābī (872-950) est l'un des penseurs les plus originaux de la tradition philosophique islamique.\nLogicien, métaphysicien et philosophe politique, il est le premier à avoir systématiquement intégré la philosophie d'Aristote dans un cadre islamique cohérent.\nEn cinq épisodes, Meryem Sebti explore l'ensemble de sa pensée : logique, métaphysique, philosophie politique (La Cité vertueuse) et philosophie de la musique.",
+                },
+                {
+                    'id': 'cours-avicenne',
+                    'title': "Avicenne (Ibn Sīnā)",
+                    'scholar_name': 'Meryem Sebti',
+                    'summary': "« Chef et prince des philosophes » — c'est ainsi que Roger Bacon désignait Avicenne. Le philosophe le plus important du monde islamique, dont l'œuvre marque un tournant majeur : il y a un avant et un après Avicenne dans l'histoire de la pensée.",
+                    'description': "Avicenne (980-1037) aspirait à créer une synthèse philosophique capable de se substituer à celle d'Aristote. Il y parvint.\nSon Livre de la guérison est l'une des œuvres les plus monumentales de toute la philosophie mondiale.\nMeryem Sebti lui consacre cinq épisodes : vie et contexte, métaphysique et théologie, psychologie et théorie de l'intellect, philosophie de la nature, héritage avicennien en Orient et en Occident.",
+                },
+                {
+                    'id': 'cours-falsafa-occident',
+                    'title': "La falsafa en Occident musulman",
+                    'scholar_name': 'Yassir Mechelloukh',
+                    'summary': "De Saragosse à Cordoue, la falsafa s'épanouit dans l'Occident musulman avec trois figures majeures. Yassir Mechelloukh explore en sept épisodes cette tradition philosophique andalouse qui influencera durablement la scolastique latine.",
+                    'description': "Yassir Mechelloukh, doctorant en histoire de la philosophie arabe à l'INALCO et à l'Université Paris 1, explore en sept épisodes la tradition philosophique de l'Occident islamique.\nIl commence par Ibn Bajja (Avenpace) et sa réflexion sur l'intellect et le sage solitaire, poursuit avec Ibn Ṭufayl et son roman philosophique Hayy ibn Yaqẓān, avant de consacrer trois épisodes à Averroès (Ibn Rushd) — le Grand Commentateur d'Aristote dont les traductions latines transformèrent la philosophie médiévale européenne.",
+                },
+                {
+                    'id': 'cours-inclassables',
+                    'title': "La pensée d'Ibn Khaldūn",
+                    'scholar_name': 'Cédric Molino-Machetto',
+                    'summary': "Comment Ibn Khaldūn pense-t-il l'histoire des civilisations ? Cédric Molino-Machetto explore en deux épisodes la Muqaddima — l'œuvre philosophique la plus originale du monde islamique médiéval.",
+                    'description': "Cédric Molino-Machetto, agrégé et docteur en philosophie, spécialiste de philosophie arabe prémoderne, consacre deux épisodes à la pensée philosophique d'Ibn Khaldūn.\nIl explore la Muqaddima comme œuvre philosophique : la théorie de l'ʿasabiyya, la science de la civilisation humaine (ʿilm al-ʿumrān), la philosophie de l'histoire et la place d'Ibn Khaldūn dans la tradition de la falsafa.",
+                },
+                {
+                    'id': 'cours-falsafa-persan',
+                    'title': "Le renouveau de la philosophie persane : Mullā Ṣadrā",
+                    'scholar_name': 'Sajjad H. Rizvi',
+                    'summary': "Mullā Ṣadrā (1571-1640) est la figure centrale du renouveau de la philosophie islamique en Iran safavide. Sajjad Rizvi, professeur à l'Université d'Exeter, lui consacre trois épisodes.",
+                    'description': "Sajjad H. Rizvi, Professor of Islamic Intellectual History à l'Université d'Exeter et directeur du Global & Area Studies, est l'un des spécialistes mondiaux de Mullā Ṣadrā.\nEn trois épisodes, il explore la « sagesse transcendante » (al-ḥikma al-mutaʿāliya) de Mullā Ṣadrā — une synthèse extraordinaire entre falsafa avicennienne, soufisme d'Ibn ʿArabī et théologie shiite — et son influence durable sur la philosophie islamique jusqu'à nos jours.",
+                },
+                {
+                    'id': 'cours-philo-juive',
+                    'title': "La philosophie de Maïmonide",
+                    'scholar_name': 'Géraldine Roux',
+                    'summary': "Philosophe juif du XIIe siècle écrivant en arabe, nourri de la pensée grecque transmise par la tradition islamique — Maïmonide se tient à la croisée de trois traditions intellectuelles. Géraldine Roux retrace son itinéraire et explore le doute comme méthode philosophique dans le Guide des Égarés.",
+                    'description': "Maïmonide (1138-1204) occupe dans l'histoire de la pensée une place singulière : né à Cordoue, formé dans un monde arabo-islamique, il écrit son œuvre majeure en arabe tout en pensant dans un cadre juif.\nGéraldine Roux, agrégée et docteure en philosophie, autrice de Maïmonide ou la nostalgie de la sagesse (Seuil, 2017), retrace sa biographie et montre comment la philosophie gréco-arabe irrigue l'élaboration conceptuelle du Guide des Égarés.\nElle explore ensuite la notion de « perplexité » comme méthode philosophique à part entière, puis aborde les deux piliers de la pensée maïmonidienne : l'interprétation allégorique des Écritures et la définition de la croyance.\nMaïmonide distingue les croyances vraies, fondées sur la démonstration rationnelle, des croyances fausses ou simplement utiles à l'ordre social. Cette théorie influencera Spinoza, les philosophes des Lumières et continue d'alimenter les débats contemporains sur les rapports entre raison et révélation.\n\nCe cours couvre :\n• Biographie\n• Influence de la philosophie gréco-arabe\n• Le chemin des manuscrits grecs\n• Le doute et la perplexité comme méthode\n• Interprétation allégorique et philosophique\n• Croyances vraies et croyances fausses\n• La postérité de Maïmonide",
+                },
+            ]
+            applied = 0
+            for entry in EDITORIAL_CATALOG:
+                cid = entry.pop('id')
+                # seed_locked=True freezes the course against any future seed sweep.
+                entry['seed_locked'] = True
+                r = await db.courses.update_one({'id': cid}, {'$set': entry})
+                if r.matched_count:
+                    applied += 1
+                else:
+                    logger.warning(f"Migration v15d: course '{cid}' not found, skipped")
+            await db.runtime_flags.insert_one({
+                '_id': 'migration_v15d_applied',
+                'applied_at': datetime.now(timezone.utc),
+                'courses_updated': applied,
+            })
+            logger.info(f"Migration v15d: editorial catalogue applied to {applied} course(s)")
+    except Exception as e:
+        logger.warning(f"Migration v15d failed: {e}", exc_info=True)
+    # ─── End Migration v15d ────────────────────────────────────────────────
+
 
 
 
