@@ -5609,6 +5609,33 @@ async def admin_toggle_audio(audio_id: str, request: Request):
     await db.audios.update_one({'id': audio_id}, {'$set': {'is_active': new_status}})
     return {'id': audio_id, 'is_active': new_status}
 
+@api_router.patch("/admin/audios/{audio_id}/seed-lock")
+async def admin_toggle_audio_seed_lock(audio_id: str, request: Request):
+    """Toggle the `seed_locked` flag on an audio episode.
+
+    When TRUE the title is protected: no startup migration / seed can rewrite
+    it on reboot. Admin uses the lock icon in /api/admin-panel/tree to free
+    a title temporarily for editing, then re-lock once done.
+    """
+    await require_admin(request)
+    doc = await db.audios.find_one({'id': audio_id}, {'_id': 0, 'seed_locked': 1})
+    if not doc:
+        raise HTTPException(404, "Audio non trouvé")
+    new_state = not bool(doc.get('seed_locked'))
+    await db.audios.update_one({'id': audio_id}, {'$set': {'seed_locked': new_state}})
+    return {'id': audio_id, 'seed_locked': new_state}
+
+@api_router.patch("/admin/courses/{course_id}/seed-lock")
+async def admin_toggle_course_seed_lock(course_id: str, request: Request):
+    """Toggle the `seed_locked` flag on a course (protects title/description/scholar)."""
+    await require_admin(request)
+    doc = await db.courses.find_one({'id': course_id}, {'_id': 0, 'seed_locked': 1})
+    if not doc:
+        raise HTTPException(404, "Cours non trouvé")
+    new_state = not bool(doc.get('seed_locked'))
+    await db.courses.update_one({'id': course_id}, {'$set': {'seed_locked': new_state}})
+    return {'id': course_id, 'seed_locked': new_state}
+
 @api_router.post("/admin/audios/bulk-toggle")
 async def admin_bulk_toggle_audios(request: Request):
     """Activate or deactivate all audios for a given course or cursus."""

@@ -166,13 +166,18 @@ function renderTree() {
             const epHtml = audios.map(a => {
                 const hasYt = !!a.youtube_url, hasR2 = !!a.r2_audio_key;
                 const badges = `${hasYt ? '<span class="badge badge-yt">YT</span>' : ''}${hasR2 ? '<span class="badge badge-r2">R2</span>' : ''}${(!hasYt && !hasR2) ? '<span class="badge badge-soon">SOON</span>' : ''}`;
+                const epLockIcon = a.seed_locked ? '<i class="fas fa-lock" style="color:var(--brand-secondary);"></i>' : '<i class="fas fa-lock-open" style="color:var(--text-muted);"></i>';
+                const epLockTitle = a.seed_locked ? 'Titre verrouillé — clic pour déverrouiller' : 'Titre non verrouillé — clic pour protéger contre les reseeds';
                 return `<div class="episode-row">
                     <div class="episode-num">${String(a.episode_number || '?').padStart(2,'0')}</div>
                     <div>${escapeHtml(a.title || '(sans titre)')}<div style="font-size:11px;color:var(--text-muted);">${escapeHtml(a.intervenant || '')} ${a.r2_subprefix ? '· <code>'+escapeHtml(a.r2_subprefix)+'</code>' : ''}</div></div>
                     <div class="ep-badges">${badges}</div>
+                    <button class="course-edit" title="${epLockTitle}" onclick='event.stopPropagation();toggleAudioLock("${a.id}", this)' data-testid="lock-episode-${a.id}">${epLockIcon}</button>
                     <button class="course-edit" onclick='editEpisode(${JSON.stringify(a).replace(/'/g, "&apos;")})' data-testid="edit-episode-${a.id}"><i class="fas fa-pen"></i></button>
                 </div>`;
             }).join('') || `<p style="color:var(--text-muted);font-style:italic;font-size:12px;padding:10px;">Aucun épisode pour le moment.</p>`;
+            const courseLockIcon = c.seed_locked ? '<i class="fas fa-lock" style="color:var(--brand-secondary);"></i>' : '<i class="fas fa-lock-open" style="color:var(--text-muted);"></i>';
+            const courseLockTitle = c.seed_locked ? 'Cours verrouillé — clic pour déverrouiller' : 'Cours non verrouillé — clic pour protéger';
             return `<div>
                 <div class="course-row${recruitingCls} ${c.is_active === false ? 'disabled' : ''}" onclick="toggleCourse('${c.id}')">
                     <div>
@@ -180,6 +185,7 @@ function renderTree() {
                         <div class="course-desc">${escapeHtml((c.summary || c.description || '').slice(0,140))}</div>
                     </div>
                     <div class="course-counters">${dispo}/${total} ép. dispo</div>
+                    <button class="course-edit" title="${courseLockTitle}" onclick='event.stopPropagation();toggleCourseLock("${c.id}", this)' data-testid="lock-course-${c.id}">${courseLockIcon}</button>
                     <button class="course-edit" onclick='event.stopPropagation();editCourse(${JSON.stringify(c).replace(/'/g, "&apos;")})' data-testid="edit-course-${c.id}"><i class="fas fa-pen"></i> Éditer</button>
                 </div>
                 <div class="episode-list" id="ep-list-${c.id}">${epHtml}</div>
@@ -281,5 +287,33 @@ async function syncAllR2() {
 }
 
 loadTree().catch(e => { document.getElementById('treeRoot').innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; });
+
+async function toggleAudioLock(audioId, btn) {
+    try {
+        const res = await api(`/admin/audios/${audioId}/seed-lock`, { method:'PATCH' });
+        btn.innerHTML = res.seed_locked
+            ? '<i class="fas fa-lock" style="color:var(--brand-secondary);"></i>'
+            : '<i class="fas fa-lock-open" style="color:var(--text-muted);"></i>';
+        btn.title = res.seed_locked
+            ? 'Titre verrouillé — clic pour déverrouiller'
+            : 'Titre non verrouillé — clic pour protéger contre les reseeds';
+        const audio = treeData.audios.find(a => a.id === audioId);
+        if (audio) audio.seed_locked = res.seed_locked;
+    } catch(e) { alert('Erreur: ' + (e.message || e)); }
+}
+
+async function toggleCourseLock(courseId, btn) {
+    try {
+        const res = await api(`/admin/courses/${courseId}/seed-lock`, { method:'PATCH' });
+        btn.innerHTML = res.seed_locked
+            ? '<i class="fas fa-lock" style="color:var(--brand-secondary);"></i>'
+            : '<i class="fas fa-lock-open" style="color:var(--text-muted);"></i>';
+        btn.title = res.seed_locked
+            ? 'Cours verrouillé — clic pour déverrouiller'
+            : 'Cours non verrouillé — clic pour protéger';
+        const course = treeData.courses.find(c => c.id === courseId);
+        if (course) course.seed_locked = res.seed_locked;
+    } catch(e) { alert('Erreur: ' + (e.message || e)); }
+}
 </script>
 {% endblock %}
