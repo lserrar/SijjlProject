@@ -447,6 +447,19 @@ button { cursor: pointer; font-family: var(--font-body); }
   white-space: pre-line;
 }
 
+.course-detail-lead {
+  font-family: 'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  font-size: 21px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  font-style: italic;
+  max-width: 920px;
+  margin-bottom: 24px;
+  padding-left: 16px;
+  border-left: 2px solid var(--brand-primary, #04D182);
+  white-space: pre-line;
+}
+
 .episode-list { list-style: none; }
 
 .episode-item {

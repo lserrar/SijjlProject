@@ -1492,13 +1492,17 @@ async def get_catalogue():
             # where the same YT URL is denormalised on both course AND audio).
             if c.get('youtube_url') and ep_count == 0:
                 ep_count += 1
+            # Prefer the short `summary` (description courte) for the catalogue
+            # card. Fall back to the long `description` if no summary set.
+            card_blurb = c.get('summary') or c.get('description', '')
             items.append({
                 'type': 'course',
                 'id': c['id'],
                 'course_id': c['id'],
                 'module_id': None,
                 'title': c.get('title') or c.get('name') or '',
-                'description': c.get('description', ''),
+                'description': card_blurb,
+                'summary': c.get('summary', ''),
                 'cursus_id': c.get('cursus_id') or c.get('thematique_id'),
                 'course_title': c.get('title'),
                 'scholar_name': _scholar_label(c),

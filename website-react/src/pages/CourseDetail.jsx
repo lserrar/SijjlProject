@@ -539,7 +539,12 @@ export default function CourseDetail() {
         </div>
 
         <h1 className="course-detail-title" data-testid="course-title">{(course.title || course.name || '').replace(/^Cours \d+\s*:\s*/, '')}</h1>
-        <p className="course-detail-desc">{course.description}</p>
+        {course.summary && (
+          <p className="course-detail-lead" data-testid="course-summary">{course.summary}</p>
+        )}
+        {course.description && (
+          <p className="course-detail-desc" data-testid="course-description">{course.description}</p>
+        )}
 
         <div style={{ display: 'flex', gap: 24, marginBottom: 40, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="detail-stat">{modules.length} module{modules.length > 1 ? 's' : ''}</div>
