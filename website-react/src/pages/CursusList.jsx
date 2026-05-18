@@ -141,25 +141,34 @@ export default function CursusList() {
                     </div>
                   ) : (
                     <div className="courses-grid">
-                      {cursusCourses.map(course => (
+                      {cursusCourses.map(course => {
+                        const isRecruiting = !!course.recruiting
+                        const isComing = !!course.coming_soon
+                        return (
                         <Link
                           key={course.id}
                           to={`/cours/${course.id}`}
                           className="course-card"
                           data-testid={`course-card-${course.id}`}
-                          style={{ border: `1px solid ${color}22`, position: 'relative' }}
+                          data-recruiting={isRecruiting ? 'true' : undefined}
+                          style={{
+                            border: `1px solid ${isRecruiting ? 'rgba(120,120,120,0.18)' : color + '22'}`,
+                            position: 'relative',
+                            opacity: isRecruiting ? 0.45 : 1,
+                            filter: isRecruiting ? 'grayscale(0.85)' : 'none',
+                          }}
                         >
-                          <div className="course-card-dot" style={{ background: color }} />
-                          {course.coming_soon && (
+                          <div className="course-card-dot" style={{ background: isRecruiting ? 'var(--text-dim, #888)' : color }} />
+                          {(isComing || isRecruiting) && (
                             <div
                               data-testid={`coming-soon-badge-${course.id}`}
                               style={{
                                 position: 'absolute', top: 12, right: 12,
                                 fontFamily: 'var(--font-display)', fontSize: 9,
                                 letterSpacing: 1.5, textTransform: 'uppercase',
-                                color: 'var(--accent, #C9A84C)',
+                                color: isRecruiting ? 'var(--text-dim, #888)' : 'var(--accent, #C9A84C)',
                                 padding: '3px 8px',
-                                border: `1px solid var(--accent, #C9A84C)`,
+                                border: `1px solid ${isRecruiting ? 'var(--text-dim, #888)' : 'var(--accent, #C9A84C)'}`,
                                 borderRadius: 2,
                               }}
                             >
@@ -169,7 +178,8 @@ export default function CursusList() {
                           <div className="course-card-title">{((course.title || course.name || '')).replace(/^Cours \d+\s*:\s*/, '')}</div>
                           <div className="course-card-desc">{course.description}</div>
                         </Link>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>

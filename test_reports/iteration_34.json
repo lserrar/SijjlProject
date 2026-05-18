@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 34 — Migration v15e (Sijill_Catalogue_Lancement_Mai2026) full validation. Backend: 25/25 pytest PASS against external preview URL. Frontend: /api/site/catalogue shows 22 cards with totals 'PREMIÈRE VAGUE — MAI 2026' / '22 entrées · 22 cours au lancement Mai 2026' + MAI 2026 + SEPT. 2026 date badges. /api/site/cursus shows 7 cursus with dynamic course counts 4/2/5/7/11/1/2 = 32; expanding cursus-sciences-islamiques visually confirms recruiting courses (cours-doxographie, cours-autobiographies) appear greyed-out with PROCHAINEMENT badge while cours-coran + cours-hadith show MAI 2026 badge and cours-historiographie is live.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sijill_iter34_migration_v15e.py",
+    "/app/test_reports/pytest/iter34_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note on review-request wording: the review request states Maïmonide title should be 'La philosophie juive de langue arabe', but the actual stored title is 'La philosophie de Maïmonide' (seed_locked=true, NOT touched by v15e). Migration contract is fully respected (no overwrite of seed_locked titles). If the user wants the title literally changed to 'La philosophie juive de langue arabe', a one-shot manual update is required (v15e by design will not do it). Flagging as info, not a bug.",
+    "Migration v15e is non-gated (runs every startup) per the agent_to_agent context — confirmed by startup log line 'Migration v15e: status applied — 32 updated, 0 inserted'. Idempotent and safe.",
+    "/api/catalogue exposes the field `recruiting` on every item (default False on launch items). cursus-arts and cursus-sciences-islamiques recruiting=true courses are correctly EXCLUDED from /api/catalogue (they are vision-cible-only) but INCLUDED in /api/courses?cursus_id=... — matching the spec.",
+    "Frontend cursus list page uses data-testid='cursus-toggle-cursus-{id}' on the accordion headers (good for tests). The course cards inside the accordion did not have an easy-to-grep slug attribute — recommend adding data-testid='cursus-course-{course_id}' to each card for future automated assertions on grey-out / badge state."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sijill_iter34_migration_v15e.py"
+  ],
+  "success_rate": {
+    "backend": "100% (25/25 pytest)",
+    "frontend": "verified visually — catalogue 22 cards + totals OK; cursus dynamic counts OK; recruiting grey-out + PROCHAINEMENT badge OK; MAI 2026 date badges OK"
+  },
+  "test_credentials": {
+    "admin_email": "loubna.serrar@gmail.com",
+    "admin_password": "Admin123!"
+  },
+  "seed_data_creation": "None. Read-only assertions against existing seed + v15e migration state.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "v15e backend state validated: /api/catalogue=22 launch items (all required fields incl. recruiting), /api/cursus=7 with dynamic course_count sum=32, per-cursus counts: histoire=4, theologie=2, sci-isl=5, arts=7, falsafa=11, spir=1, pensees-non-isl=2. Recruiting courses (recruiting=true): cours-urjuza, cours-geographie (arts), cours-doxographie, cours-autobiographies (sci-isl). cours-philo-juive seed_locked=true (title 'La philosophie de Maïmonide' preserved — NOT overwritten). cours-maths-arabes + cours-sciences-naturelles separate, is_launch_catalog=true, coming_soon=true, available_date='mai 2026'. Deactivated: cours-sciences, cours-inclassables, cours-falsafa-persan, cours-falsafa-grands (is_active=false, excluded from catalogue + per-cursus lists). cours-andalus.available_date is null (not 'TEST_date'). Frontend webapp served from /api/site/* — accordion uses data-testid='cursus-toggle-cursus-{id}'. Sciences-islamiques accordion expansion confirmed: PROCHAINEMENT badge + opacity reduction on cours-doxographie + cours-autobiographies cards. cours-coran + cours-hadith display green 'MAI 2026' badge. cours-historiographie is live with 1 module.",
+  "rca of the issue": "No issues to RCA — Migration v15e behaves exactly as specified."
+}

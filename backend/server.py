@@ -1471,6 +1471,7 @@ async def get_catalogue():
                     'episode_count': ep_count,
                     'coming_soon': c.get('coming_soon', False) or ep_count == 0,
                     'available_date': c.get('available_date'),
+                    'recruiting': c.get('recruiting', False),
                     'order': (c.get('order') or 0) * 1000 + (m.get('order') or 0),
                 })
             if visible_modules:
@@ -1490,6 +1491,7 @@ async def get_catalogue():
                     'episode_count': 0,
                     'coming_soon': True,
                     'available_date': c.get('available_date'),
+                    'recruiting': c.get('recruiting', False),
                     'order': (c.get('order') or 0) * 1000,
                 })
         else:
@@ -1517,6 +1519,7 @@ async def get_catalogue():
                 'episode_count': ep_count,
                 'coming_soon': c.get('coming_soon', False),
                 'available_date': c.get('available_date'),
+                'recruiting': c.get('recruiting', False),
                 'order': (c.get('order') or 0) * 1000,
             })
     items.sort(key=lambda x: (bool(x['coming_soon']), x['order']))
@@ -4676,6 +4679,119 @@ async def seed_data():
     except Exception as e:
         logger.warning(f"Migration v15d failed: {e}", exc_info=True)
     # ─── End Migration v15d ────────────────────────────────────────────────
+
+    # ─── Migration v15e — Statut Excel (Lancement + Vision cible) ──────────
+    # Aligne la base sur le fichier Excel Sijill_Catalogue_Lancement_Mai2026.
+    # Réutilise le mécanisme existant `coming_soon` + `available_date` et
+    # ajoute `recruiting=True` pour les cours dont l'intervenant est encore
+    # à recruter (affichage grisé côté front).
+    # NON-gated: les champs structurels (statut + cursus + ordre +
+    # is_launch_catalog) sont réappliqués à chaque démarrage pour
+    # contrecarrer les seeds antérieurs (v4) qui les écrasent. Les titres /
+    # summary / description / scholar_name ne sont posés QU'À L'INSERTION
+    # initiale (puis verrouillés par seed_locked dès qu'un admin édite).
+    try:
+        # Tuple: (course_id, cursus_id, order, is_launch_catalog, coming_soon,
+        #        available_date, recruiting, default_title, default_scholar,
+        #        default_summary)
+        V15E_STATUS = [
+            # ═══ Catalogue de lancement Mai 2026 (sheet 1 Excel) — is_launch_catalog=True ═══
+            # A. Histoire
+            ('cours-debuts-islam',       'cursus-histoire', 1, True, False, None,         False, None, None, None),
+            ('cours-mamelouke',          'cursus-histoire', 2, True, True,  'mai 2026',   False, None, None, None),
+            ('cours-andalus',            'cursus-histoire', 3, True, False, None,         False, None, None, None),
+            ('cours-ottoman',            'cursus-histoire', 4, True, True,  'sept. 2026', False, None, None, None),
+            # B. Théologie et Droit
+            ('cours-kalam',              'cursus-theologie', 1, True, True, 'mai 2026',   False, None, None, None),
+            ('cours-fiqh',               'cursus-theologie', 2, True, False, None,        False, None, None, None),
+            # C. Sciences islamiques (launch)
+            ('cours-coran',              'cursus-sciences-islamiques', 1, True, True, 'mai 2026', False, None, None, None),
+            ('cours-hadith',             'cursus-sciences-islamiques', 2, True, True, 'mai 2026', False, None, None, None),
+            ('cours-historiographie',    'cursus-sciences-islamiques', 3, True, False, None,      False, None, None, None),
+            # D. Arts (launch)
+            ('cours-art',                'cursus-arts', 1, True, False, None,        False, None, None, None),
+            ('cours-maths-arabes',       'cursus-arts', 2, True, True,  'mai 2026',  False, 'Histoire des mathématiques arabes', 'Marouane Ben Miled', "Trois épisodes consacrés à l'histoire des mathématiques arabes."),
+            ('cours-sciences-naturelles','cursus-arts', 3, True, True,  'mai 2026',  False, 'Histoire des sciences naturelles', 'Meyssa Ben Saad', "Introduction à l'histoire des sciences naturelles arabes — al-Jāḥiẓ et la classification des animaux."),
+            # E. Falsafa (launch)
+            ('cours-traduction',         'cursus-falsafa', 1, True, False, None,        False, None, None, None),
+            ('cours-al-kindi',           'cursus-falsafa', 2, True, False, None,        False, None, None, None),
+            ('cours-al-farabi',          'cursus-falsafa', 3, True, False, None,        False, None, None, None),
+            ('cours-avicenne',           'cursus-falsafa', 4, True, False, None,        False, None, None, None),
+            ('cours-al-ghazali',         'cursus-falsafa', 5, True, True,  'mai 2026', False, None, None, None),
+            ('cours-falsafa-occident',   'cursus-falsafa', 6, True, True,  'mai 2026', False, None, None, None),
+            ('cours-falsafa-inclassables','cursus-falsafa', 7, True, True, 'mai 2026', False, None, None, None),
+            ('cours-falsafa-persane',    'cursus-falsafa', 8, True, True,  'mai 2026', False, None, None, None),
+            # F. Mystique (launch)
+            ('cours-soufisme',           'cursus-spiritualites', 1, True, True, 'mai 2026', False, None, None, None),
+            # G. Pensées arabes non islamiques (launch)
+            ('cours-philo-juive',        'cursus-pensees-non-islamiques', 1, True, False, None, False, None, None, None),
+
+            # ═══ Vision cible (sheet 2 Excel) — is_launch_catalog=False (visible /cursus uniquement) ═══
+            # C. Sciences islamiques (vision cible)
+            ('cours-doxographie',        'cursus-sciences-islamiques', 4, False, True, 'prochainement', True, 'Histoire de la doxographie', 'Intervenant à recruter', "Histoire de la doxographie islamique : Ibn al-Nadīm, Ḥājjī Khalīfa, Ṭāshköprīzāde."),
+            ('cours-autobiographies',    'cursus-sciences-islamiques', 5, False, True, 'prochainement', True, 'Les autobiographies dans le monde islamique', 'Intervenant à recruter', "Tradition des autobiographies dans la littérature arabo-islamique."),
+            # D. Arts (vision cible)
+            ('cours-poesie',             'cursus-arts', 4, False, True, 'date à fixer',  False, None, None, None),
+            ('cours-urjuza',             'cursus-arts', 5, False, True, 'prochainement', True,  None, None, None),
+            ('cours-geographie',         'cursus-arts', 6, False, True, 'prochainement', True,  None, None, None),
+            ('cours-adab',               'cursus-arts', 7, False, True, 'date à fixer',  False, None, None, None),
+            # E. Falsafa (vision cible)
+            ('cours-post-avicennisme',   'cursus-falsafa', 9,  False, True, 'date à fixer', False, None, None, None),
+            ('cours-logique',            'cursus-falsafa', 10, False, True, 'date à fixer', False, None, None, None),
+            ('cours-ismaelisme',         'cursus-falsafa', 11, False, True, 'date à fixer', False, None, None, None),
+            # G. Pensées arabes non islamiques (vision cible)
+            ('cours-kalam-chretien',     'cursus-pensees-non-islamiques', 2, False, True, 'date à fixer', False, None, None, None),
+        ]
+        applied_v15e = 0
+        inserted_v15e = 0
+        for cid, cursus_id, order, is_launch, coming_soon, avail_date, recruiting, def_title, def_scholar, def_summary in V15E_STATUS:
+            structural = {
+                'cursus_id': cursus_id,
+                'order': order,
+                'is_launch_catalog': is_launch,
+                'is_active': True,
+                'coming_soon': coming_soon,
+                'available_date': avail_date,
+                'recruiting': recruiting,
+            }
+            existing = await db.courses.find_one({'id': cid}, {'_id': 0, 'id': 1})
+            if existing:
+                # Update ONLY structural status. Never touch admin-owned content
+                # (title / summary / description / scholar_name).
+                await db.courses.update_one({'id': cid}, {'$set': structural})
+                applied_v15e += 1
+            else:
+                # Insert with default content (admin will refine later via panel).
+                insert_doc = {
+                    'id': cid,
+                    'title': def_title or cid.replace('cours-', '').replace('-', ' ').title(),
+                    'scholar_name': def_scholar or 'Intervenant à confirmer',
+                    'summary': def_summary or '',
+                    'description': def_summary or '',
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                    **structural,
+                }
+                await db.courses.insert_one(insert_doc)
+                inserted_v15e += 1
+
+        # Désactiver les cours obsolètes (doublons / umbrella) qui ne sont
+        # plus dans le catalogue cible mais qui pourraient encore traîner.
+        for obsolete_id in ('cours-sciences', 'cours-inclassables', 'cours-falsafa-persan', 'cours-falsafa-grands'):
+            await db.courses.update_one(
+                {'id': obsolete_id},
+                {'$set': {'is_launch_catalog': False, 'is_active': False, 'coming_soon': False}}
+            )
+
+        # Cleanup résidu de test sur cours-andalus.available_date='TEST_date'.
+        await db.courses.update_one(
+            {'id': 'cours-andalus', 'available_date': 'TEST_date'},
+            {'$set': {'available_date': None}}
+        )
+
+        logger.info(f"Migration v15e: status applied — {applied_v15e} updated, {inserted_v15e} inserted")
+    except Exception as e:
+        logger.warning(f"Migration v15e failed: {e}", exc_info=True)
+    # ─── End Migration v15e ────────────────────────────────────────────────
 
 
 
@@ -9362,8 +9478,20 @@ async def admin_delete_thematique_compat(cursus_id: str, request: Request):
 
 @api_router.get("/cursus")
 async def public_list_cursus():
-    """Public endpoint to list active cursus."""
+    """Public endpoint to list active cursus.
+
+    The `course_count` is recomputed live so it always reflects the current
+    state of the `courses` collection (the value persisted on the cursus doc
+    can drift after migrations like v15e that add/remove courses).
+    """
     cursus_list = await db.cursus.find({'is_active': True}, {'_id': 0}).sort('order', 1).to_list(100)
+    count_pipeline = await db.courses.aggregate([
+        {'$match': {'is_active': {'$ne': False}}},
+        {'$group': {'_id': '$cursus_id', 'n': {'$sum': 1}}},
+    ]).to_list(50)
+    count_map = {c['_id']: c['n'] for c in count_pipeline}
+    for c in cursus_list:
+        c['course_count'] = count_map.get(c['id'], 0)
     return cursus_list
 
 @api_router.get("/cursus/{cursus_id}/scholars")

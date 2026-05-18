@@ -50,7 +50,7 @@ export default function Catalogue() {
         }}>
           <span data-testid="catalogue-totals">
             <span style={{ color: 'var(--accent, #C9A84C)' }}>●</span>
-            &nbsp;&nbsp;21 cours · 72 épisodes au lancement
+            &nbsp;&nbsp;{items.filter(it => !it.recruiting).length} entrées · 22 cours au lancement Mai 2026
           </span>
         </div>
       </div>
@@ -63,15 +63,21 @@ export default function Catalogue() {
           const hasEpisodes = it.episode_count > 0
           const isAvailable = !it.coming_soon && hasEpisodes
           const isComing = it.coming_soon || !hasEpisodes
+          const isRecruiting = !!it.recruiting
           return (
             <Link
               key={it.id}
               to={`/cours/${it.course_id}`}
               className="course-card"
               data-testid={`catalogue-card-${it.id}`}
-              style={{ position: 'relative', opacity: isComing ? 0.78 : 1 }}
+              data-recruiting={isRecruiting ? 'true' : undefined}
+              style={{
+                position: 'relative',
+                opacity: isRecruiting ? 0.45 : (isComing ? 0.78 : 1),
+                filter: isRecruiting ? 'grayscale(0.85)' : 'none',
+              }}
             >
-              <div className="course-card-dot" style={{ background: color }} />
+              <div className="course-card-dot" style={{ background: isRecruiting ? 'var(--text-dim, #888)' : color }} />
               {isComing && (
                 <div
                   data-testid={`coming-soon-badge-${it.id}`}
@@ -79,10 +85,10 @@ export default function Catalogue() {
                     position: 'absolute', top: 12, right: 12,
                     fontFamily: 'var(--font-display)', fontSize: 9,
                     letterSpacing: 1.5, textTransform: 'uppercase',
-                    color: 'var(--accent, #C9A84C)',
+                    color: isRecruiting ? 'var(--text-dim, #888)' : 'var(--accent, #C9A84C)',
                     padding: '3px 8px',
-                    border: '1px solid var(--accent, #C9A84C)',
-                    background: 'rgba(201,168,76,0.08)',
+                    border: `1px solid ${isRecruiting ? 'var(--text-dim, #888)' : 'var(--accent, #C9A84C)'}`,
+                    background: isRecruiting ? 'rgba(120,120,120,0.08)' : 'rgba(201,168,76,0.08)',
                     borderRadius: 2,
                   }}
                 >

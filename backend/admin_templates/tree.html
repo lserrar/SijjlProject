@@ -9,6 +9,9 @@
     .badge-r2 { background:#1f3d7a; color:#fff; }
     .badge-soon { background:#3a3a3a; color:#888; }
     .badge-live { background:var(--brand-secondary); color:#000; }
+    .badge-recruit { background:#5a5a5a; color:#bbb; }
+    .badge-date { background:#2d4a3a; color:#bce5cd; font-weight:600; }
+    .course-row.is-recruiting { opacity:0.55; filter:grayscale(0.4); }
 
     .cursus-block { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; margin-bottom:18px; overflow:hidden; }
     .cursus-head { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; gap:16px; }
@@ -62,10 +65,12 @@
 
 <div class="tree-toolbar">
     <div class="legend">
-        <span class="badge badge-live">LIVE</span> disponible &nbsp;·&nbsp;
+        <span class="badge badge-live">LAUNCH</span> catalogue mai 2026 &nbsp;·&nbsp;
+        <span class="badge badge-date">DATE</span> à venir &nbsp;·&nbsp;
+        <span class="badge badge-recruit">À RECRUTER</span> intervenant à trouver &nbsp;·&nbsp;
         <span class="badge badge-yt">YT</span> YouTube &nbsp;·&nbsp;
         <span class="badge badge-r2">R2</span> Audio Cloudflare &nbsp;·&nbsp;
-        <span class="badge badge-soon">SOON</span> à venir
+        <span class="badge badge-soon">SOON</span> épisode à venir
     </div>
 </div>
 
@@ -155,6 +160,9 @@ function renderTree() {
             const dispo = audios.filter(a => a.r2_audio_key || a.youtube_url).length;
             const total = audios.length;
             const isLaunch = c.is_launch_catalog ? '<span class="badge badge-live" style="padding:2px 7px;border-radius:3px;font-size:9px;letter-spacing:1px;">LAUNCH</span>' : '';
+            const dateBadge = c.available_date ? `<span class="badge badge-date" style="padding:2px 7px;border-radius:3px;font-size:9px;letter-spacing:1px;margin-left:4px;">${escapeHtml(c.available_date)}</span>` : '';
+            const recruitBadge = c.recruiting ? '<span class="badge badge-recruit" style="padding:2px 7px;border-radius:3px;font-size:9px;letter-spacing:1px;margin-left:4px;">À RECRUTER</span>' : '';
+            const recruitingCls = c.recruiting ? ' is-recruiting' : '';
             const epHtml = audios.map(a => {
                 const hasYt = !!a.youtube_url, hasR2 = !!a.r2_audio_key;
                 const badges = `${hasYt ? '<span class="badge badge-yt">YT</span>' : ''}${hasR2 ? '<span class="badge badge-r2">R2</span>' : ''}${(!hasYt && !hasR2) ? '<span class="badge badge-soon">SOON</span>' : ''}`;
@@ -166,9 +174,9 @@ function renderTree() {
                 </div>`;
             }).join('') || `<p style="color:var(--text-muted);font-style:italic;font-size:12px;padding:10px;">Aucun épisode pour le moment.</p>`;
             return `<div>
-                <div class="course-row ${c.is_active === false ? 'disabled' : ''}" onclick="toggleCourse('${c.id}')">
+                <div class="course-row${recruitingCls} ${c.is_active === false ? 'disabled' : ''}" onclick="toggleCourse('${c.id}')">
                     <div>
-                        <div class="course-title">${escapeHtml(c.title || c.id)} ${isLaunch}</div>
+                        <div class="course-title">${escapeHtml(c.title || c.id)} ${isLaunch}${dateBadge}${recruitBadge}</div>
                         <div class="course-desc">${escapeHtml((c.summary || c.description || '').slice(0,140))}</div>
                     </div>
                     <div class="course-counters">${dispo}/${total} ép. dispo</div>
