@@ -52,6 +52,9 @@
 <div class="page-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
     <h1 style="font-size:24px; font-weight:600;">Catalogue arborescent</h1>
     <div style="display:flex; gap:10px;">
+        <button id="btnSyncR2" class="btn btn-primary" onclick="syncAllR2()" data-testid="tree-sync-r2-all">
+            <i class="fas fa-cloud-download-alt"></i> Re-sync R2
+        </button>
         <button class="btn btn-secondary" onclick="toggleAll(true)"><i class="fas fa-expand"></i> Tout déplier</button>
         <button class="btn btn-secondary" onclick="toggleAll(false)"><i class="fas fa-compress"></i> Tout replier</button>
     </div>
@@ -241,6 +244,32 @@ async function saveEpisode() {
         await api(`/admin/audios/${id}`, { method:'PUT', body: JSON.stringify(body) });
         closeModal('episodeModal'); await loadTree();
     } catch(e) { alert(e.message); }
+}
+
+async function syncAllR2() {
+    const btn = document.getElementById('btnSyncR2');
+    if (!confirm("Re-synchroniser tous les contenus depuis Cloudflare R2 ?\n\nCela va relire chaque cours configuré avec un préfixe R2, détecter les audios + ressources (scripts, glossaires, bibliographies) présents dans le bucket et mettre à jour la base. Les audios déjà présents seront conservés, les nouveaux ajoutés, les disparus marqués sans fichier.\n\nL'opération peut prendre 30 secondes à 2 minutes selon le nombre de cours.")) return;
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Synchronisation…';
+    try {
+        const res = await api('/admin/sync-r2-all', { method:'POST' });
+        const lines = (res.results || []).map(r => {
+            const s = r.summary || {};
+            const added = s.audios_created || s.created || 0;
+            const updated = s.audios_updated || s.updated || 0;
+            const docs = s.resources_attached || s.docs || 0;
+            return `• ${r.title || r.course_id} — ${added} ajouté(s), ${updated} mis à jour, ${docs} document(s)`;
+        });
+        const total = res.count || lines.length;
+        alert(`✅ Synchronisation terminée : ${total} cours traité(s).\n\n` + lines.slice(0, 20).join('\n') + (lines.length > 20 ? `\n\n…et ${lines.length - 20} autres.` : ''));
+        await loadTree();
+    } catch(e) {
+        alert("❌ Erreur lors de la synchronisation : " + (e.message || e));
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
 }
 
 loadTree().catch(e => { document.getElementById('treeRoot').innerHTML = `<p style="color:var(--danger)">${e.message}</p>`; });
