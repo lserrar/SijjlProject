@@ -4847,6 +4847,86 @@ async def seed_data():
         logger.warning(f"Migration v15e failed: {e}", exc_info=True)
     # ─── End Migration v15e ────────────────────────────────────────────────
 
+    # ─── Migration v15f — Nettoyage titres « Cours N : » + seed_locked ─────
+    # Beaucoup de cours ont conservé les titres legacy « Cours 8 : L'ismaélisme »
+    # depuis un vieux seed. v15d n'avait nettoyé que 7 cours. v15f termine le
+    # travail sur les ~15 cours restants ET pose seed_locked=True pour qu'aucun
+    # seed futur ne puisse les écraser à nouveau au reboot.
+    #
+    # Sécurité : on n'écrase un titre QUE si :
+    #   - le cours n'est pas déjà seed_locked (admin owner)
+    #   - ET son titre actuel matche le pattern legacy `^Cours \d+\s*:`
+    #     OU son titre est vide.
+    # Sinon on respecte l'édition admin et on pose juste seed_locked=True.
+    #
+    # Non-gated (rejoue à chaque démarrage) pour rattraper progressivement
+    # d'éventuels résidus, mais l'effet est nul si tout est déjà propre +
+    # locké (idempotent par construction).
+    try:
+        import re as _re_v15f
+        LEGACY_RE = _re_v15f.compile(r"^\s*Cours\s+\d+\s*:\s*", _re_v15f.IGNORECASE)
+        V15F_TITLES = [
+            # (course_id, clean_title)
+            # ─── Cursus Histoire ───
+            ('cours-debuts-islam',       "Les débuts de l'islam"),
+            ('cours-mamelouke',          "L'époque mamelouke"),
+            ('cours-andalus',            "Al-Andalus"),
+            ('cours-ottoman',            "Le monde ottoman"),
+            # ─── Cursus Théologie ───
+            ('cours-kalam',              "Le Kalām — Trois périodes"),
+            # ─── Cursus Sciences islamiques ───
+            ('cours-doxographie',        "Histoire de la doxographie"),
+            ('cours-autobiographies',    "Les autobiographies dans le monde islamique"),
+            # ─── Cursus Arts ───
+            ('cours-maths-arabes',       "Histoire des mathématiques arabes"),
+            ('cours-sciences-naturelles',"Histoire des sciences naturelles"),
+            ('cours-poesie',             "La poésie arabe et persane"),
+            ('cours-urjuza',             "Les Urjūzā — Enseigner par la poésie"),
+            ('cours-geographie',         "La géographie islamique"),
+            ('cours-adab',               "Adab et sciences médicales"),
+            # ─── Cursus Falsafa ───
+            ('cours-post-avicennisme',   "Le post-avicennisme"),
+            ('cours-logique',            "La logique arabe"),
+            ('cours-ismaelisme',         "L'ismaélisme"),
+            ('cours-falsafa-inclassables', "Les inclassables — Ibn Khaldūn"),
+            ('cours-falsafa-persane',    "Le renouveau de la philosophie persane — Mullā Ṣadrā"),
+            # ─── Cursus Mystique ───
+            ('cours-soufisme',           "La mystique islamique — Soufisme"),
+            # ─── Cursus Pensées non islamiques ───
+            ('cours-kalam-chretien',     "Le Kalām chrétien et les logiciens de Bagdad"),
+        ]
+        cleaned_v15f = 0
+        locked_only_v15f = 0
+        for cid, clean_title in V15F_TITLES:
+            doc = await db.courses.find_one({'id': cid}, {'_id': 0, 'title': 1, 'seed_locked': 1})
+            if not doc:
+                continue
+            already_locked = bool(doc.get('seed_locked'))
+            current_title = (doc.get('title') or '').strip()
+            is_legacy = bool(LEGACY_RE.match(current_title)) or not current_title
+
+            # IMPORTANT: even if seed_locked is True, if the title still matches
+            # the legacy pattern « Cours N : ... » we force-override (this state
+            # only happens because Migration v15d locked the wrong legacy text).
+            if is_legacy:
+                await db.courses.update_one(
+                    {'id': cid},
+                    {'$set': {'title': clean_title, 'seed_locked': True}},
+                )
+                cleaned_v15f += 1
+            elif not already_locked:
+                # Title looks custom (admin-edited or already clean) — just lock it.
+                await db.courses.update_one(
+                    {'id': cid},
+                    {'$set': {'seed_locked': True}},
+                )
+                locked_only_v15f += 1
+            # else: clean & already locked → nothing to do
+        if cleaned_v15f or locked_only_v15f:
+            logger.info(f"Migration v15f: title cleanup — {cleaned_v15f} legacy titles rewritten, {locked_only_v15f} clean titles locked")
+    except Exception as e:
+        logger.warning(f"Migration v15f failed: {e}", exc_info=True)
+    # ─── End Migration v15f ────────────────────────────────────────────────
 
 
 
