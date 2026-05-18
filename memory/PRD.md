@@ -1,6 +1,6 @@
 # Sijill Project — PRD
 
-> Dernière mise à jour : **18 mai 2026** — Migration v15e (alignement Excel Catalogue de lancement Mai 2026)
+> Dernière mise à jour : **18 mai 2026** — Page Abonnements (Tarification) + Fix titres d'épisodes écrasés au reboot
 
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :

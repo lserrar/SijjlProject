@@ -111,10 +111,10 @@ STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
 # Default subscription plans
 DEFAULT_PLANS = {
-    'fondateur_mensuel': {'name': 'Fondateur Mensuel', 'price': 7.00, 'duration_days': 30, 'type': 'subscription', 'is_fondateur': True},
-    'fondateur_annuel': {'name': 'Fondateur Annuel', 'price': 84.00, 'duration_days': 365, 'type': 'subscription', 'is_fondateur': True},
-    'standard_mensuel': {'name': 'Standard Mensuel', 'price': 12.00, 'duration_days': 30, 'type': 'subscription', 'is_fondateur': False},
-    'standard_annuel': {'name': 'Standard Annuel', 'price': 120.00, 'duration_days': 365, 'type': 'subscription', 'is_fondateur': False},
+    'fondateur_mensuel': {'name': 'Fondateur Mensuel', 'price': 7.00, 'duration_days': 30, 'type': 'subscription', 'is_fondateur': True, 'is_active': True},
+    'fondateur_annuel': {'name': 'Fondateur Annuel', 'price': 84.00, 'duration_days': 365, 'type': 'subscription', 'is_fondateur': True, 'is_active': True},
+    'standard_mensuel': {'name': 'Standard Mensuel', 'price': 12.00, 'duration_days': 30, 'type': 'subscription', 'is_fondateur': False, 'is_active': False},
+    'standard_annuel': {'name': 'Standard Annuel', 'price': 120.00, 'duration_days': 365, 'type': 'subscription', 'is_fondateur': False, 'is_active': True},
 }
 
 def get_presigned_stream_url(file_key: str) -> Optional[str]:
@@ -4955,11 +4955,11 @@ async def seed_data():
 
     if custom_cursus:
         logger.info("Custom cursus 'cursus-falsafa' found - skipping all demo course/audio seeding")
-        # Migrate plans to fondateur pricing
+        # Migrate plans to fondateur pricing (Standard Annuel also active for /tarification)
         for plan_id, plan_data in DEFAULT_PLANS.items():
             await db.plans.update_one(
                 {'plan_id': plan_id},
-                {'$set': {**plan_data, 'plan_id': plan_id, 'is_active': plan_data.get('is_fondateur', False)}},
+                {'$set': {**plan_data, 'plan_id': plan_id}},
                 upsert=True
             )
         await db.plans.update_many(

@@ -26,6 +26,7 @@ import ScholarDetail from './pages/ScholarDetail'
 import GiftPurchase from './pages/GiftPurchase'
 import GiftConfirmation from './pages/GiftConfirmation'
 import GiftRedeem from './pages/GiftRedeem'
+import Tarification from './pages/Tarification'
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/politique-de-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/conditions-utilisation" element={<CGU />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/tarification" element={<Tarification />} />
           <Route path="/cadeau" element={<GiftPurchase />} />
           <Route path="/cadeau/confirmation" element={<GiftConfirmation />} />
           <Route path="/cadeau/recu" element={<GiftRedeem />} />

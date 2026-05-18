@@ -31,7 +31,7 @@ export default function Header() {
           <Link to="/catalogue" data-testid="nav-catalogue">Catalogue</Link>
           <Link to="/intervenants" data-testid="nav-intervenants">Intervenants</Link>
           <Link to="/blog" data-testid="nav-blog">Blog</Link>
-          <Link to="/cadeau" data-testid="nav-gift" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>🎁 Offrir</Link>
+          <Link to="/tarification" data-testid="nav-tarification">Abonnements</Link>
           <Link to="/a-propos" data-testid="nav-about">A propos</Link>
         </nav>
         <div className="nav-auth" data-testid="nav-auth">
@@ -80,6 +80,7 @@ export default function Header() {
           <Link to="/catalogue" data-testid="mobile-nav-catalogue">Catalogue</Link>
           <Link to="/intervenants" data-testid="mobile-nav-intervenants">Intervenants</Link>
           <Link to="/blog" data-testid="mobile-nav-blog">Blog</Link>
+          <Link to="/tarification" data-testid="mobile-nav-tarification">Abonnements</Link>
           <Link to="/a-propos" data-testid="mobile-nav-about">A propos</Link>
           <div className="mobile-menu-divider" />
           <a href={APP_URL} className="mobile-menu-app-link" data-testid="mobile-nav-open-app">
