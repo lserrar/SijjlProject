@@ -3583,22 +3583,27 @@ async def seed_data():
     ]
     for ep in al_kindi_episodes:
         audio_id = f"aud_cours-falsafa-grands-al-kindi-ep{ep['episode_number']:02d}"
+        # title/description/scholar_name are admin-editable: only seed at insert time.
         await db.audios.update_one(
             {'id': audio_id},
-            {'$set': {
-                'id': audio_id,
-                'title': ep['title'],
-                'description': '',
-                'course_id': 'cours-falsafa-grands',
-                'module_id': 'cours-falsafa-grands-mod-1',
-                'scholar_id': 'sch-006',
-                'scholar_name': 'Prof. Meryem Sebti',
-                'episode_number': ep['episode_number'],
-                'duration': 0,
-                'youtube_url': ep['youtube_url'],
-                'type': 'episode',
-                'is_active': True,
-            }},
+            {
+                '$set': {
+                    'id': audio_id,
+                    'course_id': 'cours-falsafa-grands',
+                    'module_id': 'cours-falsafa-grands-mod-1',
+                    'scholar_id': 'sch-006',
+                    'episode_number': ep['episode_number'],
+                    'duration': 0,
+                    'youtube_url': ep['youtube_url'],
+                    'type': 'episode',
+                    'is_active': True,
+                },
+                '$setOnInsert': {
+                    'title': ep['title'],
+                    'description': '',
+                    'scholar_name': 'Prof. Meryem Sebti',
+                },
+            },
             upsert=True,
         )
     logger.info("Migration v4: Al-Kindī episodes 1-3 upserted with YouTube URLs")
@@ -3811,57 +3816,71 @@ async def seed_data():
     ]
     for ep_num, ep_title, scholar, yt_url in DEBUTS_ISLAM_EPISODES:
         audio_id = f"aud_cours-debuts-islam-ep{ep_num:02d}"
+        # title/scholar_name are admin-editable: only seed at insert time.
         await db.audios.update_one(
             {'id': audio_id},
-            {'$set': {
-                'id': audio_id,
-                'course_id': 'cours-debuts-islam',
-                'module_id': None,
-                'title': ep_title,
-                'episode_number': ep_num,
-                'duration_seconds': 0,
-                'youtube_url': yt_url,
-                'audio_url': None,
-                'file_key': None,
-                'scholar_name': scholar,
-                'is_placeholder': yt_url is None,
-                'is_active': True,
-                'created_at': datetime.now(timezone.utc),
-            }},
+            {
+                '$set': {
+                    'id': audio_id,
+                    'course_id': 'cours-debuts-islam',
+                    'module_id': None,
+                    'episode_number': ep_num,
+                    'duration_seconds': 0,
+                    'youtube_url': yt_url,
+                    'audio_url': None,
+                    'file_key': None,
+                    'is_placeholder': yt_url is None,
+                    'is_active': True,
+                },
+                '$setOnInsert': {
+                    'title': ep_title,
+                    'scholar_name': scholar,
+                    'created_at': datetime.now(timezone.utc),
+                },
+            },
             upsert=True
         )
     logger.info("Migration v9: cours-debuts-islam — 5 episodes upserted (4 Bouali + 1 Ghouirgate)")
 
     # 4) Update Al-Kindī — add ep4 with URL + ep5 placeholder per Excel
+    # title/scholar_name are admin-editable: only seed at insert time.
     await db.audios.update_one(
         {'id': 'aud_cours-falsafa-grands-al-kindi-ep04'},
-        {'$set': {
-            'id': 'aud_cours-falsafa-grands-al-kindi-ep04',
-            'course_id': 'cours-falsafa-grands',
-            'module_id': 'cours-falsafa-grands-mod-1',
-            'title': 'Al-Kindī — Épisode 4',
-            'episode_number': 4,
-            'youtube_url': 'https://www.youtube.com/watch?v=GeAHez38fzw',
-            'scholar_name': 'Meryem Sebti',
-            'is_active': True,
-            'created_at': datetime.now(timezone.utc),
-        }},
+        {
+            '$set': {
+                'id': 'aud_cours-falsafa-grands-al-kindi-ep04',
+                'course_id': 'cours-falsafa-grands',
+                'module_id': 'cours-falsafa-grands-mod-1',
+                'episode_number': 4,
+                'youtube_url': 'https://www.youtube.com/watch?v=GeAHez38fzw',
+                'is_active': True,
+            },
+            '$setOnInsert': {
+                'title': 'Al-Kindī — Épisode 4',
+                'scholar_name': 'Meryem Sebti',
+                'created_at': datetime.now(timezone.utc),
+            },
+        },
         upsert=True
     )
     await db.audios.update_one(
         {'id': 'aud_cours-falsafa-grands-al-kindi-ep05'},
-        {'$set': {
-            'id': 'aud_cours-falsafa-grands-al-kindi-ep05',
-            'course_id': 'cours-falsafa-grands',
-            'module_id': 'cours-falsafa-grands-mod-1',
-            'title': 'Al-Kindī — Épisode 5',
-            'episode_number': 5,
-            'youtube_url': None,
-            'scholar_name': 'Meryem Sebti',
-            'is_placeholder': True,
-            'is_active': True,
-            'created_at': datetime.now(timezone.utc),
-        }},
+        {
+            '$set': {
+                'id': 'aud_cours-falsafa-grands-al-kindi-ep05',
+                'course_id': 'cours-falsafa-grands',
+                'module_id': 'cours-falsafa-grands-mod-1',
+                'episode_number': 5,
+                'youtube_url': None,
+                'is_placeholder': True,
+                'is_active': True,
+            },
+            '$setOnInsert': {
+                'title': 'Al-Kindī — Épisode 5',
+                'scholar_name': 'Meryem Sebti',
+                'created_at': datetime.now(timezone.utc),
+            },
+        },
         upsert=True
     )
     logger.info("Migration v9: Al-Kindī ep4 (URL) + ep5 (placeholder) upserted")
@@ -3875,53 +3894,67 @@ async def seed_data():
     ]
     for ep_num, ep_title, yt in ART_EPISODES:
         audio_id = f"aud_cours-art-ep{ep_num:02d}"
+        # title/scholar_name are admin-editable: only seed at insert time.
         await db.audios.update_one(
             {'id': audio_id},
-            {'$set': {
-                'id': audio_id,
-                'course_id': 'cours-art',
-                'module_id': None,
-                'title': ep_title,
-                'episode_number': ep_num,
-                'youtube_url': yt,
-                'scholar_name': 'Camille Grandpierre',
-                'is_placeholder': yt is None,
-                'is_active': True,
-                'created_at': datetime.now(timezone.utc),
-            }},
+            {
+                '$set': {
+                    'id': audio_id,
+                    'course_id': 'cours-art',
+                    'module_id': None,
+                    'episode_number': ep_num,
+                    'youtube_url': yt,
+                    'is_placeholder': yt is None,
+                    'is_active': True,
+                },
+                '$setOnInsert': {
+                    'title': ep_title,
+                    'scholar_name': 'Camille Grandpierre',
+                    'created_at': datetime.now(timezone.utc),
+                },
+            },
             upsert=True
         )
     logger.info("Migration v9: cours-art — 4 episodes upserted (ep1+ep2 URL, ep3+ep4 placeholders)")
 
     # 6) Maïmonide ep1 + ep2 (cours-philo-juive) — upsert both (some older DBs miss ep1)
+    # title/scholar_name are admin-editable: only seed at insert time.
     await db.audios.update_one(
         {'id': 'aud_cours-philo-juive-maimonide-ep01'},
-        {'$set': {
-            'id': 'aud_cours-philo-juive-maimonide-ep01',
-            'course_id': 'cours-philo-juive',
-            'module_id': 'cours-philo-juive-mod-9',
-            'title': 'Moïse Maïmonide — Épisode 1',
-            'episode_number': 1,
-            'youtube_url': 'https://youtu.be/kYWqboZxQP0',
-            'scholar_name': 'Géraldine Roux',
-            'is_active': True,
-            'created_at': datetime.now(timezone.utc),
-        }},
+        {
+            '$set': {
+                'id': 'aud_cours-philo-juive-maimonide-ep01',
+                'course_id': 'cours-philo-juive',
+                'module_id': 'cours-philo-juive-mod-9',
+                'episode_number': 1,
+                'youtube_url': 'https://youtu.be/kYWqboZxQP0',
+                'is_active': True,
+            },
+            '$setOnInsert': {
+                'title': 'Moïse Maïmonide — Épisode 1',
+                'scholar_name': 'Géraldine Roux',
+                'created_at': datetime.now(timezone.utc),
+            },
+        },
         upsert=True
     )
     await db.audios.update_one(
         {'id': 'aud_cours-philo-juive-maimonide-ep02'},
-        {'$set': {
-            'id': 'aud_cours-philo-juive-maimonide-ep02',
-            'course_id': 'cours-philo-juive',
-            'module_id': 'cours-philo-juive-mod-9',
-            'title': 'Moïse Maïmonide — Épisode 2',
-            'episode_number': 2,
-            'youtube_url': 'https://youtu.be/nkXImE6euX4',
-            'scholar_name': 'Géraldine Roux',
-            'is_active': True,
-            'created_at': datetime.now(timezone.utc),
-        }},
+        {
+            '$set': {
+                'id': 'aud_cours-philo-juive-maimonide-ep02',
+                'course_id': 'cours-philo-juive',
+                'module_id': 'cours-philo-juive-mod-9',
+                'episode_number': 2,
+                'youtube_url': 'https://youtu.be/nkXImE6euX4',
+                'is_active': True,
+            },
+            '$setOnInsert': {
+                'title': 'Moïse Maïmonide — Épisode 2',
+                'scholar_name': 'Géraldine Roux',
+                'created_at': datetime.now(timezone.utc),
+            },
+        },
         upsert=True
     )
     logger.info("Migration v9: cours-philo-juive ep1 + ep2 upserted")
@@ -4197,13 +4230,18 @@ async def seed_data():
             ctitle = (cdoc or {}).get('title', 'Épisode')
             await db.audios.update_one(
                 {'id': new_id},
-                {'$set': {
-                    'id': new_id, 'course_id': cid, 'module_id': mid,
-                    'episode_number': ep_num, 'title': f"{ctitle} — Épisode {ep_num}",
-                    'youtube_url': yt, 'is_active': True, 'published_at': '2026-05',
-                    'audio_url': '',
-                    'created_at': datetime.now(timezone.utc).isoformat(),
-                }},
+                {
+                    '$set': {
+                        'id': new_id, 'course_id': cid, 'module_id': mid,
+                        'episode_number': ep_num,
+                        'youtube_url': yt, 'is_active': True, 'published_at': '2026-05',
+                    },
+                    '$setOnInsert': {
+                        'title': f"{ctitle} — Épisode {ep_num}",
+                        'audio_url': '',
+                        'created_at': datetime.now(timezone.utc).isoformat(),
+                    },
+                },
                 upsert=True,
             )
             yt_applied += 1
@@ -4224,21 +4262,34 @@ async def seed_data():
             new_id = f'aud_cours-debuts-islam-ep{ep_num:02d}'
             set_payload = {
                 'id': new_id, 'course_id': 'cours-debuts-islam', 'module_id': debuts_mid,
-                'episode_number': ep_num, 'title': ep_title, 'intervenant': intervenant,
+                'episode_number': ep_num,
                 'is_active': True, 'published_at': '2026-05',
             }
             if yt:
                 set_payload['youtube_url'] = yt
-            await db.audios.update_one({'id': new_id}, {'$set': set_payload}, upsert=True)
+            # title/intervenant are admin-editable: only seed at insert time.
+            await db.audios.update_one(
+                {'id': new_id},
+                {
+                    '$set': set_payload,
+                    '$setOnInsert': {'title': ep_title, 'intervenant': intervenant},
+                },
+                upsert=True,
+            )
 
         # 6) cours-andalus — Ghouirgate intro
         await db.audios.update_one(
             {'course_id': 'cours-andalus', 'episode_number': 1},
-            {'$set': {
-                'title': 'Al-Andalus — Introduction', 'intervenant': 'Mehdi Ghouirgate',
-                'youtube_url': 'https://youtu.be/cow2JfYaSC0', 'is_active': True,
-                'published_at': '2026-05',
-            }},
+            {
+                '$set': {
+                    'youtube_url': 'https://youtu.be/cow2JfYaSC0', 'is_active': True,
+                    'published_at': '2026-05',
+                },
+                '$setOnInsert': {
+                    'title': 'Al-Andalus — Introduction',
+                    'intervenant': 'Mehdi Ghouirgate',
+                },
+            },
         )
         logger.info("Migration v14: falsafa split + YT applied + debuts-islam cleaned")
 
@@ -4307,13 +4358,11 @@ async def seed_data():
             {'course_id': 'cours-debuts-islam', 'episode_number': {'$in': [3, 4, 5, 6]}},
             {'$unset': {'youtube_url': ''}},
         )
-        # - cours-historiographie: rename ep1 to match Excel (Ibn Khaldūn)
+        # - cours-historiographie: ensure ep1 has intervenant + Excel title at INSERT only.
+        # We leave title untouched after creation (admin-editable).
         await db.audios.update_one(
             {'course_id': 'cours-historiographie', 'episode_number': 1},
-            {'$set': {
-                'title': 'Ibn Khaldūn — Historiographie',
-                'intervenant': 'Mehdi Ghouirgate',
-            }},
+            {'$set': {'intervenant': 'Mehdi Ghouirgate'}},
         )
         # - cours-al-ghazali: create an "À venir" placeholder ep1 (Commandé per Excel)
         ag_audio = await db.audios.find_one({'course_id': 'cours-al-ghazali', 'episode_number': 1})
@@ -4322,14 +4371,19 @@ async def seed_data():
             ag_mid = ((ag_course or {}).get('modules') or [{}])[0].get('id')
             await db.audios.update_one(
                 {'id': 'aud_cours-al-ghazali-ep01'},
-                {'$set': {
-                    'id': 'aud_cours-al-ghazali-ep01', 'course_id': 'cours-al-ghazali',
-                    'module_id': ag_mid, 'episode_number': 1,
-                    'title': 'Al-Ghazālī — Épisode 1', 'intervenant': 'Meryem Sebti',
-                    'is_active': True, 'published_at': '2026-05',
-                    'audio_url': '',
-                    'created_at': datetime.now(timezone.utc).isoformat(),
-                }},
+                {
+                    '$set': {
+                        'id': 'aud_cours-al-ghazali-ep01', 'course_id': 'cours-al-ghazali',
+                        'module_id': ag_mid, 'episode_number': 1,
+                        'is_active': True, 'published_at': '2026-05',
+                    },
+                    '$setOnInsert': {
+                        'title': 'Al-Ghazālī — Épisode 1',
+                        'intervenant': 'Meryem Sebti',
+                        'audio_url': '',
+                        'created_at': datetime.now(timezone.utc).isoformat(),
+                    },
+                },
                 upsert=True,
             )
         logger.info("Migration v14c: final polish applied")
