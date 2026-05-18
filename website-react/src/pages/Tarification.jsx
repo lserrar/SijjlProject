@@ -82,7 +82,7 @@ export default function Tarification() {
         <PlanCard
           testid="plan-fondateur"
           name="Fondateur"
-          tagline="Soutien au lancement · Offre limitée"
+          tagline="200 places uniquement · Offre de lancement"
           price="84 €"
           period="par an"
           equivalent="soit 7 €/mois"
@@ -117,7 +117,7 @@ export default function Tarification() {
             'Carte cadeau personnalisable (nom + message)',
             'Livraison immédiate ou programmée par email',
             'Le destinataire active son code sur son compte',
-            'Idéal pour anniversaires, mariages, aïd, Noël',
+            'Idéal pour anniversaires, fêtes, aïd, Noël',
           ]}
           ctaLabel="Offrir un abonnement"
           ctaLoading={false}
