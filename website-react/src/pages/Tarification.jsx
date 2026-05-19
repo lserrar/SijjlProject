@@ -58,49 +58,54 @@ export default function Tarification() {
   return (
     <section style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 100px' }} data-testid="tarification-page">
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--brand-secondary)' }}>
+        <p style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--brand-secondary)' }}>
           Abonnements · engagement 12 mois
         </p>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(38px, 5vw, 56px)', margin: '12px 0 18px', lineHeight: 1.1 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(42px, 5vw, 60px)', margin: '12px 0 18px', lineHeight: 1.1 }}>
           Choisissez votre formule
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.6, maxWidth: 680, margin: '0 auto' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 18, lineHeight: 1.6, maxWidth: 720, margin: '0 auto' }}>
           Accès illimité à l'intégralité du catalogue Sijill — vidéos, podcasts, bibliographies, glossaires et frises chronologiques.
           Tous nos abonnements engagent sur 12 mois, prélevés mensuellement ou réglés en une fois.
         </p>
       </div>
 
-      {/* Toggle Mensuel / Annuel */}
-      <div data-testid="billing-toggle" style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
-        <div style={{
-          display: 'inline-flex', background: 'rgba(255,255,255,0.04)',
-          border: '1px solid var(--border-subtle)', borderRadius: 999, padding: 4,
-        }}>
-          <button
-            type="button"
-            data-testid="billing-toggle-monthly"
-            onClick={() => setBilling('monthly')}
-            style={{
-              background: billing === 'monthly' ? 'var(--brand-secondary)' : 'transparent',
-              color: billing === 'monthly' ? '#0d0c0a' : 'var(--text-muted)',
-              border: 'none', padding: '10px 22px', borderRadius: 999,
-              fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700,
-              cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
-            }}
-          >Mensuel · 12 mois</button>
-          <button
-            type="button"
-            data-testid="billing-toggle-yearly"
-            onClick={() => setBilling('yearly')}
-            style={{
-              background: billing === 'yearly' ? 'var(--brand-secondary)' : 'transparent',
-              color: billing === 'yearly' ? '#0d0c0a' : 'var(--text-muted)',
-              border: 'none', padding: '10px 22px', borderRadius: 999,
-              fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700,
-              cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
-            }}
-          >Annuel · paiement unique</button>
-        </div>
+      {/* Sélecteur fréquence de paiement — 2 grosses cartes côte-à-côte */}
+      <div style={{ textAlign: 'center', margin: '40px 0 18px' }}>
+        <p style={{ fontSize: 14, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 18 }}>
+          1. Choisissez votre fréquence de paiement
+        </p>
+      </div>
+      <div
+        data-testid="billing-toggle"
+        style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 16, maxWidth: 640, margin: '0 auto 56px', padding: '0 8px',
+        }}
+      >
+        <BillingOption
+          testid="billing-toggle-monthly"
+          active={billing === 'monthly'}
+          onClick={() => setBilling('monthly')}
+          title="Payer chaque mois"
+          subtitle="12 prélèvements mensuels"
+          example="7 € à 12 € / mois"
+        />
+        <BillingOption
+          testid="billing-toggle-yearly"
+          active={billing === 'yearly'}
+          onClick={() => setBilling('yearly')}
+          title="Payer en une fois"
+          subtitle="Paiement unique annuel"
+          example="84 € à 120 € / an"
+          badge="2 mois offerts"
+        />
+      </div>
+
+      <div style={{ textAlign: 'center', marginBottom: 18 }}>
+        <p style={{ fontSize: 14, letterSpacing: 2.5, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+          2. Sélectionnez votre formule
+        </p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 24, alignItems: 'stretch', paddingTop: 18 }}>
@@ -223,21 +228,21 @@ function PlanCard({ testid, name, tagline, price, period, equivalent, highlight,
 
       <header style={{ textAlign: 'center' }}>
         {icon && <div style={{ fontSize: 32, marginBottom: 8 }}>{icon}</div>}
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 28, marginBottom: 4, color: highlight ? 'var(--brand-secondary)' : 'var(--text)' }}>{name}</h3>
-        <p style={{ fontSize: 11.5, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{tagline}</p>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 32, marginBottom: 6, color: highlight ? 'var(--brand-secondary)' : 'var(--text)' }}>{name}</h3>
+        <p style={{ fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--text-muted)' }}>{tagline}</p>
       </header>
 
       <div style={{ textAlign: 'center', padding: '8px 0' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 52, lineHeight: 1, color: highlight ? 'var(--brand-secondary)' : 'var(--text)' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, lineHeight: 1, color: highlight ? 'var(--brand-secondary)' : 'var(--text)' }}>
           {price}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6 }}>{period}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontStyle: 'italic' }}>{equivalent}</div>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)', marginTop: 8 }}>{period}</div>
+        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 4, fontStyle: 'italic' }}>{equivalent}</div>
       </div>
 
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
         {features.map((f, i) => (
-          <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, lineHeight: 1.5, color: 'var(--text)' }}>
+          <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 16, lineHeight: 1.55, color: 'var(--text)' }}>
             <span style={{ color: 'var(--brand-secondary)', flexShrink: 0, marginTop: 2 }}>✓</span>
             <span>{f}</span>
           </li>
@@ -253,9 +258,9 @@ function PlanCard({ testid, name, tagline, price, period, equivalent, highlight,
           background: highlight ? '#1FAE6B' : (asLink ? 'transparent' : '#f3ede1'),
           color: highlight ? '#0d0c0a' : (asLink ? '#1FAE6B' : '#0d0c0a'),
           border: asLink ? '1px solid #1FAE6B' : 'none',
-          padding: '15px 22px',
+          padding: '17px 22px',
           borderRadius: 4,
-          fontSize: 12.5,
+          fontSize: 14,
           letterSpacing: 2.5,
           textTransform: 'uppercase',
           fontWeight: 700,
@@ -268,5 +273,60 @@ function PlanCard({ testid, name, tagline, price, period, equivalent, highlight,
         {ctaLoading ? 'Préparation…' : ctaLabel}
       </button>
     </div>
+  )
+}
+
+function BillingOption({ testid, active, onClick, title, subtitle, example, badge }) {
+  return (
+    <button
+      type="button"
+      data-testid={testid}
+      onClick={onClick}
+      style={{
+        position: 'relative',
+        background: active ? 'rgba(31,174,107,0.10)' : 'rgba(255,255,255,0.02)',
+        border: active ? '2px solid var(--brand-secondary)' : '2px solid var(--border-subtle)',
+        borderRadius: 10,
+        padding: '22px 24px 20px',
+        textAlign: 'left',
+        cursor: 'pointer',
+        transition: 'all 0.18s ease',
+        boxShadow: active ? '0 6px 22px -6px rgba(31,174,107,0.35)' : 'none',
+        color: 'var(--text)',
+        fontFamily: 'inherit',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+      }}
+    >
+      {badge && (
+        <div style={{
+          position: 'absolute', top: -11, right: 16,
+          background: 'var(--brand-secondary)', color: '#0d0c0a',
+          padding: '4px 12px', borderRadius: 999, fontSize: 11,
+          letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700,
+        }}>{badge}</div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+        <span
+          aria-hidden
+          style={{
+            width: 20, height: 20, borderRadius: '50%',
+            border: active ? '6px solid var(--brand-secondary)' : '2px solid var(--text-muted)',
+            background: active ? '#0d0c0a' : 'transparent',
+            flexShrink: 0, transition: 'all 0.18s ease',
+          }}
+        />
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: active ? 'var(--brand-secondary)' : 'var(--text)' }}>
+          {title}
+        </span>
+      </div>
+      <div style={{ fontSize: 14, color: 'var(--text-muted)', marginLeft: 32, lineHeight: 1.5 }}>
+        {subtitle}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 32, fontStyle: 'italic', marginTop: 2 }}>
+        {example}
+      </div>
+    </button>
   )
 }
