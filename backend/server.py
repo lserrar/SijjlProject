@@ -4519,24 +4519,36 @@ async def seed_data():
                         logger.info(f"Migration v15: cleared dangling r2_audio_key on {a['id']} (kept for YT)")
             logger.info(f"Migration v15: purged {purged_total} orphan audio(s)")
 
-        # Rename cours-historiographie to focus on Ibn Khaldūn (only character with R2 content)
+        # Rename cours-historiographie to focus on Ibn Khaldūn (only character with R2 content).
+        # IMPORTANT: respect `seed_locked` — once an admin has edited the title /
+        # summary / description in the admin panel, this migration MUST NOT
+        # overwrite their changes on subsequent reboots. We only push the
+        # `r2_prefix` (structural, not editorial) unconditionally.
         await db.courses.update_one(
-            {'id': 'cours-historiographie'},
+            {'id': 'cours-historiographie', 'seed_locked': {'$ne': True}},
             {'$set': {
                 'title': 'Ibn Khaldūn — Historiographie',
                 'summary': "La pensée historiographique d'Ibn Khaldūn et la Muqaddima.",
                 'description': "La pensée historiographique d'Ibn Khaldūn et la Muqaddima : philosophie de l'histoire, théorie de la 'aṣabiyya, cycles dynastiques.",
-                'r2_prefix': 'cursus-c-sciences-islamiques/14-historiographie/ibn-khaldun-histoire/',
             }},
         )
-        # Update the audio title to match
+        # Structural field (R2 path) — always pushed.
+        await db.courses.update_one(
+            {'id': 'cours-historiographie'},
+            {'$set': {'r2_prefix': 'cursus-c-sciences-islamiques/14-historiographie/ibn-khaldun-histoire/'}},
+        )
+        # Update the audio title to match — also respects per-audio seed_locked.
         await db.audios.update_one(
-            {'course_id': 'cours-historiographie', 'episode_number': 1},
+            {'course_id': 'cours-historiographie', 'episode_number': 1, 'seed_locked': {'$ne': True}},
             {'$set': {
                 'title': "Ibn Khaldūn philosophe et historien",
                 'intervenant': 'Mehdi Ghouirgate',
-                'r2_subprefix': 'ibn-khaldun-histoire/',
             }},
+        )
+        # R2 sub-prefix is structural — always pushed.
+        await db.audios.update_one(
+            {'course_id': 'cours-historiographie', 'episode_number': 1},
+            {'$set': {'r2_subprefix': 'ibn-khaldun-histoire/'}},
         )
         logger.info("Migration v15: historiographie restructured around Ibn Khaldūn")
     except Exception as e:
