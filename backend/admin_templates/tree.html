@@ -138,11 +138,31 @@ async function api(path, opts={}) {
 function escapeHtml(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 async function loadTree() {
+    // Capture which cursus + courses are currently expanded so we can restore
+    // their `.open` state after the re-render. Otherwise editing an episode
+    // collapses everything → user has to re-navigate each time.
+    const openCursus = Array.from(document.querySelectorAll('.cursus-body.open'))
+        .map(el => el.id.replace(/^cu-body-/, ''));
+    const openCourses = Array.from(document.querySelectorAll('.episode-list.open'))
+        .map(el => el.id.replace(/^ep-list-/, ''));
+    const scrollY = window.scrollY;
+
     const cursusList = await api('/cursus');
     const allCourses = await api('/admin/courses');
     const allAudios = await api('/admin/audios');
     treeData = { cursus: cursusList, courses: allCourses, audios: allAudios };
     renderTree();
+
+    // Restore expanded state
+    openCursus.forEach(id => {
+        const el = document.getElementById(`cu-body-${id}`);
+        if (el) el.classList.add('open');
+    });
+    openCourses.forEach(id => {
+        const el = document.getElementById(`ep-list-${id}`);
+        if (el) el.classList.add('open');
+    });
+    window.scrollTo({ top: scrollY, behavior: 'instant' });
 }
 
 function renderTree() {
