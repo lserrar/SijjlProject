@@ -6571,7 +6571,9 @@ async def get_context_resource(resource_id: str, request: Request):
             'course_id': target_entry.get('course_id') if target_entry else None,
             'cursus_id': target_entry.get('cursus_id') if target_entry else None,
             'module_number': target_entry.get('module_number', 1) if target_entry else 1,
-            'content_blocks': content_blocks,
+            # Field name kept as `content` for frontend back-compat
+            # (ResourceViewer.jsx reads `data.content`).
+            'content': content_blocks,
         }
     except HTTPException:
         raise
