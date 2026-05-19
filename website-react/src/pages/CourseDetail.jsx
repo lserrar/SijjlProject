@@ -300,7 +300,11 @@ export default function CourseDetail() {
       setModules(modsData || [])
       setAudios(audiosData || [])
       if (courseData?.cursus_id) {
-        getContextResources(courseData.cursus_id).then(r => setContextResources(r?.resources || [])).catch(() => {})
+        // New (Fév. 2026): contextes désormais par cours (fichiers `Contexte_*.docx`
+        // dans le r2_prefix du cours). On utilise le nouvel endpoint course-scoped.
+        fetch(`${API_BASE}/courses/${courseId}/context`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('sijill_token') || ''}` }
+        }).then(r => r.json()).then(data => setContextResources(data?.resources || [])).catch(() => setContextResources([]))
         getCourseResources(courseId).then(r => setResources(r?.resources || [])).catch(() => setResources([]))
         // Fetch timelines for THIS cursus only
         fetch(`${API_BASE}/timelines/cursus/${courseData.cursus_id}`, {

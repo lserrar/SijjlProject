@@ -6392,158 +6392,111 @@ async def update_timeline_resource(resource_id: str, request: Request):
 
 @api_router.get("/resources/context")
 async def list_context_resources():
-    """List all context (Word) resources from the Timeline folder."""
+    """List all course-context (Word) resources across the catalog.
+
+    NEW (fév. 2026): contextes désormais stockés DANS LE DOSSIER R2 DE CHAQUE COURS,
+    avec un préfixe de nom `Contexte_*.docx`. Plus de scan global du dossier `Timeline/`.
+    On boucle sur tous les cours qui ont un `r2_prefix` et on agrège leurs fichiers
+    `Contexte_*.docx`. resource_id = `{course_id}__{slug}` (stable, unique, partageable).
+    """
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    
     try:
-        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
-        resources = []
-        
-        for obj in response.get('Contents', []):
-            key = obj['Key']
-            filename = key.split('/')[-1]
-            
-            # Skip temp files and non-docx
-            if filename.startswith('~$') or not filename.endswith('.docx'):
-                continue
-            
-            # Parse filename: 
-            # New format: sijill_{cursus}_{module}_{penseur}.docx (e.g., sijill_a_m01_traduction.docx)
-            # Old format: Timeline_Module{N}_{Penseur}.docx
-            import re
-            
-            # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
-            new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
-            # Try old format: Timeline_Module{N}_{Penseur}.docx
-            old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
-            
-            if new_match:
-                cursus_letter = new_match.group(1).upper()
-                module_num = int(new_match.group(2))
-                subject_raw = new_match.group(3)
-                # Clean up subject name: al-kindi -> Al Kindi
-                subject = subject_raw.replace('-', ' ').replace('_', ' ').title()
-                
-                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
-                
-                # Check for custom data in DB
-                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
-                
-                resource_data = {
-                    'id': resource_id,
-                    'filename': filename,
-                    'r2_key': key,
-                    'cursus_letter': cursus_letter,
-                    'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
-                    'subject': db_entry.get('subject', subject) if db_entry else subject,
-                    'title': db_entry.get('title', f"{subject}") if db_entry else f"{subject}",
-                    'description': db_entry.get('description', '') if db_entry else '',
-                    'credits': db_entry.get('credits', '') if db_entry else '',
-                    'size': obj['Size'],
-                    'url': f'/api/resources/context/{filename.replace(".docx", "")}'
-                }
-                resources.append(resource_data)
-            elif old_match:
-                module_num = int(old_match.group(1))
-                subject_raw = old_match.group(2)
-                # Clean up subject name: Al-Kindi -> Al-Kindī, etc.
-                subject = subject_raw.replace('_', ' ').replace('-', ' ')
-                
-                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
-                
-                # Check for custom data in DB
-                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
-                
-                resource_data = {
-                    'id': resource_id,
-                    'filename': filename,
-                    'r2_key': key,
-                    'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
-                    'subject': db_entry.get('subject', subject) if db_entry else subject,
-                    'title': db_entry.get('title', f"Contexte historique : {subject}") if db_entry else f"Contexte historique : {subject}",
-                    'description': db_entry.get('description', '') if db_entry else '',
-                    'credits': db_entry.get('credits', '') if db_entry else '',
-                    'size': obj['Size'],
-                    'url': f'/api/resources/context/{filename.replace(".docx", "")}'
-                }
-                resources.append(resource_data)
-        
-        # Sort by module number then subject
-        resources.sort(key=lambda x: (x['module_number'], x['subject']))
+        resources = await _collect_contexte_files()
+        # Sort by course title then filename for stable display
+        resources.sort(key=lambda x: (x.get('course_id', ''), x.get('filename', '')))
         return {'resources': resources, 'count': len(resources)}
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
 
 
-@api_router.get("/resources/context/cursus/{cursus_id}")
-async def list_context_resources_by_cursus(cursus_id: str):
-    """List context (Word) resources filtered by cursus."""
-    if not r2_client:
-        raise HTTPException(503, "R2 non configuré")
-    
-    # Map cursus_id to cursus letter (7 cursus: A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques)
-    cursus_map = {
-        'cursus-histoire': 'A',
-        'cursus-theologie': 'B',
-        'cursus-sciences-islamiques': 'C',
-        'cursus-arts': 'D',
-        'cursus-falsafa': 'E',
-        'cursus-spiritualites': 'F',
-        'cursus-pensees-non-islamiques': 'G',
-    }
-    letter = cursus_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else 'A')
-    
-    try:
-        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
-        resources = []
-        
-        for obj in response.get('Contents', []):
+async def _collect_contexte_files(course_filter: Optional[str] = None,
+                                  cursus_filter: Optional[str] = None) -> List[dict]:
+    """Scan each course's r2_prefix for `Contexte_*.docx` files.
+
+    Returns a normalised list of dicts (id, title, course_id, r2_key, etc.).
+    Optionally filtered by a single `course_filter` (course_id) or `cursus_filter`.
+    """
+    import re
+    query = {'r2_prefix': {'$exists': True, '$nin': [None, '']}}
+    if course_filter:
+        query['id'] = course_filter
+    if cursus_filter:
+        query['cursus_id'] = cursus_filter
+    courses = await db.courses.find(query, {
+        '_id': 0, 'id': 1, 'title': 1, 'cursus_id': 1, 'r2_prefix': 1
+    }).to_list(200)
+
+    out: List[dict] = []
+    for c in courses:
+        prefix = c.get('r2_prefix') or ''
+        if not prefix.endswith('/'):
+            prefix += '/'
+        try:
+            resp = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=300)
+        except Exception:
+            continue
+        for obj in resp.get('Contents', []):
             key = obj['Key']
             filename = key.split('/')[-1]
-            
-            # Skip temp files and non-docx
-            if filename.startswith('~$') or not filename.endswith('.docx'):
+            if filename.startswith('~$') or not filename.lower().endswith('.docx'):
                 continue
-            
-            import re
-            
-            # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
-            new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
-            
-            if new_match:
-                cursus_letter = new_match.group(1).upper()
-                
-                # Only include resources matching the requested cursus
-                if cursus_letter != letter:
-                    continue
-                
-                module_num = int(new_match.group(2))
-                subject_raw = new_match.group(3)
-                subject = subject_raw.replace('-', ' ').replace('_', ' ').title()
-                
-                resource_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
-                
-                # Check for custom data in DB
-                db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
-                
-                resource_data = {
-                    'id': resource_id,
-                    'filename': filename,
-                    'r2_key': key,
-                    'cursus_letter': cursus_letter,
-                    'module_number': db_entry.get('module_number', module_num) if db_entry else module_num,
-                    'subject': db_entry.get('subject', subject) if db_entry else subject,
-                    'title': db_entry.get('title', f"{subject}") if db_entry else f"{subject}",
-                    'description': db_entry.get('description', '') if db_entry else '',
-                    'credits': db_entry.get('credits', '') if db_entry else '',
-                    'size': obj['Size'],
-                    'url': f'/api/resources/context/{filename.replace(".docx", "")}'
-                }
-                resources.append(resource_data)
-        
-        # Sort by module number then subject
-        resources.sort(key=lambda x: (x['module_number'], x['subject']))
+            # Only files starting with "Contexte_" (case-insensitive)
+            m = re.match(r'^Contexte_(.+)\.docx$', filename, re.IGNORECASE)
+            if not m:
+                continue
+            slug = m.group(1)
+            # Pretty subject: al-kindi → Al Kindi
+            subject = slug.replace('-', ' ').replace('_', ' ').strip()
+            subject = ' '.join(w.capitalize() for w in subject.split())
+            resource_id = f"{c['id']}__{slug.lower()}"
+            db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
+            out.append({
+                'id': resource_id,
+                'filename': filename,
+                'r2_key': key,
+                'course_id': c['id'],
+                'course_title': c.get('title'),
+                'cursus_id': c.get('cursus_id'),
+                'subject': (db_entry or {}).get('subject') or subject,
+                'title': (db_entry or {}).get('title') or subject,
+                'description': (db_entry or {}).get('description', ''),
+                'credits': (db_entry or {}).get('credits', ''),
+                # module_number is kept for back-compat with the front-end's display
+                'module_number': (db_entry or {}).get('module_number', 1),
+                'size': obj['Size'],
+                'url': f'/api/resources/context/{resource_id}',
+            })
+    return out
+
+
+@api_router.get("/resources/context/cursus/{cursus_id}")
+async def list_context_resources_by_cursus(cursus_id: str):
+    """List context (Word) resources for all courses of a given cursus.
+
+    Now derived live from each course's R2 `r2_prefix` (looking for files
+    matching `Contexte_*.docx`). See `_collect_contexte_files`.
+    """
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    try:
+        resources = await _collect_contexte_files(cursus_filter=cursus_id)
+        resources.sort(key=lambda x: (x.get('course_id', ''), x.get('filename', '')))
+        return {'resources': resources, 'count': len(resources)}
+    except ClientError as e:
+        raise HTTPException(500, f"Erreur R2: {str(e)}")
+
+
+@api_router.get("/courses/{course_id}/context")
+async def list_context_resources_by_course(course_id: str):
+    """Course-scoped context resources — only the `Contexte_*.docx` files that
+    live inside this course's R2 folder. Used by the course detail page's
+    « Contexte » tab so it shows only the files relevant to this course."""
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    try:
+        resources = await _collect_contexte_files(course_filter=course_id)
+        resources.sort(key=lambda x: x.get('filename', ''))
         return {'resources': resources, 'count': len(resources)}
     except ClientError as e:
         raise HTTPException(500, f"Erreur R2: {str(e)}")
@@ -6551,122 +6504,83 @@ async def list_context_resources_by_cursus(cursus_id: str):
 
 @api_router.get("/resources/context/{resource_id}")
 async def get_context_resource(resource_id: str, request: Request):
-    """Get a specific context resource content (parsed from Word document).
-    Requires authentication + active subscription."""
+    """Return the parsed content of a context resource.
+
+    Resource IDs follow the new convention `{course_id}__{slug}` (see
+    `_collect_contexte_files`). For back-compat we still try a relaxed lookup
+    so links generated before the rename keep working.
+    """
     await require_subscriber(request)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    
-    # Find the matching file
+
+    target_key = None
+    target_entry = None
     try:
-        response = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix='Timeline/', MaxKeys=200)
-        target_key = None
-        
-        for obj in response.get('Contents', []):
-            key = obj['Key']
-            filename = key.split('/')[-1]
-            if filename.startswith('~$'):
-                continue
-            # Match by resource_id
-            file_id = filename.replace('.docx', '').lower().replace(' ', '-').replace('_', '-')
-            if file_id == resource_id.lower() or filename.replace('.docx', '') == resource_id:
-                target_key = key
-                break
-        
+        # Preferred path: parse the new {course_id}__{slug} id directly.
+        if '__' in resource_id:
+            course_id, slug = resource_id.split('__', 1)
+            for r in await _collect_contexte_files(course_filter=course_id):
+                if r['id'] == resource_id:
+                    target_key = r['r2_key']
+                    target_entry = r
+                    break
+        # Fallback: scan everything (covers old links/manual /resources/context/<file>)
+        if not target_key:
+            for r in await _collect_contexte_files():
+                if r['id'] == resource_id or r['filename'].replace('.docx', '').lower() == resource_id.lower():
+                    target_key = r['r2_key']
+                    target_entry = r
+                    break
+
         if not target_key:
             raise HTTPException(404, f"Ressource non trouvée: {resource_id}")
-        
-        # Download and parse the Word document
+
         response = r2_client.get_object(Bucket=R2_BUCKET, Key=target_key)
         docx_content = response['Body'].read()
-        
+
         from docx import Document as DocxDocument
         from io import BytesIO as BytesIOClass
         doc = DocxDocument(BytesIOClass(docx_content))
-        
+
         # Parse document content
         content_blocks = []
         current_section = None
-        
         for para in doc.paragraphs:
             text = para.text.strip()
             if not text:
                 continue
-            
             style = para.style.name if para.style else 'Normal'
-            
-            # Detect headings and sections
             if 'Heading' in style or text.startswith('🏛') or text.startswith('🧠') or text.startswith('📅'):
                 current_section = text
-                content_blocks.append({
-                    'type': 'heading',
-                    'text': text,
-                    'level': 1 if 'Heading 1' in style else 2
-                })
+                content_blocks.append({'type': 'heading', 'text': text,
+                                       'level': 1 if 'Heading 1' in style else 2})
             elif text.startswith('•') or text.startswith('-'):
-                content_blocks.append({
-                    'type': 'list_item',
-                    'text': text.lstrip('•- '),
-                    'section': current_section
-                })
+                content_blocks.append({'type': 'list_item', 'text': text.lstrip('•- '),
+                                       'section': current_section})
             else:
-                content_blocks.append({
-                    'type': 'paragraph',
-                    'text': text,
-                    'section': current_section
-                })
-        
-        # Extract metadata from filename
-        filename = target_key.split('/')[-1]
-        import re
-        
-        # Try new format first: sijill_{cursus}_m{NN}_{penseur}.docx
-        new_match = re.match(r'sijill_([a-f])_m(\d+)_(.+)\.docx', filename, re.IGNORECASE)
-        # Try old format: Timeline_Module{N}_{Penseur}.docx
-        old_match = re.match(r'Timeline_Module(\d+)_(.+)\.docx', filename)
-        
-        if new_match:
-            cursus_letter = new_match.group(1).upper()
-            module_num = int(new_match.group(2))
-            subject_raw = new_match.group(3)
-            subject = subject_raw.replace('-', ' ').replace('_', ' ').title()
-        elif old_match:
-            cursus_letter = 'A'  # Default to A for old format
-            module_num = int(old_match.group(1))
-            subject_raw = old_match.group(2)
-            subject = subject_raw.replace('_', ' ').replace('-', ' ')
-        else:
-            cursus_letter = 'A'
-            module_num = 0
-            subject = filename.replace('.docx', '').replace('_', ' ').replace('-', ' ').title()
-        
-        # Check for custom metadata in DB
-        db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
-        custom_title = subject
-        if db_entry:
-            custom_title = db_entry.get('title', subject)
-            if db_entry.get('cursus_letter'):
-                cursus_letter = db_entry['cursus_letter']
-            if db_entry.get('module_number'):
-                module_num = db_entry['module_number']
-            if db_entry.get('subject'):
-                subject = db_entry['subject']
-        
+                content_blocks.append({'type': 'paragraph', 'text': text,
+                                       'section': current_section})
+
         return {
             'id': resource_id,
-            'title': custom_title,
-            'module_number': module_num,
-            'subject': subject,
-            'cursus_letter': cursus_letter,
-            'r2_key': target_key,
-            'content': content_blocks
+            'title': target_entry.get('title') if target_entry else resource_id,
+            'subject': target_entry.get('subject') if target_entry else resource_id,
+            'description': target_entry.get('description', '') if target_entry else '',
+            'credits': target_entry.get('credits', '') if target_entry else '',
+            'course_id': target_entry.get('course_id') if target_entry else None,
+            'cursus_id': target_entry.get('cursus_id') if target_entry else None,
+            'module_number': target_entry.get('module_number', 1) if target_entry else 1,
+            'content_blocks': content_blocks,
         }
-        
+    except HTTPException:
+        raise
     except ClientError as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-        if error_code == 'NoSuchKey':
-            raise HTTPException(404, f"Ressource non trouvée: {resource_id}")
         raise HTTPException(500, f"Erreur R2: {str(e)}")
+    except Exception as e:
+        logger.exception(f"get_context_resource error: {e}")
+        raise HTTPException(500, f"Erreur de lecture du document: {str(e)}")
+
 
 # ─── Audio Resources (Conferences) ─────────────────────────────────────────────
 
