@@ -11,6 +11,7 @@ export default function CourseSlides() {
   const { user } = useAuth()
   const [pdfUrl, setPdfUrl] = useState(null)
   const [label, setLabel] = useState('')
+  const [mime, setMime] = useState('')
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -18,7 +19,11 @@ export default function CourseSlides() {
     getResourceAccessUrl(courseId, r2Key)
       .then(d => {
         if (d?.url) {
-          setPdfUrl(d.url + '#toolbar=0&navpanes=0&scrollbar=0&view=FitH')
+          const m = d.mime || ''
+          setMime(m)
+          // Images: keep the bare signed URL (no hash params).
+          // PDFs: hide toolbar / scrollbar / print buttons.
+          setPdfUrl(m.startsWith('image/') ? d.url : d.url + '#toolbar=0&navpanes=0&scrollbar=0&view=FitH')
           setLabel(d.label || r2Key.split('/').pop())
         } else setError('no_url')
       })
@@ -87,25 +92,45 @@ export default function CourseSlides() {
             letterSpacing: 2.5, textTransform: 'uppercase',
             color: 'var(--text-muted)',
           }}>
-            <span style={{ color }}>Slides</span> · {label}
+            <span style={{ color }}>{mime.startsWith('image/') ? 'Manuscrit' : mime === 'application/pdf' ? 'Document' : 'Slides'}</span> · {label}
           </div>
         </div>
 
         <div style={{ position: 'relative' }}>
-          {/* PDF iframe — toolbar/print/download disabled via URL hash */}
+          {/* PDF: iframe with toolbar/print/download disabled. Image: <img>. */}
           {pdfUrl ? (
-            <iframe
-              data-testid="slides-iframe"
-              src={pdfUrl}
-              title={label}
-              style={{
-                width: '100%', height: '78vh',
-                border: `1px solid ${color}55`,
-                background: '#1a1a1a',
-                pointerEvents: 'auto',
-              }}
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
+            mime.startsWith('image/') ? (
+              <img
+                data-testid="slides-image"
+                src={pdfUrl}
+                alt={label}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  maxHeight: '78vh',
+                  objectFit: 'contain',
+                  border: `1px solid ${color}55`,
+                  background: '#1a1a1a',
+                  userSelect: 'none',
+                  pointerEvents: 'auto',
+                }}
+                draggable={false}
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            ) : (
+              <iframe
+                data-testid="slides-iframe"
+                src={pdfUrl}
+                title={label}
+                style={{
+                  width: '100%', height: '78vh',
+                  border: `1px solid ${color}55`,
+                  background: '#1a1a1a',
+                  pointerEvents: 'auto',
+                }}
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            )
           ) : (
             <div style={{
               width: '100%', height: '78vh',

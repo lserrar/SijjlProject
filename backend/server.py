@@ -5253,6 +5253,25 @@ async def seed_data():
         if persane_fix.modified_count:
             v15h_summary['persane_scholar_fixed'] = persane_fix.modified_count
 
+        # 7) Nettoyage des registrations d'episode_resources mal taggées :
+        # les PDF/JPG/PNG enregistrés avec `type='script'` (legacy seed Al-Kindi
+        # `kindi_manuscript_1.pdf`) doivent disparaître pour que l'auto-detect
+        # de `/courses/{id}/resources` les ré-émette avec le bon `type='manuscript'`
+        # ou `type='image'` et un label lisible. Idempotent : MongoDB `$pull` ne
+        # fait rien si aucun élément ne matche.
+        mistagged = await db.audios.update_many(
+            {'episode_resources': {'$elemMatch': {
+                'type': 'script',
+                'r2_key': {'$regex': r'\.(pdf|jpe?g|png)$', '$options': 'i'},
+            }}},
+            {'$pull': {'episode_resources': {
+                'type': 'script',
+                'r2_key': {'$regex': r'\.(pdf|jpe?g|png)$', '$options': 'i'},
+            }}},
+        )
+        if mistagged.modified_count:
+            v15h_summary['mistagged_resources_pulled'] = mistagged.modified_count
+
         logger.info(f"Migration v15h: cleanup Ibn Khaldūn & falsafa-grands — {v15h_summary}")
     except Exception as e:
         logger.warning(f"Migration v15h failed: {e}", exc_info=True)
@@ -6778,22 +6797,45 @@ async def stream_audio_resource(filename: str, request: Request, t: Optional[str
 @api_router.get("/courses/{course_id}/resources")
 async def list_course_resources(course_id: str, request: Request):
     """List all resources attached to a course (course-level + per-episode).
-    Requires authentication + active subscription/trial/admin/free_access."""
+
+    Combines two sources:
+    1. **Explicit DB registrations** (`course.course_resources` + `audio.episode_resources`)
+    2. **Auto-detection** from the course's R2 folder for *manuscripts* (PDF) and
+       *images* (JPG/PNG). Lets the user simply drop a `*_manuscript*.pdf` or
+       `*.jpg` next to the audio files and have it appear automatically, without
+       having to register it in the admin. Files already registered in (1) are
+       deduped (registration wins → keeps any custom label).
+
+    Files explicitly excluded from auto-detection:
+    - Audio (handled by /audios)
+    - DOCX scripts (registered per episode in `episode_resources`)
+    - `Contexte_*.docx` (served by the dedicated /context endpoint)
+
+    Requires authentication + active subscription/trial/admin/free_access.
+    """
     await require_subscriber(request)
     course = await db.courses.find_one({'id': course_id}, {'_id': 0})
     if not course:
         raise HTTPException(404, "Cours non trouvé")
     items = []
+    seen_keys = set()
+
     for r in (course.get('course_resources') or []):
-        if not r.get('r2_key'):
+        if not r.get('r2_key') or r['r2_key'] in seen_keys:
+            continue
+        # Hide the legacy Contexte_*.docx registration — it now lives in the /context tab.
+        fn = r['r2_key'].split('/')[-1]
+        if fn.lower().startswith('contexte_'):
+            seen_keys.add(r['r2_key'])
             continue
         items.append({
             'r2_key': r['r2_key'],
             'type': r.get('type'),
-            'label': r.get('label') or r.get('r2_key', '').split('/')[-1],
+            'label': r.get('label') or fn,
             'mime': r.get('mime') or 'application/octet-stream',
             'scope': 'course',
         })
+        seen_keys.add(r['r2_key'])
     audios_cur = db.audios.find(
         {'course_id': course_id, 'is_active': True, 'episode_resources': {'$exists': True, '$ne': []}},
         {'_id': 0},
@@ -6802,19 +6844,130 @@ async def list_course_resources(course_id: str, request: Request):
     audios.sort(key=lambda a: (a.get('episode_number') or 0, a.get('order') or 0))
     for a in audios:
         for r in (a.get('episode_resources') or []):
-            if not r.get('r2_key'):
+            if not r.get('r2_key') or r['r2_key'] in seen_keys:
+                continue
+            fn = r['r2_key'].split('/')[-1]
+            # Skip mis-tagged manuscripts/images that historically landed in
+            # episode_resources as type=script — they'll be re-emitted below with
+            # the correct type by the auto-detect block.
+            if fn.lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')) and r.get('type') == 'script':
                 continue
             items.append({
                 'r2_key': r['r2_key'],
                 'type': r.get('type'),
-                'label': r.get('label') or r.get('r2_key', '').split('/')[-1],
+                'label': r.get('label') or fn,
                 'mime': r.get('mime') or 'application/octet-stream',
                 'scope': 'episode',
                 'audio_id': a['id'],
                 'audio_title': a.get('title'),
                 'episode_number': a.get('episode_number'),
             })
+            seen_keys.add(r['r2_key'])
+
+    # ─── Auto-detection from R2 ────────────────────────────────────────────
+    # Pulls every supplementary asset that lives in the course's R2 folder
+    # (PDFs = manuscripts, JPG/PNG = manuscripts/illustrations).
+    auto_items = await _autodetect_course_assets(course, exclude_keys=seen_keys)
+    items.extend(auto_items)
+
     return {'resources': items, 'count': len(items)}
+
+
+async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dict]:
+    """Scan the course's R2 folder for manuscripts / images that should appear
+    in the Resources tab without requiring DB registration.
+
+    Heuristics for the label:
+    - `kindi_manuscript_1.pdf` → "Manuscrit — kindi 1"
+    - `Al-Kindi_-_Cambridge,_Trinity_College_Library,_..._MS_R.15.17_..._BEIC_11521297.jpg`
+      → "Manuscrit — Cambridge, Trinity College Library, MS R.15.17 (BEIC 11521297)"
+    - Anything else → filename without extension, underscores/dashes replaced by spaces.
+
+    Heuristics for the episode binding (so the asset displays under the right
+    « Épisode N » group): we look for `ep<N>` or `episode<N>` in the filename.
+    Otherwise the asset becomes `scope='course'`.
+    """
+    if not r2_client:
+        return []
+    prefix = (course.get('r2_prefix') or '').strip()
+    if not prefix:
+        return []
+    if not prefix.endswith('/'):
+        prefix += '/'
+    try:
+        resp = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=500)
+    except Exception:
+        return []
+
+    import re
+    audios_by_ep = {}
+    audios_cur = db.audios.find({'course_id': course['id']}, {'_id': 0, 'id': 1, 'title': 1, 'episode_number': 1})
+    for a in await audios_cur.to_list(200):
+        if a.get('episode_number'):
+            audios_by_ep[int(a['episode_number'])] = a
+
+    out: List[dict] = []
+    for obj in resp.get('Contents', []):
+        key = obj['Key']
+        if key in exclude_keys:
+            continue
+        filename = key.split('/')[-1]
+        lower = filename.lower()
+        if filename.startswith('~$') or not filename:
+            continue
+        # Reject: audio + DOCX scripts + Contexte_*
+        if lower.endswith(('.m4a', '.mp3', '.wav', '.ogg', '.aac')):
+            continue
+        if lower.startswith('contexte_'):
+            continue
+        if lower.startswith('script-') or lower.startswith('script_') or '/script-' in key.lower():
+            continue
+        # Only emit visual/textual assets
+        if lower.endswith('.pdf'):
+            mime, asset_type = 'application/pdf', 'manuscript'
+        elif lower.endswith(('.jpg', '.jpeg')):
+            mime, asset_type = 'image/jpeg', 'image'
+        elif lower.endswith('.png'):
+            mime, asset_type = 'image/png', 'image'
+        else:
+            continue
+
+        # Try to bind to an episode if the filename mentions one
+        ep_num = None
+        m = re.search(r'(?:ep|episode)[\s_-]*(\d+)', lower)
+        if m:
+            try:
+                ep_num = int(m.group(1))
+            except ValueError:
+                ep_num = None
+
+        # Build a human label.
+        stem = filename.rsplit('.', 1)[0]
+        label = stem.replace('_', ' ').replace('-', ' ').strip()
+        # Drop boilerplate ("BEIC 11521297" id, weird dashes) and prepend prefix
+        if asset_type == 'manuscript':
+            label = f"Manuscrit — {label}"
+        elif asset_type == 'image':
+            label = label.capitalize() if label else filename
+
+        entry = {
+            'r2_key': key,
+            'type': asset_type,
+            'label': label,
+            'mime': mime,
+            'auto_detected': True,
+        }
+        if ep_num and ep_num in audios_by_ep:
+            entry.update({
+                'scope': 'episode',
+                'audio_id': audios_by_ep[ep_num]['id'],
+                'audio_title': audios_by_ep[ep_num].get('title'),
+                'episode_number': ep_num,
+            })
+        else:
+            entry['scope'] = 'course'
+        out.append(entry)
+    return out
 
 
 @api_router.post("/courses/{course_id}/resource-access-url")
@@ -6825,7 +6978,7 @@ async def get_course_resource_access_url(course_id: str, body: dict, request: Re
     r2_key = (body or {}).get('r2_key')
     if not r2_key or not isinstance(r2_key, str):
         raise HTTPException(400, "r2_key requis")
-    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'course_resources': 1})
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'course_resources': 1, 'r2_prefix': 1})
     found = None
     for r in (course.get('course_resources') or []) if course else []:
         if r.get('r2_key') == r2_key:
@@ -6840,6 +6993,23 @@ async def get_course_resource_access_url(course_id: str, body: dict, request: Re
             if r.get('r2_key') == r2_key:
                 found = r
                 break
+    if not found:
+        # Auto-detected file: not registered in DB but lives inside the course's
+        # R2 folder (manuscript PDF / image). Allow as long as the key is
+        # genuinely under that prefix → no privilege escalation.
+        prefix = (course.get('r2_prefix') or '').strip() if course else ''
+        if prefix and not prefix.endswith('/'):
+            prefix += '/'
+        if prefix and r2_key.startswith(prefix):
+            fn = r2_key.split('/')[-1].lower()
+            mime_guess = (
+                'application/pdf' if fn.endswith('.pdf') else
+                'image/jpeg' if fn.endswith(('.jpg', '.jpeg')) else
+                'image/png' if fn.endswith('.png') else
+                None
+            )
+            if mime_guess:
+                found = {'r2_key': r2_key, 'mime': mime_guess, 'label': r2_key.split('/')[-1]}
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
     mime = found.get('mime') or 'application/octet-stream'

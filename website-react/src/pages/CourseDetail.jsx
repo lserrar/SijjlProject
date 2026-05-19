@@ -16,6 +16,8 @@ const RES_TYPE_LABELS = {
   biblio: "Bibliographie",
   bibliographie: "Bibliographie",
   slides: "Slides",
+  manuscript: "Manuscrit",
+  image: "Image",
   document: "Document",
 }
 
@@ -23,8 +25,17 @@ function ResourceList({ resources, courseId, color }) {
   const navigate = useNavigate()
 
   function openResource(res) {
-    // Slides → protected PDF inline viewer ; other docs → blog-style article rendering.
-    if (res.type === 'slides') {
+    // Visual / scanned assets (PDF manuscripts, images) share the same
+    // protected viewer as slides (iframe for PDF, <img> for images).
+    // Everything else (DOCX scripts, glossaries, bibliographies) goes to the
+    // blog-style article rendering.
+    const mime = res.mime || ''
+    const isVisual = res.type === 'slides'
+      || res.type === 'manuscript'
+      || res.type === 'image'
+      || mime.startsWith('image/')
+      || mime === 'application/pdf'
+    if (isVisual) {
       navigate(`/cours/${courseId}/slides?key=${encodeURIComponent(res.r2_key)}`)
     } else {
       navigate(`/cours/${courseId}/ressource?key=${encodeURIComponent(res.r2_key)}`)
