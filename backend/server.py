@@ -832,6 +832,7 @@ class CourseUpdate(BaseModel):
     available_date: Optional[str] = None
     summary: Optional[str] = None
     r2_prefix: Optional[str] = None
+    co_scholar_ids: Optional[List[str]] = None  # co-intervenants — IDs of additional scholars displayed after the primary on catalogue cards
 
 # ─── Conference Models ─────────────────────────────────────────────────────────
 
@@ -5236,6 +5237,21 @@ async def seed_data():
             }},
         )
         v15h_summary['episodes_dated'] += ep_res.modified_count
+
+        # 6) cours-falsafa-persane — intervenant principal = Sajjad H. Rizvi
+        #    (legacy seed l'attribuait à tort à Meryem Sebti). On ne force que
+        #    si le scholar_id n'a pas déjà été corrigé.
+        persane_fix = await db.courses.update_one(
+            {'id': 'cours-falsafa-persane', 'scholar_id': {'$ne': 'sch-rizvi'}},
+            {'$set': {
+                'scholar_id': 'sch-rizvi',
+                'scholar_name': 'Sajjad H. Rizvi',
+                'co_scholar_ids': [],
+                'seed_locked': True,
+            }},
+        )
+        if persane_fix.modified_count:
+            v15h_summary['persane_scholar_fixed'] = persane_fix.modified_count
 
         logger.info(f"Migration v15h: cleanup Ibn Khaldūn & falsafa-grands — {v15h_summary}")
     except Exception as e:
