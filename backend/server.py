@@ -3642,39 +3642,44 @@ async def seed_data():
         r = await db.audios.update_many(query, {'$set': {'youtube_url': url}})
         yt_set += r.modified_count
     logger.info(f"Migration v4: youtube_url set on {yt_set} audio(s)")
-    
+
     # 7. Upsert Al-Kindī episodes 2 & 3 (video-only, audio not yet on R2)
-    al_kindi_episodes = [
-        {'episode_number': 1, 'youtube_url': 'https://youtu.be/LDeseoNGAPQ', 'title': 'Al-Kindī — Épisode 1'},
-        {'episode_number': 2, 'youtube_url': 'https://youtu.be/YK7LJRJheDg', 'title': 'Al-Kindī — Épisode 2'},
-        {'episode_number': 3, 'youtube_url': 'https://www.youtube.com/watch?v=hBzgQV2XgrE', 'title': 'Al-Kindī — Épisode 3'},
-    ]
-    for ep in al_kindi_episodes:
-        audio_id = f"aud_cours-falsafa-grands-al-kindi-ep{ep['episode_number']:02d}"
-        # title/description/scholar_name are admin-editable: only seed at insert time.
-        await db.audios.update_one(
-            {'id': audio_id},
-            {
-                '$set': {
-                    'id': audio_id,
-                    'course_id': 'cours-falsafa-grands',
-                    'module_id': 'cours-falsafa-grands-mod-1',
-                    'scholar_id': 'sch-006',
-                    'episode_number': ep['episode_number'],
-                    'duration': 0,
-                    'youtube_url': ep['youtube_url'],
-                    'type': 'episode',
-                    'is_active': True,
+    # ⚠️ Legacy: these audios are tied to `cours-falsafa-grands` (umbrella course
+    # supprimé par Migration v15h). On skippe entièrement ce bloc si le cours
+    # parent n'existe plus → évite la résurrection des audios à chaque boot.
+    falsafa_grands_alive = await db.courses.find_one({'id': 'cours-falsafa-grands'}, {'_id': 1})
+    if falsafa_grands_alive:
+        al_kindi_episodes = [
+            {'episode_number': 1, 'youtube_url': 'https://youtu.be/LDeseoNGAPQ', 'title': 'Al-Kindī — Épisode 1'},
+            {'episode_number': 2, 'youtube_url': 'https://youtu.be/YK7LJRJheDg', 'title': 'Al-Kindī — Épisode 2'},
+            {'episode_number': 3, 'youtube_url': 'https://www.youtube.com/watch?v=hBzgQV2XgrE', 'title': 'Al-Kindī — Épisode 3'},
+        ]
+        for ep in al_kindi_episodes:
+            audio_id = f"aud_cours-falsafa-grands-al-kindi-ep{ep['episode_number']:02d}"
+            # title/description/scholar_name are admin-editable: only seed at insert time.
+            await db.audios.update_one(
+                {'id': audio_id},
+                {
+                    '$set': {
+                        'id': audio_id,
+                        'course_id': 'cours-falsafa-grands',
+                        'module_id': 'cours-falsafa-grands-mod-1',
+                        'scholar_id': 'sch-006',
+                        'episode_number': ep['episode_number'],
+                        'duration': 0,
+                        'youtube_url': ep['youtube_url'],
+                        'type': 'episode',
+                        'is_active': True,
+                    },
+                    '$setOnInsert': {
+                        'title': ep['title'],
+                        'description': '',
+                        'scholar_name': 'Prof. Meryem Sebti',
+                    },
                 },
-                '$setOnInsert': {
-                    'title': ep['title'],
-                    'description': '',
-                    'scholar_name': 'Prof. Meryem Sebti',
-                },
-            },
-            upsert=True,
-        )
-    logger.info("Migration v4: Al-Kindī episodes 1-3 upserted with YouTube URLs")
+                upsert=True,
+            )
+        logger.info("Migration v4: Al-Kindī episodes 1-3 upserted with YouTube URLs")
     
     # 8. Set youtube_url on Histoire de l'art islamique épisode 1
     await db.audios.update_one(
@@ -3781,46 +3786,53 @@ async def seed_data():
     # Episodes are created without youtube_url; URLs will be added later via Admin Panel.
     # The episodes will appear in the catalogue with their count; playback will display
     # a "Vidéo bientôt disponible" placeholder until URLs are filled in.
-    PLACEHOLDER_EPISODES = [
-        ('cours-falsafa-grands-mod-2', 'al-farabi', 'Al-Fārābī', 5),
-        ('cours-falsafa-grands-mod-3', 'avicenne', 'Avicenne', 5),
-        ('cours-falsafa-grands-mod-ghazali', 'al-ghazali', 'Al-Ghazālī', 1),
-    ]
-    placeholder_count = 0
-    for module_id, slug, label, n_episodes in PLACEHOLDER_EPISODES:
-        for ep in range(1, n_episodes + 1):
-            audio_id = f"aud_cours-falsafa-grands-{slug}-ep{ep:02d}"
-            existing = await db.audios.find_one({'id': audio_id})
-            if existing:
-                # Ensure existing placeholders are active (idempotent fix for v8 first run)
-                if existing.get('is_active') is not True:
-                    await db.audios.update_one({'id': audio_id}, {'$set': {'is_active': True}})
-                continue
-            await db.audios.insert_one({
-                'id': audio_id,
-                'course_id': 'cours-falsafa-grands',
-                'module_id': module_id,
-                'title': f"{label} — Épisode {ep}",
-                'episode_number': ep,
-                'duration_seconds': 0,
-                'youtube_url': None,
-                'audio_url': None,
-                'file_key': None,
-                'is_placeholder': True,
-                'is_active': True,
-                'created_at': datetime.now(timezone.utc),
-            })
-            placeholder_count += 1
-    if placeholder_count > 0:
-        logger.info(f"Migration v8: {placeholder_count} placeholder episode(s) created (URLs pending)")
-    # Re-link any pre-existing Avicenne ep1 that was created before module_id was set
-    legacy_avicenne_ep1 = await db.audios.find_one({'id': 'aud_cours-falsafa-grands-avicenne-ep01'})
-    if legacy_avicenne_ep1 and legacy_avicenne_ep1.get('module_id') != 'cours-falsafa-grands-mod-3':
-        await db.audios.update_one(
-            {'id': 'aud_cours-falsafa-grands-avicenne-ep01'},
-            {'$set': {'module_id': 'cours-falsafa-grands-mod-3'}}
-        )
-        logger.info("Migration v8: re-linked aud_cours-falsafa-grands-avicenne-ep01 to mod-3")
+    #
+    # ⚠️ Legacy: these placeholders are anchored on `cours-falsafa-grands` (the
+    # umbrella course that Migration v15h deletes). Once that course is gone,
+    # skip this whole block — otherwise every reboot re-creates 11 ghost audios
+    # that v15h has to purge again. Causes log noise and pointless DB churn.
+    falsafa_grands_alive_v8 = await db.courses.find_one({'id': 'cours-falsafa-grands'}, {'_id': 1})
+    if falsafa_grands_alive_v8:
+        PLACEHOLDER_EPISODES = [
+            ('cours-falsafa-grands-mod-2', 'al-farabi', 'Al-Fārābī', 5),
+            ('cours-falsafa-grands-mod-3', 'avicenne', 'Avicenne', 5),
+            ('cours-falsafa-grands-mod-ghazali', 'al-ghazali', 'Al-Ghazālī', 1),
+        ]
+        placeholder_count = 0
+        for module_id, slug, label, n_episodes in PLACEHOLDER_EPISODES:
+            for ep in range(1, n_episodes + 1):
+                audio_id = f"aud_cours-falsafa-grands-{slug}-ep{ep:02d}"
+                existing = await db.audios.find_one({'id': audio_id})
+                if existing:
+                    # Ensure existing placeholders are active (idempotent fix for v8 first run)
+                    if existing.get('is_active') is not True:
+                        await db.audios.update_one({'id': audio_id}, {'$set': {'is_active': True}})
+                    continue
+                await db.audios.insert_one({
+                    'id': audio_id,
+                    'course_id': 'cours-falsafa-grands',
+                    'module_id': module_id,
+                    'title': f"{label} — Épisode {ep}",
+                    'episode_number': ep,
+                    'duration_seconds': 0,
+                    'youtube_url': None,
+                    'audio_url': None,
+                    'file_key': None,
+                    'is_placeholder': True,
+                    'is_active': True,
+                    'created_at': datetime.now(timezone.utc),
+                })
+                placeholder_count += 1
+        if placeholder_count > 0:
+            logger.info(f"Migration v8: {placeholder_count} placeholder episode(s) created (URLs pending)")
+        # Re-link any pre-existing Avicenne ep1 that was created before module_id was set
+        legacy_avicenne_ep1 = await db.audios.find_one({'id': 'aud_cours-falsafa-grands-avicenne-ep01'})
+        if legacy_avicenne_ep1 and legacy_avicenne_ep1.get('module_id') != 'cours-falsafa-grands-mod-3':
+            await db.audios.update_one(
+                {'id': 'aud_cours-falsafa-grands-avicenne-ep01'},
+                {'$set': {'module_id': 'cours-falsafa-grands-mod-3'}}
+            )
+            logger.info("Migration v8: re-linked aud_cours-falsafa-grands-avicenne-ep01 to mod-3")
     # ─── End Migration v8 ──────────────────────────────────────────────────
 
     # ─── Migration v9: Excel update Mai 2026 v2 ─────────────────────────────
@@ -5136,6 +5148,99 @@ async def seed_data():
     except Exception as e:
         logger.warning(f"Migration v15g failed: {e}", exc_info=True)
     # ─── End Migration v15g ────────────────────────────────────────────────
+
+
+    # ─── Migration v15h — Cleanup doublons Ibn Khaldūn + falsafa-grands ─────
+    # Applique, de façon idempotente, les corrections manuelles validées par
+    # l'utilisatrice sur la preview (fév. 2026) :
+    #
+    #   1. Supprime `cours-inclassables` (doublon obsolète + 5 modules orphelins)
+    #   2. Supprime `cours-falsafa-grands` (« Cours 2 : Falsafa — Les grands
+    #      philosophes ») + ses 7 audios sans fichier R2 + ses 11 modules
+    #   3. Supprime `cours-falsafa-persan` (variante orthographique singulier
+    #      sans « e » — le bon ID est `cours-falsafa-persane`)
+    #   4. Renomme `cours-falsafa-inclassables` → « Les inclassables » (sans
+    #      le suffixe parasite « (Ibn Khaldūn) ») + scholar Cédric Molino-
+    #      Mochetto + seed_locked=True. Ne touche pas si admin a déjà reverrouillé.
+    #   5. Met les 2 épisodes « La pensée d'Ibn Khaldūn — Épisode 1/2 » en
+    #      `published_at='2026-07'` + seed_locked=True (juillet 2026).
+    #
+    # Idempotent : chaque action peut être ré-exécutée sans effet de bord.
+    try:
+        v15h_summary = {'deleted_courses': 0, 'deleted_audios': 0, 'deleted_modules': 0,
+                        'renamed': 0, 'episodes_dated': 0}
+        # 1) cours-inclassables — doublon obsolète
+        a = await db.audios.delete_many({'course_id': 'cours-inclassables'})
+        m = await db.modules.delete_many({'course_id': 'cours-inclassables'})
+        c = await db.courses.delete_one({'id': 'cours-inclassables'})
+        v15h_summary['deleted_courses'] += c.deleted_count
+        v15h_summary['deleted_audios'] += a.deleted_count
+        v15h_summary['deleted_modules'] += m.deleted_count
+
+        # 2) cours-falsafa-grands — umbrella course remplacé par cours dédiés
+        a = await db.audios.delete_many({'course_id': 'cours-falsafa-grands'})
+        m = await db.modules.delete_many({'course_id': 'cours-falsafa-grands'})
+        c = await db.courses.delete_one({'id': 'cours-falsafa-grands'})
+        v15h_summary['deleted_courses'] += c.deleted_count
+        v15h_summary['deleted_audios'] += a.deleted_count
+        v15h_summary['deleted_modules'] += m.deleted_count
+
+        # 3) cours-falsafa-persan — variante orthographique (le bon est ...persane)
+        a = await db.audios.delete_many({'course_id': 'cours-falsafa-persan'})
+        m = await db.modules.delete_many({'course_id': 'cours-falsafa-persan'})
+        c = await db.courses.delete_one({'id': 'cours-falsafa-persan'})
+        v15h_summary['deleted_courses'] += c.deleted_count
+        v15h_summary['deleted_audios'] += a.deleted_count
+        v15h_summary['deleted_modules'] += m.deleted_count
+
+        # 4) Renommer cours-falsafa-inclassables. On NE force que si pas déjà
+        # renommé (le titre legacy contient « (Ibn Khaldūn) ») → reste
+        # idempotent et respectueux d'éventuelles éditions admin futures.
+        existing = await db.courses.find_one(
+            {'id': 'cours-falsafa-inclassables'},
+            {'_id': 0, 'title': 1, 'seed_locked': 1}
+        )
+        if existing and '(Ibn Khaldūn)' in (existing.get('title') or ''):
+            rr = await db.courses.update_one(
+                {'id': 'cours-falsafa-inclassables'},
+                {'$set': {
+                    'title': 'Les inclassables',
+                    'summary': "La pensée d'Ibn Khaldūn entre histoire, philosophie et sociologie.",
+                    'description': "Cédric Molino-Mochetto, agrégé et docteur en philosophie, spécialiste de philosophie arabe prémoderne, consacre deux épisodes à Ibn Khaldūn — figure inclassable entre histoire, philosophie et sociologie.",
+                    'scholar_id': 'sch-molino',  # Cédric Molino Mochetto (overrides legacy sch-sebti)
+                    'scholar_name': 'Cédric Molino-Mochetto',
+                    'co_scholar_ids': [],
+                    'seed_locked': True,
+                }},
+            )
+            v15h_summary['renamed'] += rr.modified_count
+        # Always make sure the scholar pointer is correct (defensive — even if title
+        # was already cleaned). The catalogue's _scholar_label reads scholar_id first.
+        await db.courses.update_one(
+            {'id': 'cours-falsafa-inclassables', 'scholar_id': {'$ne': 'sch-molino'}},
+            {'$set': {'scholar_id': 'sch-molino', 'scholar_name': 'Cédric Molino-Mochetto', 'co_scholar_ids': []}},
+        )
+
+        # 5) Épisodes de cours-falsafa-inclassables → juillet 2026 + verrou
+        # On évite de re-écraser un `published_at` déjà différent de 2026-05
+        # (le default seedé). Si l'admin a déjà changé en autre chose, on
+        # respecte cette valeur.
+        ep_res = await db.audios.update_many(
+            {'course_id': 'cours-falsafa-inclassables',
+             '$or': [{'published_at': '2026-05'}, {'published_at': None}, {'published_at': {'$exists': False}}]},
+            {'$set': {
+                'published_at': '2026-07',
+                'intervenant': 'Cédric Molino-Mochetto',
+                'scholar_name': 'Cédric Molino-Mochetto',
+                'seed_locked': True,
+            }},
+        )
+        v15h_summary['episodes_dated'] += ep_res.modified_count
+
+        logger.info(f"Migration v15h: cleanup Ibn Khaldūn & falsafa-grands — {v15h_summary}")
+    except Exception as e:
+        logger.warning(f"Migration v15h failed: {e}", exc_info=True)
+    # ─── End Migration v15h ────────────────────────────────────────────────
 
 
 
