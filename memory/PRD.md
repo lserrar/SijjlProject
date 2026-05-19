@@ -1,6 +1,6 @@
 # Sijill Project — PRD
 
-> Dernière mise à jour : **18 mai 2026** — Page Abonnements (Tarification) + Fix titres d'épisodes écrasés au reboot
+> Dernière mise à jour : **19 mai 2026** — Stripe Phase B (subscriptions avec engagement 12 mois) + toggle Mensuel/Annuel sur la page Tarification
 
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :
@@ -41,6 +41,18 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - Docker/Docker Hub
 
 ## Ce qui fonctionne
+- ✅ **Stripe Phase B — Subscriptions avec engagement 12 mois** (Fév 2026 — handoff fork) :
+  - **Module dédié** `backend/utils/stripe_subscriptions.py` (~520 lignes) : provisioning, checkout, webhook handlers, cancel policy.
+  - **Auto-provisioning au boot** (`provision_catalog`) : crée idempotemment 2 Products Stripe (`sijill_founder`, `sijill_standard`) + 4 Prices via `lookup_key` (`sijill_founder_monthly_v1`, `sijill_founder_yearly_v1`, `sijill_standard_monthly_v1`, `sijill_standard_yearly_v1`). Plans cachés dans `db.plans` avec `stripe_price_id`. **Validé LIVE mode** : produits + prix créés dans le compte Stripe de production au premier boot, retrouvés (pas recréés) aux suivants.
+  - **Nouveau endpoint** `POST /api/subscription/checkout` : `mode=subscription` + `client_reference_id` + `subscription_data.metadata` (user_id, plan_id, commitment_months=12). Crée/réutilise un `stripe.Customer` (cache dans `users.stripe_customer_id`). Renvoie URL `cs_live_*` valide.
+  - **Webhook signé** `POST /api/stripe/webhook` : vérif signature via `stripe.Webhook.construct_event` + `STRIPE_WEBHOOK_SECRET`. Dispatch sur `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.created/updated/deleted`. Idempotent : `upsert` sur `stripe_subscription_id`, `$inc` du `paid_invoices_count` à chaque `invoice.paid`.
+  - **Cancel strict** `POST /api/subscription/cancel` : refuse HTTP 400 (`commitment_not_met`) si `paid_invoices_count < commitment_months` ET plan mensuel. Plans annuels (paiement unique upfront) exemptés. Si OK → `stripe.Subscription.modify(cancel_at_period_end=True)`.
+  - **Status endpoint** `GET /api/subscription/status` : retourne l'état complet (paid_invoices_count, commitment_min_end, current_period_end…) pour affichage UI.
+  - **Frontend** `Tarification.jsx` : toggle Mensuel / Annuel (data-testid `billing-toggle-monthly` / `billing-toggle-yearly`). Prix dynamiques : Standard 12€/mois ou 120€/an, Fondateur 7€/mois ou 84€/an, engagement 12 mois affiché clairement. Appelle `/subscription/checkout` (Phase B) au lieu de `/checkout/create` (legacy).
+  - **Architecture carte cadeau rendue générique** : `/api/gift-cards/purchase` cherche d'abord dans `GIFT_PLAN_PRICES` (back-compat), puis fallback sur `db.plans` → tout plan créé via admin ou migration devient automatiquement giftable sans toucher au code.
+  - **Coexistence** : le legacy `/api/checkout/create` + `/api/webhook/stripe` (mode=payment one-shot via `emergentintegrations`) reste actif pour les cartes cadeaux ; le nouveau flux subscription est sur `/api/subscription/*` + `/api/stripe/webhook`.
+  - ⏳ **À FOURNIR PAR L'UTILISATEUR** : `STRIPE_WEBHOOK_SECRET=whsec_...` à ajouter dans `backend/.env`. Sans cette clé, le webhook retourne 503. Endpoint à configurer dans Stripe Dashboard LIVE : `https://<domaine>/api/stripe/webhook` avec events `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.created/updated/deleted`.
+
 - ✅ **Migration v15e — Alignement Excel Catalogue Mai 2026** (Mai 2026) :
   - Source : `Sijill_Catalogue_Lancement_Mai2026_Emergent.xlsx` (sheet 1 lancement + sheet 2 vision cible)
   - Réutilise `coming_soon` + `available_date` existants, ajoute nouveau champ `recruiting` (bool)

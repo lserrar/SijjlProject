@@ -16,6 +16,10 @@ from botocore.exceptions import ClientError
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 from fastapi.staticfiles import StaticFiles
 
+# Stripe subscriptions (Phase B — 12-month commitment, mode=subscription)
+import stripe as stripe_sdk
+from utils import stripe_subscriptions as stripe_subs
+
 # Email service for notifications
 from utils.email_service import (
     is_email_configured,
@@ -10793,12 +10797,29 @@ from utils.gift_cards import (
 
 @api_router.post("/gift-cards/purchase")
 async def gift_card_purchase(body: GiftCardPurchaseRequest, request: Request):
-    """Create a pending gift card + Stripe Checkout session."""
+    """Create a pending gift card + Stripe Checkout session.
+
+    Generic plan resolution: tries the hardcoded `GIFT_PLAN_PRICES` dict first
+    (back-compat for `founder_monthly` / `founder_yearly`), then falls back to
+    `db.plans` so any plan added later (admin or migration) becomes giftable
+    automatically without code change.
+    """
     if not STRIPE_API_KEY:
         raise HTTPException(500, "Stripe non configuré")
-    if body.plan_id not in GIFT_PLAN_PRICES:
-        raise HTTPException(400, "Plan inconnu")
-    plan = GIFT_PLAN_PRICES[body.plan_id]
+
+    plan = GIFT_PLAN_PRICES.get(body.plan_id)
+    if not plan:
+        # Generic fallback: look up the plan in db.plans
+        db_plan = await db.plans.find_one({'plan_id': body.plan_id, 'is_active': True}, {'_id': 0})
+        if not db_plan:
+            raise HTTPException(400, f"Plan inconnu: {body.plan_id}")
+        plan = {
+            'amount': float(db_plan.get('price', 0)),
+            'duration_days': int(db_plan.get('duration_days', 365)),
+            'label': db_plan.get('name', body.plan_id),
+        }
+        if plan['amount'] <= 0:
+            raise HTTPException(400, f"Plan {body.plan_id} sans tarif valide")
     # Validate deliver_at
     deliver_at = None
     if body.deliver_at:
@@ -11276,6 +11297,125 @@ async def stripe_webhook(request: Request):
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         return {'received': True, 'error': str(e)}
+
+# ─── Stripe Phase B — Subscriptions (12-month commitment) ─────────────────────
+# Uses the official stripe SDK with `mode=subscription` and webhook signature
+# verification via STRIPE_WEBHOOK_SECRET. Coexists with the legacy one-shot
+# `/api/checkout/create` flow above (still used by gift cards).
+
+@api_router.post("/subscription/checkout")
+async def subscription_checkout(body: CheckoutRequest, request: Request):
+    """Create a Stripe subscription Checkout session for a recurring plan.
+
+    Required: body.plan_id ∈ {founder_monthly, founder_yearly, standard_monthly, standard_yearly}.
+    Enforces a 12-month minimum commitment on monthly plans (yearly is upfront).
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe non configuré")
+    if not body.plan_id:
+        raise HTTPException(400, "plan_id requis")
+    if body.plan_id not in stripe_subs.SUBSCRIPTION_PLANS:
+        raise HTTPException(404, f"Plan {body.plan_id} inconnu (attendu: {list(stripe_subs.SUBSCRIPTION_PLANS.keys())})")
+
+    origin = (body.origin_url or '').rstrip('/') or str(request.base_url).rstrip('/')
+    try:
+        result = await stripe_subs.create_subscription_checkout(
+            db, user=user, plan_id=body.plan_id, origin_url=origin,
+        )
+        return result
+    except Exception as e:
+        logger.exception(f"subscription_checkout error: {e}")
+        raise HTTPException(500, f"Erreur Stripe: {str(e)}")
+
+
+@api_router.post("/stripe/webhook")
+async def stripe_subscription_webhook(request: Request):
+    """Verified Stripe webhook for Phase B subscription events.
+
+    Validates the `Stripe-Signature` header against STRIPE_WEBHOOK_SECRET.
+    Dispatches to handlers in utils.stripe_subscriptions.
+    """
+    payload = await request.body()
+    signature = request.headers.get('Stripe-Signature', '')
+    secret = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+    if not secret:
+        logger.error("STRIPE_WEBHOOK_SECRET not configured")
+        raise HTTPException(503, "Webhook secret non configuré")
+
+    try:
+        event = await stripe_subs.construct_event(payload, signature)
+    except ValueError as e:
+        logger.warning(f"Stripe webhook invalid payload: {e}")
+        raise HTTPException(400, "Invalid payload")
+    except stripe_sdk.error.SignatureVerificationError as e:
+        logger.warning(f"Stripe webhook signature mismatch: {e}")
+        raise HTTPException(400, "Invalid signature")
+    except Exception as e:
+        logger.exception(f"Stripe webhook verification error: {e}")
+        raise HTTPException(400, "Webhook verification failed")
+
+    result = await stripe_subs.handle_event(db, event)
+    return {'received': True, **result}
+
+
+@api_router.post("/subscription/cancel")
+async def subscription_cancel(request: Request):
+    """Cancel the user's active subscription at period end.
+
+    Strict policy: HTTP 400 if `paid_invoices_count < commitment_months`
+    (12 by default) for monthly plans. Yearly upfront subscribers are
+    exempt (their first invoice covers the full commitment).
+    """
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Stripe non configuré")
+
+    try:
+        result = await stripe_subs.cancel_subscription_with_policy(db, user_id=user['user_id'])
+        return {'ok': True, **result}
+    except stripe_subs.CommitmentNotMet as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                'error': 'commitment_not_met',
+                'message': str(exc),
+                'paid_invoices_count': exc.paid,
+                'required': exc.required,
+                'commitment_min_end': exc.commitment_min_end.isoformat() if exc.commitment_min_end else None,
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
+    except Exception as exc:
+        logger.exception(f"subscription_cancel error: {exc}")
+        raise HTTPException(500, f"Erreur Stripe: {str(exc)}")
+
+
+@api_router.get("/subscription/status")
+async def subscription_status(request: Request):
+    """Return the user's current Stripe subscription state (commitment progress)."""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "Authentification requise")
+    sub = await db.subscriptions.find_one(
+        {'user_id': user['user_id']},
+        {'_id': 0},
+        sort=[('created_at', -1)],
+    )
+    if not sub:
+        return {'has_subscription': False}
+    # Serialise datetimes
+    for k in ('started_at', 'current_period_end', 'commitment_min_end', 'canceled_at',
+              'cancel_requested_at', 'last_payment_failed_at', 'created_at', 'updated_at'):
+        v = sub.get(k)
+        if isinstance(v, datetime):
+            sub[k] = v.isoformat()
+    return {'has_subscription': True, 'subscription': sub}
 
 # ─── Admin: Plans CRUD ────────────────────────────────────────────────────────
 
@@ -11966,6 +12106,19 @@ async def startup():
     # Check for trial expirations on startup (non-blocking)
     import asyncio
     asyncio.create_task(check_and_send_trial_expiration_emails())
+
+    # Stripe Phase B — provision subscription catalog (idempotent via lookup_key).
+    # Runs in background to avoid blocking startup if Stripe is slow / unreachable.
+    async def _provision_stripe():
+        try:
+            if STRIPE_API_KEY and STRIPE_API_KEY.startswith('sk_'):
+                summary = await stripe_subs.provision_catalog(db)
+                logger.info(f"Stripe Phase B catalog ready: {summary}")
+            else:
+                logger.info("Stripe Phase B: STRIPE_API_KEY missing → catalog provisioning skipped")
+        except Exception as exc:
+            logger.exception(f"Stripe Phase B provisioning failed: {exc}")
+    asyncio.create_task(_provision_stripe())
 
     # Gift cards scheduled delivery — check every hour
     async def _gift_delivery_loop():

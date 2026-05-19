@@ -6,26 +6,30 @@ import { apiFetch } from '../api'
 /**
  * Page Tarification — 3 cartes : Standard / Fondateur / Cadeau.
  *
- * Phase A (Mai 2026) — paiement one-shot annuel via Stripe Checkout (mode payment).
- * Le mensuel-sur-12-mois (vraies subscriptions Stripe avec engagement) arrive en Phase B.
+ * Phase B (Fév 2026) — vraies subscriptions Stripe avec engagement 12 mois.
+ * - Choix mensuel (12 prélèvements) ou annuel (paiement unique).
+ * - Engagement strict 12 mois : annulation refusée HTTP 400 si < 12 mensualités.
+ * - Cartes cadeaux toujours en one-shot via /cadeau.
  */
 export default function Tarification() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [loadingPlan, setLoadingPlan] = useState(null)
+  const [billing, setBilling] = useState('yearly') // 'monthly' | 'yearly'
   const [error, setError] = useState(null)
 
   useEffect(() => { document.title = 'Abonnements · Sijill Project' }, [])
 
-  async function subscribe(planId) {
+  async function subscribe(planFamily) {
     setError(null)
     if (!user) {
       navigate('/connexion?next=/tarification')
       return
     }
+    const planId = `${planFamily}_${billing}` // founder_monthly | founder_yearly | standard_monthly | standard_yearly
     setLoadingPlan(planId)
     try {
-      const res = await apiFetch('/checkout/create', {
+      const res = await apiFetch('/subscription/checkout', {
         method: 'POST',
         body: JSON.stringify({
           plan_id: planId,
@@ -41,19 +45,62 @@ export default function Tarification() {
     }
   }
 
+  // Prix dynamiques selon le cycle de facturation
+  const prices = {
+    standard: billing === 'yearly'
+      ? { price: '120 €', period: 'par an', equivalent: 'soit 10 €/mois · engagement 12 mois', planId: 'standard_yearly' }
+      : { price: '12 €',  period: 'par mois', equivalent: 'engagement 12 mois (144 € sur l\'année)', planId: 'standard_monthly' },
+    founder: billing === 'yearly'
+      ? { price: '84 €',  period: 'par an', equivalent: 'soit 7 €/mois · engagement 12 mois', planId: 'founder_yearly' }
+      : { price: '7 €',   period: 'par mois', equivalent: 'engagement 12 mois (84 € sur l\'année)', planId: 'founder_monthly' },
+  }
+
   return (
     <section style={{ maxWidth: 1200, margin: '0 auto', padding: '70px 24px 100px' }} data-testid="tarification-page">
-      <div style={{ textAlign: 'center', marginBottom: 56 }}>
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <p style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--brand-secondary)' }}>
-          Abonnements · 12 mois
+          Abonnements · engagement 12 mois
         </p>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(38px, 5vw, 56px)', margin: '12px 0 18px', lineHeight: 1.1 }}>
           Choisissez votre formule
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.6, maxWidth: 680, margin: '0 auto' }}>
           Accès illimité à l'intégralité du catalogue Sijill — vidéos, podcasts, bibliographies, glossaires et frises chronologiques.
-          Tous nos abonnements sont annuels, sans tacite reconduction.
+          Tous nos abonnements engagent sur 12 mois, prélevés mensuellement ou réglés en une fois.
         </p>
+      </div>
+
+      {/* Toggle Mensuel / Annuel */}
+      <div data-testid="billing-toggle" style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
+        <div style={{
+          display: 'inline-flex', background: 'rgba(255,255,255,0.04)',
+          border: '1px solid var(--border-subtle)', borderRadius: 999, padding: 4,
+        }}>
+          <button
+            type="button"
+            data-testid="billing-toggle-monthly"
+            onClick={() => setBilling('monthly')}
+            style={{
+              background: billing === 'monthly' ? 'var(--brand-secondary)' : 'transparent',
+              color: billing === 'monthly' ? '#0d0c0a' : 'var(--text-muted)',
+              border: 'none', padding: '10px 22px', borderRadius: 999,
+              fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700,
+              cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
+            }}
+          >Mensuel · 12 mois</button>
+          <button
+            type="button"
+            data-testid="billing-toggle-yearly"
+            onClick={() => setBilling('yearly')}
+            style={{
+              background: billing === 'yearly' ? 'var(--brand-secondary)' : 'transparent',
+              color: billing === 'yearly' ? '#0d0c0a' : 'var(--text-muted)',
+              border: 'none', padding: '10px 22px', borderRadius: 999,
+              fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700,
+              cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
+            }}
+          >Annuel · paiement unique</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 24, alignItems: 'stretch', paddingTop: 18 }}>
@@ -62,9 +109,9 @@ export default function Tarification() {
           testid="plan-standard"
           name="Standard"
           tagline="Accès complet"
-          price="120 €"
-          period="par an"
-          equivalent="soit 10 €/mois"
+          price={prices.standard.price}
+          period={prices.standard.period}
+          equivalent={prices.standard.equivalent}
           highlight={false}
           features={[
             'Accès illimité aux 22 cours du catalogue Mai 2026',
@@ -74,8 +121,8 @@ export default function Tarification() {
             'Accès à tous les nouveaux cours déployés pendant 12 mois',
           ]}
           ctaLabel="S'abonner Standard"
-          ctaLoading={loadingPlan === 'standard_annuel'}
-          onCta={() => subscribe('standard_annuel')}
+          ctaLoading={loadingPlan === prices.standard.planId}
+          onCta={() => subscribe('standard')}
         />
 
         {/* ──────────── FONDATEUR (mis en avant) ──────────── */}
@@ -83,9 +130,9 @@ export default function Tarification() {
           testid="plan-fondateur"
           name="Fondateur"
           tagline="200 places uniquement · Offre de lancement"
-          price="84 €"
-          period="par an"
-          equivalent="soit 7 €/mois"
+          price={prices.founder.price}
+          period={prices.founder.period}
+          equivalent={prices.founder.equivalent}
           highlight={true}
           badge="Le plus choisi"
           features={[
@@ -97,8 +144,8 @@ export default function Tarification() {
             'Newsletter trimestrielle de Sijill Project',
           ]}
           ctaLabel="Devenir Fondateur"
-          ctaLoading={loadingPlan === 'fondateur_annuel'}
-          onCta={() => subscribe('fondateur_annuel')}
+          ctaLoading={loadingPlan === prices.founder.planId}
+          onCta={() => subscribe('founder')}
         />
 
         {/* ──────────── CADEAU ──────────── */}
