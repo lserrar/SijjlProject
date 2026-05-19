@@ -19,13 +19,36 @@ body {
   font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
-  font-size: 18px;
-  line-height: 1.7;
+  font-size: 19px;
+  line-height: 1.8;
   -webkit-font-smoothing: antialiased;
 }
 
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: var(--font-body); }
+
+/* ─── Uniformisation typographique « confort blog » ────────────────────────
+   Le blog (`.ba-sec-body p`) est notre référence de lecture : EB Garamond
+   18-19px / line-height 1.8. On bumpe le reste du site (descriptions, paragraphes
+   de contenu, listes de features) pour avoir la même densité agréable.
+   On NE touche PAS aux labels uppercase, badges, boutons CTA — ils restent à
+   leur taille définie (lisibilité = letterspacing + uppercase).
+*/
+p, li {
+  font-size: 1rem; /* hérite de body = 19px */
+  line-height: 1.8;
+}
+/* Cartes catalogue / cursus / home : descriptions */
+.section-card-desc,
+.catalogue-card-desc,
+.cursus-card-desc,
+.course-detail-desc,
+.course-detail-lead,
+.home-feature-desc,
+.home-section-body {
+  font-size: 18px;
+  line-height: 1.7;
+}
 
 .container {
   max-width: 1200px;
