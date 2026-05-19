@@ -1414,13 +1414,17 @@ async def get_catalogue():
     ).sort('order', 1).to_list(1000)
     audios = await db.audios.find(
         {'course_id': {'$in': course_ids}},
-        {'_id': 0, 'course_id': 1, 'module_id': 1}
+        {'_id': 0, 'course_id': 1, 'module_id': 1, 'published_at': 1, 'available_date': 1}
     ).to_list(3000)
     mods_by_course: dict = {}
     for m in modules:
         mods_by_course.setdefault(m['course_id'], []).append(m)
     audios_per_module: dict = {}
     audios_per_course_unassigned: dict = {}
+    # Episode-level date aggregation: collect every `published_at` / `available_date`
+    # set on at least one episode of the course. Used downstream to compute the
+    # effective `available_date` displayed on the catalogue card.
+    ep_dates_per_course: dict = {}
     for a in audios:
         cid = a.get('course_id')
         mid = a.get('module_id')
@@ -1428,6 +1432,63 @@ async def get_catalogue():
             audios_per_module[mid] = audios_per_module.get(mid, 0) + 1
         else:
             audios_per_course_unassigned[cid] = audios_per_course_unassigned.get(cid, 0) + 1
+        # Prefer explicit `available_date` (free-form, ex. "juillet 2026"),
+        # fall back to `published_at` (YYYY-MM normalised below).
+        d = (a.get('available_date') or a.get('published_at') or '').strip()
+        if d:
+            ep_dates_per_course.setdefault(cid, []).append(d)
+
+    # ─── Helpers to convert YYYY-MM → "mois YYYY" and compute effective date ──
+    _MONTHS_FR = {
+        '01': 'janvier', '02': 'février', '03': 'mars', '04': 'avril',
+        '05': 'mai', '06': 'juin', '07': 'juillet', '08': 'août',
+        '09': 'septembre', '10': 'octobre', '11': 'novembre', '12': 'décembre',
+    }
+
+    def _normalise_episode_date(raw: str) -> str:
+        """`2026-07` → `juillet 2026`. Other formats passed through unchanged."""
+        if not raw:
+            return ''
+        s = raw.strip()
+        # ISO-ish: YYYY-MM or YYYY-MM-DD
+        if len(s) >= 7 and s[4] == '-' and s[5:7] in _MONTHS_FR:
+            return f"{_MONTHS_FR[s[5:7]]} {s[:4]}"
+        return s
+
+    def _effective_available_date(course_doc, episode_dates):
+        """Return the date shown on the catalogue card.
+
+        Priority:
+        1. Earliest episode-level `published_at` / `available_date` if any episode
+           has one (this lets the user edit dates per-episode in the admin).
+        2. Course-level `available_date` field (legacy fallback).
+
+        When multiple distinct dates exist, we return a range
+        `"<earliest> → <latest>"` sorted CHRONOLOGICALLY when the raw value is
+        in ISO format (`YYYY-MM`); otherwise we fall back to a single date
+        (the first non-empty) to avoid showing a confusing alphabetic range
+        on free-form labels like "juillet 2026" vs "mai 2026".
+        """
+        # Build (sort_key, display) pairs; sort_key keeps ISO ordering when possible.
+        pairs = []
+        seen_display = set()
+        for d in (episode_dates or []):
+            if not d:
+                continue
+            raw = d.strip()
+            display = _normalise_episode_date(raw)
+            if display in seen_display:
+                continue
+            seen_display.add(display)
+            # ISO YYYY-MM → use raw for chronological sort; else use display
+            sort_key = raw if (len(raw) >= 7 and raw[4] == '-' and raw[5:7] in _MONTHS_FR) else display
+            pairs.append((sort_key, display))
+        if pairs:
+            pairs.sort(key=lambda p: p[0])
+            displays = [p[1] for p in pairs]
+            return displays[0] if len(displays) == 1 else f"{displays[0]} → {displays[-1]}"
+        return course_doc.get('available_date')
+
     # Pre-load scholars name map (used to join primary + co-intervenant names on each card)
     all_scholars = await db.scholars.find({}, {'_id': 0, 'id': 1, 'name': 1}).to_list(200)
     scholar_name_by_id = {s['id']: s.get('name', '') for s in all_scholars}
@@ -1447,6 +1508,9 @@ async def get_catalogue():
     items = []
     for c in launch_courses:
         course_modules = mods_by_course.get(c['id'], [])
+        # Compute the date that will appear on this course's cards (used for both
+        # module-level rows and the course-level fallback row).
+        effective_date = _effective_available_date(c, ep_dates_per_course.get(c['id'], []))
         # Decide whether to split this course into per-module cards.
         # Only do so when at least 2 modules carry actual content (audios)
         # OR are explicitly flagged `is_launch_catalog`. Otherwise show a
@@ -1474,7 +1538,7 @@ async def get_catalogue():
                     'scholar_name': m.get('scholar_name') or _scholar_label(c),
                     'episode_count': ep_count,
                     'coming_soon': c.get('coming_soon', False) or ep_count == 0,
-                    'available_date': c.get('available_date'),
+                    'available_date': effective_date,
                     'recruiting': c.get('recruiting', False),
                     'order': (c.get('order') or 0) * 1000 + (m.get('order') or 0),
                 })
@@ -1494,7 +1558,7 @@ async def get_catalogue():
                     'scholar_name': _scholar_label(c),
                     'episode_count': 0,
                     'coming_soon': True,
-                    'available_date': c.get('available_date'),
+                    'available_date': effective_date,
                     'recruiting': c.get('recruiting', False),
                     'order': (c.get('order') or 0) * 1000,
                 })
@@ -1522,7 +1586,7 @@ async def get_catalogue():
                 'scholar_name': _scholar_label(c),
                 'episode_count': ep_count,
                 'coming_soon': c.get('coming_soon', False),
-                'available_date': c.get('available_date'),
+                'available_date': effective_date,
                 'recruiting': c.get('recruiting', False),
                 'order': (c.get('order') or 0) * 1000,
             })

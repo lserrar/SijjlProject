@@ -89,6 +89,10 @@
         <textarea id="m_course_description" data-testid="modal-course-description"></textarea>
         <label>Préfixe R2 (laisser vide pour conserver)</label>
         <input type="text" id="m_course_r2_prefix" placeholder="cursus-X/.../intervenant/" data-testid="modal-course-r2prefix">
+        <label>Date de disponibilité affichée sur le catalogue
+            <span style="font-weight:400;color:var(--text-muted);font-size:11px;">(ex. « mai 2026 », « juillet 2026 ». Utilisée si aucun épisode n'a de date individuelle.)</span>
+        </label>
+        <input type="text" id="m_course_available_date" placeholder="mai 2026" data-testid="modal-course-available_date">
         <div class="btn-row">
             <button class="btn btn-secondary" onclick="closeModal('courseModal')">Annuler</button>
             <button class="btn btn-primary" onclick="saveCourse()" data-testid="save-course-btn">Enregistrer</button>
@@ -221,6 +225,7 @@ function editCourse(c) {
     document.getElementById('m_course_description').value = c.description || '';
     document.getElementById('m_course_r2_prefix').value = '';
     document.getElementById('m_course_r2_prefix').placeholder = c.r2_prefix || 'cursus-X/.../intervenant/';
+    document.getElementById('m_course_available_date').value = c.available_date || '';
     document.getElementById('courseModal').classList.add('active');
 }
 function editEpisode(a) {
@@ -241,6 +246,10 @@ async function saveCourse() {
     const s = document.getElementById('m_course_summary').value.trim(); if (s) body.summary = s;
     const d = document.getElementById('m_course_description').value.trim(); if (d) body.description = d;
     const r2 = document.getElementById('m_course_r2_prefix').value.trim(); if (r2) body.r2_prefix = r2;
+    // Date de disponibilité affichée sur le catalogue.
+    // On envoie toujours la valeur (même vide) → permet d'effacer la date côté DB en laissant blanc.
+    const ad = document.getElementById('m_course_available_date').value.trim();
+    body.available_date = ad || null;
     try {
         await api(`/admin/courses/${id}`, { method:'PUT', body: JSON.stringify(body) });
         closeModal('courseModal'); await loadTree();
