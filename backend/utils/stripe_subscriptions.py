@@ -284,9 +284,11 @@ async def handle_event(db, event) -> dict:
         'invoice.paid': _on_invoice_paid,
         'invoice.payment_succeeded': _on_invoice_paid,  # alias
         'invoice.payment_failed': _on_invoice_failed,
+        'invoice.upcoming': _on_invoice_upcoming,
         'customer.subscription.created': _on_subscription_upserted,
         'customer.subscription.updated': _on_subscription_upserted,
         'customer.subscription.deleted': _on_subscription_deleted,
+        'subscription_schedule.completed': _on_subscription_schedule_completed,
     }
     handler = handlers.get(etype)
     if not handler:
@@ -470,6 +472,45 @@ async def _on_invoice_failed(db, invoice: dict):
             'updated_at': datetime.now(timezone.utc),
         }},
     )
+
+
+async def _on_invoice_upcoming(db, invoice: dict):
+    """Stripe pré-notifie X jours avant la prochaine facture.
+
+    On stocke la date prévue pour permettre à l'admin / front-end d'afficher
+    « Prochain prélèvement le ... ». Pas de side-effect financier.
+    """
+    sub_id = invoice.get('subscription')
+    next_attempt_ts = invoice.get('next_payment_attempt') or invoice.get('period_end')
+    if not sub_id or not next_attempt_ts:
+        return
+    next_attempt = datetime.fromtimestamp(next_attempt_ts, tz=timezone.utc)
+    await db.subscriptions.update_one(
+        {'stripe_subscription_id': sub_id},
+        {'$set': {
+            'next_invoice_attempt': next_attempt,
+            'next_invoice_amount': (invoice.get('amount_due') or 0) / 100.0,
+            'updated_at': datetime.now(timezone.utc),
+        }},
+    )
+
+
+async def _on_subscription_schedule_completed(db, schedule: dict):
+    """Logged for audit purposes — fires when a SubscriptionSchedule reaches
+    its `end_behavior`. We currently don't use schedules ourselves (the
+    12-month commitment is enforced at the API layer), but Stripe may emit
+    this event if a schedule is attached to a subscription via the Dashboard.
+    """
+    logger.info(f"Stripe subscription_schedule.completed: schedule_id={schedule.get('id')}")
+    sub_id = schedule.get('subscription')
+    if sub_id:
+        await db.subscriptions.update_one(
+            {'stripe_subscription_id': sub_id},
+            {'$set': {
+                'schedule_completed_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc),
+            }},
+        )
 
 
 # ─── Cancellation (strict 12-month policy) ────────────────────────────────────
