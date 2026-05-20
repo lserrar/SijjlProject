@@ -526,10 +526,16 @@ export default function CourseDetail() {
   const openTimeline = async (tl) => {
     const token = localStorage.getItem('sijill_token')
     if (!token) { window.location.href = '/connexion?next=' + encodeURIComponent(window.location.pathname); return }
+    // Build the access-url request. New frises carry an `r2_key`; legacy ones don't.
     const letter = course.cursus_id?.split('cursus-')[1]?.[0]?.toUpperCase() || 'A'
-    const path = tl.filename
-      ? `/timeline/file/${tl.filename}/access-url`
-      : `/timeline/${letter}/access-url`
+    let path
+    if (tl.filename && tl.r2_key) {
+      path = `/timeline/file/${tl.filename}/access-url?key=${encodeURIComponent(tl.r2_key)}`
+    } else if (tl.filename) {
+      path = `/timeline/file/${tl.filename}/access-url`
+    } else {
+      path = `/timeline/${letter}/access-url`
+    }
     try {
       const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) throw new Error(String(res.status))
@@ -540,6 +546,14 @@ export default function CourseDetail() {
       window.location.href = '/connexion?next=' + encodeURIComponent(window.location.pathname)
     }
   }
+
+  // Frises shown on this course page: cursus-shared + the ones specific to this course.
+  // (Backend already filters by cursus; we filter further by current course_id.)
+  const visibleTimelines = (timelines || []).filter(tl => {
+    if (!tl.scope) return true  // legacy entries → show all
+    if (tl.scope === 'cursus') return true
+    return tl.course_id === courseId
+  })
 
   return (
     <div data-testid="course-detail-page">
@@ -833,12 +847,12 @@ export default function CourseDetail() {
           <div style={{ maxWidth: 800 }} data-testid="frise-tab">
             {!hasAccess ? (
               <PaywallBlock testid="frise-paywall" label="La frise chronologique interactive est" />
-            ) : timelines.length === 0 ? (
+            ) : visibleTimelines.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucune frise disponible.</p>
-            ) : timelines.map(tl => (
+            ) : visibleTimelines.map(tl => (
               <button
                 type="button"
-                key={tl.filename || tl.id}
+                key={tl.r2_key || tl.filename || tl.id}
                 onClick={() => openTimeline(tl)}
                 className="res-card"
                 data-testid={`timeline-${tl.id || tl.filename}`}
@@ -849,7 +863,9 @@ export default function CourseDetail() {
                 </div>
                 <div className="res-card-body">
                   <div className="res-card-title">{tl.title || tl.cursus_name}</div>
-                  <div className="res-card-subtitle">Timeline interactive · Plein écran</div>
+                  <div className="res-card-subtitle">
+                    {tl.scope === 'cursus' ? 'Frise commune au cursus · Plein écran' : 'Frise du cours · Plein écran'}
+                  </div>
                 </div>
                 <span className="res-card-chevron">&#8250;</span>
               </button>

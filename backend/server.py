@@ -5272,6 +5272,23 @@ async def seed_data():
         if mistagged.modified_count:
             v15h_summary['mistagged_resources_pulled'] = mistagged.modified_count
 
+        # 8) r2_prefix manquants sur cours-mamelouke / cours-ottoman → empêchait
+        # leurs frises (map_mamelouks.html, sijill_map_ottoman.html) d'apparaître
+        # dans l'onglet Frise. Idempotent : on ne touche que si null/vide.
+        r2_prefix_fixes = [
+            ('cours-mamelouke', 'cursus-histoire/mamelouke/'),
+            ('cours-ottoman', 'cursus-histoire/ottomane/'),
+        ]
+        rp_fixed = 0
+        for cid, prefix in r2_prefix_fixes:
+            r = await db.courses.update_one(
+                {'id': cid, '$or': [{'r2_prefix': None}, {'r2_prefix': ''}, {'r2_prefix': {'$exists': False}}]},
+                {'$set': {'r2_prefix': prefix}},
+            )
+            rp_fixed += r.modified_count
+        if rp_fixed:
+            v15h_summary['r2_prefix_set'] = rp_fixed
+
         logger.info(f"Migration v15h: cleanup Ibn Khaldūn & falsafa-grands — {v15h_summary}")
     except Exception as e:
         logger.warning(f"Migration v15h failed: {e}", exc_info=True)
@@ -6183,8 +6200,12 @@ async def get_timeline_access_url(cursus_letter: str, request: Request):
     }
 
 @api_router.get("/timeline/file/{filename}/access-url")
-async def get_timeline_file_access_url(filename: str, request: Request):
-    """Issue a short-lived signed URL for a specific timeline file."""
+async def get_timeline_file_access_url(filename: str, request: Request, key: Optional[str] = None):
+    """Issue a short-lived signed URL for a specific timeline file.
+
+    `key` is the optional full R2 key for files outside `Timeline/`
+    (new course/cursus-scoped frises). Forwarded verbatim in the signed URL.
+    """
     user = await require_subscriber(request)
     if not filename.endswith('.html'):
         filename = f"{filename}.html"
@@ -6196,10 +6217,11 @@ async def get_timeline_file_access_url(filename: str, request: Request):
     })
     scheme = request.headers.get('x-forwarded-proto', 'https')
     host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
-    return {
-        'url': f"{scheme}://{host}/api/timeline/file/{filename}?t={token}",
-        'expires_in': 3600,
-    }
+    url = f"{scheme}://{host}/api/timeline/file/{filename}?t={token}"
+    if key:
+        from urllib.parse import quote
+        url += f"&key={quote(key, safe='/')}"
+    return {'url': url, 'expires_in': 3600}
 
 @api_router.get("/timeline/{cursus_letter}")
 async def get_timeline_html(cursus_letter: str, request: Request, t: Optional[str] = None):
@@ -6291,11 +6313,25 @@ async def list_available_timelines():
 
 @api_router.get("/timelines/cursus/{cursus_id}")
 async def get_cursus_timelines(cursus_id: str):
-    """Get all timelines for a specific cursus."""
+    """Legacy timeline list (DB-driven, `Timeline/` folder).
+
+    The Fév. 2026 redesign moved frises into each cursus / course folder under
+    `(sijill_)?map_*.html` — see `GET /courses/{course_id}/frises`. This legacy
+    endpoint stays for back-compat but returns the new course-derived list
+    when available so the existing front-end consumers don't break."""
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    
-    # Map cursus_id to letter (7 cursus: A=Histoire, B=Théologie, C=Sciences, D=Arts, E=Falsafa, F=Mystique, G=Pensées non-islamiques)
+    # Try the new structure first: collect frises from every course of the cursus.
+    cursus_courses = await db.courses.find(
+        {'cursus_id': cursus_id, 'r2_prefix': {'$exists': True, '$nin': [None, '']}},
+        {'_id': 0, 'id': 1, 'r2_prefix': 1, 'title': 1},
+    ).to_list(100)
+    if cursus_courses:
+        cursus_root = _derive_cursus_r2_root(cursus_courses)
+        items = await _collect_frise_files_for_cursus(cursus_root, cursus_courses)
+        if items:
+            return {'timelines': items, 'count': len(items)}
+    # Fallback to the legacy DB+Timeline/ list.
     cursus_letter_map = {
         'cursus-histoire': 'A',
         'cursus-theologie': 'B',
@@ -6305,30 +6341,23 @@ async def get_cursus_timelines(cursus_id: str):
         'cursus-spiritualites': 'F',
         'cursus-pensees-non-islamiques': 'G',
     }
-    
     letter = cursus_letter_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else None)
     if not letter or letter not in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
         return {'timelines': [], 'count': 0}
-    
-    # Get all timeline entries from DB for this cursus
     db_entries = await db.timeline_resources.find(
         {'cursus_letter': letter, 'type': 'timeline'}
     ).to_list(20)
-    
     timelines = []
     for entry in db_entries:
         filename = entry.get('filename', '')
         if not filename:
             continue
-            
-        # Check if file exists in R2
         r2_key = f"Timeline/{filename}"
         try:
             r2_client.head_object(Bucket=R2_BUCKET, Key=r2_key)
             file_exists = True
-        except:
+        except:  # noqa: E722
             file_exists = False
-        
         if file_exists:
             timelines.append({
                 'id': filename.replace('.html', '').lower().replace(' ', '-').replace('_', '-'),
@@ -6339,25 +6368,155 @@ async def get_cursus_timelines(cursus_id: str):
                 'url': f'/api/timeline/file/{filename}',
                 'updated_at': entry.get('updated_at')
             })
-    
-    # Sort by display_order
     timelines.sort(key=lambda x: x.get('display_order', 99))
-    
     return {'timelines': timelines, 'count': len(timelines)}
 
+
+@api_router.get("/courses/{course_id}/frises")
+async def get_course_frises(course_id: str):
+    """List frises (chronological maps, HTML) for a specific course.
+
+    Convention (Fév. 2026):
+    - `<cursus_root>/(sijill_)?map_*.html` → cursus-level frises shared by all
+      courses of the cursus (e.g. `cursus-histoire/map_cursus_a_histoire.html`).
+    - `<course_r2_prefix>/(sijill_)?map_*.html` → course-specific frises
+      (e.g. `cursus-histoire/andalous/sijill_map_andalous.html`).
+
+    The cursus root is derived from the first path segment of the course's
+    `r2_prefix` (so no extra DB field needed on the cursus). Each entry exposes
+    a signed URL via `/timeline/file/...?t=...` so the front-end iframe works
+    with the existing access-control plumbing.
+    """
+    if not r2_client:
+        raise HTTPException(503, "R2 non configuré")
+    course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'id': 1, 'r2_prefix': 1, 'cursus_id': 1, 'title': 1})
+    if not course or not (course.get('r2_prefix') or '').strip():
+        return {'frises': [], 'count': 0}
+    cursus_courses = await db.courses.find(
+        {'cursus_id': course['cursus_id'], 'r2_prefix': {'$exists': True, '$nin': [None, '']}},
+        {'_id': 0, 'id': 1, 'r2_prefix': 1, 'title': 1},
+    ).to_list(100)
+    cursus_root = _derive_cursus_r2_root(cursus_courses or [course])
+    items = await _collect_frise_files_for_course(cursus_root, course)
+    return {'frises': items, 'count': len(items)}
+
+
+def _derive_cursus_r2_root(cursus_courses: List[dict]) -> str:
+    """Return the cursus folder prefix on R2 (always ends with '/').
+
+    Heuristic: first path segment of any non-empty course r2_prefix. The
+    convention is one cursus = one top-level folder (`cursus-histoire/`,
+    `cursus-a-falsafa/`, etc.).
+    """
+    for c in cursus_courses or []:
+        p = (c.get('r2_prefix') or '').strip().strip('/')
+        if p:
+            return p.split('/', 1)[0] + '/'
+    return ''
+
+
+async def _collect_frise_files_for_cursus(cursus_root: str, cursus_courses: List[dict]) -> List[dict]:
+    """Aggregate cursus-level frise + every course-specific frise of the cursus."""
+    out: List[dict] = []
+    seen = set()
+    # 1. Cursus-level frises (immediate children of cursus_root only)
+    out.extend(await _list_frises_at_root(cursus_root, scope='cursus', seen=seen))
+    # 2. Per-course frises
+    for c in cursus_courses:
+        prefix = (c.get('r2_prefix') or '').strip()
+        if not prefix:
+            continue
+        if not prefix.endswith('/'):
+            prefix += '/'
+        out.extend(await _list_frises_at_root(prefix, scope='course', seen=seen, course=c))
+    return out
+
+
+async def _collect_frise_files_for_course(cursus_root: str, course: dict) -> List[dict]:
+    """Frises shown on a single course detail page: the cursus-shared frise(s)
+    first, then the course-specific frises."""
+    out: List[dict] = []
+    seen = set()
+    out.extend(await _list_frises_at_root(cursus_root, scope='cursus', seen=seen))
+    prefix = (course.get('r2_prefix') or '').strip()
+    if prefix and not prefix.endswith('/'):
+        prefix += '/'
+    if prefix:
+        out.extend(await _list_frises_at_root(prefix, scope='course', seen=seen, course=course))
+    return out
+
+
+async def _list_frises_at_root(prefix: str, *, scope: str, seen: set,
+                                course: Optional[dict] = None) -> List[dict]:
+    """List `(sijill_)?map_*.html` at the IMMEDIATE level of `prefix`
+    (no recursion). Returns normalised frise dicts."""
+    import re
+    if not prefix:
+        return []
+    if not prefix.endswith('/'):
+        prefix += '/'
+    try:
+        resp = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, Delimiter='/', MaxKeys=200)
+    except Exception:
+        return []
+    pattern = re.compile(r'^(?:sijill_)?map_.*\.html$', re.IGNORECASE)
+    out = []
+    for obj in resp.get('Contents', []):
+        key = obj['Key']
+        if key in seen:
+            continue
+        # Skip the prefix marker itself (empty filename)
+        rel = key[len(prefix):]
+        if not rel or '/' in rel:  # immediate level only
+            continue
+        if not pattern.match(rel):
+            continue
+        seen.add(key)
+        # Pretty title from filename
+        stem = rel.rsplit('.', 1)[0]
+        # Strip leading sijill_map_ / map_ / Map_
+        m = re.match(r'^(?:sijill_)?map[_-](.+)$', stem, re.IGNORECASE)
+        slug = m.group(1) if m else stem
+        title = slug.replace('_', ' ').replace('-', ' ').strip()
+        title = ' '.join(w.capitalize() for w in title.split()) or rel
+        entry = {
+            'id': stem.lower().replace('_', '-'),
+            'filename': rel,
+            'r2_key': key,
+            'title': f"Frise — {title}",
+            'scope': scope,  # 'cursus' | 'course'
+            'url': f'/api/timeline/file/{rel}?key={key}',
+        }
+        if course:
+            entry.update({'course_id': course.get('id'), 'course_title': course.get('title')})
+        out.append(entry)
+    return out
+
+
 @api_router.get("/timeline/file/{filename}")
-async def get_timeline_by_filename(filename: str, request: Request, t: Optional[str] = None):
-    """Get timeline HTML by filename. Requires authentication + active subscription (header or signed token)."""
+async def get_timeline_by_filename(filename: str, request: Request, t: Optional[str] = None, key: Optional[str] = None):
+    """Get timeline HTML by filename. Requires authentication + active subscription
+    (header or signed token).
+
+    When `key` is provided, it is the FULL r2_key (e.g. `cursus-histoire/andalous/sijill_map_andalous.html`),
+    enabling the new course/cursus-scoped frises. Falls back to `Timeline/<filename>`
+    for the legacy layout.
+    """
     await verify_content_access(request, t)
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    
+
     # Sanitize filename
     if not filename.endswith('.html'):
         filename = f"{filename}.html"
-    
-    r2_key = f"Timeline/{filename}"
-    
+
+    # Decide which R2 key to fetch. If `key` is given AND it resolves to the
+    # provided filename, use it; otherwise fall back to legacy Timeline/<filename>.
+    if key and key.endswith(filename) and (key.startswith('cursus-') or key.startswith('Timeline/')):
+        r2_key = key
+    else:
+        r2_key = f"Timeline/{filename}"
+
     try:
         response = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
         html_content = response['Body'].read().decode('utf-8')
