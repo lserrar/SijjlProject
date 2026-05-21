@@ -6437,16 +6437,35 @@ async def _list_frises_at_root(prefix: str, *, scope: str, seen: set,
             continue
         seen.add(key)
         stem = rel.rsplit('.', 1)[0]
+        # Map files follow two conventions in R2:
+        #   - `map_cursus_X.html` / `sijill_map_X.html`         → historical map
+        #   - `map_cursus_X_penseurs.html` / `..._thinkers.html`→ thinkers map
+        # Both HTML files often share the SAME <title> tag (e.g. authored as
+        # "Sijill — Cursus D · Arts, Littérature & Sciences"), so we rewrite
+        # the "Sijill —/-" prefix into a role-specific label derived from the
+        # filename.
+        stem_l = stem.lower()
+        if 'penseur' in stem_l or 'thinker' in stem_l:
+            role_label = "Carte des Penseurs"
+        else:
+            role_label = "Carte Historique"
         # Try to pull the human title from the HTML <title> tag (cached)
         html_title = await _extract_html_title(key, obj.get('LastModified'))
         if html_title:
-            title = html_title
+            # If the title starts with "Sijill — …" / "Sijill - …" / "Sijill : …",
+            # swap the brand prefix for the role-specific label. Otherwise keep it
+            # but prepend the role label so the two siblings are still distinguishable.
+            stripped = re.sub(r'^\s*Sijill\s*[—–\-:·]\s*', '', html_title, count=1, flags=re.IGNORECASE)
+            if stripped != html_title:
+                title = f"{role_label} — {stripped.strip()}"
+            else:
+                title = html_title
         else:
             m = re.match(r'^(?:sijill_)?map[_-](.+)$', stem, re.IGNORECASE)
             slug = m.group(1) if m else stem
             label = slug.replace('_', ' ').replace('-', ' ').strip()
             label = ' '.join(w.capitalize() for w in label.split()) or rel
-            title = f"Frise — {label}"
+            title = f"{role_label} — {label}"
         entry = {
             'id': stem.lower().replace('_', '-'),
             'filename': rel,
