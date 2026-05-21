@@ -6313,63 +6313,25 @@ async def list_available_timelines():
 
 @api_router.get("/timelines/cursus/{cursus_id}")
 async def get_cursus_timelines(cursus_id: str):
-    """Legacy timeline list (DB-driven, `Timeline/` folder).
+    """List frises (HTML maps) for all courses of a cursus.
 
-    The Fév. 2026 redesign moved frises into each cursus / course folder under
-    `(sijill_)?map_*.html` — see `GET /courses/{course_id}/frises`. This legacy
-    endpoint stays for back-compat but returns the new course-derived list
-    when available so the existing front-end consumers don't break."""
+    Sources frises exclusively from the new course/cursus folder layout
+    (`<cursus_root>/(sijill_)?map_*.html` for cursus-level,
+    `<cursus_root>/<course>/(sijill_)?map_*.html` for course-specific).
+    Legacy `Timeline/` folder + `db.timeline_resources` are no longer
+    consulted (Fév. 2026 cleanup — those files are now obsolete).
+    """
     if not r2_client:
         raise HTTPException(503, "R2 non configuré")
-    # Try the new structure first: collect frises from every course of the cursus.
     cursus_courses = await db.courses.find(
         {'cursus_id': cursus_id, 'r2_prefix': {'$exists': True, '$nin': [None, '']}},
         {'_id': 0, 'id': 1, 'r2_prefix': 1, 'title': 1},
     ).to_list(100)
-    if cursus_courses:
-        cursus_root = _derive_cursus_r2_root(cursus_courses)
-        items = await _collect_frise_files_for_cursus(cursus_root, cursus_courses)
-        if items:
-            return {'timelines': items, 'count': len(items)}
-    # Fallback to the legacy DB+Timeline/ list.
-    cursus_letter_map = {
-        'cursus-histoire': 'A',
-        'cursus-theologie': 'B',
-        'cursus-sciences-islamiques': 'C',
-        'cursus-arts': 'D',
-        'cursus-falsafa': 'E',
-        'cursus-spiritualites': 'F',
-        'cursus-pensees-non-islamiques': 'G',
-    }
-    letter = cursus_letter_map.get(cursus_id, cursus_id.upper()[-1] if cursus_id else None)
-    if not letter or letter not in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
+    if not cursus_courses:
         return {'timelines': [], 'count': 0}
-    db_entries = await db.timeline_resources.find(
-        {'cursus_letter': letter, 'type': 'timeline'}
-    ).to_list(20)
-    timelines = []
-    for entry in db_entries:
-        filename = entry.get('filename', '')
-        if not filename:
-            continue
-        r2_key = f"Timeline/{filename}"
-        try:
-            r2_client.head_object(Bucket=R2_BUCKET, Key=r2_key)
-            file_exists = True
-        except:  # noqa: E722
-            file_exists = False
-        if file_exists:
-            timelines.append({
-                'id': filename.replace('.html', '').lower().replace(' ', '-').replace('_', '-'),
-                'filename': filename,
-                'title': entry.get('title') or filename.replace('.html', '').replace('_', ' ').replace('sijill timeline ', '').title(),
-                'cursus_letter': letter,
-                'display_order': entry.get('display_order', 99),
-                'url': f'/api/timeline/file/{filename}',
-                'updated_at': entry.get('updated_at')
-            })
-    timelines.sort(key=lambda x: x.get('display_order', 99))
-    return {'timelines': timelines, 'count': len(timelines)}
+    cursus_root = _derive_cursus_r2_root(cursus_courses)
+    items = await _collect_frise_files_for_cursus(cursus_root, cursus_courses)
+    return {'timelines': items, 'count': len(items)}
 
 
 @api_router.get("/courses/{course_id}/frises")
@@ -6449,7 +6411,10 @@ async def _collect_frise_files_for_course(cursus_root: str, course: dict) -> Lis
 async def _list_frises_at_root(prefix: str, *, scope: str, seen: set,
                                 course: Optional[dict] = None) -> List[dict]:
     """List `(sijill_)?map_*.html` at the IMMEDIATE level of `prefix`
-    (no recursion). Returns normalised frise dicts."""
+    (no recursion). Returns normalised frise dicts. The display title is
+    extracted from each HTML's `<title>` tag (falls back to a cleaned-up
+    filename if the file has no title or the fetch fails).
+    """
     import re
     if not prefix:
         return []
@@ -6465,32 +6430,69 @@ async def _list_frises_at_root(prefix: str, *, scope: str, seen: set,
         key = obj['Key']
         if key in seen:
             continue
-        # Skip the prefix marker itself (empty filename)
         rel = key[len(prefix):]
-        if not rel or '/' in rel:  # immediate level only
+        if not rel or '/' in rel:
             continue
         if not pattern.match(rel):
             continue
         seen.add(key)
-        # Pretty title from filename
         stem = rel.rsplit('.', 1)[0]
-        # Strip leading sijill_map_ / map_ / Map_
-        m = re.match(r'^(?:sijill_)?map[_-](.+)$', stem, re.IGNORECASE)
-        slug = m.group(1) if m else stem
-        title = slug.replace('_', ' ').replace('-', ' ').strip()
-        title = ' '.join(w.capitalize() for w in title.split()) or rel
+        # Try to pull the human title from the HTML <title> tag (cached)
+        html_title = await _extract_html_title(key, obj.get('LastModified'))
+        if html_title:
+            title = html_title
+        else:
+            m = re.match(r'^(?:sijill_)?map[_-](.+)$', stem, re.IGNORECASE)
+            slug = m.group(1) if m else stem
+            label = slug.replace('_', ' ').replace('-', ' ').strip()
+            label = ' '.join(w.capitalize() for w in label.split()) or rel
+            title = f"Frise — {label}"
         entry = {
             'id': stem.lower().replace('_', '-'),
             'filename': rel,
             'r2_key': key,
-            'title': f"Frise — {title}",
-            'scope': scope,  # 'cursus' | 'course'
+            'title': title,
+            'scope': scope,
             'url': f'/api/timeline/file/{rel}?key={key}',
         }
         if course:
             entry.update({'course_id': course.get('id'), 'course_title': course.get('title')})
         out.append(entry)
     return out
+
+
+# In-memory cache keyed by (r2_key, last_modified.isoformat()).
+# Avoids re-fetching the HTML on every list request — invalidated automatically
+# when the file is re-uploaded to R2 (LastModified changes).
+_FRISE_TITLE_CACHE: dict = {}
+
+
+async def _extract_html_title(r2_key: str, last_modified=None) -> Optional[str]:
+    """Fetch the first 4 KB of an R2 HTML file and extract its `<title>` tag.
+
+    Returns the trimmed title or `None` if not found / on error.
+    """
+    cache_key = (r2_key, last_modified.isoformat() if last_modified else '')
+    if cache_key in _FRISE_TITLE_CACHE:
+        return _FRISE_TITLE_CACHE[cache_key]
+    title: Optional[str] = None
+    try:
+        # Range request — pull just enough to contain <title>...</title>
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key, Range='bytes=0-4096')
+        head = resp['Body'].read().decode('utf-8', errors='ignore')
+        import re
+        m = re.search(r'<title[^>]*>(.*?)</title>', head, re.IGNORECASE | re.DOTALL)
+        if m:
+            title = m.group(1).strip()
+            # Collapse any internal whitespace / newlines
+            title = re.sub(r'\s+', ' ', title)
+            # If empty after strip, treat as missing
+            if not title:
+                title = None
+    except Exception:
+        title = None
+    _FRISE_TITLE_CACHE[cache_key] = title
+    return title
 
 
 @api_router.get("/timeline/file/{filename}")
