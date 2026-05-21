@@ -10873,14 +10873,6 @@ async def admin_panel_highlight(request: Request):
         {"request": request, "active_page": "highlight"}
     )
 
-@api_router.get("/admin-panel/timeline-resources", response_class=HTMLResponse)
-async def admin_panel_timeline_resources(request: Request):
-    """Admin panel timeline resources management page."""
-    return templates.TemplateResponse(
-        "timeline-resources.html",
-        {"request": request, "active_page": "timeline-resources"}
-    )
-
 @api_router.get("/admin-panel/audios", response_class=HTMLResponse)
 async def admin_panel_audios(request: Request):
     """Admin panel audios page."""
