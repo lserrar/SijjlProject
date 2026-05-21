@@ -42,7 +42,8 @@ function ResourceList({ resources, courseId, color }) {
     }
   }
 
-  // Group resources: course-level first, then by episode number
+  // Group resources: module-shared first, then course-level, then by episode number
+  const moduleRes = resources.filter(r => r.scope === 'module')
   const courseRes = resources.filter(r => r.scope === 'course')
   const epRes = resources.filter(r => r.scope === 'episode')
   const epGrouped = {}
@@ -55,6 +56,26 @@ function ResourceList({ resources, courseId, color }) {
 
   return (
     <div data-testid="resource-list">
+      {moduleRes.length > 0 && (
+        <div style={{ marginBottom: 24 }} data-testid="module-resources-group">
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 11,
+            letterSpacing: 2, textTransform: 'uppercase',
+            color: `${color}AA`, marginBottom: 12,
+          }}>
+            Ressources partagées du module
+          </div>
+          {moduleRes.map(r => (
+            <ResourceCard
+              key={r.r2_key}
+              resource={r}
+              color={color}
+              onOpen={() => openResource(r)}
+            />
+          ))}
+        </div>
+      )}
+
       {courseRes.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{

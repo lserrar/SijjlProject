@@ -1,6 +1,6 @@
 # Sijill Project — PRD
 
-> Dernière mise à jour : **19 mai 2026** — Stripe Phase B (subscriptions avec engagement 12 mois) + toggle Mensuel/Annuel sur la page Tarification
+> Dernière mise à jour : **21 mai 2026** — Bibliographies au niveau module (auto-détection R2 parent-prefix) finalisées + tests de régression
 
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :
@@ -41,7 +41,14 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - Docker/Docker Hub
 
 ## Ce qui fonctionne
-- ✅ **Stripe Phase B — Subscriptions avec engagement 12 mois** (Fév 2026 — handoff fork) :
+- ✅ **Bibliographies au niveau module** (21 mai 2026) :
+  - Auto-détection R2 : un fichier `bibliographie_*.docx` ou `bibliographie_*.pdf` posé dans le **dossier parent** du `r2_prefix` d'un cours (ex. `cursus-a-falsafa/02-falsafa/bibliographie_falsafa.docx` pour `cours-al-kindi` dont le préfixe est `cursus-a-falsafa/02-falsafa/al-kindi/`) apparaît automatiquement dans l'onglet Ressources de **tous les cours du module**, sans duplication.
+  - Backend : helper `_autodetect_meta()` ajouté à `server.py` (lignes ~7037) — produit `{r2_key, mime, type:'bibliographie', label:'Bibliographie — Falsafa'}` pour les fichiers non enregistrés en DB. Les endpoints `/api/courses/{id}/resource-article` et `/api/courses/{id}/resource-access-url` utilisent ce helper → label propre et `type` correct au lieu du nom de fichier brut.
+  - Garde-fou sécurité : seuls les fichiers parent-prefix qui matchent `bibliographie_*` sont acceptés ; tout autre fichier au même niveau (ex. scripts d'un cours frère) renvoie 404.
+  - Frontend (`website-react/src/pages/CourseDetail.jsx` → `ResourceList`) : nouveau bloc "Ressources partagées du module" (data-testid `module-resources-group`) affiché avant les ressources du cours.
+  - Tests : `backend/tests/test_module_bibliographies.py` — 4 tests passants (listing, article rendering, signed URL, sibling leak rejection).
+
+
   - **Module dédié** `backend/utils/stripe_subscriptions.py` (~520 lignes) : provisioning, checkout, webhook handlers, cancel policy.
   - **Auto-provisioning au boot** (`provision_catalog`) : crée idempotemment 2 Products Stripe (`sijill_founder`, `sijill_standard`) + 4 Prices via `lookup_key` (`sijill_founder_monthly_v1`, `sijill_founder_yearly_v1`, `sijill_standard_monthly_v1`, `sijill_standard_yearly_v1`). Plans cachés dans `db.plans` avec `stripe_price_id`. **Validé LIVE mode** : produits + prix créés dans le compte Stripe de production au premier boot, retrouvés (pas recréés) aux suivants.
   - **Nouveau endpoint** `POST /api/subscription/checkout` : `mode=subscription` + `client_reference_id` + `subscription_data.metadata` (user_id, plan_id, commitment_months=12). Crée/réutilise un `stripe.Customer` (cache dans `users.stripe_customer_id`). Renvoie URL `cs_live_*` valide.

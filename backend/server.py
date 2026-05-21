@@ -7034,6 +7034,32 @@ async def list_course_resources(course_id: str, request: Request):
     return {'resources': items, 'count': len(items)}
 
 
+def _autodetect_meta(r2_key: str, mime: str, *, module: bool) -> dict:
+    """Build a clean {r2_key, mime, type, label} dict for an auto-detected
+    R2 asset (used by /resource-article and /resource-access-url when the
+    file is not registered in DB but lives inside the course or parent
+    module folder). Recovers the same human label that the listing
+    endpoint produces.
+    """
+    fn = r2_key.split('/')[-1]
+    lower = fn.lower()
+    stem = fn.rsplit('.', 1)[0]
+    asset_type = None
+    label = stem.replace('_', ' ').replace('-', ' ').strip()
+    if lower.startswith('bibliographie_'):
+        asset_type = 'bibliographie'
+        tail = stem[len('bibliographie_'):].replace('_', ' ').replace('-', ' ').strip()
+        tail = ' '.join(w.capitalize() for w in tail.split()) if tail else ('Module' if module else '')
+        label = f"Bibliographie — {tail}" if tail else "Bibliographie"
+    elif lower.endswith('.pdf'):
+        asset_type = 'manuscript'
+        label = f"Manuscrit — {label}"
+    elif lower.endswith(('.jpg', '.jpeg', '.png')):
+        asset_type = 'image'
+        label = label.capitalize() if label else fn
+    return {'r2_key': r2_key, 'mime': mime, 'label': label, 'type': asset_type}
+
+
 async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dict]:
     """Scan the course's R2 folder for manuscripts / images that should appear
     in the Resources tab without requiring DB registration.
@@ -7236,7 +7262,7 @@ async def get_course_resource_access_url(course_id: str, body: dict, request: Re
                 None
             )
             if mime_guess:
-                found = {'r2_key': r2_key, 'mime': mime_guess, 'label': r2_key.split('/')[-1]}
+                found = _autodetect_meta(r2_key, mime_guess, module=in_module)
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
     mime = found.get('mime') or 'application/octet-stream'
@@ -7609,7 +7635,7 @@ async def get_course_resource_article(course_id: str, r2_key: str, request: Requ
             else:
                 mg = None
             if mg:
-                found = {'r2_key': r2_key, 'mime': mg, 'label': r2_key.split('/')[-1]}
+                found = _autodetect_meta(r2_key, mg, module=in_module)
                 scope = 'module' if in_module else 'course'
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
