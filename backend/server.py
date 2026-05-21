@@ -7090,6 +7090,10 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             mime, asset_type = 'image/jpeg', 'image'
         elif lower.endswith('.png'):
             mime, asset_type = 'image/png', 'image'
+        elif lower.startswith('bibliographie_') and lower.endswith('.docx'):
+            mime, asset_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'bibliographie'
+        elif lower.startswith('bibliographie_') and lower.endswith('.pdf'):
+            mime, asset_type = 'application/pdf', 'bibliographie'
         else:
             continue
 
@@ -7110,6 +7114,10 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             label = f"Manuscrit — {label}"
         elif asset_type == 'image':
             label = label.capitalize() if label else filename
+        elif asset_type == 'bibliographie':
+            # `bibliographie_falsafa` → "Bibliographie — Falsafa"
+            label = label[len('bibliographie '):].strip() if label.lower().startswith('bibliographie ') else label
+            label = f"Bibliographie — {' '.join(w.capitalize() for w in label.split())}" if label else "Bibliographie"
 
         entry = {
             'r2_key': key,
@@ -7128,6 +7136,50 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
         else:
             entry['scope'] = 'course'
         out.append(entry)
+
+    # ─── Module-level bibliographies (shared across all courses of the module) ──
+    # Scan the IMMEDIATE PARENT of the course's r2_prefix for `bibliographie_*`
+    # files. Example: `cursus-a-falsafa/02-falsafa/al-kindi/` → also look at
+    # `cursus-a-falsafa/02-falsafa/` for `bibliographie_falsafa.docx` etc.
+    # Without this layer the user would have to copy/paste the same biblio file
+    # into every course folder of a module.
+    parent_prefix = prefix.rstrip('/').rsplit('/', 1)[0]
+    if parent_prefix:
+        parent_prefix = parent_prefix + '/'
+        try:
+            presp = r2_client.list_objects_v2(
+                Bucket=R2_BUCKET, Prefix=parent_prefix, Delimiter='/', MaxKeys=200,
+            )
+        except Exception:
+            presp = {'Contents': []}
+        for obj in presp.get('Contents', []):
+            key = obj['Key']
+            if key in exclude_keys:
+                continue
+            rel = key[len(parent_prefix):]
+            if not rel or '/' in rel:  # only immediate children
+                continue
+            lower = rel.lower()
+            if not lower.startswith('bibliographie_'):
+                continue
+            if lower.endswith('.docx'):
+                mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            elif lower.endswith('.pdf'):
+                mime = 'application/pdf'
+            else:
+                continue
+            stem = rel.rsplit('.', 1)[0]
+            tail = stem[len('bibliographie_'):].replace('_', ' ').replace('-', ' ').strip()
+            tail = ' '.join(w.capitalize() for w in tail.split()) if tail else 'Module'
+            out.append({
+                'r2_key': key,
+                'type': 'bibliographie',
+                'label': f"Bibliographie — {tail}",
+                'mime': mime,
+                'auto_detected': True,
+                'scope': 'module',
+            })
+
     return out
 
 
@@ -7161,12 +7213,26 @@ async def get_course_resource_access_url(course_id: str, body: dict, request: Re
         prefix = (course.get('r2_prefix') or '').strip() if course else ''
         if prefix and not prefix.endswith('/'):
             prefix += '/'
-        if prefix and r2_key.startswith(prefix):
-            fn = r2_key.split('/')[-1].lower()
+        # Also allow files at the IMMEDIATE PARENT level (= module-shared
+        # bibliographies), but only if they match the `bibliographie_*` naming
+        # convention. Anything else at the parent level is rejected to avoid
+        # leaking sibling-course content.
+        parent_prefix = prefix.rstrip('/').rsplit('/', 1)[0] + '/' if prefix else ''
+        fn = r2_key.split('/')[-1].lower()
+        in_course = bool(prefix and r2_key.startswith(prefix))
+        in_module = bool(
+            parent_prefix
+            and r2_key.startswith(parent_prefix)
+            and '/' not in r2_key[len(parent_prefix):]
+            and fn.startswith('bibliographie_')
+            and fn.endswith(('.docx', '.pdf'))
+        )
+        if in_course or in_module:
             mime_guess = (
                 'application/pdf' if fn.endswith('.pdf') else
                 'image/jpeg' if fn.endswith(('.jpg', '.jpeg')) else
                 'image/png' if fn.endswith('.png') else
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' if fn.endswith('.docx') else
                 None
             )
             if mime_guess:
@@ -7518,7 +7584,36 @@ async def get_course_resource_article(course_id: str, r2_key: str, request: Requ
                 episode_number = audio.get('episode_number')
                 break
     if not found:
+        # Auto-detected docs (bibliographies module-level, Contexte_, manuscripts).
+        # Accept if the key lies within the course's r2_prefix OR at the
+        # immediate parent (module-shared bibliographies only).
+        course = await db.courses.find_one({'id': course_id}, {'_id': 0, 'r2_prefix': 1})
+        prefix = (course.get('r2_prefix') or '').strip() if course else ''
+        if prefix and not prefix.endswith('/'):
+            prefix += '/'
+        parent_prefix = prefix.rstrip('/').rsplit('/', 1)[0] + '/' if prefix else ''
+        fn = r2_key.split('/')[-1].lower()
+        in_course = bool(prefix and r2_key.startswith(prefix))
+        in_module = bool(
+            parent_prefix
+            and r2_key.startswith(parent_prefix)
+            and '/' not in r2_key[len(parent_prefix):]
+            and fn.startswith('bibliographie_')
+            and fn.endswith(('.docx', '.pdf'))
+        )
+        if in_course or in_module:
+            if fn.endswith('.pdf'):
+                mg = 'application/pdf'
+            elif fn.endswith('.docx'):
+                mg = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            else:
+                mg = None
+            if mg:
+                found = {'r2_key': r2_key, 'mime': mg, 'label': r2_key.split('/')[-1]}
+                scope = 'module' if in_module else 'course'
+    if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
+
     mime = found.get('mime') or ''
     res_type = found.get('type') or ''
     # Slides → not converted; client must call /resource-access-url for inline PDF viewer.
