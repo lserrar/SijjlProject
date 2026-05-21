@@ -10013,6 +10013,123 @@ async def admin_revoke_access(user_id: str, request: Request):
         raise HTTPException(404, "Utilisateur non trouvé")
     return {'message': 'Accès révoqué', 'user_id': user_id}
 
+
+# ─── User deletion (admin) ──────────────────────────────────────────────
+# Email patterns that mark a test/seed account created by the testing
+# subagent or by registration smoke tests. Match anchored at start of the
+# local-part OR at the domain so we don't accidentally delete a real user
+# whose email happens to contain the word "test".
+_TEST_USER_EMAIL_PATTERNS = [
+    r'^test_',          # test_anything@…
+    r'^TEST_',          # TEST_anything@…
+    r'^testuser@',      # testuser@…
+    r'^nosub_',         # nosub_…@…
+    r'^apple-test@',    # Apple review account
+    r'^test\.\d',       # test.1772199668@…
+    r'@test\.com$',
+    r'@hikma\.test$',
+    r'@hikma-admin\.com$',
+    r'@hikma\.com$',
+]
+
+
+def _is_test_email(email: str) -> bool:
+    """Return True if `email` matches one of the test-account patterns."""
+    if not email:
+        return False
+    for p in _TEST_USER_EMAIL_PATTERNS:
+        if re.search(p, email):
+            return True
+    return False
+
+
+async def _delete_user_cascade(user: dict) -> dict:
+    """Delete a user document AND all the satellite collections that
+    reference it (subscriptions, library, progress, password reset tokens,
+    referral records). Returns per-collection counts for observability."""
+    uid = user.get('user_id') or user.get('id')
+    email = (user.get('email') or '').lower()
+    deleted_counts: dict = {}
+    # Primary user doc
+    res = await db.users.delete_one({'user_id': uid})
+    deleted_counts['users'] = res.deleted_count
+    # Satellite collections — keyed by user_id or email depending on schema
+    satellite_specs = [
+        ('subscriptions', {'user_id': uid}),
+        ('user_library', {'user_id': uid}),
+        ('user_progress', {'user_id': uid}),
+        ('password_reset_tokens', {'email': email}),
+        ('referrals', {'$or': [{'referrer_id': uid}, {'referee_id': uid}, {'referrer_email': email}, {'referee_email': email}]}),
+        ('pre_registrations', {'email': email}),
+        ('preregistrations', {'email': email}),
+        ('email_logs', {'to': email}),
+    ]
+    for coll_name, query in satellite_specs:
+        try:
+            r = await db[coll_name].delete_many(query)
+            if r.deleted_count:
+                deleted_counts[coll_name] = r.deleted_count
+        except Exception:
+            # Missing collections are fine — Mongo creates lazily.
+            pass
+    return deleted_counts
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, request: Request):
+    """Permanently delete a user and all associated records.
+
+    Refuses to delete the currently-logged-in admin (sanity check) so an
+    admin can't lock themselves out by clicking the wrong button.
+    """
+    current = await require_admin(request)
+    if current.get('user_id') == user_id:
+        raise HTTPException(400, "Vous ne pouvez pas supprimer votre propre compte admin")
+    user = await db.users.find_one({'user_id': user_id}, {'_id': 0})
+    if not user:
+        raise HTTPException(404, "Utilisateur non trouvé")
+    counts = await _delete_user_cascade(user)
+    logger.info(f"Admin {current.get('email')} deleted user {user.get('email')} → {counts}")
+    return {'message': 'Utilisateur supprimé', 'user_id': user_id, 'deleted': counts}
+
+
+@api_router.post("/admin/users/cleanup-test-accounts")
+async def admin_cleanup_test_accounts(request: Request, dry_run: bool = True):
+    """Bulk-delete every account whose email matches the test/seed pattern.
+
+    Pass `?dry_run=false` to actually perform the deletion. By default this
+    endpoint returns the list of matched accounts WITHOUT deleting anything,
+    so the admin can review before committing.
+    """
+    current = await require_admin(request)
+    cur = db.users.find({}, {'_id': 0, 'user_id': 1, 'email': 1, 'name': 1, 'role': 1})
+    all_users = await cur.to_list(2000)
+    matched = [u for u in all_users if _is_test_email(u.get('email', ''))
+               # never delete the caller themselves (sanity check)
+               and u.get('user_id') != current.get('user_id')]
+    if dry_run:
+        return {
+            'dry_run': True,
+            'matched_count': len(matched),
+            'matched': [{'user_id': u['user_id'], 'email': u['email'], 'name': u.get('name')} for u in matched],
+            'hint': "Re-call this endpoint with ?dry_run=false to actually delete.",
+        }
+    total_deleted: dict = {'users': 0}
+    deleted_emails: list = []
+    for u in matched:
+        counts = await _delete_user_cascade(u)
+        deleted_emails.append(u['email'])
+        for k, v in counts.items():
+            total_deleted[k] = total_deleted.get(k, 0) + v
+    logger.info(f"Admin {current.get('email')} cleaned up {len(deleted_emails)} test accounts → {total_deleted}")
+    return {
+        'dry_run': False,
+        'deleted_count': len(deleted_emails),
+        'deleted_emails': deleted_emails,
+        'deleted_records': total_deleted,
+    }
+
+
 class ExtendSubscriptionRequest(BaseModel):
     days: int
 
