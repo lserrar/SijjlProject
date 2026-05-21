@@ -10922,14 +10922,6 @@ async def admin_panel_modules(request: Request):
         {"request": request, "active_page": "modules"}
     )
 
-@api_router.get("/admin-panel/bibliographies", response_class=HTMLResponse)
-async def admin_panel_bibliographies(request: Request):
-    """Admin panel bibliographies page."""
-    return templates.TemplateResponse(
-        "bibliographies_new.html",
-        {"request": request, "active_page": "bibliographies"}
-    )
-
 @api_router.get("/admin-panel/blog", response_class=HTMLResponse)
 async def admin_panel_blog(request: Request):
     """Admin panel blog page."""
