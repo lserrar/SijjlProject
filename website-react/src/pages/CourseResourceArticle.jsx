@@ -15,18 +15,80 @@ const TYPE_LABELS = {
 // Glossary entry: "Term : definition" (Term up to 60 chars, no period inside).
 const GLOSS_RE = /^([A-ZÀ-ÝŒÇ][^.:;\n]{1,60}?)\s*:\s+(.*)$/
 
+// Inline formatting markers emitted by the backend DOCX parser
+// (`\u2999B\u2999…\u2999/B\u2999` and `\u2999I\u2999…\u2999/I\u2999`).
+const RICH_TOKEN_RE = /(\u2999B\u2999|\u2999\/B\u2999|\u2999I\u2999|\u2999\/I\u2999)/
+
+// Render text with inline <strong>/<em> reflecting the original Word
+// run-level formatting. Tokens are well-formed and produced by the
+// backend; we still close any dangling spans defensively.
+function RichText({ text }) {
+  if (!text || !text.includes('\u2999')) return <>{text}</>
+  const parts = text.split(RICH_TOKEN_RE).filter(Boolean)
+  const out = []
+  let b = false, i = 0, key = 0
+  for (const part of parts) {
+    if (part === '\u2999B\u2999') { b += 1; continue }
+    if (part === '\u2999/B\u2999') { b = Math.max(0, b - 1); continue }
+    if (part === '\u2999I\u2999') { i += 1; continue }
+    if (part === '\u2999/I\u2999') { i = Math.max(0, i - 1); continue }
+    let node = part
+    if (i > 0) node = <em key={`em-${key}`}>{node}</em>
+    if (b > 0) node = <strong key={`b-${key}`}>{node}</strong>
+    out.push(<span key={key++}>{node}</span>)
+  }
+  return <>{out}</>
+}
+
+// Strip every rich marker so headings / pills never carry the noise.
+function plainText(s) {
+  if (typeof s !== 'string') return s
+  return s.replace(/\u2999\/?[BI]\u2999/g, '')
+}
+
+// Returns true if the paragraph is *entirely* bold (i.e. opens with [B] and
+// closes with [/B] with no other content outside). Common Word pattern where
+// authors fake a section title with bold instead of a Heading style.
+function isFullyBold(text) {
+  if (typeof text !== 'string') return false
+  const trimmed = text.trim()
+  if (!trimmed.startsWith('\u2999B\u2999')) return false
+  if (!trimmed.endsWith('\u2999/B\u2999')) return false
+  // Make sure there is no `[/B]` before the last marker (= would mean a
+  // bold span then non-bold then bold again).
+  const inner = trimmed.slice('\u2999B\u2999'.length, -('\u2999/B\u2999'.length))
+  return !inner.includes('\u2999/B\u2999')
+}
+
 function GlossaryParagraph({ text }) {
   // Inline H3 marker emitted by the backend DOCX parser.
   if (typeof text === 'string' && text.startsWith('[H3]')) {
-    return <h3 className="cra-h3" data-testid="article-h3">{text.slice(4).trim()}</h3>
+    return <h3 className="cra-h3" data-testid="article-h3">{plainText(text.slice(4)).trim()}</h3>
   }
-  const m = GLOSS_RE.exec(text)
-  if (!m) return <p className="cra-p">{text}</p>
+  const stripped = plainText(text)
+  const m = GLOSS_RE.exec(stripped)
+  if (!m) return <p className="cra-p"><RichText text={text} /></p>
   return (
     <p className="cra-p cra-gloss-entry">
       <strong className="cra-gloss-term">{m[1].trim()}</strong>
       <span className="cra-gloss-sep"> — </span>
       {m[2]}
+    </p>
+  )
+}
+
+function BiblioParagraph({ text }) {
+  // Inline H3 marker → sub-heading.
+  if (typeof text === 'string' && text.startsWith('[H3]')) {
+    return <h3 className="cra-h3 cra-biblio-h3" data-testid="article-h3">{plainText(text.slice(4)).trim()}</h3>
+  }
+  // Fully-bold paragraph = author-faked section title → render as sub-heading.
+  if (isFullyBold(text)) {
+    return <h3 className="cra-h3 cra-biblio-h3" data-testid="article-biblio-section">{plainText(text).trim()}</h3>
+  }
+  return (
+    <p className="cra-p cra-biblio-entry">
+      <RichText text={text} />
     </p>
   )
 }
@@ -114,6 +176,7 @@ export default function CourseResourceArticle() {
   const typeLabel = TYPE_LABELS[article.type] || 'Document pédagogique'
   const userTag = user?.email ? user.email.split('@')[0] : 'membre Sijill'
   const isGlossary = article.type === 'glossaire'
+  const isBiblio = article.type === 'biblio' || article.type === 'bibliographie'
 
   return (
     <div className="cra cra-prestige" data-testid="course-resource-article">
@@ -160,7 +223,7 @@ export default function CourseResourceArticle() {
             )}
           </div>
 
-          <h1 className="cra-title">{article.title}</h1>
+          <h1 className="cra-title">{plainText(article.title)}</h1>
           {article.course_title && (
             <div className="cra-course-title">{article.course_title}</div>
           )}
@@ -169,20 +232,22 @@ export default function CourseResourceArticle() {
 
           {article.lead && (
             <p data-testid="resource-article-lead" className="cra-lead" style={{ borderLeftColor: color }}>
-              {article.lead}
+              <RichText text={article.lead} />
             </p>
           )}
 
-          <div data-testid="resource-article-body" className="cra-body">
+          <div data-testid="resource-article-body" className={`cra-body${isBiblio ? ' cra-biblio' : ''}`}>
             {(article.sections || []).map((sec, si) => (
               <section key={si} className="cra-section">
                 {sec.title && (
-                  <h2 className="cra-h2" style={{ color }}>{sec.title}</h2>
+                  <h2 className="cra-h2" style={{ color }}>{plainText(sec.title)}</h2>
                 )}
                 {(sec.paragraphs || []).map((p, pi) => (
                   isGlossary
                     ? <GlossaryParagraph key={pi} text={p} />
-                    : <p key={pi} className="cra-p">{p}</p>
+                    : isBiblio
+                      ? <BiblioParagraph key={pi} text={p} />
+                      : <p key={pi} className="cra-p"><RichText text={p} /></p>
                 ))}
               </section>
             ))}

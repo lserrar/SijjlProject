@@ -1351,6 +1351,43 @@ p, li {
 }
 .cra-gloss-sep { color: #A88A6A; }
 
+/* ─── Bibliographie : style académique ──────────────────────────────────
+   Citations en pendant (hanging indent), titres d'ouvrages mis en italique
+   par le DOCX d'origine, sous-sections en EB Garamond gras. */
+.cra-biblio .cra-p {
+  font-size: 18px;
+  line-height: 1.7;
+  text-align: left;
+  hyphens: none;
+  white-space: normal;
+}
+.cra-biblio-entry {
+  padding-left: 28px;
+  text-indent: -28px;
+  margin-bottom: 14px;
+  color: #2A2118;
+}
+.cra-biblio-entry em,
+.cra-biblio-entry i {
+  font-style: italic;
+}
+.cra-biblio-entry strong,
+.cra-biblio-entry b {
+  font-weight: 700;
+  color: #2A2118;
+}
+.cra-biblio-h3 {
+  font-family: 'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.3px;
+  margin: 36px 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(90, 70, 50, 0.22);
+  color: #4A3520;
+}
+.cra-biblio-h3:first-child { margin-top: 8px; }
+
 .cra-footer {
   margin-top: 64px;
   padding-top: 32px;

@@ -1,6 +1,6 @@
 # Sijill Project — PRD
 
-> Dernière mise à jour : **21 mai 2026** — Bibliographies au niveau module (auto-détection R2 parent-prefix) finalisées + tests de régression
+> Dernière mise à jour : **21 mai 2026** — Préservation italique/gras Word dans la conversion DOCX → article (style bibliographie académique avec citations en pendant)
 
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :
@@ -41,6 +41,15 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - Docker/Docker Hub
 
 ## Ce qui fonctionne
+- ✅ **Préservation italique/gras Word + style bibliographie académique** (21 mai 2026) :
+  - `_docx_to_text` (`backend/server.py` ~ligne 7342) inspecte désormais chaque `run` du paragraphe et encadre les portions en **gras** / *italique* avec des marqueurs Unicode rares (`\u2999B\u2999…\u2999/B\u2999` et `\u2999I\u2999…\u2999/I\u2999`). Les marqueurs adjacents (`</B><B>`) générés par Word lors d'un split de run sont automatiquement collapsés. Les titres (Heading 1/2/3) restent débarrassés des marqueurs car déjà stylés par leur propre typographie côté frontend/PDF.
+  - **Frontend** (`CourseResourceArticle.jsx`) :
+    - Nouveau composant `RichText` qui tokenise les marqueurs et émet `<strong>` / `<em>` (pas de `dangerouslySetInnerHTML`).
+    - Nouveau composant `BiblioParagraph` : citations en **hanging indent** (style académique : ligne 1 alignée à gauche, lignes suivantes indentées de 28 px), et les paragraphes 100 % gras (titres de section "fakés" par l'auteur en gras au lieu de Heading 2) sont promus visuellement en sous-titres `<h3>` avec filet inférieur.
+    - Nouvelles classes CSS `cra-biblio`, `cra-biblio-entry`, `cra-biblio-h3` dans `index.css`.
+  - **PDF protégé** (`_build_protected_pdf`) : helpers `_rich()` et `_plain()` traduisent les marqueurs en tags ReportLab `<b>` / `<i>`. Style `s_biblio` avec `firstLineIndent=-18 / leftIndent=18` pour reproduire le hanging indent côté PDF.
+  - Tests : ajout de `test_article_preserves_docx_bold_italic_markers` (5/5 tests passants).
+
 - ✅ **Bibliographies au niveau module** (21 mai 2026) :
   - Auto-détection R2 : un fichier `bibliographie_*.docx` ou `bibliographie_*.pdf` posé dans le **dossier parent** du `r2_prefix` d'un cours (ex. `cursus-a-falsafa/02-falsafa/bibliographie_falsafa.docx` pour `cours-al-kindi` dont le préfixe est `cursus-a-falsafa/02-falsafa/al-kindi/`) apparaît automatiquement dans l'onglet Ressources de **tous les cours du module**, sans duplication.
   - Backend : helper `_autodetect_meta()` ajouté à `server.py` (lignes ~7037) — produit `{r2_key, mime, type:'bibliographie', label:'Bibliographie — Falsafa'}` pour les fichiers non enregistrés en DB. Les endpoints `/api/courses/{id}/resource-article` et `/api/courses/{id}/resource-access-url` utilisent ce helper → label propre et `type` correct au lieu du nom de fichier brut.

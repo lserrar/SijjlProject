@@ -82,3 +82,23 @@ def test_resource_access_rejects_sibling_course_leak(auth):
     )
     # Either 404 (not registered for cours-al-kindi) or 403; never 200.
     assert r.status_code in (403, 404), f'Sibling leak: status={r.status_code}, body={r.text}'
+
+
+def test_article_preserves_docx_bold_italic_markers(auth):
+    """The DOCX parser must wrap bold/italic runs in the inline markers
+    \u2999B\u2999…\u2999/B\u2999 / \u2999I\u2999…\u2999/I\u2999 so the
+    frontend can render <strong>/<em>. The Falsafa bibliography file is
+    known to contain at least one bold heading and one italic citation."""
+    key = urllib.parse.quote(MODULE_BIBLIO_KEY)
+    r = httpx.get(f'{BASE}/api/courses/{COURSE_ID}/resource-article?r2_key={key}', headers=auth, timeout=60)
+    r.raise_for_status()
+    art = r.json()
+    full_text = ' '.join(p for s in art.get('sections', []) for p in s.get('paragraphs', []))
+    assert '\u2999B\u2999' in full_text, 'No bold markers in bibliography article'
+    # Markers must always be balanced.
+    assert full_text.count('\u2999B\u2999') == full_text.count('\u2999/B\u2999')
+    assert full_text.count('\u2999I\u2999') == full_text.count('\u2999/I\u2999')
+    # Headings (sec.title) must NOT carry the markers — they're stripped server-side.
+    for sec in art.get('sections', []):
+        if sec.get('title'):
+            assert '\u2999' not in sec['title'], f"Heading carries markers: {sec['title']!r}"

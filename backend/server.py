@@ -7340,7 +7340,7 @@ async def stream_r2_resource(request: Request, t: Optional[str] = None):
 _pdf_article_cache: dict = {}
 
 def _docx_to_text(docx_bytes: bytes) -> str:
-    """Convert DOCX → structured plain text.
+    """Convert DOCX → structured plain text with inline formatting markers.
 
     Uses python-docx to inspect each paragraph's style. Headings get explicit
     markers (`[H1]`, `[H2]`, `[H3]`) so the downstream parser can render them
@@ -7348,14 +7348,50 @@ def _docx_to_text(docx_bytes: bytes) -> str:
     a paragraph (Shift+Enter in Word) are kept as `\u2028` so the front-end
     can render them as `<br/>` while paragraph breaks remain as `\n\n`.
 
+    Inline runs that are bold and/or italic are wrapped in compact safe
+    markers `\u2999B\u2999…\u2999/B\u2999` and `\u2999I\u2999…\u2999/I\u2999`
+    (using the rare dotted-square brackets to avoid colliding with any text
+    a Word author may legitimately write). The frontend renderer expands
+    these into <strong>/<em> elements.
+
     Falls back to mammoth (raw text only) if python-docx fails for any reason.
     """
+    B_OPEN, B_CLOSE = '\u2999B\u2999', '\u2999/B\u2999'
+    I_OPEN, I_CLOSE = '\u2999I\u2999', '\u2999/I\u2999'
+
+    def _render_runs(para) -> str:
+        """Walk a paragraph's runs and concatenate text with inline B/I markers.
+        Adjacent runs sharing the same style are coalesced so we don't emit
+        useless `</B><B>` toggles."""
+        parts: list[str] = []
+        for run in para.runs:
+            txt = run.text or ''
+            if not txt:
+                continue
+            # Word stores tri-state booleans (True/False/None). Treat None as inherited (off).
+            b = bool(run.bold)
+            i = bool(run.italic)
+            if b and i:
+                parts.append(f"{B_OPEN}{I_OPEN}{txt}{I_CLOSE}{B_CLOSE}")
+            elif b:
+                parts.append(f"{B_OPEN}{txt}{B_CLOSE}")
+            elif i:
+                parts.append(f"{I_OPEN}{txt}{I_CLOSE}")
+            else:
+                parts.append(txt)
+        # Collapse touching markers: `</B><B>` and `</I><I>` produced by Word
+        # splitting a styled span across multiple runs (very common).
+        s = ''.join(parts)
+        s = s.replace(f"{B_CLOSE}{B_OPEN}", '')
+        s = s.replace(f"{I_CLOSE}{I_OPEN}", '')
+        return s
+
     try:
         from docx import Document  # python-docx
         doc = Document(io.BytesIO(docx_bytes))
         out_lines: list[str] = []
         for para in doc.paragraphs:
-            text = (para.text or '').strip()
+            text = _render_runs(para).strip()
             style_name = (para.style.name if para.style else '') or ''
             if not text:
                 # Blank paragraph → keep one blank line (will become \n\n).
@@ -7371,7 +7407,12 @@ def _docx_to_text(docx_bytes: bytes) -> str:
             elif sn.startswith('heading 3') or sn.startswith('heading 4'):
                 lvl = 3
             if lvl:
-                out_lines.append(f"[H{lvl}]{text}")
+                # Heading text is rendered with its own typography downstream
+                # → strip inline B/I markers so we don't double-emphasise it.
+                clean = (text
+                         .replace(B_OPEN, '').replace(B_CLOSE, '')
+                         .replace(I_OPEN, '').replace(I_CLOSE, ''))
+                out_lines.append(f"[H{lvl}]{clean}")
             else:
                 out_lines.append(text)
         return '\n\n'.join(out_lines)
@@ -7810,6 +7851,21 @@ def _build_protected_pdf(article: dict, user_name: str, user_email: str) -> byte
     def _esc(s: str) -> str:
         return (s or '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
+    def _rich(s: str) -> str:
+        """Escape XML special chars then translate the backend rich markers
+        (\u2999B\u2999 / \u2999/B\u2999 / \u2999I\u2999 / \u2999/I\u2999)
+        into ReportLab inline tags <b>...</b> / <i>...</i>."""
+        out = _esc(s)
+        out = out.replace('\u2999B\u2999', '<b>').replace('\u2999/B\u2999', '</b>')
+        out = out.replace('\u2999I\u2999', '<i>').replace('\u2999/I\u2999', '</i>')
+        return out
+
+    def _plain(s: str) -> str:
+        """Strip every rich marker — used for headings/titles where we
+        already pick a bold/italic ReportLab font."""
+        return (s or '').replace('\u2999B\u2999', '').replace('\u2999/B\u2999', '') \
+                        .replace('\u2999I\u2999', '').replace('\u2999/I\u2999', '')
+
     story = []
     pill_text = type_label.upper()
     if audio_title:
@@ -7819,29 +7875,46 @@ def _build_protected_pdf(article: dict, user_name: str, user_email: str) -> byte
         rt = max(1, round(wc / 220))
         pill_text += f"  ·  {wc} mots · {rt} min"
     story.append(Paragraph(pill_text, s_pill))
-    story.append(Paragraph(_esc(title), s_title))
+    story.append(Paragraph(_esc(_plain(title)), s_title))
     if course_title:
         story.append(Paragraph(_esc(course_title), s_meta))
     if article.get('lead'):
-        story.append(Paragraph(_esc(article['lead']), s_lead))
+        story.append(Paragraph(_rich(article['lead']), s_lead))
+
+    is_biblio = (article.get('type') in ('biblio', 'bibliographie'))
+    s_biblio = ParagraphStyle('biblio', parent=s_p,
+        firstLineIndent=-18, leftIndent=18, spaceAfter=6, alignment=TA_LEFT)
+    s_biblio_h = ParagraphStyle('biblio_h', parent=s_h2,
+        fontSize=13, leading=16, textColor=INK, spaceBefore=14, spaceAfter=6)
 
     for sec in sections:
         sec_title = sec.get('title')
         paras = sec.get('paragraphs') or []
         if sec_title:
-            story.append(Paragraph(_esc(sec_title), s_h2))
+            story.append(Paragraph(_esc(_plain(sec_title)), s_h2))
         for p in paras:
             text = (p or '').strip()
             if not text:
                 continue
             if is_glossary:
-                m = GLOSS_RE.match(text)
+                plain_text = _plain(text)
+                m = GLOSS_RE.match(plain_text)
                 if m:
                     term = _esc(m.group(1).strip())
                     rest = _esc(m.group(2))
                     story.append(Paragraph(f"<b>{term}</b> &mdash; {rest}", s_gloss))
                     continue
-            story.append(Paragraph(_esc(text), s_p))
+            if is_biblio:
+                # Fully-bold paragraph → render as sub-section heading.
+                trimmed = text.strip()
+                if (trimmed.startswith('\u2999B\u2999')
+                        and trimmed.endswith('\u2999/B\u2999')
+                        and '\u2999/B\u2999' not in trimmed[len('\u2999B\u2999'):-len('\u2999/B\u2999')]):
+                    story.append(Paragraph(_esc(_plain(trimmed)), s_biblio_h))
+                    continue
+                story.append(Paragraph(_rich(text), s_biblio))
+                continue
+            story.append(Paragraph(_rich(text), s_p))
 
     if not story:
         story.append(Paragraph("Document vide.", s_p))
@@ -7874,6 +7947,32 @@ async def get_course_resource_pdf(course_id: str, r2_key: str, request: Request)
                 audio_title = audio.get('title')
                 episode_number = audio.get('episode_number')
                 break
+    if not found:
+        # Auto-detected (manuscript / image / module-level bibliographie).
+        course2 = await db.courses.find_one({'id': course_id}, {'_id': 0, 'r2_prefix': 1})
+        prefix = (course2.get('r2_prefix') or '').strip() if course2 else ''
+        if prefix and not prefix.endswith('/'):
+            prefix += '/'
+        parent_prefix = prefix.rstrip('/').rsplit('/', 1)[0] + '/' if prefix else ''
+        fn = r2_key.split('/')[-1].lower()
+        in_course = bool(prefix and r2_key.startswith(prefix))
+        in_module = bool(
+            parent_prefix
+            and r2_key.startswith(parent_prefix)
+            and '/' not in r2_key[len(parent_prefix):]
+            and fn.startswith('bibliographie_')
+            and fn.endswith(('.docx', '.pdf'))
+        )
+        if in_course or in_module:
+            if fn.endswith('.pdf'):
+                mg = 'application/pdf'
+            elif fn.endswith('.docx'):
+                mg = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            else:
+                mg = None
+            if mg:
+                found = _autodetect_meta(r2_key, mg, module=in_module)
+                scope = 'module' if in_module else 'course'
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
 
