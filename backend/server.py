@@ -3624,11 +3624,16 @@ async def seed_data():
     # 6. Set youtube_url on specific audios from Excel
     # Format: { audio_id_substring: youtube_url }
     audio_youtube_map = [
-        # Cursus A - Histoire (mapped to placeholder courses, audios may not exist yet)
-        # cours-debuts-islam by Mehdi Ghouirgate
-        ({'course_id': 'cours-debuts-islam'}, 'https://youtu.be/kB-fr8wwcAA'),
-        # Cursus E - Falsafa
-        ({'course_id': 'cours-traduction'}, 'https://www.youtube.com/watch?v=5EsSIUfeP-o'),
+        # Cursus A - Histoire
+        # cours-debuts-islam — Mehdi Ghouirgate's intro video is **only** the
+        # first episode ("Les débuts de l'islam"). Earlier versions of this
+        # migration used `update_many({'course_id': ...})` which silently
+        # re-stamped the same URL onto every episode of the course (incl. the
+        # ḥajj episode 5) at each container restart. We now constrain by
+        # episode_number=1 to keep the migration idempotent and safe.
+        ({'course_id': 'cours-debuts-islam', 'episode_number': 1}, 'https://youtu.be/kB-fr8wwcAA'),
+        # Cursus E - Falsafa (cours-traduction has a single episode)
+        ({'course_id': 'cours-traduction', 'episode_number': 1}, 'https://www.youtube.com/watch?v=5EsSIUfeP-o'),
         # Al-Kindi episodes (cours-falsafa-grands)
         ({'id': {'$regex': 'al-kindi', '$options': 'i'}, 'episode_number': 1}, 'https://youtu.be/LDeseoNGAPQ'),
         ({'id': {'$regex': 'al-kindi', '$options': 'i'}, 'episode_number': 2}, 'https://youtu.be/YK7LJRJheDg'),
@@ -5149,6 +5154,30 @@ async def seed_data():
     except Exception as e:
         logger.warning(f"Migration v15g failed: {e}", exc_info=True)
     # ─── End Migration v15g ────────────────────────────────────────────────
+
+
+    # ─── Migration v15i — Cleanup YouTube URL pollution on cours-debuts-islam ─
+    # An earlier broken version of Migration v4 step #6 used
+    # `update_many({'course_id': 'cours-debuts-islam'}, ...)` which stamped
+    # Mehdi Ghouirgate's intro video URL onto EVERY episode of the course at
+    # each container restart — including the ḥajj episode (ep5). We now
+    # strip the URL from episodes 2-5 once and for all. The fix to Migration
+    # v4 (which now constrains by `episode_number=1`) prevents the pollution
+    # from coming back on future restarts.
+    try:
+        unset_res = await db.audios.update_many(
+            {
+                'course_id': 'cours-debuts-islam',
+                'episode_number': {'$gt': 1},
+                'youtube_url': 'https://youtu.be/kB-fr8wwcAA',
+            },
+            {'$unset': {'youtube_url': ''}},
+        )
+        if unset_res.modified_count:
+            logger.info(f"Migration v15i: unset polluting youtube_url on {unset_res.modified_count} cours-debuts-islam episode(s)")
+    except Exception as e:
+        logger.warning(f"Migration v15i failed: {e}", exc_info=True)
+    # ─── End Migration v15i ────────────────────────────────────────────────
 
 
     # ─── Migration v15h — Cleanup doublons Ibn Khaldūn + falsafa-grands ─────
@@ -7070,6 +7099,10 @@ def _autodetect_meta(r2_key: str, mime: str, *, module: bool) -> dict:
         tail = stem[len('bibliographie_'):].replace('_', ' ').replace('-', ' ').strip()
         tail = ' '.join(w.capitalize() for w in tail.split()) if tail else ('Module' if module else '')
         label = f"Bibliographie — {tail}" if tail else "Bibliographie"
+    elif lower.startswith(('script-', 'script_')) and lower.endswith('.pdf'):
+        asset_type = 'script_pdf'
+        ep_match = re.search(r'(?:ep|episode)[\s_-]*(\d+)', lower)
+        label = f"Script — Épisode {int(ep_match.group(1))}" if ep_match else "Script PDF"
     elif lower.endswith('.pdf'):
         asset_type = 'manuscript'
         label = f"Manuscrit — {label}"
@@ -7126,11 +7159,21 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             continue
         if lower.startswith('contexte_'):
             continue
-        if lower.startswith('script-') or lower.startswith('script_') or '/script-' in key.lower():
+        # Skip ONLY DOCX scripts — those are rendered as articles via the
+        # dedicated `script` mechanism. PDF scripts remain valid downloadable
+        # resources (often the canonical printable handout of an episode).
+        if (lower.endswith('.docx')
+                and (lower.startswith('script-') or lower.startswith('script_'))):
             continue
         # Only emit visual/textual assets
         if lower.endswith('.pdf'):
-            mime, asset_type = 'application/pdf', 'manuscript'
+            # `script-*.pdf` is the printable handout of an episode — give it
+            # a dedicated label/type so the front-end renders it as "Script
+            # PDF" rather than as a manuscript image.
+            if lower.startswith('script-') or lower.startswith('script_'):
+                mime, asset_type = 'application/pdf', 'script_pdf'
+            else:
+                mime, asset_type = 'application/pdf', 'manuscript'
         elif lower.endswith(('.jpg', '.jpeg')):
             mime, asset_type = 'image/jpeg', 'image'
         elif lower.endswith('.png'):
@@ -7155,7 +7198,10 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
         stem = filename.rsplit('.', 1)[0]
         label = stem.replace('_', ' ').replace('-', ' ').strip()
         # Drop boilerplate ("BEIC 11521297" id, weird dashes) and prepend prefix
-        if asset_type == 'manuscript':
+        if asset_type == 'script_pdf':
+            # `script-debuts-islam-episode1.pdf` → "Script — Épisode 1"
+            label = f"Script — Épisode {ep_num}" if ep_num else "Script PDF"
+        elif asset_type == 'manuscript':
             label = f"Manuscrit — {label}"
         elif asset_type == 'image':
             label = label.capitalize() if label else filename
