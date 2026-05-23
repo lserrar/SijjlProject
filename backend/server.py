@@ -5941,17 +5941,30 @@ async def admin_create_scholar(body: ScholarCreate, request: Request):
 @api_router.put("/admin/scholars/{scholar_id}")
 async def admin_update_scholar(scholar_id: str, body: ScholarUpdate, request: Request):
     await require_admin(request)
-    update = {k: v for k, v in body.model_dump().items() if v is not None}
-    # Defensive: an empty string for `photo` means "no change" (the form left it empty),
-    # NOT "clear the photo". Same for `name` to avoid accidental wipes.
-    for protected_field in ('photo', 'name'):
-        if update.get(protected_field) == '':
-            update.pop(protected_field, None)
+    raw = body.model_dump()
+    # `name` must never be wiped to the empty string — guard against accidental
+    # form wipes by treating "" as "no change". `photo` is different: the admin
+    # explicitly removes the photo by clearing the input, so we MUST honour
+    # an empty value here (translated to None so the field is unset).
+    update: dict = {}
+    for k, v in raw.items():
+        if v is None:
+            continue
+        if k == 'name' and v == '':
+            continue
+        if k == 'photo' and v == '':
+            # Explicit clear → unset both legacy and new field names so the
+            # frontend stops finding a fallback URL.
+            update['photo'] = None
+            update['photo_url'] = None
+            continue
+        update[k] = v
     if not update:
         raise HTTPException(400, "Aucune mise à jour fournie")
-    # Lock this scholar against the on-startup seed so admin edits persist
-    # across redeploys (see Migration v10 / SCHOLARS_SEED).
+    # Lock this scholar against ALL future on-startup seeds AND against the
+    # "Sync photos R2" button. Admin edits become the single source of truth.
     update['seed_locked'] = True
+    update['photo_manual'] = True
     result = await db.scholars.update_one({'id': scholar_id}, {'$set': update})
     if result.matched_count == 0:
         raise HTTPException(404, "Érudit non trouvé")
@@ -8727,7 +8740,12 @@ async def admin_upload_scholar_photo(scholar_id: str, request: Request, file: Up
         raise HTTPException(500, f"Échec upload R2: {e}")
     public_base = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
     photo_url = f"{public_base}/{key}" if public_base else key
-    await db.scholars.update_one({'id': scholar_id}, {'$set': {'photo': photo_url}})
+    await db.scholars.update_one({'id': scholar_id}, {'$set': {
+        'photo': photo_url,
+        'photo_url': photo_url,
+        'photo_manual': True,
+        'seed_locked': True,
+    }})
     return {'photo': photo_url, 'r2_key': key, 'size': len(data)}
 
 
@@ -8795,6 +8813,20 @@ async def sync_professor_photos(request: Request):
                     best, best_score = s, score
 
             if best:
+                # Respect manual admin edits: never overwrite a scholar whose
+                # photo was set or removed manually via the admin panel
+                # (`photo_manual=True` flag set by `admin/scholars/{id}` PUT
+                # and `admin/scholars/{id}/upload-photo`). Without this guard
+                # the sync would resurrect deleted photos from R2 on every
+                # admin click — exactly the Yannis Mahil bug reported in
+                # Feb 2026.
+                if best.get('photo_manual') or best.get('seed_locked'):
+                    skipped.append({
+                        'file': filename, 'reason': 'manual override',
+                        'scholar': best.get('name'),
+                    })
+                    logger.info(f"sync_professor_photos: SKIP {best.get('name')} (photo_manual)")
+                    continue
                 photo_url = f"/api/images/{filename}"
                 await db.scholars.update_one(
                     {'id': best['id']},
