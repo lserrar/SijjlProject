@@ -8814,18 +8814,17 @@ async def sync_professor_photos(request: Request):
 
             if best:
                 # Respect manual admin edits: never overwrite a scholar whose
-                # photo was set or removed manually via the admin panel
-                # (`photo_manual=True` flag set by `admin/scholars/{id}` PUT
-                # and `admin/scholars/{id}/upload-photo`). Without this guard
-                # the sync would resurrect deleted photos from R2 on every
-                # admin click — exactly the Yannis Mahil bug reported in
-                # Feb 2026.
-                if best.get('photo_manual') or best.get('seed_locked'):
+                # photo was set manually via the admin panel, but DO fill it
+                # in when the field is currently empty — the sync is the
+                # most common way to bootstrap photos from R2.
+                current_photo = (best.get('photo') or best.get('photo_url') or '').strip()
+                photo_locked = bool(best.get('photo_manual') or best.get('seed_locked'))
+                if current_photo and photo_locked:
                     skipped.append({
                         'file': filename, 'reason': 'manual override',
                         'scholar': best.get('name'),
                     })
-                    logger.info(f"sync_professor_photos: SKIP {best.get('name')} (photo_manual)")
+                    logger.info(f"sync_professor_photos: SKIP {best.get('name')} (photo_manual + current={current_photo[:40]})")
                     continue
                 photo_url = f"/api/images/{filename}"
                 await db.scholars.update_one(
