@@ -6533,14 +6533,21 @@ async def _extract_contexte_title(r2_key: str, last_modified=None) -> Optional[s
     """Pull the FULL thinker / subject name from inside a Contexte_*.docx
     file. Mirrors the cache strategy of `_extract_html_title`.
 
-    Contexte documents follow a stable 3-line header:
-        L1 — "Module N — …"
-        L2 — Full character name (often with dates, e.g. "Al-Kindī (v. 801–873)")
-        L3 — Period / location (e.g. "Époque abbasside · Bagdad")
+    Two known authoring conventions are supported:
+        Old format:
+            L1 — "Module N — …"
+            L2 — Full name WITH dates inline (e.g. "Al-Kindī (v. 801–873)")
+        New format:
+            L1 — "Épisode N — …"
+            L2 — Full name (e.g. "Le Prophète Muhammad ibn ʿAbd Allāh")
+            L3 — Dates on their own line (e.g. "(v. 570–632 CE)")
 
-    We pick the first non-empty paragraph that does NOT start with "Module"
-    (case-insensitive), which gives us the proper character name. Returns
-    `None` on any error → the caller falls back to the filename slug.
+    We skip any leading "Module N" or "Épisode N" headers, take the next
+    non-empty paragraph as the name, and merge in the following line when
+    it looks like a parenthetical date span — so both formats end up with
+    a homogeneous title like "Khālid ibn al-Walīd (v. 585–642 CE)".
+
+    Returns `None` on any error so the caller falls back to the filename slug.
     """
     cache_key = (r2_key, last_modified.isoformat() if last_modified else '')
     if cache_key in _CONTEXTE_TITLE_CACHE:
@@ -6551,15 +6558,28 @@ async def _extract_contexte_title(r2_key: str, last_modified=None) -> Optional[s
         from io import BytesIO as _BytesIO
         resp = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
         doc = _DocxDoc(_BytesIO(resp['Body'].read()))
+        # Collect the first few non-empty paragraphs, normalised.
+        meaningful: list[str] = []
         for p in doc.paragraphs:
-            t = (p.text or '').strip()
+            t = re.sub(r'\s+', ' ', (p.text or '').strip())
             if not t:
                 continue
-            # Skip the "Module N — …" preamble line.
-            if re.match(r'^module\s+\d', t, re.IGNORECASE):
-                continue
-            title = re.sub(r'\s+', ' ', t)
-            break
+            meaningful.append(t)
+            if len(meaningful) >= 4:
+                break
+        # Drop leading "Module N — …" / "Épisode N — …" preamble lines.
+        skip_pat = re.compile(r'^(module|épisode|episode)\s+\d', re.IGNORECASE)
+        body = [t for t in meaningful if not skip_pat.match(t)]
+        if body:
+            title = body[0]
+            # If the following line looks like a parenthetical date range
+            # ("(v. 570–632 CE)") we merge it in so the title is homogeneous
+            # across both authoring formats.
+            if (len(body) > 1
+                    and body[1].startswith('(')
+                    and len(body[1]) <= 40
+                    and any(c.isdigit() for c in body[1])):
+                title = f"{title} {body[1]}"
     except Exception:
         title = None
     _CONTEXTE_TITLE_CACHE[cache_key] = title
