@@ -1388,6 +1388,67 @@ p, li {
 }
 .cra-biblio-h3:first-child { margin-top: 8px; }
 
+/* ─── Contexte fiche rendered inside the cream prestige paper ────────── */
+.rv-page-prestige .rv-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.rv-page-prestige .rv-font-btn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  background: rgba(255, 250, 240, 0.55);
+  border: 1px solid;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+.rv-page-prestige .rv-font-btn:hover {
+  background: rgba(255, 250, 240, 0.85);
+}
+/* When inside cream paper, use the parchment ink palette so text stays
+   readable on the warm background (otherwise the dark-mode default colours
+   inherited from .rv-* selectors clash with #FBF6EB). */
+.rv-page-prestige .rv-thinker-name,
+.rv-page-prestige .rv-subheading,
+.rv-page-prestige .rv-paragraph,
+.rv-page-prestige .rv-list-text {
+  color: #2A2118;
+}
+.rv-page-prestige .rv-epoch-info {
+  color: #6F5A40;
+}
+.rv-page-prestige .rv-divider-line {
+  background: rgba(90, 70, 50, 0.22);
+}
+.rv-page-prestige .rv-paragraph,
+.rv-page-prestige .rv-list-text {
+  font-family: var(--font-body);
+  line-height: 1.8;
+}
+.rv-page-prestige .rv-footer {
+  margin-top: 64px;
+  text-align: center;
+}
+.rv-page-prestige .rv-footer-line {
+  width: 60px;
+  height: 1px;
+  margin: 0 auto 12px;
+  background: rgba(90, 70, 50, 0.30);
+}
+.rv-page-prestige .rv-footer-text {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #6F5A40;
+}
+
 .cra-footer {
   margin-top: 64px;
   padding-top: 32px;

@@ -6526,6 +6526,44 @@ async def _list_frises_at_root(prefix: str, *, scope: str, seen: set,
 # Avoids re-fetching the HTML on every list request — invalidated automatically
 # when the file is re-uploaded to R2 (LastModified changes).
 _FRISE_TITLE_CACHE: dict = {}
+_CONTEXTE_TITLE_CACHE: dict = {}
+
+
+async def _extract_contexte_title(r2_key: str, last_modified=None) -> Optional[str]:
+    """Pull the FULL thinker / subject name from inside a Contexte_*.docx
+    file. Mirrors the cache strategy of `_extract_html_title`.
+
+    Contexte documents follow a stable 3-line header:
+        L1 — "Module N — …"
+        L2 — Full character name (often with dates, e.g. "Al-Kindī (v. 801–873)")
+        L3 — Period / location (e.g. "Époque abbasside · Bagdad")
+
+    We pick the first non-empty paragraph that does NOT start with "Module"
+    (case-insensitive), which gives us the proper character name. Returns
+    `None` on any error → the caller falls back to the filename slug.
+    """
+    cache_key = (r2_key, last_modified.isoformat() if last_modified else '')
+    if cache_key in _CONTEXTE_TITLE_CACHE:
+        return _CONTEXTE_TITLE_CACHE[cache_key]
+    title: Optional[str] = None
+    try:
+        from docx import Document as _DocxDoc
+        from io import BytesIO as _BytesIO
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+        doc = _DocxDoc(_BytesIO(resp['Body'].read()))
+        for p in doc.paragraphs:
+            t = (p.text or '').strip()
+            if not t:
+                continue
+            # Skip the "Module N — …" preamble line.
+            if re.match(r'^module\s+\d', t, re.IGNORECASE):
+                continue
+            title = re.sub(r'\s+', ' ', t)
+            break
+    except Exception:
+        title = None
+    _CONTEXTE_TITLE_CACHE[cache_key] = title
+    return title
 
 
 async def _extract_html_title(r2_key: str, last_modified=None) -> Optional[str]:
@@ -6687,9 +6725,14 @@ async def _collect_contexte_files(course_filter: Optional[str] = None,
             if not m:
                 continue
             slug = m.group(1)
-            # Pretty subject: al-kindi → Al Kindi
+            # Pretty subject derived from filename slug — used as a graceful
+            # fallback if we can't read the inner DOCX title.
             subject = slug.replace('-', ' ').replace('_', ' ').strip()
             subject = ' '.join(w.capitalize() for w in subject.split())
+            # Try to extract the FULL character name from inside the document
+            # (paragraph #2 of every Contexte_*.docx — e.g. "Al-Kindī (v. 801–873)").
+            # Cached per (key, last_modified) so the list endpoint stays fast.
+            inner_title = await _extract_contexte_title(key, obj.get('LastModified'))
             resource_id = f"{c['id']}__{slug.lower()}"
             db_entry = await db.context_resources.find_one({'resource_id': resource_id}, {'_id': 0})
             out.append({
@@ -6699,8 +6742,8 @@ async def _collect_contexte_files(course_filter: Optional[str] = None,
                 'course_id': c['id'],
                 'course_title': c.get('title'),
                 'cursus_id': c.get('cursus_id'),
-                'subject': (db_entry or {}).get('subject') or subject,
-                'title': (db_entry or {}).get('title') or subject,
+                'subject': (db_entry or {}).get('subject') or inner_title or subject,
+                'title': (db_entry or {}).get('title') or inner_title or subject,
                 'description': (db_entry or {}).get('description', ''),
                 'credits': (db_entry or {}).get('credits', ''),
                 # module_number is kept for back-compat with the front-end's display

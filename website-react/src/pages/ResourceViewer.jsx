@@ -139,56 +139,66 @@ export default function ResourceViewer() {
 
   const cycleFontSize = () => setFontSizeIdx((fontSizeIdx + 1) % FONT_SIZES.length)
 
-  // Context resource view
+  // Context resource view — wrapped in the cream "prestige" paper theme
+  // (same chrome as the blog & bibliography articles) so it shares the
+  // visual language while keeping its own typography (rv-thinker-name,
+  // rv-section, etc.). The thinker name now comes from the *inside* of the
+  // DOCX (e.g. "Al-Kindī (v. 801–873)") thanks to backend
+  // `_extract_contexte_title`, with thinkerName from the parser as a
+  // fall-back when the parser identifies a richer header line.
   if (type === 'fiche' && Array.isArray(data.content)) {
     const { moduleInfo, thinkerName, epochInfo, sections } = parseContextContent(data.content)
+    const displayName = thinkerName || data.subject || data.title
     return (
-      <div data-testid="resource-viewer-page" className="rv-page">
-        <section className="rv-container">
-          <div className="rv-top-bar">
-            <Link to={-1} className="course-back" data-testid="rv-back-btn">&#8592; Retour</Link>
-            <button className="rv-font-btn" onClick={cycleFontSize} data-testid="rv-font-size-btn">{FONT_LABELS[fontSizeIdx]}</button>
-          </div>
-
-          <div className="rv-eyebrow" style={{ color }}>CONTEXTE HISTORIQUE</div>
-          {moduleInfo && <div className="rv-module-info" style={{ color }}>{moduleInfo}</div>}
-          <h1 className="rv-thinker-name">{thinkerName || data.subject || data.title}</h1>
-          {epochInfo && <p className="rv-epoch-info">{epochInfo}</p>}
-
-          <div className="rv-divider">
-            <span className="rv-divider-line" />
-            <span className="rv-divider-diamond" style={{ backgroundColor: color }} />
-            <span className="rv-divider-line" />
-          </div>
-
-          {sections.map((section, si) => (
-            <div key={si} className="rv-section" data-testid={`rv-section-${si}`}>
-              {section.title !== 'Introduction' && (
-                <div className="rv-section-header">
-                  <span className="rv-section-bar" style={{ backgroundColor: color }} />
-                  <h2 className="rv-section-title" style={{ color }}>{section.title}</h2>
-                </div>
-              )}
-              <div className="rv-section-content">
-                {section.content.map((block, bi) => {
-                  if (block.type === 'heading') return <h3 key={bi} className="rv-subheading">{block.text}</h3>
-                  if (block.type === 'list_item') return (
-                    <div key={bi} className="rv-list-item">
-                      <span className="rv-list-bullet" style={{ color }}>&#8226;</span>
-                      <span className="rv-list-text" style={{ fontSize }}>{block.text}</span>
-                    </div>
-                  )
-                  return <p key={bi} className="rv-paragraph" style={{ fontSize }}>{block.text}</p>
-                })}
-              </div>
+      <div data-testid="resource-viewer-page" className="cra cra-prestige rv-page-prestige">
+        <article className="cra-article rv-article" data-testid="contexte-article">
+          <div aria-hidden className="cra-grain" />
+          <div className="cra-inner">
+            <div className="rv-top-bar">
+              <Link to={-1} className="cra-back" data-testid="rv-back-btn" style={{ color }}>&larr; Retour</Link>
+              <button className="rv-font-btn" onClick={cycleFontSize} data-testid="rv-font-size-btn" style={{ borderColor: `${color}55`, color }}>{FONT_LABELS[fontSizeIdx]}</button>
             </div>
-          ))}
 
-          <div className="rv-footer">
-            <div className="rv-footer-line" />
-            <span className="rv-footer-text">Sijill Project — Sciences Islamiques</span>
+            <div className="rv-eyebrow" style={{ color }}>CONTEXTE HISTORIQUE</div>
+            {moduleInfo && <div className="rv-module-info" style={{ color }}>{moduleInfo}</div>}
+            <h1 className="rv-thinker-name">{displayName}</h1>
+            {epochInfo && <p className="rv-epoch-info">{epochInfo}</p>}
+
+            <div className="rv-divider">
+              <span className="rv-divider-line" />
+              <span className="rv-divider-diamond" style={{ backgroundColor: color }} />
+              <span className="rv-divider-line" />
+            </div>
+
+            {sections.map((section, si) => (
+              <div key={si} className="rv-section" data-testid={`rv-section-${si}`}>
+                {section.title !== 'Introduction' && (
+                  <div className="rv-section-header">
+                    <span className="rv-section-bar" style={{ backgroundColor: color }} />
+                    <h2 className="rv-section-title" style={{ color }}>{section.title}</h2>
+                  </div>
+                )}
+                <div className="rv-section-content">
+                  {section.content.map((block, bi) => {
+                    if (block.type === 'heading') return <h3 key={bi} className="rv-subheading">{block.text}</h3>
+                    if (block.type === 'list_item') return (
+                      <div key={bi} className="rv-list-item">
+                        <span className="rv-list-bullet" style={{ color }}>&#8226;</span>
+                        <span className="rv-list-text" style={{ fontSize }}>{block.text}</span>
+                      </div>
+                    )
+                    return <p key={bi} className="rv-paragraph" style={{ fontSize }}>{block.text}</p>
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="rv-footer">
+              <div className="rv-footer-line" />
+              <span className="rv-footer-text">Sijill Project — Sciences Islamiques</span>
+            </div>
           </div>
-        </section>
+        </article>
       </div>
     )
   }
