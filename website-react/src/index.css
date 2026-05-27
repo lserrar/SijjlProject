@@ -1449,6 +1449,44 @@ p, li {
   color: #6F5A40;
 }
 
+/* ─── Methodology / pedagogical note — framed callout ────────────────── */
+.rv-method-note {
+  position: relative;
+  margin: 32px 0;
+  padding: 22px 28px 24px;
+  background: rgba(255, 247, 232, 0.70);
+  border: 1.5px solid rgba(90, 70, 50, 0.32);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 240, 0.85),
+              0 2px 6px rgba(60, 40, 20, 0.06);
+}
+.rv-method-note::before {
+  /* Subtle top-left + bottom-right corner marks evoking a real "encadré" */
+  content: '';
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  border: 1px solid rgba(90, 70, 50, 0.18);
+  border-radius: 4px;
+  z-index: -1;
+}
+.rv-method-note-label {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(90, 70, 50, 0.25);
+}
+.rv-method-note-text {
+  font-family: var(--font-body);
+  line-height: 1.75;
+  color: #3A2E20;
+  font-style: italic;
+  margin: 0;
+}
+
 .cra-footer {
   margin-top: 64px;
   padding-top: 32px;

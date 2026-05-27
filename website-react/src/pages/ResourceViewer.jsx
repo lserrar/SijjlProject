@@ -180,6 +180,16 @@ export default function ResourceViewer() {
                 )}
                 <div className="rv-section-content">
                   {section.content.map((block, bi) => {
+                    if (block.type === 'methodology_note') return (
+                      <aside key={bi} className="rv-method-note" data-testid="rv-method-note">
+                        <div className="rv-method-note-label" style={{ color }}>
+                          NOTE MÉTHODOLOGIQUE
+                        </div>
+                        <p className="rv-method-note-text" style={{ fontSize: Math.max(15, fontSize - 2) }}>
+                          {block.text}
+                        </p>
+                      </aside>
+                    )
                     if (block.type === 'heading') return <h3 key={bi} className="rv-subheading">{block.text}</h3>
                     if (block.type === 'list_item') return (
                       <div key={bi} className="rv-list-item">

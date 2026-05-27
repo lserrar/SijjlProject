@@ -6855,6 +6855,21 @@ async def get_context_resource(resource_id: str, request: Request):
             if not text:
                 continue
             style = para.style.name if para.style else 'Normal'
+            # A "Note méthodologique : …" / "Note pédagogique : …" paragraph
+            # is a one-shot editorial caveat the historians add to their
+            # fiches — render it as a framed callout box on the front-end so
+            # it reads like the "encadré" the author drew in Word, not like
+            # regular body prose. Detected case-insensitively, with or
+            # without an accent on the « e ».
+            if re.match(r'^note\s+(m[eé]thodologique|p[eé]dagogique)\s*[:：]', text, re.IGNORECASE):
+                # Strip the leading "Note méthodologique : " label so the
+                # frontend renders a clean body — the label is added back as
+                # a styled header inside the callout.
+                stripped = re.sub(r'^note\s+(m[eé]thodologique|p[eé]dagogique)\s*[:：]\s*', '',
+                                  text, count=1, flags=re.IGNORECASE)
+                content_blocks.append({'type': 'methodology_note', 'text': stripped,
+                                       'section': current_section})
+                continue
             if 'Heading' in style or text.startswith('🏛') or text.startswith('🧠') or text.startswith('📅'):
                 current_section = text
                 content_blocks.append({'type': 'heading', 'text': text,
