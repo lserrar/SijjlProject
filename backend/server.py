@@ -171,6 +171,53 @@ _VIDEO_EXTS = {'mp4', 'mov', 'webm', 'mkv'}
 _DOC_EXTS = {'pdf', 'doc', 'docx'}
 
 _BIBLIO_KEYWORDS = ('biblio',)
+
+
+# Match filenames `bibliographie_*.docx|pdf` OR `bibliographie-*.docx|pdf`
+# (both authoring conventions are in use). Captures the dash/underscore
+# normalised body for label derivation.
+_BIBLIO_FILE_RE = re.compile(r'^bibliographie[_-](.+)\.(docx|pdf)$', re.IGNORECASE)
+# Episode marker inside the body: `…-episode3` / `…-ep03` / `…_episode_5`.
+_BIBLIO_EPISODE_RE = re.compile(r'(?:^|[-_])(?:ep|episode)[-_\s]*(\d+)', re.IGNORECASE)
+
+
+def _parse_biblio_filename(filename: str):
+    """Inspect a basename. Returns `(is_biblio, body, episode_number)` where
+    `body` is the slug between "bibliographie-" and the extension (e.g.
+    "droit-episode3"), and `episode_number` is the extracted integer or
+    `None` for module-level biblios. Returns `(False, None, None)` if the
+    name doesn't look like a bibliography file.
+    """
+    m = _BIBLIO_FILE_RE.match(filename or '')
+    if not m:
+        return False, None, None
+    body = m.group(1)
+    ep = None
+    em = _BIBLIO_EPISODE_RE.search(body)
+    if em:
+        try:
+            ep = int(em.group(1))
+        except ValueError:
+            ep = None
+    return True, body, ep
+
+
+def _biblio_label(body: str, episode_number=None, *, module_fallback: bool = False) -> str:
+    """Render a human label from a biblio filename slug.
+
+    Examples (verified by tests in /app/backend/tests):
+        body='falsafa'             → 'Bibliographie — Falsafa'
+        body='droit-episode3', ep=3 → 'Bibliographie — Épisode 3'
+        body='maimonide'           → 'Bibliographie — Maimonide'
+        body='', module_fallback=True → 'Bibliographie — Module'
+    """
+    if episode_number is not None:
+        return f"Bibliographie — Épisode {episode_number}"
+    cleaned = (body or '').replace('_', ' ').replace('-', ' ').strip()
+    if not cleaned:
+        return "Bibliographie — Module" if module_fallback else "Bibliographie"
+    pretty = ' '.join(w.capitalize() for w in cleaned.split())
+    return f"Bibliographie — {pretty}"
 _GLOSSAIRE_KEYWORDS = ('glossaire', 'glossary', 'lexique')
 
 # Episode number patterns: episode1, ep1, _1., -1., (1), -01., partie1, etc.
@@ -5189,7 +5236,16 @@ async def seed_data():
                 for o in r.get('Contents', []):
                     key = o['Key']
                     fn = key.rsplit('/', 1)[-1]
-                    if not (fn.lower().startswith('contexte_') and fn.lower().endswith('.docx')):
+                    fn_l = fn.lower()
+                    # Both Contexte_*.docx AND bibliographie-*.docx|pdf
+                    # files are treated as "discovery anchors" — they tell
+                    # us this R2 folder hosts pedagogical content for one
+                    # of our known courses.
+                    is_anchor = (
+                        (fn_l.startswith('contexte_') and fn_l.endswith('.docx'))
+                        or _parse_biblio_filename(fn)[0]
+                    )
+                    if not is_anchor:
                         continue
                     scanned_count += 1
                     parts = key.split('/')[:-1]  # all folders except filename
@@ -7303,11 +7359,10 @@ def _autodetect_meta(r2_key: str, mime: str, *, module: bool) -> dict:
     stem = fn.rsplit('.', 1)[0]
     asset_type = None
     label = stem.replace('_', ' ').replace('-', ' ').strip()
-    if lower.startswith('bibliographie_'):
+    is_biblio, body, ep_n = _parse_biblio_filename(fn)
+    if is_biblio:
         asset_type = 'bibliographie'
-        tail = stem[len('bibliographie_'):].replace('_', ' ').replace('-', ' ').strip()
-        tail = ' '.join(w.capitalize() for w in tail.split()) if tail else ('Module' if module else '')
-        label = f"Bibliographie — {tail}" if tail else "Bibliographie"
+        label = _biblio_label(body, episode_number=ep_n, module_fallback=module)
     elif lower.startswith(('script-', 'script_')) and lower.endswith('.pdf'):
         asset_type = 'script_pdf'
         ep_match = re.search(r'(?:ep|episode)[\s_-]*(\d+)', lower)
@@ -7374,8 +7429,16 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
         if (lower.endswith('.docx')
                 and (lower.startswith('script-') or lower.startswith('script_'))):
             continue
+        # Bibliography files (both `bibliographie_*` and `bibliographie-*`)
+        # are checked BEFORE the generic PDF branch so a
+        # `bibliographie-maimonide.pdf` isn't mis-classified as a manuscript.
+        _is_biblio_fn, _biblio_body, _biblio_ep = _parse_biblio_filename(filename)
         # Only emit visual/textual assets
-        if lower.endswith('.pdf'):
+        if _is_biblio_fn and lower.endswith('.docx'):
+            mime, asset_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'bibliographie'
+        elif _is_biblio_fn and lower.endswith('.pdf'):
+            mime, asset_type = 'application/pdf', 'bibliographie'
+        elif lower.endswith('.pdf'):
             # `script-*.pdf` is the printable handout of an episode — give it
             # a dedicated label/type so the front-end renders it as "Script
             # PDF" rather than as a manuscript image.
@@ -7387,10 +7450,6 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             mime, asset_type = 'image/jpeg', 'image'
         elif lower.endswith('.png'):
             mime, asset_type = 'image/png', 'image'
-        elif lower.startswith('bibliographie_') and lower.endswith('.docx'):
-            mime, asset_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'bibliographie'
-        elif lower.startswith('bibliographie_') and lower.endswith('.pdf'):
-            mime, asset_type = 'application/pdf', 'bibliographie'
         else:
             continue
 
@@ -7406,7 +7465,6 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
         # Build a human label.
         stem = filename.rsplit('.', 1)[0]
         label = stem.replace('_', ' ').replace('-', ' ').strip()
-        # Drop boilerplate ("BEIC 11521297" id, weird dashes) and prepend prefix
         if asset_type == 'script_pdf':
             # `script-debuts-islam-episode1.pdf` → "Script — Épisode 1"
             label = f"Script — Épisode {ep_num}" if ep_num else "Script PDF"
@@ -7415,9 +7473,11 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
         elif asset_type == 'image':
             label = label.capitalize() if label else filename
         elif asset_type == 'bibliographie':
-            # `bibliographie_falsafa` → "Bibliographie — Falsafa"
-            label = label[len('bibliographie '):].strip() if label.lower().startswith('bibliographie ') else label
-            label = f"Bibliographie — {' '.join(w.capitalize() for w in label.split())}" if label else "Bibliographie"
+            # Accept both `bibliographie_*` (legacy) and `bibliographie-*`
+            # (new convention), including per-episode variants like
+            # `bibliographie-droit-episode3.docx`.
+            _is_b, _body, _ep = _parse_biblio_filename(filename)
+            label = _biblio_label(_body, episode_number=_ep)
 
         entry = {
             'r2_key': key,
@@ -7460,7 +7520,8 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             if not rel or '/' in rel:  # only immediate children
                 continue
             lower = rel.lower()
-            if not lower.startswith('bibliographie_'):
+            is_b, body_slug, ep_n = _parse_biblio_filename(rel)
+            if not is_b:
                 continue
             if lower.endswith('.docx'):
                 mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -7468,13 +7529,10 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
                 mime = 'application/pdf'
             else:
                 continue
-            stem = rel.rsplit('.', 1)[0]
-            tail = stem[len('bibliographie_'):].replace('_', ' ').replace('-', ' ').strip()
-            tail = ' '.join(w.capitalize() for w in tail.split()) if tail else 'Module'
             out.append({
                 'r2_key': key,
                 'type': 'bibliographie',
-                'label': f"Bibliographie — {tail}",
+                'label': _biblio_label(body_slug, episode_number=ep_n, module_fallback=True),
                 'mime': mime,
                 'auto_detected': True,
                 'scope': 'module',
@@ -7524,7 +7582,7 @@ async def get_course_resource_access_url(course_id: str, body: dict, request: Re
             parent_prefix
             and r2_key.startswith(parent_prefix)
             and '/' not in r2_key[len(parent_prefix):]
-            and fn.startswith('bibliographie_')
+            and _parse_biblio_filename(fn)[0]
             and fn.endswith(('.docx', '.pdf'))
         )
         if in_course or in_module:
@@ -7939,7 +7997,7 @@ async def get_course_resource_article(course_id: str, r2_key: str, request: Requ
             parent_prefix
             and r2_key.startswith(parent_prefix)
             and '/' not in r2_key[len(parent_prefix):]
-            and fn.startswith('bibliographie_')
+            and _parse_biblio_filename(fn)[0]
             and fn.endswith(('.docx', '.pdf'))
         )
         if in_course or in_module:
@@ -8234,7 +8292,7 @@ async def get_course_resource_pdf(course_id: str, r2_key: str, request: Request)
             parent_prefix
             and r2_key.startswith(parent_prefix)
             and '/' not in r2_key[len(parent_prefix):]
-            and fn.startswith('bibliographie_')
+            and _parse_biblio_filename(fn)[0]
             and fn.endswith(('.docx', '.pdf'))
         )
         if in_course or in_module:
