@@ -134,9 +134,6 @@ function parseContextContent(content, authoritativeTitle = '') {
   return { moduleInfo: moduleInfo || cursusInfo, thinkerName: authoritativeTitle, epochInfo, tagline, sections }
 }
 
-  return { moduleInfo, thinkerName, epochInfo, sections }
-}
-
 export default function ResourceViewer() {
   const { type, resourceId } = useParams()
   const { user } = useAuth()
