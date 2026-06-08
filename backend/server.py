@@ -5278,6 +5278,42 @@ async def seed_data():
     # ─── End Migration v15j ────────────────────────────────────────────────
 
 
+    # ─── Migration v15k — Detach per-episode biblio entries mis-registered as course-resources ─
+    # When the user first imported the « droit musulman » per-episode biblios
+    # (`bibliographie-droit-episode1.docx` … `episode6.docx`), one of them
+    # ended up in `course_resources` with the generic label
+    # « Bibliographie sélective » — masking the proper per-episode label
+    # produced by the new auto-detection layer. We pull any
+    # `course_resources` entry whose filename matches
+    # `bibliographie-*-episode{N}.{docx,pdf}` so the auto-detect can take
+    # over and render them as "Bibliographie — Épisode N" under their
+    # correct episode group.
+    try:
+        ep_filename_rx = re.compile(r'^bibliographie[_-].*[_-](?:ep|episode)[_-]?\d+\.(docx|pdf)$', re.IGNORECASE)
+        detached = 0
+        async for course in db.courses.find({'course_resources': {'$exists': True, '$ne': []}},
+                                            {'_id': 0, 'id': 1, 'course_resources': 1}):
+            new_resources = []
+            removed_any = False
+            for r in (course.get('course_resources') or []):
+                fn = (r.get('r2_key') or '').rsplit('/', 1)[-1]
+                if ep_filename_rx.match(fn):
+                    removed_any = True
+                    continue
+                new_resources.append(r)
+            if removed_any:
+                await db.courses.update_one(
+                    {'id': course['id']},
+                    {'$set': {'course_resources': new_resources}},
+                )
+                detached += 1
+        if detached:
+            logger.info(f"Migration v15k: detached per-episode biblio entries from {detached} course(s)")
+    except Exception as e:
+        logger.warning(f"Migration v15k failed: {e}", exc_info=True)
+    # ─── End Migration v15k ────────────────────────────────────────────────
+
+
     # ─── Migration v15i — Cleanup YouTube URL pollution on cours-debuts-islam ─
     # An earlier broken version of Migration v4 step #6 used
     # `update_many({'course_id': 'cours-debuts-islam'}, ...)` which stamped
