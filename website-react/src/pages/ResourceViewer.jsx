@@ -4,7 +4,20 @@ import { getResourceContent, getBibliographies } from '../api'
 import { getCursusColor } from '../constants'
 import { useAuth } from '../AuthContext'
 
-const SECTION_TITLES = ['Contexte dynastique', 'Contexte intellectuel', 'Chronologie biographique']
+// Major section headings recognised in Contexte fiches. The list is matched
+// case-insensitively and accepts an optional " et historique" / "s" suffix
+// so authoring variants don't break the parser.
+const SECTION_TITLES = [
+  'Contexte dynastique',
+  'Contexte dynastique et historique',
+  'Contexte intellectuel',
+  'Chronologie biographique',
+  'Chronologie',
+  'Débats historiographiques',
+  'Postérité',
+  'Héritage',
+  'Sources et orientations bibliographiques',
+]
 
 const SKIP_PATTERNS = [
   /^Sijill Project$/i,
@@ -36,37 +49,90 @@ function filterBiblioContent(raw) {
   return { lines, noteIndex }
 }
 
-function parseContextContent(content) {
-  if (!content || !Array.isArray(content)) return { moduleInfo: '', thinkerName: '', epochInfo: '', sections: [] }
+function parseContextContent(content, authoritativeTitle = '') {
+  // Format-agnostic parser. The backend already extracts the canonical title
+  // (`data.title`) from inside the DOCX, so we don't try to recover it from
+  // content[i] indices anymore — those are fragile across authoring
+  // conventions ("Module N —" vs "Épisode N —" vs nothing). We simply walk
+  // the blocks, capture the first few header paragraphs as moduleInfo /
+  // cursusInfo / epochInfo, and then dispatch by section/heading marker.
+  if (!content || !Array.isArray(content)) {
+    return { moduleInfo: '', thinkerName: authoritativeTitle, epochInfo: '', sections: [] }
+  }
+
+  // Normalize the authoritative title so we can detect & drop its duplicate
+  // copy when it appears as the very first paragraph (the author often
+  // writes the name as a bold-only line at the top of the DOCX).
+  const titleNorm = authoritativeTitle.trim().toLowerCase().replace(/\s+/g, ' ')
 
   let moduleInfo = ''
-  let thinkerName = ''
+  let cursusInfo = ''
   let epochInfo = ''
+  let tagline = ''
+  let sawSection = false
   const sections = []
   let currentSection = null
+  let headerSlot = 0 // how many header lines we've absorbed before the first section
 
   for (let i = 0; i < content.length; i++) {
     const block = content[i]
     const text = (block.text || '').trim()
+    if (!text) continue
+    const normalized = text.toLowerCase().replace(/\s+/g, ' ')
 
-    if (i === 0 && text.startsWith('Module')) { moduleInfo = text; continue }
-    if (i === 1) { thinkerName = text; continue }
-    if (i === 2 && (text.includes('·') || text.toLowerCase().includes('époque'))) { epochInfo = text; continue }
-
-    const normalized = text.toLowerCase().trim()
-    const isSectionTitle = SECTION_TITLES.some(t => normalized === t.toLowerCase())
-
-    if (isSectionTitle) {
-      if (currentSection?.content.length > 0) sections.push(currentSection)
-      const properTitle = SECTION_TITLES.find(t => t.toLowerCase() === normalized) || text
-      currentSection = { title: properTitle, content: [] }
-    } else if (currentSection) {
-      currentSection.content.push(block)
-    } else {
-      currentSection = { title: 'Introduction', content: [block] }
+    // Detect & drop the duplicate of the article title at the top of the body.
+    if (!sawSection && headerSlot < 4 && titleNorm && normalized === titleNorm) {
+      headerSlot++
+      continue
     }
+
+    // First, check whether this block is a top-level section heading.
+    // (Either flagged by the backend as `type==='heading'`, or whose text
+    // matches one of our known section labels.)
+    const isHeadingType = block.type === 'heading'
+    const matchesSection = SECTION_TITLES.some(t =>
+      normalized === t.toLowerCase() ||
+      normalized.startsWith(t.toLowerCase() + ' ') ||
+      // accept "Contexte dynastique et historique" when SECTION_TITLES has "Contexte dynastique"
+      normalized.startsWith(t.toLowerCase())
+    )
+    if (isHeadingType || matchesSection) {
+      if (currentSection?.content.length > 0) sections.push(currentSection)
+      const properTitle = SECTION_TITLES.find(t =>
+        normalized === t.toLowerCase() || normalized.startsWith(t.toLowerCase())
+      ) || text
+      // Prefer the longer authored variant if it adds context (e.g. "et historique").
+      currentSection = { title: text.length > properTitle.length ? text : properTitle, content: [] }
+      sawSection = true
+      continue
+    }
+
+    // Pre-section header lines. We absorb up to 3 lines as cursusInfo / epochInfo / tagline.
+    if (!sawSection) {
+      if (headerSlot === 0 && /^(module|épisode|episode)\s+\d/i.test(text)) {
+        moduleInfo = text
+      } else if (headerSlot === 0 && (text.startsWith('Cursus') || /\bcursus\b/i.test(text))) {
+        cursusInfo = text
+      } else if (!epochInfo && (text.includes('·') || /(\d{3,4})\s*[–-]\s*(\d{3,4})/.test(text) || /époque/i.test(text))) {
+        epochInfo = text
+      } else if (!tagline) {
+        tagline = text
+      } else {
+        // Anything else before sections lands in an "Introduction" pseudo-section.
+        if (!currentSection) currentSection = { title: 'Introduction', content: [] }
+        currentSection.content.push(block)
+      }
+      headerSlot++
+      continue
+    }
+
+    // Inside a section — preserve the block (paragraph / subheading / list_item / methodology_note)
+    if (currentSection) currentSection.content.push(block)
   }
   if (currentSection?.content.length > 0) sections.push(currentSection)
+
+  return { moduleInfo: moduleInfo || cursusInfo, thinkerName: authoritativeTitle, epochInfo, tagline, sections }
+}
 
   return { moduleInfo, thinkerName, epochInfo, sections }
 }
@@ -147,7 +213,7 @@ export default function ResourceViewer() {
   // `_extract_contexte_title`, with thinkerName from the parser as a
   // fall-back when the parser identifies a richer header line.
   if (type === 'fiche' && Array.isArray(data.content)) {
-    const { moduleInfo, thinkerName, epochInfo, sections } = parseContextContent(data.content)
+    const { moduleInfo, thinkerName, epochInfo, tagline, sections } = parseContextContent(data.content, data.title || data.subject || '')
     const displayName = thinkerName || data.subject || data.title
     return (
       <div data-testid="resource-viewer-page" className="cra cra-prestige rv-page-prestige">
@@ -163,6 +229,7 @@ export default function ResourceViewer() {
             {moduleInfo && <div className="rv-module-info" style={{ color }}>{moduleInfo}</div>}
             <h1 className="rv-thinker-name">{displayName}</h1>
             {epochInfo && <p className="rv-epoch-info">{epochInfo}</p>}
+            {tagline && <p className="rv-tagline" style={{ color }}>{tagline}</p>}
 
             <div className="rv-divider">
               <span className="rv-divider-line" />
@@ -183,12 +250,17 @@ export default function ResourceViewer() {
                     if (block.type === 'methodology_note') return (
                       <aside key={bi} className="rv-method-note" data-testid="rv-method-note">
                         <div className="rv-method-note-label" style={{ color }}>
-                          NOTE MÉTHODOLOGIQUE
+                          {(block.label || 'Note méthodologique').toUpperCase()}
                         </div>
                         <p className="rv-method-note-text" style={{ fontSize: Math.max(15, fontSize - 2) }}>
                           {block.text}
                         </p>
                       </aside>
+                    )
+                    if (block.type === 'subheading') return (
+                      <h3 key={bi} className="rv-subheading-bold" data-testid="rv-subheading-bold" style={{ color }}>
+                        {block.text}
+                      </h3>
                     )
                     if (block.type === 'heading') return <h3 key={bi} className="rv-subheading">{block.text}</h3>
                     if (block.type === 'list_item') return (

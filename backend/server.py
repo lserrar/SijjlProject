@@ -5156,6 +5156,72 @@ async def seed_data():
     # ─── End Migration v15g ────────────────────────────────────────────────
 
 
+    # ─── Migration v15j — Auto-assign r2_prefix to courses that point at an R2 folder containing Contexte_*.docx ─
+    # Many courses authored in 2026 still have `r2_prefix=None` because the
+    # admin never explicitly bound them to an R2 directory — yet the actual
+    # `Contexte_*.docx` files do live in R2 under a folder whose slug matches
+    # the course id (e.g. `cursus-c-sciences-islamiques/sciences-naturelles/`
+    # for `cours-sciences-naturelles`). We walk every Contexte file in the
+    # bucket, derive the *deepest folder* containing it, and stamp it as the
+    # `r2_prefix` of any course whose slug matches one of the parent folders.
+    # Existing prefixes are NEVER overwritten — this only fills the blanks.
+    try:
+        if r2_client:
+            # Build a slug->course_id index from the courses collection.
+            course_index: dict = {}
+            async for c in db.courses.find({}, {'_id': 0, 'id': 1, 'r2_prefix': 1}):
+                cid = c.get('id') or ''
+                if not cid.startswith('cours-'):
+                    continue
+                # Strip the "cours-" prefix to get the slug we'll match on.
+                slug = cid[len('cours-'):]
+                course_index[slug] = c
+
+            # Walk the bucket for Contexte_*.docx
+            scan_cursor = None
+            scanned_count = 0
+            folder_to_course: dict = {}
+            while True:
+                kw = dict(Bucket=R2_BUCKET, MaxKeys=1000)
+                if scan_cursor:
+                    kw['ContinuationToken'] = scan_cursor
+                r = r2_client.list_objects_v2(**kw)
+                for o in r.get('Contents', []):
+                    key = o['Key']
+                    fn = key.rsplit('/', 1)[-1]
+                    if not (fn.lower().startswith('contexte_') and fn.lower().endswith('.docx')):
+                        continue
+                    scanned_count += 1
+                    parts = key.split('/')[:-1]  # all folders except filename
+                    # Try every parent folder, deepest first, to see if its slug
+                    # matches a course we have in DB.
+                    for depth in range(len(parts), 0, -1):
+                        folder_name = parts[depth - 1].strip().lower()
+                        if folder_name in course_index:
+                            r2_prefix = '/'.join(parts[:depth]) + '/'
+                            folder_to_course[r2_prefix] = course_index[folder_name]['id']
+                            break
+                if not r.get('IsTruncated'):
+                    break
+                scan_cursor = r.get('NextContinuationToken')
+
+            # Apply the prefixes
+            applied = 0
+            for r2_prefix, course_id in folder_to_course.items():
+                # Only fill blanks — never overwrite a manually-set prefix.
+                res = await db.courses.update_one(
+                    {'id': course_id, '$or': [{'r2_prefix': None}, {'r2_prefix': ''}, {'r2_prefix': {'$exists': False}}]},
+                    {'$set': {'r2_prefix': r2_prefix}},
+                )
+                if res.modified_count:
+                    applied += 1
+            if applied or scanned_count:
+                logger.info(f"Migration v15j: scanned {scanned_count} Contexte_*.docx, auto-assigned r2_prefix on {applied} course(s)")
+    except Exception as e:
+        logger.warning(f"Migration v15j failed: {e}", exc_info=True)
+    # ─── End Migration v15j ────────────────────────────────────────────────
+
+
     # ─── Migration v15i — Cleanup YouTube URL pollution on cours-debuts-islam ─
     # An earlier broken version of Migration v4 step #6 used
     # `update_many({'course_id': 'cours-debuts-islam'}, ...)` which stamped
@@ -6732,7 +6798,10 @@ async def _collect_contexte_files(course_filter: Optional[str] = None,
         if not prefix.endswith('/'):
             prefix += '/'
         try:
-            resp = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=300)
+            # Recursive scan — some courses have Contextes in sub-folders
+            # (e.g. `cursus-a-falsafa/inclassables/ibn-hazm/Contexte_ibn-hazm.docx`
+            # while the course r2_prefix is `cursus-a-falsafa/inclassables/`).
+            resp = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=1000)
         except Exception:
             continue
         for obj in resp.get('Contents', []):
@@ -6850,36 +6919,85 @@ async def get_context_resource(resource_id: str, request: Request):
         # Parse document content
         content_blocks = []
         current_section = None
+        # Pre-compute the set of "callout" labels — paragraphs that begin
+        # with one of these prefixes are isolated as a framed editorial box
+        # on the front-end (.rv-method-note). The label part is stripped
+        # from the body and re-emitted as the box header. The separator can
+        # be a colon, dash, or simply whitespace (some authors omit `:` for
+        # the "Note méthodologique" / "Mise en garde" headers).
+        CALLOUT_PATTERNS = [
+            (re.compile(r'^note\s+(m[eé]thodologique|p[eé]dagogique)\s*[:：\-—–]?\s+', re.IGNORECASE), "Note méthodologique"),
+            (re.compile(r'^mise\s+en\s+garde\s*[:：\-—–]?\s+', re.IGNORECASE), "Mise en garde"),
+            (re.compile(r"^d[eé]bat\s+ouvert\s*[:：\-—–]?\s+", re.IGNORECASE), "Débat ouvert"),
+            (re.compile(r"^[eéEÉ]tat\s+de\s+la\s+recherche\s*[:：\-—–]?\s+", re.IGNORECASE), "État de la recherche"),
+            (re.compile(r"^dimension\s+contemporaine\s*[:：\-—–]?\s+", re.IGNORECASE), "Dimension contemporaine"),
+        ]
+        SECTION_HEAD_PATTERNS = [
+            re.compile(r"^contexte\s+dynastique", re.IGNORECASE),
+            re.compile(r"^contexte\s+intellectuel", re.IGNORECASE),
+            re.compile(r"^chronologie\s+biographique", re.IGNORECASE),
+            re.compile(r"^d[eé]bats?\s+historiographiques?", re.IGNORECASE),
+            re.compile(r"^postérité|^héritage", re.IGNORECASE),
+        ]
+
+        def _is_bold_only(p) -> bool:
+            """True if every run of this paragraph is bold AND the
+            paragraph is short enough (< 120 chars) to be a sub-heading."""
+            text = (p.text or '').strip()
+            if not text or len(text) > 120:
+                return False
+            runs = [r for r in p.runs if (r.text or '').strip()]
+            if not runs:
+                return False
+            return all(bool(r.bold) for r in runs)
+
         for para in doc.paragraphs:
-            text = para.text.strip()
+            text = (para.text or '').strip()
             if not text:
                 continue
             style = para.style.name if para.style else 'Normal'
-            # A "Note méthodologique : …" / "Note pédagogique : …" paragraph
-            # is a one-shot editorial caveat the historians add to their
-            # fiches — render it as a framed callout box on the front-end so
-            # it reads like the "encadré" the author drew in Word, not like
-            # regular body prose. Detected case-insensitively, with or
-            # without an accent on the « e ».
-            if re.match(r'^note\s+(m[eé]thodologique|p[eé]dagogique)\s*[:：]', text, re.IGNORECASE):
-                # Strip the leading "Note méthodologique : " label so the
-                # frontend renders a clean body — the label is added back as
-                # a styled header inside the callout.
-                stripped = re.sub(r'^note\s+(m[eé]thodologique|p[eé]dagogique)\s*[:：]\s*', '',
-                                  text, count=1, flags=re.IGNORECASE)
-                content_blocks.append({'type': 'methodology_note', 'text': stripped,
-                                       'section': current_section})
+            # 1. Editorial callouts (Note méthodologique / Mise en garde / etc.)
+            callout_label = None
+            stripped_text = text
+            for rx, label in CALLOUT_PATTERNS:
+                m = rx.match(text)
+                if m:
+                    callout_label = label
+                    stripped_text = text[m.end():].strip()
+                    break
+            if callout_label is not None:
+                content_blocks.append({
+                    'type': 'methodology_note',
+                    'label': callout_label,
+                    'text': stripped_text or text,
+                    'section': current_section,
+                })
                 continue
+            # 2. Major section headings (auto-detected by text pattern, since
+            # most authors use the default Word "Normal" style — not "Heading").
+            if any(rx.match(text) for rx in SECTION_HEAD_PATTERNS):
+                current_section = text
+                content_blocks.append({'type': 'heading', 'text': text, 'level': 1})
+                continue
+            # 3. Native Word "Heading" / emoji-prefixed titles
             if 'Heading' in style or text.startswith('🏛') or text.startswith('🧠') or text.startswith('📅'):
                 current_section = text
                 content_blocks.append({'type': 'heading', 'text': text,
                                        'level': 1 if 'Heading 1' in style else 2})
-            elif text.startswith('•') or text.startswith('-'):
+                continue
+            # 4. Bold-only short paragraphs → sub-heading (level 3) inside a section.
+            if _is_bold_only(para):
+                content_blocks.append({'type': 'subheading', 'text': text,
+                                       'section': current_section})
+                continue
+            # 5. Bullet / list items
+            if text.startswith('•') or text.startswith('-'):
                 content_blocks.append({'type': 'list_item', 'text': text.lstrip('•- '),
                                        'section': current_section})
-            else:
-                content_blocks.append({'type': 'paragraph', 'text': text,
-                                       'section': current_section})
+                continue
+            # 6. Default — body paragraph
+            content_blocks.append({'type': 'paragraph', 'text': text,
+                                   'section': current_section})
 
         return {
             'id': resource_id,

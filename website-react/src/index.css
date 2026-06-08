@@ -1450,6 +1450,23 @@ p, li {
 }
 
 /* ─── Methodology / pedagogical note — framed callout ────────────────── */
+.rv-page-prestige .rv-tagline {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 6px 0 0;
+  color: #6F5A40;
+}
+.rv-page-prestige .rv-subheading-bold {
+  font-family: 'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 28px 0 10px;
+  padding-left: 14px;
+  border-left: 3px solid currentColor;
+  line-height: 1.3;
+}
 .rv-method-note {
   position: relative;
   margin: 32px 0;
