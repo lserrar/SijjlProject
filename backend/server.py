@@ -5264,18 +5264,98 @@ async def seed_data():
             # Apply the prefixes
             applied = 0
             for r2_prefix, course_id in folder_to_course.items():
-                # Only fill blanks — never overwrite a manually-set prefix.
+                # First try: fill in courses with NO prefix at all.
                 res = await db.courses.update_one(
                     {'id': course_id, '$or': [{'r2_prefix': None}, {'r2_prefix': ''}, {'r2_prefix': {'$exists': False}}]},
                     {'$set': {'r2_prefix': r2_prefix}},
                 )
                 if res.modified_count:
                     applied += 1
+                    continue
+                # Second try: detect a STALE prefix — pointing at an R2 path
+                # that no longer contains any anchor file (e.g. the user
+                # moved `cours-sciences-naturelles` from cursus-c to cursus-d
+                # without updating the course's r2_prefix). We verify the
+                # current prefix is empty before reassigning.
+                course_doc = await db.courses.find_one({'id': course_id}, {'_id': 0, 'r2_prefix': 1})
+                current = (course_doc or {}).get('r2_prefix') or ''
+                if not current or current == r2_prefix:
+                    continue
+                try:
+                    chk = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=current, MaxKeys=1)
+                    if chk.get('KeyCount', 0) > 0:
+                        continue  # current prefix is alive — respect it
+                except Exception:
+                    continue
+                # Current prefix is dead — reassign to the discovered one.
+                await db.courses.update_one(
+                    {'id': course_id},
+                    {'$set': {'r2_prefix': r2_prefix}},
+                )
+                logger.info(f"Migration v15j: re-assigned r2_prefix for {course_id}: {current} → {r2_prefix}")
+                applied += 1
             if applied or scanned_count:
-                logger.info(f"Migration v15j: scanned {scanned_count} Contexte_*.docx, auto-assigned r2_prefix on {applied} course(s)")
+                logger.info(f"Migration v15j: scanned {scanned_count} anchor file(s), auto-assigned r2_prefix on {applied} course(s)")
     except Exception as e:
         logger.warning(f"Migration v15j failed: {e}", exc_info=True)
     # ─── End Migration v15j ────────────────────────────────────────────────
+
+
+    # ─── Migration v15l — Auto-match R2 audio files to existing audio docs ─
+    # Once v15j has propagated the right `r2_prefix` to every course, we walk
+    # each course's prefix recursively, look for `.m4a` / `.mp3` files and
+    # extract the episode number from the filename via the same heuristic
+    # the front-end uses. Any audio doc lacking an `r2_key` and matching
+    # `(course_id, episode_number)` gets its `r2_key` filled in. This handles
+    # the modern nested folder layouts (e.g.
+    # `cursus-d-arts-litterature/sciences/sciences-naturelles/Sciences-naturelles-episode1.m4a`)
+    # that the legacy hard-coded `R2_TO_COURSE_MAPPING` cannot reach.
+    try:
+        if r2_client:
+            ep_rx = re.compile(r'(?:ep|episode)[\s_-]*(\d+)', re.IGNORECASE)
+            audio_assigned = 0
+            audio_courses_seen = 0
+            async for c in db.courses.find(
+                {'r2_prefix': {'$exists': True, '$ne': None, '$ne': ''}},
+                {'_id': 0, 'id': 1, 'r2_prefix': 1},
+            ):
+                cid = c['id']
+                prefix = c['r2_prefix']
+                if not prefix.endswith('/'):
+                    prefix += '/'
+                audio_courses_seen += 1
+                try:
+                    resp = r2_client.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix, MaxKeys=500)
+                except Exception:
+                    continue
+                for o in resp.get('Contents', []):
+                    key = o['Key']
+                    if not (key.endswith('.m4a') or key.endswith('.mp3')) or o.get('Size', 0) < 1024:
+                        continue
+                    fn = key.rsplit('/', 1)[-1]
+                    em = ep_rx.search(fn)
+                    if not em:
+                        continue
+                    try:
+                        ep = int(em.group(1))
+                    except ValueError:
+                        continue
+                    res = await db.audios.update_one(
+                        {
+                            'course_id': cid,
+                            'episode_number': ep,
+                            '$or': [{'r2_key': None}, {'r2_key': ''}, {'r2_key': {'$exists': False}}],
+                        },
+                        {'$set': {'r2_key': key}},
+                    )
+                    if res.modified_count:
+                        audio_assigned += 1
+                        logger.info(f"Migration v15l: {cid} ep{ep} ← {key}")
+            if audio_assigned or audio_courses_seen:
+                logger.info(f"Migration v15l: scanned {audio_courses_seen} course folder(s), linked {audio_assigned} audio file(s)")
+    except Exception as e:
+        logger.warning(f"Migration v15l failed: {e}", exc_info=True)
+    # ─── End Migration v15l ────────────────────────────────────────────────
 
 
     # ─── Migration v15k — Detach per-episode biblio entries mis-registered as course-resources ─
