@@ -5301,6 +5301,141 @@ async def seed_data():
     # ─── End Migration v15j ────────────────────────────────────────────────
 
 
+    # ─── Migration v15m — Seed Cursus F (Mystique islamique) courses & audios ─
+    # 4 cursus rows from the user's reference spreadsheet (jul-26):
+    #   1. Les débuts du soufisme — Gregory Vandamme — 1 episode
+    #   2. La pensée d'Ibn ʿArabī — Gregory Vandamme — 3 episodes
+    #   3. An Introduction to Rumi's Masnavi — Dr. Nariman Aavani — 2 episodes
+    # R2 folders (already populated with Contexte_/Biblio files):
+    #   mystique-islamique/premier-tasawwuf/         → cours-soufisme
+    #   mystique-islamique/post-classique-tasawwuf/ibn-arabi/ → cours-ibn-arabi
+    #   mystique-islamique/rumi/                     → cours-rumi-masnavi
+    # The migration is idempotent: scholars/courses/audios are upserted by id,
+    # `seed_locked=True` is set so future seed waves don't overwrite manual
+    # edits the admin makes via the panel.
+    try:
+        # 1) Scholar Nariman Aavani (Gregory Vandamme already exists as sch-vandamme)
+        await db.scholars.update_one(
+            {'id': 'sch-aavani'},
+            {
+                '$setOnInsert': {
+                    'id': 'sch-aavani',
+                    'name': 'Dr. Nariman Aavani',
+                    'title': 'Professeur',
+                    'bio': "Spécialiste de littérature persane classique et de la mystique de Mawlānā Jalāl ad-Dīn Rūmī.",
+                    'is_active': True,
+                    'seed_locked': True,
+                },
+            },
+            upsert=True,
+        )
+        # 2) Courses
+        mystique_courses = [
+            {
+                'id': 'cours-soufisme',
+                'title': 'Les débuts du soufisme',
+                'cursus_id': 'cursus-spiritualites',
+                'r2_prefix': 'mystique-islamique/debuts-soufisme/',
+                'scholar_id': 'sch-vandamme',
+                'description': "Genèse du soufisme entre Iʿrāq et Khurāsān aux IIᵉ–IIIᵉ siècles de l'hégire — Ḥasan al-Baṣrī, Rābiʿa al-ʿAdawiyya, Dhū al-Nūn al-Miṣrī, al-Bisṭāmī, al-Junayd, al-Ḥallāj, al-Qushayrī, al-Shādhilī.",
+                'episode_count': 1,
+                'available_date': '2026-07-01',
+                'display_order': 50,
+            },
+            {
+                'id': 'cours-ibn-arabi',
+                'title': "La pensée d'Ibn ʿArabī",
+                'cursus_id': 'cursus-spiritualites',
+                'r2_prefix': 'mystique-islamique/ibn-arabi/',
+                'scholar_id': 'sch-vandamme',
+                'description': "Trois épisodes sur l'œuvre métaphysique du « Shaykh al-Akbar » — Futūḥāt makkiyya, Fuṣūṣ al-ḥikam, doctrine du waḥdat al-wujūd.",
+                'episode_count': 3,
+                'available_date': '2026-07-01',
+                'display_order': 51,
+            },
+            {
+                'id': 'cours-rumi-masnavi',
+                'title': "An Introduction to Rumi's Masnavi",
+                'cursus_id': 'cursus-spiritualites',
+                'r2_prefix': 'mystique-islamique/rumi/',
+                'scholar_id': 'sch-aavani',
+                'description': "Two-part introduction to Jalāl al-Dīn Rūmī's Masnavī-yi maʿnavī — its structure, narrative voice, and theology of love (delivered in English).",
+                'episode_count': 2,
+                'available_date': '2026-07-01',
+                'display_order': 52,
+            },
+        ]
+        for c in mystique_courses:
+            await db.courses.update_one(
+                {'id': c['id']},
+                {
+                    '$set': {
+                        'title': c['title'],
+                        'cursus_id': c['cursus_id'],
+                        'r2_prefix': c['r2_prefix'],
+                        'scholar_id': c['scholar_id'],
+                        'description': c['description'],
+                        'episode_count': c['episode_count'],
+                        'available_date': c['available_date'],
+                        'display_order': c['display_order'],
+                        'is_active': True,
+                        'seed_locked': True,
+                    },
+                    '$setOnInsert': {'id': c['id'], 'created_at': datetime.now(timezone.utc)},
+                },
+                upsert=True,
+            )
+        # 3) Audios — one doc per (course, episode_number).
+        from datetime import datetime as _dt
+        audio_seeds = [
+            ('cours-soufisme', 1, 'Les débuts du soufisme', 'Gregory Vandamme'),
+            ('cours-ibn-arabi', 1, "La pensée d'Ibn ʿArabī — Épisode 1", 'Gregory Vandamme'),
+            ('cours-ibn-arabi', 2, "La pensée d'Ibn ʿArabī — Épisode 2", 'Gregory Vandamme'),
+            ('cours-ibn-arabi', 3, "La pensée d'Ibn ʿArabī — Épisode 3", 'Gregory Vandamme'),
+            ('cours-rumi-masnavi', 1, "An Introduction to Rumi's Masnavi — Episode 1", 'Dr. Nariman Aavani'),
+            ('cours-rumi-masnavi', 2, "An Introduction to Rumi's Masnavi — Episode 2", 'Dr. Nariman Aavani'),
+        ]
+        for cid, ep, title, scholar in audio_seeds:
+            aid = f"aud_{cid}-ep{ep:02d}"
+            await db.audios.update_one(
+                {'id': aid},
+                {
+                    '$set': {
+                        'course_id': cid,
+                        'episode_number': ep,
+                        'title': title,
+                        'scholar_name': scholar,
+                        'intervenant': scholar,
+                        'published_at': '2026-07',
+                        'is_active': True,
+                        'seed_locked': True,
+                    },
+                    '$setOnInsert': {'id': aid, 'created_at': datetime.now(timezone.utc)},
+                },
+                upsert=True,
+            )
+        # 4) Cleanup — drop legacy audios that don't match the canonical
+        # `aud_{cid}-ep{NN}` ids OR episode_numbers outside the official
+        # range. This removes stale seeds from earlier waves (e.g. the
+        # cours-soufisme placeholders that incorrectly carried Ibn ʿArabī
+        # episode titles).
+        canonical_ids = {f"aud_{cid}-ep{ep:02d}" for cid, ep, _t, _s in audio_seeds}
+        for cid, max_ep in (('cours-soufisme', 1), ('cours-ibn-arabi', 3), ('cours-rumi-masnavi', 2)):
+            del_res = await db.audios.delete_many({
+                'course_id': cid,
+                '$or': [
+                    {'id': {'$nin': list(canonical_ids)}},
+                    {'episode_number': {'$gt': max_ep}},
+                ],
+            })
+            if del_res.deleted_count:
+                logger.info(f"Migration v15m: removed {del_res.deleted_count} stale audio(s) from {cid}")
+        logger.info(f"Migration v15m: cursus F (mystique) — {len(mystique_courses)} courses, {len(audio_seeds)} audios seeded")
+    except Exception as e:
+        logger.warning(f"Migration v15m failed: {e}", exc_info=True)
+    # ─── End Migration v15m ────────────────────────────────────────────────
+
+
     # ─── Migration v15l — Auto-match R2 audio files to existing audio docs ─
     # Once v15j has propagated the right `r2_prefix` to every course, we walk
     # each course's prefix recursively, look for `.m4a` / `.mp3` files and
