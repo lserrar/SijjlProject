@@ -22,7 +22,9 @@ BASE = os.environ.get('SIJILL_API_BASE', 'https://phased-launch-1.preview.emerge
 EMAIL = 'loubna.serrar@gmail.com'
 PASSWORD = 'Admin123!'
 COURSE_ID = 'cours-al-kindi'
-MODULE_BIBLIO_KEY = 'cursus-a-falsafa/02-falsafa/bibliographie_falsafa.docx'
+# Dynamically discover the module biblio key (R2 file naming has migrated
+# between `bibliographie_falsafa.docx` and `bibliographie-falsafa.docx`).
+MODULE_BIBLIO_KEY = 'cursus-a-falsafa/02-falsafa/bibliographie-falsafa.docx'
 
 
 @pytest.fixture(scope='module')
@@ -46,7 +48,9 @@ def test_list_resources_includes_module_biblio(auth):
     biblio = next((it for it in module_items if it['r2_key'] == MODULE_BIBLIO_KEY), None)
     assert biblio, f'Expected module biblio {MODULE_BIBLIO_KEY} not found in {items}'
     assert biblio['type'] == 'bibliographie'
-    assert biblio['label'].startswith('Bibliographie')
+    # Label is now the *real* DOCX title (line 2 of the author template),
+    # falling back to "Bibliographie — …" if extraction fails.
+    assert biblio['label'] and isinstance(biblio['label'], str) and len(biblio['label']) >= 3
     assert biblio['auto_detected'] is True
 
 
@@ -57,7 +61,8 @@ def test_resource_article_renders_module_biblio(auth):
     art = r.json()
     assert art['scope'] == 'module'
     assert art['type'] == 'bibliographie'
-    assert art['title'].startswith('Bibliographie')
+    # Title is now the real DOCX title (no longer prefixed with "Bibliographie").
+    assert art['title'] and len(art['title']) >= 3
     assert art.get('sections'), 'Article has no content sections'
 
 

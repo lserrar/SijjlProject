@@ -6900,6 +6900,52 @@ async def _list_frises_at_root(prefix: str, *, scope: str, seen: set,
 # when the file is re-uploaded to R2 (LastModified changes).
 _FRISE_TITLE_CACHE: dict = {}
 _CONTEXTE_TITLE_CACHE: dict = {}
+_BIBLIO_TITLE_CACHE: dict = {}
+
+
+async def _extract_biblio_title(r2_key: str, last_modified=None) -> Optional[str]:
+    """Pull the *true* bibliography title from inside a `bibliographie-*.docx`
+    file. The author convention (verified across cursus A–F) is:
+
+        L1 — "Bibliographie sélective"        (small eyebrow label, drop)
+        L2 — Real title in larger bold        (e.g. "Al-Fārābī — Vie, contexte et corpus",
+                                                "La calligraphie islamique", "Le soufisme")
+        L3 — Sub-title or cursus context
+        L4+ — Section headings then entries
+
+    We return L2 (the first non-empty paragraph that doesn't match the
+    eyebrow boilerplate). Cached per (key, last_modified). Returns `None`
+    on any error so the caller falls back to the filename-derived label.
+    """
+    cache_key = (r2_key, last_modified.isoformat() if last_modified else '')
+    if cache_key in _BIBLIO_TITLE_CACHE:
+        return _BIBLIO_TITLE_CACHE[cache_key]
+    title: Optional[str] = None
+    try:
+        if not r2_key.lower().endswith('.docx'):
+            return None  # PDFs don't expose their title via python-docx
+        from docx import Document as _DocxDoc
+        from io import BytesIO as _BytesIO
+        resp = r2_client.get_object(Bucket=R2_BUCKET, Key=r2_key)
+        doc = _DocxDoc(_BytesIO(resp['Body'].read()))
+        meaningful: list[str] = []
+        for p in doc.paragraphs:
+            t = re.sub(r'\s+', ' ', (p.text or '').strip())
+            if not t:
+                continue
+            meaningful.append(t)
+            if len(meaningful) >= 4:
+                break
+        # Drop the eyebrow boilerplate "Bibliographie sélective" line (any
+        # case, with/without accent) and pick the next non-empty para.
+        eyebrow_rx = re.compile(r'^bibliographie\s+s[eé]lective\b', re.IGNORECASE)
+        body = [t for t in meaningful if not eyebrow_rx.match(t)]
+        if body:
+            title = body[0]
+    except Exception:
+        title = None
+    _BIBLIO_TITLE_CACHE[cache_key] = title
+    return title
 
 
 async def _extract_contexte_title(r2_key: str, last_modified=None) -> Optional[str]:
@@ -7598,7 +7644,7 @@ async def list_course_resources(course_id: str, request: Request):
     return {'resources': items, 'count': len(items)}
 
 
-def _autodetect_meta(r2_key: str, mime: str, *, module: bool) -> dict:
+async def _autodetect_meta(r2_key: str, mime: str, *, module: bool) -> dict:
     """Build a clean {r2_key, mime, type, label} dict for an auto-detected
     R2 asset (used by /resource-article and /resource-access-url when the
     file is not registered in DB but lives inside the course or parent
@@ -7614,6 +7660,16 @@ def _autodetect_meta(r2_key: str, mime: str, *, module: bool) -> dict:
     if is_biblio:
         asset_type = 'bibliographie'
         label = _biblio_label(body, episode_number=ep_n, module_fallback=module)
+        # Prefer the *real* title baked inside the DOCX (line 2 of the
+        # author's template) over the filename-derived fallback. PDFs fall
+        # back to the filename label since python-docx can't read them.
+        if lower.endswith('.docx'):
+            try:
+                real = await _extract_biblio_title(r2_key)
+                if real:
+                    label = real
+            except Exception:
+                pass
     elif lower.startswith(('script-', 'script_')) and lower.endswith('.pdf'):
         asset_type = 'script_pdf'
         ep_match = re.search(r'(?:ep|episode)[\s_-]*(\d+)', lower)
@@ -7729,6 +7785,14 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             # `bibliographie-droit-episode3.docx`.
             _is_b, _body, _ep = _parse_biblio_filename(filename)
             label = _biblio_label(_body, episode_number=_ep)
+            # Prefer the real DOCX title (line 2 of the author template).
+            if lower.endswith('.docx'):
+                try:
+                    real = await _extract_biblio_title(key, obj.get('LastModified'))
+                    if real:
+                        label = real
+                except Exception:
+                    pass
 
         entry = {
             'r2_key': key,
@@ -7783,7 +7847,10 @@ async def _autodetect_course_assets(course: dict, exclude_keys: set) -> List[dic
             out.append({
                 'r2_key': key,
                 'type': 'bibliographie',
-                'label': _biblio_label(body_slug, episode_number=ep_n, module_fallback=True),
+                'label': (
+                    (lower.endswith('.docx') and (await _extract_biblio_title(key, obj.get('LastModified'))))
+                    or _biblio_label(body_slug, episode_number=ep_n, module_fallback=True)
+                ),
                 'mime': mime,
                 'auto_detected': True,
                 'scope': 'module',
@@ -7845,7 +7912,7 @@ async def get_course_resource_access_url(course_id: str, body: dict, request: Re
                 None
             )
             if mime_guess:
-                found = _autodetect_meta(r2_key, mime_guess, module=in_module)
+                found = await _autodetect_meta(r2_key, mime_guess, module=in_module)
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")
     mime = found.get('mime') or 'application/octet-stream'
@@ -8259,7 +8326,7 @@ async def get_course_resource_article(course_id: str, r2_key: str, request: Requ
             else:
                 mg = None
             if mg:
-                found = _autodetect_meta(r2_key, mg, module=in_module)
+                found = await _autodetect_meta(r2_key, mg, module=in_module)
                 scope = 'module' if in_module else 'course'
     if not found:
         raise HTTPException(404, "Ressource non rattachée à ce cours")

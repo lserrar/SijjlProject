@@ -1,6 +1,6 @@
 # Sijill Project — PRD
 
-> Dernière mise à jour : **21 mai 2026** — Préservation italique/gras Word dans la conversion DOCX → article (style bibliographie académique avec citations en pendant)
+> Dernière mise à jour : **13 juin 2026** — Extraction dynamique du vrai titre des bibliographies depuis le DOCX (ligne 2 de la calligraphie) — fini les libellés génériques "Bibliographie sélective" / "Bibliographie — Épisode N"
 
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :
@@ -41,6 +41,14 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - Docker/Docker Hub
 
 ## Ce qui fonctionne
+- ✅ **Titres dynamiques des bibliographies extraits du DOCX** (13 juin 2026) :
+  - L'auteur des biblios utilise un template Word : L1 = "Bibliographie sélective" (eyebrow boilerplate), L2 = vrai titre en gras (ex. "Al-Fārābī — Vie, contexte et corpus", "Les grands philosophes"), L3+ = sous-titres / entrées.
+  - `_extract_biblio_title()` (`backend/server.py` ~ligne 6906) parse le DOCX, ignore la ligne eyebrow, retourne L2. Caché par `(r2_key, last_modified)`.
+  - Wired dans `_autodetect_meta()` (devenu `async`) — utilisé par les endpoints `/courses/{id}/resource-article`, `/courses/{id}/resource-access-url`, `/courses/{id}/resource-pdf`. Tous les call sites mis à jour avec `await`.
+  - Wired dans `_autodetect_course_assets()` pour les biblios cours-folder ET module-folder. Fallback automatique au filename label (`_biblio_label`) si l'extraction échoue ou si le fichier est un PDF.
+  - **Vérification cur-l** : `/api/courses/cours-al-kindi/resources` retourne désormais 5 biblios d'épisodes avec leurs vrais titres + 1 biblio module "Les grands philosophes" ; `/api/courses/cours-al-kindi/resource-article?r2_key=...bibliographie_alkindi_ep01.docx` → `title="Al-Kindī — Vie, contexte et œuvre"`.
+  - Tests : 5/5 PASS dans `test_module_bibliographies.py` (clé R2 alignée sur le nom actuel `bibliographie-falsafa.docx`).
+
 - ✅ **Préservation italique/gras Word + style bibliographie académique** (21 mai 2026) :
   - `_docx_to_text` (`backend/server.py` ~ligne 7342) inspecte désormais chaque `run` du paragraphe et encadre les portions en **gras** / *italique* avec des marqueurs Unicode rares (`\u2999B\u2999…\u2999/B\u2999` et `\u2999I\u2999…\u2999/I\u2999`). Les marqueurs adjacents (`</B><B>`) générés par Word lors d'un split de run sont automatiquement collapsés. Les titres (Heading 1/2/3) restent débarrassés des marqueurs car déjà stylés par leur propre typographie côté frontend/PDF.
   - **Frontend** (`CourseResourceArticle.jsx`) :
