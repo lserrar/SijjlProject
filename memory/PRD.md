@@ -1,6 +1,6 @@
 # Sijill Project — PRD
 
-> Dernière mise à jour : **13 juin 2026** — Extraction dynamique du vrai titre des bibliographies depuis le DOCX (ligne 2 de la calligraphie) — fini les libellés génériques "Bibliographie sélective" / "Bibliographie — Épisode N"
+> Dernière mise à jour : **22 juin 2026** — Sync R2 pour cours Ibn Khaldūn (inclassables/falsafa) + fixes audio streaming (file_key backfill) + titres dynamiques biblios sur ressources DB-enregistrées
 
 ## Problème original
 Plateforme e-learning d'études islamiques "Sijill Project" avec :
@@ -41,6 +41,13 @@ docker-compose.yml  → mongodb, backend, nginx (custom build), certbot
 - Docker/Docker Hub
 
 ## Ce qui fonctionne
+- ✅ **Cours Ibn Khaldūn (Cédric Molino) synchronisé R2** (22 juin 2026) :
+  - `cours-falsafa-inclassables` : v14 seed corrigé, `r2_prefix` désormais `cursus-a-falsafa/inclassables/ibn-khaldun-philosophie/` (au lieu de l'ancien dossier fantôme `07-inclassables/`).
+  - Migration `v15l` étendue : écrit `file_key`, `r2_audio_key`, `r2_key` en parallèle + flip `is_placeholder=False`. Condition `$or` élargie pour ré-appliquer sur des docs déjà partiellement liés.
+  - Endpoints `/audios/{id}/stream-url` et `/audios/{id}/stream` : fallback en cascade `file_key || r2_audio_key || r2_key` pour tolérer les 3 noms de champs historiques.
+  - `list_course_resources` : appelle désormais `_extract_biblio_title()` aussi sur les biblios **DB-enregistrées** (cours + épisodes), pas seulement sur les biblios auto-détectées.
+  - **Vérifié testing_agent iter36 → 9/9 tests PASS (100%)** : streaming 206 Partial Content `audio/mp4` sur les 2 épisodes, biblio dynamique « Bibliographie cours sur Ibn Khaldûn », régression al-kindi verte.
+
 - ✅ **Titres dynamiques des bibliographies extraits du DOCX** (13 juin 2026) :
   - L'auteur des biblios utilise un template Word : L1 = "Bibliographie sélective" (eyebrow boilerplate), L2 = vrai titre en gras (ex. "Al-Fārābī — Vie, contexte et corpus", "Les grands philosophes"), L3+ = sous-titres / entrées.
   - `_extract_biblio_title()` (`backend/server.py` ~ligne 6906) parse le DOCX, ignore la ligne eyebrow, retourne L2. Caché par `(r2_key, last_modified)`.

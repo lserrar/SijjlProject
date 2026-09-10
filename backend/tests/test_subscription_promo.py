@@ -56,7 +56,7 @@ class TestSubscriptionManagement:
         if user_id:
             try:
                 requests.delete(f"{BASE_URL}/api/admin/users/{user_id}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_admin_users_list(self):
@@ -270,7 +270,7 @@ class TestPromoCodeValidityPeriod:
         for code in self.created_codes:
             try:
                 requests.delete(f"{BASE_URL}/api/admin/promo-codes/{code}", headers=self.headers)
-            except:
+            except Exception:
                 pass
     
     def test_create_promo_with_start_date(self):

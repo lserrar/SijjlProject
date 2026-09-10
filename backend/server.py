@@ -1942,7 +1942,7 @@ async def get_audio_stream_url(audio_id: str, request: Request):
         'exp': int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
     })
     
-    file_key = a.get('file_key')
+    file_key = a.get('file_key') or a.get('r2_audio_key') or a.get('r2_key')
     if file_key and r2_client:
         scheme = request.headers.get('x-forwarded-proto', 'https')
         host = request.headers.get('x-forwarded-host') or request.headers.get('host', '')
@@ -1986,7 +1986,7 @@ async def stream_audio(audio_id: str, request: Request, t: Optional[str] = None)
     a = await db.audios.find_one({'id': audio_id}, {'_id': 0})
     if not a:
         raise HTTPException(404, "Audio non trouvé")
-    file_key = a.get('file_key')
+    file_key = a.get('file_key') or a.get('r2_audio_key') or a.get('r2_key')
     if not file_key or not r2_client:
         # Fallback: redirect to audio_url if set
         fallback = a.get('audio_url')
@@ -4254,7 +4254,7 @@ async def seed_data():
             ('cours-avicenne',           'Avicenne (Ibn Sīnā)',                    "Le penseur encyclopédique qui marqua l'Orient et l'Occident.",           'cursus-a-falsafa/02-falsafa/avicenne/',   4),
             ('cours-al-ghazali',         'Al-Ghazālī',                            "L'imam-philosophe : critique de la falsafa et renouveau spirituel.",      'cursus-a-falsafa/02-falsafa/al-ghazali/', 5),
             ('cours-falsafa-occident',   "La falsafa en Occident musulman",       "Ibn Bajja, Ibn Ṭufayl et Averroès — la philosophie en al-Andalus.",      'cursus-a-falsafa/03-occident-musulman/',  6),
-            ('cours-falsafa-inclassables', 'Les inclassables (Ibn Khaldūn)',      "La pensée d'Ibn Khaldūn entre histoire, philosophie et sociologie.",     'cursus-a-falsafa/07-inclassables/',       7),
+            ('cours-falsafa-inclassables', 'Les inclassables (Ibn Khaldūn)',      "La pensée d'Ibn Khaldūn entre histoire, philosophie et sociologie.",     'cursus-a-falsafa/inclassables/ibn-khaldun-philosophie/', 7),
             ('cours-falsafa-persane',    "Renouveau de la philosophie persane",   "Mullā Ṣadrā et la philosophie islamique tardive.",                       'cursus-a-falsafa/06-renouveau-persan/',   8),
         ]
         for cid, title, summary, r2_prefix, order in v14_new_courses:
@@ -5451,7 +5451,7 @@ async def seed_data():
             audio_assigned = 0
             audio_courses_seen = 0
             async for c in db.courses.find(
-                {'r2_prefix': {'$exists': True, '$ne': None, '$ne': ''}},
+                {'r2_prefix': {'$exists': True, '$nin': [None, '']}},
                 {'_id': 0, 'id': 1, 'r2_prefix': 1},
             ):
                 cid = c['id']
@@ -5479,9 +5479,34 @@ async def seed_data():
                         {
                             'course_id': cid,
                             'episode_number': ep,
-                            '$or': [{'r2_key': None}, {'r2_key': ''}, {'r2_key': {'$exists': False}}],
+                            # Match audios that still lack a proper R2 binding
+                            # on ANY of the three parallel field names — this
+                            # lets us backfill file_key/r2_audio_key on docs
+                            # that already got r2_key from an earlier v15l run
+                            # (before the field-alignment fix).
+                            '$or': [
+                                {'r2_key': {'$in': [None, '']}},
+                                {'r2_key': {'$exists': False}},
+                                {'file_key': {'$in': [None, '']}},
+                                {'file_key': {'$exists': False}},
+                                {'r2_audio_key': {'$in': [None, '']}},
+                                {'r2_audio_key': {'$exists': False}},
+                            ],
                         },
-                        {'$set': {'r2_key': key}},
+                        {'$set': {
+                            'r2_key': key,
+                            # Backfill the historical field names the /stream
+                            # and /stream-url endpoints still read from — the
+                            # audios collection carries three parallel keys
+                            # for legacy reasons (file_key = pre-R2 name;
+                            # r2_audio_key = R2 native name; r2_key = the
+                            # generic name used by newer migrations). Keep
+                            # them in sync so playback works regardless of
+                            # which one the endpoint reads.
+                            'file_key': key,
+                            'r2_audio_key': key,
+                            'is_placeholder': False,
+                        }},
                     )
                     if res.modified_count:
                         audio_assigned += 1
@@ -6521,6 +6546,14 @@ async def admin_update_course(course_id: str, body: CourseUpdate, request: Reque
         raise HTTPException(404, "Cours non trouvé")
     doc = await db.courses.find_one({'id': course_id}, {'_id': 0})
     return doc
+
+@api_router.delete("/admin/courses/featured")
+async def admin_remove_featured_course_early(request: Request):
+    """Remove featured status from all courses. Defined BEFORE the parameterized
+    /admin/courses/{course_id} route so FastAPI matches this literal path first."""
+    await require_admin(request)
+    await db.courses.update_many({}, {'$set': {'is_featured': False}})
+    return {'message': 'Aucun cours mis en avant'}
 
 @api_router.delete("/admin/courses/{course_id}")
 async def admin_delete_course(course_id: str, request: Request):
@@ -7599,10 +7632,22 @@ async def list_course_resources(course_id: str, request: Request):
         if fn.lower().startswith('contexte_'):
             seen_keys.add(r['r2_key'])
             continue
+        # For DB-registered bibliographies, prefer the DOCX's own title
+        # (line 2 of the author template) over the generic fallback label
+        # stored at seed time. This matches the /resource-article endpoint.
+        label = r.get('label') or fn
+        rtype = r.get('type')
+        if rtype in ('biblio', 'bibliographie') and fn.lower().endswith('.docx'):
+            try:
+                real = await _extract_biblio_title(r['r2_key'])
+                if real:
+                    label = real
+            except Exception:
+                pass
         items.append({
             'r2_key': r['r2_key'],
-            'type': r.get('type'),
-            'label': r.get('label') or fn,
+            'type': rtype,
+            'label': label,
             'mime': r.get('mime') or 'application/octet-stream',
             'scope': 'course',
         })
@@ -7623,10 +7668,20 @@ async def list_course_resources(course_id: str, request: Request):
             # the correct type by the auto-detect block.
             if fn.lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')) and r.get('type') == 'script':
                 continue
+            # Dynamic biblio title for DB-registered per-episode biblios.
+            label = r.get('label') or fn
+            rtype = r.get('type')
+            if rtype in ('biblio', 'bibliographie') and fn.lower().endswith('.docx'):
+                try:
+                    real = await _extract_biblio_title(r['r2_key'])
+                    if real:
+                        label = real
+                except Exception:
+                    pass
             items.append({
                 'r2_key': r['r2_key'],
-                'type': r.get('type'),
-                'label': r.get('label') or fn,
+                'type': rtype,
+                'label': label,
                 'mime': r.get('mime') or 'application/octet-stream',
                 'scope': 'episode',
                 'audio_id': a['id'],
@@ -10337,6 +10392,7 @@ async def update_professor_photos(request: Request):
     }
     
     updated = []
+    R2_PUBLIC_URL = os.environ.get('R2_PUBLIC_URL', '')
     for filename, scholar_id in photo_mapping.items():
         r2_key = f"images/{filename}"
         photo_url = f"https://{R2_PUBLIC_URL}/{r2_key}" if R2_PUBLIC_URL else f"/api/audios/stream/{r2_key}"
@@ -10810,7 +10866,7 @@ async def admin_extend_subscription(user_id: str, body: ExtendSubscriptionReques
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
                 return dt
-            except:
+            except Exception:
                 return None
         return None
     
@@ -11349,6 +11405,14 @@ async def admin_update_cursus(cursus_id: str, body: CursusUpdate, request: Reque
             raise HTTPException(404, "Cursus non trouvé")
     return {'message': 'Cursus mis à jour', 'id': cursus_id}
 
+@api_router.delete("/admin/cursus/featured")
+async def admin_remove_featured_cursus_early(request: Request):
+    """Remove featured status from all cursus. Defined BEFORE the parameterized
+    /admin/cursus/{cursus_id} route so FastAPI matches this literal path first."""
+    await require_admin(request)
+    await db.cursus.update_many({}, {'$set': {'is_featured': False}})
+    return {'message': 'Aucun cursus mis en avant'}
+
 @api_router.delete("/admin/cursus/{cursus_id}")
 async def admin_delete_cursus(cursus_id: str, request: Request):
     await require_admin(request)
@@ -11764,9 +11828,10 @@ async def admin_set_featured_course(course_id: str, request: Request):
     logger.info(f"Course {course_id} set as featured")
     return {'message': 'Cours mis en avant', 'id': course_id}
 
-@api_router.delete("/admin/courses/featured")
+@api_router.delete("/admin/courses/featured-legacy")
 async def admin_remove_featured_course(request: Request):
-    """Remove featured status from all courses."""
+    """Deprecated duplicate; kept only so old admin clients don't 404. The
+    canonical route is DELETE /admin/courses/featured (defined earlier)."""
     await require_admin(request)
     await db.courses.update_many({}, {'$set': {'is_featured': False}})
     return {'message': 'Aucun cours mis en avant'}
@@ -11786,9 +11851,10 @@ async def admin_set_featured_cursus(cursus_id: str, request: Request):
     logger.info(f"Cursus {cursus_id} set as featured")
     return {'message': 'Cursus mis en avant', 'id': cursus_id}
 
-@api_router.delete("/admin/cursus/featured")
+@api_router.delete("/admin/cursus/featured-legacy")
 async def admin_remove_featured_cursus(request: Request):
-    """Remove featured status from all cursus."""
+    """Deprecated duplicate; kept only so old admin clients don't 404. The
+    canonical route is DELETE /admin/cursus/featured (defined earlier)."""
     await require_admin(request)
     await db.cursus.update_many({}, {'$set': {'is_featured': False}})
     return {'message': 'Aucun cursus mis en avant'}
@@ -12444,7 +12510,7 @@ async def gift_card_redeem(body: GiftCardRedeemRequest, request: Request):
     current_end = user_doc.get('subscription_end_date')
     if isinstance(current_end, str):
         try: current_end = datetime.fromisoformat(current_end.replace('Z', '+00:00'))
-        except: current_end = None
+        except Exception: current_end = None
     base = max(now, current_end) if current_end else now
     new_end = base + timedelta(days=g['duration_days'])
     await db.users.update_one(
@@ -13537,7 +13603,6 @@ app.add_middleware(
 async def startup():
     await seed_data()
     # Check for trial expirations on startup (non-blocking)
-    import asyncio
     asyncio.create_task(check_and_send_trial_expiration_emails())
 
     # Stripe Phase B — provision subscription catalog (idempotent via lookup_key).

@@ -14,7 +14,7 @@ async def check_db():
     total_audios = await db.audios.count_documents({})
     
     # Count audios with module_id
-    with_module = await db.audios.count_documents({'module_id': {'$exists': True, '$ne': None, '$ne': ''}})
+    with_module = await db.audios.count_documents({'module_id': {'$exists': True, '$nin': [None, '']}})
     
     # Get sample audios
     samples = await db.audios.find({}, {'_id': 0, 'id': 1, 'title': 1, 'module_id': 1, 'file_key': 1}).limit(5).to_list(5)

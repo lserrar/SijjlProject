@@ -1,0 +1,51 @@
+{
+  "summary": "Iter35 backend test of Ibn Khaldun (falsafa/inclassables) R2 sync fix. 3/6 tests pass. Course r2_prefix + resources listing + audio r2_key linkage OK. FAIL: (1) /audios/{id}/stream-url returns empty stream_url because migration v15l only sets r2_key/r2_audio_key while the /stream and /stream-url endpoints read file_key — user cannot listen to either episode. (2) Bibliography label is still the generic fallback 'Bibliographie sélective' — the DB-registered course-scope biblio does not go through _extract_biblio_title (only auto-detected biblios do).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/audios/{audio_id}/stream-url and /api/audios/{audio_id}/stream",
+        "issue": "Both Ibn Khaldun episodes return stream_url='' / 404 'Fichier audio non disponible'. audio docs have r2_key='cursus-a-falsafa/inclassables/ibn-khaldun-philosophie/Falsafa-ibnKhaldune-episode{1,2}.m4a' and r2_audio_key set to the same, but file_key is None. The two endpoints (server.py:1945 and :1989) only look at a.get('file_key'), so playback is broken. Migration v15l (line 5478) only fills r2_key, never file_key.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/courses/cours-falsafa-inclassables/resources → biblio label",
+        "issue": "Bibliography (bibliographie_ibnkhaldune.docx) is returned with the generic fallback label 'Bibliographie sélective'. The dynamic title from the DOCX (_extract_biblio_title, server.py ~6906) is only invoked in _autodetect_meta (line 7668), not for DB-registered biblios. Since the course-scope biblio is registered via seed/migration with label='Bibliographie sélective', the real DOCX title never surfaces.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/audios?course_id=cours-falsafa-inclassables",
+        "issue": "Both episodes still have is_placeholder=true even though real R2 audio was linked by v15l. Migration should flip is_placeholder=false when a real file is bound."
+      },
+      {
+        "endpoint": "/api/courses/{slug}/resources",
+        "issue": "Contexte_ibn-khaldun.docx is not surfaced in /resources by design (server.py:7731 explicitly skips 'contexte_*'). Review request expected it here — either update the request expectation or expose Contexte as a separate resource type. Verified it IS accessible via the article rendering pipeline."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter35_ibn_khaldun_r2.py",
+    "/app/test_reports/pytest/iter35.xml"
+  ],
+  "action_items": [
+    "In migration v15l (server.py ~5478), also set file_key (and audio_url if used) to the same r2_key so /stream-url and /stream can serve the file. Alternatively, update /audios/{id}/stream-url and /audios/{id}/stream to fall back to r2_key or r2_audio_key when file_key is missing.",
+    "Flip is_placeholder=false in v15l when a real .m4a is linked.",
+    "Make _extract_biblio_title also run for DB-registered biblios in /courses/{slug}/resources (server.py ~7625), OR store the extracted title in the DB record at seed time so the label is dynamic.",
+    "Clarify whether Contexte_*.docx should appear in /resources (currently intentionally excluded)."
+  ],
+  "critical_code_review_comments": [
+    "Two parallel key names (file_key vs r2_key vs r2_audio_key) on the audios collection cause confusion. Unify to a single canonical field or centralize the resolution in a helper.",
+    "Migration v15l is one-shot and does not maintain the invariant when r2_prefix changes later — consider re-running on prefix update.",
+    "Biblio title extraction is duplicated logic paths: fallback filename label + optional DOCX real title. The label produced at ingest time is authoritative and hides the dynamic value — consider single source of truth."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "50%"},
+  "test_credentials": "loubna.serrar@gmail.com / Admin123! (works, role=admin, active annual subscription)",
+  "seed_data_creation": "None. Read-only tests.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent fixes v15l to set file_key (or endpoint fallback), rerun /app/backend/tests/test_iter35_ibn_khaldun_r2.py — expect all 6 tests to pass. Streaming test uses /api/audios/{id}/stream-url and expects a non-empty stream_url. Biblio dynamic title test expects any label != 'Bibliographie sélective'.",
+  "rca of the issue": "Migration v15l writes only r2_key on audio docs, but the streaming endpoints (server.py:1945, 1989) require file_key. Since v14 seed inserts these audios without file_key and v15l does not backfill it, /audios/{id}/stream-url returns {stream_url:'', file_key:null, source:'fallback'} and /stream returns 404. Fix: in v15l, use `{'$set': {'r2_key': key, 'file_key': key, 'r2_audio_key': key, 'is_placeholder': False}}`."
+}

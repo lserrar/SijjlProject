@@ -1,0 +1,32 @@
+{
+  "summary": "Iter36 regression of Ibn Khaldun (falsafa/inclassables) R2 sync — all 3 previously-failing behaviors now pass. 9/9 backend tests green. Course r2_prefix correct, both episodes stream real audio bytes (206 Partial Content, audio/mp4) from R2 via proxy, and biblio label is dynamically extracted from DOCX. Al-Kindi biblio regression check also passes.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/audios?course_id=cours-falsafa-inclassables",
+        "issue": "r2_audio_key is None on both Ibn Khaldun episodes even though review request expected it populated (file_key and r2_key are correctly set). Streaming works because /stream and /stream-url read file_key. Migration v15l sets file_key + r2_key but not r2_audio_key. Cosmetic/consistency only — no functional impact."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter35_ibn_khaldun_r2.py",
+    "/app/test_reports/pytest/iter36.xml"
+  ],
+  "action_items": [
+    "(Optional/minor) In migration v15l also set r2_audio_key alongside file_key/r2_key for schema consistency across the 3 parallel field names."
+  ],
+  "critical_code_review_comments": [
+    "Three parallel field names on audios (file_key, r2_audio_key, r2_key) — this iteration proved the ambiguity by leaving r2_audio_key None; consolidate to one canonical field with the other two as computed aliases.",
+    "Migration v15l is idempotent-ish but relies on hardcoded audio ids — if seed ids change again it will silently no-op."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter35_ibn_khaldun_r2.py"],
+  "success_rate": {"backend": "100%"},
+  "test_credentials": "loubna.serrar@gmail.com / Admin123! — admin, works",
+  "seed_data_creation": "None. Read-only tests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_iter35_ibn_khaldun_r2.py now has 9 tests including real byte-range streaming (206) and Al-Kindi biblio regression. Audio ids use '-main-' segment (aud_cours-falsafa-inclassables-main-ep01/02). All 3 fixes from iter35 confirmed working end-to-end.",
+  "rca of the issue": "Fixed. v15l now writes file_key + r2_key + is_placeholder=false so stream endpoints (which read file_key) can serve audio; DOCX title extraction is now applied to DB-registered biblios in list_course_resources so the label is dynamic. Verified via HTTP 206 partial-content responses with audio/mp4 content-type on both episodes and via non-generic biblio label."
+}
